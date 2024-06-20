@@ -1,12 +1,13 @@
 import "dotenv/config.js";
 import { connect } from "mongoose";
+import chalk from "chalk";
 
 const connectDB = async () => {
   try {
     await connect(process.env.MONGO_URI_DEV);
-    console.log("MongoDB connected...");
+    console.log(chalk.greenBright("MongoDB connected..."));
   } catch (err) {
-    console.error(err.message);
+    console.error(chalk.redBright(err.message));
     process.exit(1);
   }
 };

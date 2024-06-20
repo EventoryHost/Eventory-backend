@@ -4,7 +4,7 @@ import connectDB from "./config/db.js";
 import cors from "cors";
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import color from "chalk";
+import chalk from "chalk";
 
 const app = express();
 const port = 3000;
@@ -26,6 +26,6 @@ app.use("/auth", authRoutes);
 
 app.listen(port, () => {
   console.log(
-    `Server listening on port ${color.blueBright("http://localhost:" + port)}`
+    "Server listening on port " + chalk.blueBright("http://localhost:" + port)
   );
 });
