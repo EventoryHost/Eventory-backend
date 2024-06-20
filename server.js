@@ -29,3 +29,5 @@ app.listen(port, () => {
     "Server listening on port " + chalk.blueBright("http://localhost:" + port)
   );
 });
+
+export default app;
