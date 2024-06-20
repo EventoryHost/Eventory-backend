@@ -5,9 +5,11 @@ import cors from "cors";
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import chalk from "chalk";
+import morgan from "morgan";
 
 const app = express();
 const port = 3000;
+app.use(morgan("dev"));
 
 connectDB();
 

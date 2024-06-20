@@ -1,7 +1,8 @@
 import { Router } from "express";
-const router = Router();
 import catererController from "../controllers/catererController.js";
 import hallController from "../controllers/marraigeHallController.js";
+
+const router = Router();
 
 router.get("/caterer", catererController.getAllCaterers);
 router.post("/add-caterer", catererController.createCaterer);
