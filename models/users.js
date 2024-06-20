@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+import { Schema as _Schema } from "mongoose";
+const Schema = _Schema;
 
 const userSchema = new Schema({
   name: { type: String },
@@ -8,4 +8,4 @@ const userSchema = new Schema({
   type: { type: String },
 });
 
-module.exports = userSchema
+export default userSchema;

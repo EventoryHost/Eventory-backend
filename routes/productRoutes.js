@@ -1,13 +1,12 @@
-const express = require('express')
-const router = express.Router()
-const catererController = require('../controllers/catererController')
-const hallController = require('../controllers/marraigeHallController')
+import { Router } from "express";
+const router = Router();
+import catererController from "../controllers/catererController.js";
+import hallController from "../controllers/marraigeHallController.js";
 
-router.get("/caterer", catererController.getAllCaterers)
-router.post("/add-caterer", catererController.createCaterer)
+router.get("/caterer", catererController.getAllCaterers);
+router.post("/add-caterer", catererController.createCaterer);
 
-router.get("/halls", hallController.getAllHalls)
-router.post("/add-hall", hallController.createHall)
+router.get("/halls", hallController.getAllHalls);
+router.post("/add-hall", hallController.createHall);
 
-
-module.exports = router;
+export default router;

@@ -1,6 +1,6 @@
-const Hall = require("../models/marraigehall");
+import Hall from "../models/marraigehall.js";
 
-createHall = async (req, res) => {
+const createHall = async (req, res) => {
   const hall = new Hall(req.body);
   try {
     const newHall = await hall.save();
@@ -10,15 +10,13 @@ createHall = async (req, res) => {
   }
 };
 
+const getAllHalls = async (req, res) => {
+  try {
+    const halls = await find();
+    res.json(halls);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
 
-getAllHalls = async (req, res) => {
-
-    try{
-        const halls = await Hall.find()
-        res.json(halls)
-    } catch (e) {
-        res.status(400).json({ message: e.message})
-    }
-}
-
-module.exports = {createHall, getAllHalls}
+export default { createHall, getAllHalls };

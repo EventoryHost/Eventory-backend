@@ -1,5 +1,5 @@
-const cognito = require("../config/awsConfig");
-require("dotenv").config();
+import "dotenv/config.js";
+import cognito from "../config/awsConfig.js";
 
 const signUp = async (req, res) => {
   const { phone } = req.body;
@@ -121,4 +121,4 @@ const confirmUser = async (phoneNumber) => {
   }
 };
 
-module.exports = { signUp, login, verifyOtp };
+export default { login, signUp, verifyOtp };

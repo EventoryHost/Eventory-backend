@@ -1,6 +1,6 @@
-const Caterer = require("../models/caterer");
+import Caterer from "../models/caterer.js";
 
-createCaterer = async (req, res) => {
+const createCaterer = async (req, res) => {
   const caterer = new Caterer(req.body);
   try {
     const newCaterer = await caterer.save();
@@ -10,15 +10,12 @@ createCaterer = async (req, res) => {
   }
 };
 
+const getAllCaterers = async (req, res) => {
+  try {
+    const caterers = await _res.json(caterers);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
 
-getAllCaterers = async (req, res) => {
-
-    try{
-        const caterers = await Caterer.
-        res.json(caterers)
-    } catch (e) {
-        res.status(400).json({ message: e.message})
-    }
-}
-
-module.exports = {createCaterer, getAllCaterers}
+export default { createCaterer, getAllCaterers };
