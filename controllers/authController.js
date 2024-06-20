@@ -1,44 +1,61 @@
 const cognito = require("../config/awsConfig");
 require("dotenv").config();
+const User = require("../models/users");
 
 const signUp = async (req, res) => {
-  const { phone } = req.body;
+  const { email, password, name } = req.body;
+  let { mobile } = req.body;
+  phone = "+91" + mobile;
 
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    Username: phone,
-    Password: "123456",
+    Username: email,
+    Password: password,
     UserAttributes: [
-      {
-        Name: "phone_number",
-        Value: phone,
-      },
+      { Name: "email", Value: email },
+      { Name: "phone_number", Value: phone },
+      { Name: "name", Value: name },
     ],
   };
 
   try {
-    const user = await userExists(phone);
-    const data = {};
+    const user = await userExists(email);
     if (!user) {
-      data = await cognito.signUp(params).promise();
+      let data = await cognito.signUp(params).promise();
+      const newUser = new User({
+        name,
+        phone,
+        password,
+        email,
+      });
+      await newUser.save();
+      data = await confirmUser(email)
+      res.status(200).json({ message: "Vendor registered", data });
     }
-    await initiateAuth(phone);
-    res.status(200).send(data);
   } catch (error) {
-    res.status(500).send(error);
+    res.status(400).json({ error: error.message });
   }
 };
 
 const login = async (req, res) => {
-  const { phone } = req.body;
+  const { email, password } = req.body;
+
+  const params = {
+    AuthFlow: "USER_PASSWORD_AUTH",
+    ClientId: process.env.COGNITO_APP_CLIENT_ID,
+    AuthParameters: {
+      USERNAME: email,
+      PASSWORD: password,
+    },
+  };
 
   try {
-    const initData = await initiateAuth(phone);
+    const data = await cognito.initiateAuth(params).promise();
 
     console.log("Login success:", data);
-    res.status(200).send(data);
+    res.status(200).json({message: "Login success",data});
   } catch (error) {
-    res.status(500).send(error);
+    res.status(500).json({error: error.message});
   }
 };
 
@@ -108,10 +125,10 @@ const userExists = async (phoneNumber) => {
   }
 };
 
-const confirmUser = async (phoneNumber) => {
+const confirmUser = async (email) => {
   const params = {
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Username: phoneNumber,
+    Username: email,
   };
 
   try {
