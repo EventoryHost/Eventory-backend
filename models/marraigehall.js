@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import { Schema as _Schema, model } from "mongoose";
+const Schema = _Schema;
 
 const marriageHallSchema = new Schema({
   basicInfo: {
@@ -9,7 +9,7 @@ const marriageHallSchema = new Schema({
     city: { type: String, required: true },
     state: { type: String, required: true },
     zipCode: { type: String, required: true },
-    landmark: { type: String }
+    landmark: { type: String },
   },
   contactInfo: {
     phoneNumber: { type: String, required: true },
@@ -17,31 +17,31 @@ const marriageHallSchema = new Schema({
     website: { type: String },
     contactPerson: {
       name: { type: String, required: true },
-      position: { type: String }
-    }
+      position: { type: String },
+    },
   },
   venueDetails: {
     capacity: {
       seating: { type: Number, required: true },
-      floating: { type: Number, required: true }
+      floating: { type: Number, required: true },
     },
     hallSize: {
       squareFootage: { type: Number },
-      dimensions: { type: String }
+      dimensions: { type: String },
     },
     numberOfHalls: { type: Number },
     multipleHallsAvailable: { type: Boolean },
     typeOfVenue: {
       indoor: { type: Boolean },
       outdoor: { type: Boolean },
-      combination: { type: Boolean }
+      combination: { type: Boolean },
     },
     layoutOptions: {
       banquet: { type: Boolean },
       theater: { type: Boolean },
       uShape: { type: Boolean },
-      otherConfigurations: { type: String }
-    }
+      otherConfigurations: { type: String },
+    },
   },
   amenitiesFacilities: {
     airConditioning: { type: Boolean },
@@ -49,39 +49,39 @@ const marriageHallSchema = new Schema({
     parking: {
       available: { type: Boolean },
       numberOfSpaces: { type: Number },
-      valetService: { type: Boolean }
+      valetService: { type: Boolean },
     },
     restrooms: {
       numberOfRestrooms: { type: Number },
-      handicapAccessibility: { type: Boolean }
+      handicapAccessibility: { type: Boolean },
     },
     dressingRooms: {
       forBride: { type: Boolean },
-      forGroom: { type: Boolean }
+      forGroom: { type: Boolean },
     },
     kitchenFacilities: { type: Boolean },
     audioVisualEquipment: {
       soundSystem: { type: Boolean },
       projector: { type: Boolean },
-      microphones: { type: Boolean }
+      microphones: { type: Boolean },
     },
-    wiFiAvailability: { type: Boolean }
+    wiFiAvailability: { type: Boolean },
   },
   servicesProvided: {
     cateringServices: {
       inHouseCatering: { type: Boolean },
-      outsideCateringAllowed: { type: Boolean }
+      outsideCateringAllowed: { type: Boolean },
     },
     decorationServices: {
       inHouseDecorator: { type: Boolean },
-      outsideDecoratorAllowed: { type: Boolean }
+      outsideDecoratorAllowed: { type: Boolean },
     },
     djEntertainmentServices: {
       inHouseDJ: { type: Boolean },
-      outsideDJAllowed: { type: Boolean }
+      outsideDJAllowed: { type: Boolean },
     },
     securityServices: { type: Boolean },
-    cleaningMaintenance: { type: Boolean }
+    cleaningMaintenance: { type: Boolean },
   },
   bookingPaymentDetails: {
     availabilityCalendar: { type: String }, // or use a more complex type if needed
@@ -90,33 +90,33 @@ const marriageHallSchema = new Schema({
     paymentTerms: { type: String },
     paymentMethodsAccepted: { type: [String] },
     depositRequired: { type: Boolean },
-    cancellationPolicy: { type: String }
+    cancellationPolicy: { type: String },
   },
   additionalInfo: {
     pricing: {
       rentalRates: { type: Number },
-      packagesAvailable: { type: String }
+      packagesAvailable: { type: String },
     },
     specialFeatures: {
       scenicViews: { type: Boolean },
-      historicSignificance: { type: Boolean }
+      historicSignificance: { type: Boolean },
     },
     restrictions: {
       noiseRestrictions: { type: Boolean },
-      alcoholPolicy: { type: String }
-    }
+      alcoholPolicy: { type: String },
+    },
   },
   reviewsRatings: {
     reviews: [{ type: String }], // or more complex structure
-    ratings: [{ type: Number }] // or more complex structure
+    ratings: [{ type: Number }], // or more complex structure
   },
   photosVideos: {
     images: [{ type: String }], // URLs of images
-    virtualTour: { type: String } // URL of virtual tour
-  }
+    virtualTour: { type: String }, // URL of virtual tour
+  },
 });
 
 // Create the model from the schema and export it
-const MarriageHall = mongoose.model('MarriageHall', marriageHallSchema);
+const MarriageHall = model("MarriageHall", marriageHallSchema);
 
-module.exports = MarriageHall;
+export default MarriageHall;

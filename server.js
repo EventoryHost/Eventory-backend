@@ -1,20 +1,19 @@
-const express = require("express");
-const connectDB = require("./config/db.js");
-const cors = require("cors");
-require("dotenv").config();
-const AWS = require('aws-sdk')
+import "dotenv/config.js";
+import express, { json } from "express";
+import connectDB from "./config/db.js";
+import cors from "cors";
+import productRoutes from "./routes/productRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import color from "chalk";
+import { Router } from "express";
+const router = Router();
 
 const app = express();
 const port = 4000;
 
 connectDB();
 
-AWS.config.update({
-  region: process.env.AWS_REGION
-})
-
-app.use(express.json());
-
+app.use(json());
 app.use(
   cors({
     origin: "*",
@@ -23,11 +22,12 @@ app.use(
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
   })
 );
-
-app.use("/api/products", require("./routes/productRoutes"));
-app.use('/auth', require('./routes/authRoutes'));
-
+app.use('/', router);
+app.use("/api/products", productRoutes);
+app.use("/auth", authRoutes);
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(
+    `Server listening on port ${color.blueBright("http://localhost:" + port)}`
+  );
 });

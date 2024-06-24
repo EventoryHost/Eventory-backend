@@ -1,0 +1,23 @@
+name: "Prettier Format"
+run-name: Formatter run by @${{ github.actor }}
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [prod, dev]
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm i -D prettier@latest
+      - run: npx prettier . --write
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        with:
+          commit_message: Apply formatting changes
+          branch: ${{ github.head_ref }}

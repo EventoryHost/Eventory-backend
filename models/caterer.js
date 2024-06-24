@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import { Schema as _Schema, model } from "mongoose";
+const Schema = _Schema;
 
 // Define the caterer schema
 const catererSchema = new Schema({
@@ -10,8 +10,8 @@ const catererSchema = new Schema({
       city: { type: String, required: true },
       state: { type: String, required: true },
       zipCode: { type: String, required: true },
-      landmark: { type: String }
-    }
+      landmark: { type: String },
+    },
   },
   contactInfo: {
     phoneNumber: { type: String, required: true },
@@ -19,8 +19,8 @@ const catererSchema = new Schema({
     website: { type: String },
     contactPerson: {
       name: { type: String, required: true },
-      position: { type: String }
-    }
+      position: { type: String },
+    },
   },
   cuisineMenuDetails: {
     cuisineSpecialties: {
@@ -28,25 +28,25 @@ const catererSchema = new Schema({
       southIndian: { type: Boolean },
       eastIndian: { type: Boolean },
       westIndian: { type: Boolean },
-      regionalSpecialties: { type: [String] } // e.g., Gujarati, Rajasthani, Bengali
+      regionalSpecialties: { type: [String] }, // e.g., Gujarati, Rajasthani, Bengali
     },
     menuOptions: {
       appetisers: { type: [String] },
       mainCourses: { type: [String] },
       desserts: { type: [String] },
       beverages: { type: [String] },
-      specialDietaryOptions: { type: [String] } // e.g., vegan, vegetarian, gluten-free
+      specialDietaryOptions: { type: [String] }, // e.g., vegan, vegetarian, gluten-free
     },
     menuCustomization: {
       customizableMenus: { type: Boolean },
-      preSetMenus: { type: Boolean }
+      preSetMenus: { type: Boolean },
     },
     servingStyles: {
       buffet: { type: Boolean },
       platedMeals: { type: Boolean },
       familyStyle: { type: Boolean },
-      foodStations: { type: Boolean }
-    }
+      foodStations: { type: Boolean },
+    },
   },
   servicesProvided: {
     eventTypesCatered: {
@@ -54,23 +54,23 @@ const catererSchema = new Schema({
       corporateEvents: { type: Boolean },
       birthdayParties: { type: Boolean },
       festivals: { type: Boolean },
-      privateParties: { type: Boolean }
+      privateParties: { type: Boolean },
     },
     cateringEquipment: {
       utensils: { type: Boolean },
       chafingDishes: { type: Boolean },
       servingWare: { type: Boolean },
-      tableware: { type: Boolean }
+      tableware: { type: Boolean },
     },
     onSiteServices: {
       chefs: { type: Boolean },
       servers: { type: Boolean },
-      bartenders: { type: Boolean }
+      bartenders: { type: Boolean },
     },
     setupCleanup: {
       setupServices: { type: Boolean },
-      cleanupServices: { type: Boolean }
-    }
+      cleanupServices: { type: Boolean },
+    },
   },
   bookingPaymentDetails: {
     bookingPolicy: { type: String },
@@ -78,32 +78,32 @@ const catererSchema = new Schema({
     minimumOrderRequirements: { type: Number },
     paymentTerms: { type: String },
     depositRequired: { type: Boolean },
-    cancellationPolicy: { type: String }
+    cancellationPolicy: { type: String },
   },
   pricing: {
     perPlateRates: { type: Number },
-    packageDeals: { type: [String] }
+    packageDeals: { type: [String] },
   },
   additionalInfo: {
     tastingSessions: {
-      availability: { type: Boolean }
+      availability: { type: Boolean },
     },
     certificatesLicenses: {
       foodSafetyCertificates: { type: [String] }, // URLs or paths to certificates
-      businessLicenses: { type: [String] }
-    }
+      businessLicenses: { type: [String] },
+    },
   },
   reviewsRatings: {
     reviews: [{ type: String }], // or more complex structure
-    ratings: [{ type: Number }] // or more complex structure
+    ratings: [{ type: Number }], // or more complex structure
   },
   photosVideos: {
     images: [{ type: String }], // URLs of images
-    videos: [{ type: String }] // URLs of videos
-  }
+    videos: [{ type: String }], // URLs of videos
+  },
 });
 
 // Create the model from the schema and export it
-const Caterer = mongoose.model('Caterer', catererSchema);
+const Caterer = model("Caterer", catererSchema);
 
-module.exports = Caterer;
+export default Caterer;

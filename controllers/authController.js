@@ -1,141 +1,195 @@
-const cognito = require("../config/awsConfig");
-require("dotenv").config();
-const User = require("../models/users");
+import dotenv from "dotenv";
+dotenv.config();
+import cognito from "../config/awsConfig.js";
+import axios from "axios";
+import jwt from "jsonwebtoken";
 
-const signUp = async (req, res) => {
-  const { email, password, name } = req.body;
-  let { mobile } = req.body;
-  phone = "+91" + mobile;
+import { Vendor as User } from "../models/users.js";
+import {
+  AdminInitiateAuthCommand,
+  AdminRespondToAuthChallengeCommand,
+  CognitoIdentityProviderClient,
+  ConfirmSignUpCommand,
+  ListUsersCommand,
+  SignUpCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
 
-  const params = {
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    Username: email,
-    Password: password,
-    UserAttributes: [
-      { Name: "email", Value: email },
-      { Name: "phone_number", Value: phone },
-      { Name: "name", Value: name },
-    ],
-  };
+// const signUp = async (req, res) => {
+//   const { mobile } = req.body;
+
+//   const params = {
+//     ClientId: process.env.COGNITO_APP_CLIENT_ID,
+//     UserPoolId: process.env.COGNITO_USER_POOL_ID,
+
+//     Username: `+91${mobile}`,
+//     Password: "123456",
+//     UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
+//   };
+
+//   try {
+//     const user = await userExists(`+91${mobile}`);
+//     if (user) {
+//       return res.status(400).json({ message: "User already exists" });
+//     }
+//     const command = new SignUpCommand(params);
+//     const data = await cognito.send(command);
+
+//     res.status(200).json({ message: "OTP sent", data });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
+// const login = async (req, res) => {
+//   const { mobile } = req.body;
+//   const params = {
+//     AuthFlow: "CUSTOM_AUTH",
+//     ClientId: process.env.COGNITO_APP_CLIENT_ID,
+//     UserPoolId: process.env.COGNITO_USER_POOL_ID,
+//     AuthParameters: {
+//       USERNAME: `+91${mobile}`,
+//     },
+//   };
+
+//   try {
+//     const command = new AdminInitiateAuthCommand(params);
+//     const data = await cognito.send(command);
+//     res.status(200).json({ message: "OTP sent", data });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
+// const verifyLoginOtp = async (req, res) => {
+//   const { mobile, code, session } = req.body;
+
+//   const params = {
+//     ChallengeName: "CUSTOM_CHALLENGE",
+//     ClientId: process.env.COGNITO_APP_CLIENT_ID,
+//     ChallengeResponses: {
+//       USERNAME: `+91${mobile}`,
+//       ANSWER: code,
+//     },
+//     Session: session,
+//   };
+
+//   try {
+//     const command = new AdminRespondToAuthChallengeCommand(params);
+//     const data = await cognito.send(command);
+
+//     res.status(200).json({ message: "Login Success", data });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
+// const verifySignUpOtp = async (req, res) => {
+//   const { otp, mobile } = req.body;
+
+//   const params = {
+//     ClientId: process.env.COGNITO_APP_CLIENT_ID,
+//     UserPoolId: process.env.COGNITO_USER_POOL_ID,
+//     Username: `+91${mobile}`,
+//     ConfirmationCode: otp,
+//   };
+
+//   try {
+//     const command = new ConfirmSignUpCommand(params);
+//     const data = await cognito.send(command);
+//     const newUser = new User({
+//       mobile,
+//     });
+//     await newUser.save();
+//     res.status(200).json({ message: "Vendor registered", data });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
+const authWithGoogle = async (req, res) => {
+  // const redirectUri = process.env.COGNITO_DOMAIN;
+  const redirectUri = process.env.REDIRECT_URI;
+
+  const clientId = process.env.COGNITO_APP_CLIENT_ID;
+  const scope = "openid email profile";
+
+  const responseType = "code";
+
+  const authUrl = `${process.env.COGNITO_DOMAIN}/oauth2/authorize?identity_provider=Google&redirect_uri=${redirectUri}&response_type=${responseType}&client_id=${clientId}&scope=${scope}`;
+  console.log(authUrl);
+  res.redirect(authUrl);
+};
+
+const googleCallback = async (req, res) => {
+  const { code } = req.query;
+  console.log(code);
+
+  const redirectUri = process.env.REDIRECT_URI;
+  const clientId = process.env.COGNITO_APP_CLIENT_ID;
+
+  const params = new URLSearchParams();
+  params.append("grant_type", "authorization_code");
+  params.append("client_id", clientId);
+  params.append("redirect_uri", redirectUri);
+  params.append("code", code);
+  console.log(params);
 
   try {
-    const user = await userExists(email);
+    const tokenResponse = await axios.post(
+      `${process.env.COGNITO_DOMAIN}/oauth2/token`,
+      params,
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const { id_token, access_token, refresh_token } = tokenResponse.data;
+
+    const decoded = jwt.decode(id_token);
+    const { email, name } = decoded;
+
+    let user = await User.findOne({ email });
+
     if (!user) {
-      let data = await cognito.signUp(params).promise();
-      const newUser = new User({
-        name,
-        phone,
-        password,
-        email,
-      });
-      await newUser.save();
-      data = await confirmUser(email)
-      res.status(200).json({ message: "Vendor registered", data });
+      user = new User({ email, name });
+      user = await user.save();
+      
     }
+    const sessionToken = jwt.sign(
+      { userId: user.cus_id, email: user.email },
+      process.env.JWT_SECRET
+    );
+
+    res.redirect(`https://deploy-preview-17--eventorydev.netlify.app/businessDetails?session_token=${sessionToken}`)
+
+    
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
-const login = async (req, res) => {
-  const { email, password } = req.body;
+// const userExists = async (phoneNumber) => {
+//   const params = {
+//     UserPoolId: process.env.COGNITO_USER_POOL_ID,
+//     Filter: `phone_number="${phoneNumber}"`,
+//   };
 
-  const params = {
-    AuthFlow: "USER_PASSWORD_AUTH",
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    AuthParameters: {
-      USERNAME: email,
-      PASSWORD: password,
-    },
-  };
+//   try {
+//     const command = new ListUsersCommand(params);
+//     const data = await cognito.send(command);
+//     return data.Users && data.Users.length > 0;
+//   } catch (error) {
+//     throw error;
+//   }
+// };
 
-  try {
-    const data = await cognito.initiateAuth(params).promise();
-
-    console.log("Login success:", data);
-    res.status(200).json({message: "Login success",data});
-  } catch (error) {
-    res.status(500).json({error: error.message});
-  }
+export default {
+  // login,
+  // signUp,
+  // verifySignUpOtp,
+  // verifyLoginOtp,
+  authWithGoogle,
+  googleCallback,
 };
-
-const verifyOtp = async (req, res) => {
-  const { phone, session, otp } = req.body;
-
-  try {
-    const data = await respondToAuthChallenge(phone, session, otp);
-    res.status(200).send(data);
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
-};
-
-const initiateAuth = async (phoneNumber) => {
-  const params = {
-    AuthFlow: "USER_PASSWORD_AUTH",
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    AuthParameters: {
-      USERNAME: phoneNumber,
-      PASSWORD: "123456",
-    },
-  };
-
-  try {
-    const data = await cognito.initiateAuth(params).promise();
-    console.log("Login success:", data);
-    return data;
-  } catch (error) {
-    console.error("Login error:", error);
-    throw error;
-  }
-};
-
-const respondToAuthChallenge = async (phoneNumber, session, otp) => {
-  const params = {
-    ChallengeName: "SMS_MFA",
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    ChallengeResponses: {
-      USERNAME: phoneNumber,
-      SMS_MFA_CODE: otp,
-    },
-    Session: session,
-  };
-
-  try {
-    const data = await cognito.respondToAuthChallenge(params).promise();
-    console.log("OTP verification success:", data);
-    return data;
-  } catch (error) {
-    console.error("OTP verification error:", error);
-    throw error;
-  }
-};
-
-const userExists = async (phoneNumber) => {
-  const params = {
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Filter: `phone_number="${phoneNumber}"`,
-  };
-
-  try {
-    const data = await cognito.listUsers(params).promise();
-    return data.Users && data.Users.length > 0;
-  } catch (error) {
-    throw error;
-  }
-};
-
-const confirmUser = async (email) => {
-  const params = {
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Username: email,
-  };
-
-  try {
-    await cognito.adminConfirmSignUp(params).promise();
-  } catch (error) {
-    throw error;
-  }
-};
-
-module.exports = { signUp, login, verifyOtp };
