@@ -4,12 +4,12 @@ import connectDB from "./config/db.js";
 import cors from "cors";
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import color from "chalk";
-import { Router } from "express";
-const router = Router();
+import chalk from "chalk";
+import morgan from "morgan";
 
 const app = express();
-const port = 4000;
+const port = 3000;
+app.use(morgan("dev"));
 
 connectDB();
 
@@ -28,6 +28,8 @@ app.use("/auth", authRoutes);
 
 app.listen(port, () => {
   console.log(
-    `Server listening on port ${color.blueBright("http://localhost:" + port)}`
+    "Server listening on port " + chalk.blueBright("http://localhost:" + port)
   );
 });
+
+export default app;
