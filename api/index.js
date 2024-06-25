@@ -1,15 +1,15 @@
 import "dotenv/config.js";
-import express, { json } from "express";
+import express, { json, Router } from "express";
 import connectDB from "../config/db.js";
 import cors from "cors";
 import productRoutes from "../routes/productRoutes.js";
 import authRoutes from "../routes/authRoutes.js";
-import router from "../routes/authRoutes.js";
 import chalk from "chalk";
 import morgan from "morgan";
 
 const app = express();
-const port = 3000;
+const port = 4000;
+const router = Router();
 app.use(morgan("dev"));
 
 connectDB();
