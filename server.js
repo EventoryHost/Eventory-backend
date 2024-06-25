@@ -6,9 +6,10 @@ import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import chalk from "chalk";
 import morgan from "morgan";
+import router from "./routes/authRoutes.js";
 
 const app = express();
-const port = 3000;
+const port = 4000;
 app.use(morgan("dev"));
 
 connectDB();
