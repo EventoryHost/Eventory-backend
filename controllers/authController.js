@@ -126,6 +126,8 @@ const googleCallback = async (req, res) => {
 
   const redirectUri = process.env.REDIRECT_URI;
   const clientId = process.env.COGNITO_APP_CLIENT_ID;
+  const cognitoDomain = process.env.COGNITO_DOMAIN;
+
 
   const params = new URLSearchParams();
   params.append("grant_type", "authorization_code");
@@ -133,10 +135,11 @@ const googleCallback = async (req, res) => {
   params.append("redirect_uri", redirectUri);
   params.append("code", code);
   console.log(params);
+  
 
   try {
     const tokenResponse = await axios.post(
-      `${process.env.COGNITO_DOMAIN}/oauth2/token`,
+      `${cognitoDomain}/oauth2/token`,
       params,
       {
         headers: {
