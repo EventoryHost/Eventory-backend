@@ -12,7 +12,7 @@ const createHall = async (req, res) => {
 
 const getAllHalls = async (req, res) => {
   try {
-    const halls = await find();
+    const halls = await res.json(halls);
     res.json(halls);
   } catch (e) {
     res.status(400).json({ message: e.message });
