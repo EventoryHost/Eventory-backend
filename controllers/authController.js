@@ -46,6 +46,8 @@ const login = async (req, res) => {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    Username: `+91${mobile}`,
+
     AuthParameters: {
       USERNAME: `+91${mobile}`,
     },
@@ -66,6 +68,12 @@ const verifyLoginOtp = async (req, res) => {
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
+    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    Username: `+91${mobile}`,
+    Password: "123456",
+
+
+
     ChallengeResponses: {
       USERNAME: `+91${mobile}`,
       ANSWER: code,
