@@ -72,8 +72,6 @@ const verifyLoginOtp = async (req, res) => {
     Username: `+91${mobile}`,
     Password: "123456",
 
-
-
     ChallengeResponses: {
       USERNAME: `+91${mobile}`,
       ANSWER: code,
@@ -136,14 +134,12 @@ const googleCallback = async (req, res) => {
   const clientId = process.env.COGNITO_APP_CLIENT_ID;
   const cognitoDomain = process.env.COGNITO_DOMAIN;
 
-
   const params = new URLSearchParams();
   params.append("grant_type", "authorization_code");
   params.append("client_id", clientId);
   params.append("redirect_uri", redirectUri);
   params.append("code", code);
   console.log(params);
-  
 
   try {
     const tokenResponse = await axios.post(
@@ -153,7 +149,7 @@ const googleCallback = async (req, res) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-      }
+      },
     );
 
     const { id_token, access_token, refresh_token } = tokenResponse.data;
@@ -169,11 +165,11 @@ const googleCallback = async (req, res) => {
     }
     const sessionToken = jwt.sign(
       { userId: user.cus_id, email: user.email },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
     );
 
     res.redirect(
-      `https://deploy-preview-17--eventorydev.netlify.app/businessDetails?session_token=${sessionToken}`
+      `https://deploy-preview-17--eventorydev.netlify.app/businessDetails?session_token=${sessionToken}`,
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
