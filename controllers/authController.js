@@ -8,7 +8,6 @@ import { Vendor as User } from "../models/users.js";
 import {
   AdminInitiateAuthCommand,
   AdminRespondToAuthChallengeCommand,
-  CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
   ListUsersCommand,
   SignUpCommand,
@@ -33,6 +32,7 @@ const signUp = async (req, res) => {
     }
     const command = new SignUpCommand(params);
     const data = await cognito.send(command);
+    console.log(data);
 
     res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
