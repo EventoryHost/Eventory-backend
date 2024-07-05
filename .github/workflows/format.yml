@@ -5,19 +5,38 @@ on:
     types: [opened, reopened, synchronize]
     branches: [prod, dev]
 jobs:
-  format:
+  prettier:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
       - run: npm i -D prettier@latest
       - run: npx prettier . --write
+
+      # Building a multiline commit message
+      - run: 'echo "chore: apply formatting changes" >> commitmessage.txt'
+      - run: echo "[skip vercel]" >> commitmessage.txt
+
+      # Create a multiline string to be used by the git-auto-commit Action
+      - name: Set commit message
+        id: commit_message_step
+        run: |
+          echo 'commit_message<<EOF' >> $GITHUB_OUTPUT
+          cat commitmessage.txt >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      # Quick and dirty step to get rid of the temporary file holding the commit message
+      - run: rm -rf commitmessage.txt
+
+      # Commit changes
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5.0.1
         with:
-          commit_message: Apply formatting changes
+          commit_message: ${{ steps.commit_message_step.outputs.commit_message }}
           branch: ${{ github.head_ref }}

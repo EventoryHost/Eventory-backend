@@ -5,17 +5,20 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node .",
-    "dev": "nodemon ."
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.600.0",
+    "@aws-sdk/client-pinpoint": "^3.600.0",
+    "axios": "^1.7.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.7.0",
     "mongoose": "^8.4.0"
   },

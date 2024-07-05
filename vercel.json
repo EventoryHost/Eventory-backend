@@ -3,7 +3,8 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/api"
     }
-  ]
+  ],
+  "ignoreCommand": "node .github/workflows/ignore_build.js"
 }
