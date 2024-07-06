@@ -8,7 +8,6 @@ import { Vendor as User } from "../models/users.js";
 import {
   AdminInitiateAuthCommand,
   AdminRespondToAuthChallengeCommand,
-  CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
   ListUsersCommand,
   SignUpCommand,
@@ -33,6 +32,7 @@ const signUp = async (req, res) => {
     }
     const command = new SignUpCommand(params);
     const data = await cognito.send(command);
+    console.log(data);
 
     res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
@@ -149,7 +149,7 @@ const googleCallback = async (req, res) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-      }
+      },
     );
 
     const { id_token, access_token, refresh_token } = tokenResponse.data;
@@ -169,7 +169,7 @@ const googleCallback = async (req, res) => {
     );
 
     res.redirect(
-      `https://deploy-preview-17--eventorydev.netlify.app/businessDetails?session_token=${sessionToken}`
+      `https://deploy-preview-17--eventorydev.netlify.app/businessDetails?session_token=${sessionToken}`,
     );
   } catch (error) {
     res.status(500).json({ error: error.message });

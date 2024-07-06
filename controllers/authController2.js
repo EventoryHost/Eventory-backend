@@ -12,10 +12,10 @@ var projectId = process.env.PINPOINT_PROJECT_ID;
 
 // OTP generation
 const otpStore = {};
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 const otp = generateOTP();
-var message =
-  `Your Eventory OTP is ${otp}. Please enter this OTP to verify your account.`;
+var message = `Your Eventory OTP is ${otp}. Please enter this OTP to verify your account.`;
 
 var messageType = "TRANSACTIONAL";
 
@@ -39,7 +39,7 @@ async function validateNumber(event, res) {
   };
   try {
     const PhoneNumberValidateresponse = await pinClient.send(
-      new PhoneNumberValidateCommand(params)
+      new PhoneNumberValidateCommand(params),
     );
     console.log(PhoneNumberValidateresponse);
     if (
@@ -60,7 +60,7 @@ async function validateNumber(event, res) {
     } else {
       console.log(
         "Received a phone number that isn't capable of receiving " +
-          "SMS messages. No endpoint created."
+          "SMS messages. No endpoint created.",
       );
     }
   } catch (err) {
@@ -87,13 +87,13 @@ async function sendConfirmation(destinationNumber, res) {
   };
   try {
     const SendMessagesCommandresponse = await pinClient.send(
-      new SendMessagesCommand(params)
+      new SendMessagesCommand(params),
     );
     console.log(
       "Message sent! " +
         SendMessagesCommandresponse["MessageResponse"]["Result"][
           destinationNumber
-        ]["StatusMessage"]
+        ]["StatusMessage"],
     );
   } catch (err) {
     console.log(err);
@@ -109,7 +109,9 @@ function verifyOTP(event, res) {
   const storedOtpData = otpStore[destinationNumber];
 
   if (!storedOtpData) {
-    return res.status(400).send({ success: false, message: "OTP not found or expired." });
+    return res
+      .status(400)
+      .send({ success: false, message: "OTP not found or expired." });
   }
 
   const { otp, timestamp } = storedOtpData;
@@ -123,7 +125,9 @@ function verifyOTP(event, res) {
 
   if (userOtp === otp) {
     delete otpStore[destinationNumber]; // Clean up used OTP
-    return res.status(200).send({ success: true, message: "OTP verified successfully." });
+    return res
+      .status(200)
+      .send({ success: true, message: "OTP verified successfully." });
   } else {
     return res.status(400).send({ success: false, message: "Invalid OTP." });
   }
