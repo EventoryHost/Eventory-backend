@@ -31,7 +31,11 @@ function shouldSkipCommit() {
   return /\[skip ci\]|\[skip vercel\]|chore|wip/.test(commitMessage);
 }
 
-if (shouldSkipCommit() || hasNoRelevantChanges() || hasNonDeployableChanges()) {
+function notTargetBranch() {
+  return process.env.VERCEL_ENV !== "production";
+}
+
+if (notTargetBranch() || shouldSkipCommit() || hasNoRelevantChanges() || hasNonDeployableChanges()) {
   process.exitCode = 0;
 } else {
   process.exitCode = 1;
