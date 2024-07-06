@@ -72,8 +72,6 @@ const verifyLoginOtp = async (req, res) => {
     Username: `+91${mobile}`,
     Password: "123456",
 
-
-
     ChallengeResponses: {
       USERNAME: `+91${mobile}`,
       ANSWER: code,
@@ -136,14 +134,12 @@ const googleCallback = async (req, res) => {
   const clientId = process.env.COGNITO_APP_CLIENT_ID;
   const cognitoDomain = process.env.COGNITO_DOMAIN;
 
-
   const params = new URLSearchParams();
   params.append("grant_type", "authorization_code");
   params.append("client_id", clientId);
   params.append("redirect_uri", redirectUri);
   params.append("code", code);
   console.log(params);
-  
 
   try {
     const tokenResponse = await axios.post(
@@ -168,7 +164,7 @@ const googleCallback = async (req, res) => {
       user = await user.save();
     }
     const sessionToken = jwt.sign(
-      { userId: user.cus_id, email: user.email },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET
     );
 
@@ -195,6 +191,23 @@ const userExists = async (phoneNumber) => {
   }
 };
 
+const addBusinessDetails = async (req, res) => {
+  const { id, details } = req.body;
+
+  try {
+    
+    const user = await User.findOne({ id });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    user.businessDetails = details;
+    const data = await user.save();
+    res.status(200).json({ message: "Business details added", data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 export default {
   login,
   signUp,
@@ -202,4 +215,5 @@ export default {
   verifyLoginOtp,
   authWithGoogle,
   googleCallback,
+  addBusinessDetails
 };
