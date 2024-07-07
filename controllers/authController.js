@@ -1,10 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config();
-import cognito from "../config/awsConfig.js";
 import axios from "axios";
+import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import cognito from "../config/awsConfig.js";
+dotenv.config();
 
-import { Vendor as User } from "../models/users.js";
 import {
   AdminInitiateAuthCommand,
   AdminRespondToAuthChallengeCommand,
@@ -12,6 +11,7 @@ import {
   ListUsersCommand,
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { Vendor as User } from "../models/users.js";
 
 const signUp = async (req, res) => {
   const { mobile } = req.body;
@@ -169,7 +169,7 @@ const googleCallback = async (req, res) => {
     );
 
     res.redirect(
-      `https://deploy-preview-17--eventorydev.netlify.app/businessDetails?session_token=${sessionToken}`,
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
