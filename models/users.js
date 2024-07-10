@@ -1,4 +1,5 @@
 import { mongoose, Schema as _Schema } from "mongoose";
+import { businessSchema } from "./businessDetails.js";
 const Schema = _Schema;
 
 const generateUniqueId = () => {
@@ -12,14 +13,15 @@ const generateUniqueId = () => {
     seconds: now.getSeconds().toString().padStart(2, "0"),
   };
 
-  return `${year}${month}${day}${hours}${minutes}${seconds}`;
+  return `ven${year}${month}${day}${hours}${minutes}${seconds}`;
 };
 
 const vendorSchema = new Schema({
-  cus_id: { type: String, default: generateUniqueId },
+  id: { type: String, default: generateUniqueId, required: true },
   name: { type: String, required: true },
   phone: { type: String },
   email: { type: String },
+  businessDetails: businessSchema,
 });
 
 export const Vendor = mongoose.model("Vendors", vendorSchema);

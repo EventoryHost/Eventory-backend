@@ -9,7 +9,6 @@ import morgan from "morgan";
 
 const app = express();
 const port = 4000;
-
 const router = Router();
 
 app.use(morgan("dev"));
@@ -23,6 +22,7 @@ app.use(
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders:
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    credentials: true,
   }),
 );
 app.use("/", router);
