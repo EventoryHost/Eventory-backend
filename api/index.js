@@ -23,7 +23,7 @@ app.use(
     allowedHeaders:
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
     credentials: true,
-  })
+  }),
 );
 app.use("/", router);
 app.use("/api/products", productRoutes);
@@ -35,7 +35,7 @@ app.get("/", (req, res) => {
 
 app.listen(port, () => {
   console.log(
-    "Server listening on port " + chalk.blueBright("http://localhost:" + port)
+    "Server listening on port " + chalk.blueBright("http://localhost:" + port),
   );
 });
 
