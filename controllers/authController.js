@@ -127,49 +127,50 @@ const authWithGoogle = async (req, res) => {
 };
 
 const googleCallback = async (req, res) => {
+  const cognitoDomain = process.env.COGNITO_DOMAIN;
   const { code } = req.query;
   console.log(code);
-
-  const redirectUri = process.env.REDIRECT_URI;
   const clientId = process.env.COGNITO_APP_CLIENT_ID;
-  const cognitoDomain = process.env.COGNITO_DOMAIN;
+  const redirectUri = process.env.REDIRECT_URI;
 
-  const params = new URLSearchParams();
-  params.append("grant_type", "authorization_code");
-  params.append("client_id", clientId);
-  params.append("redirect_uri", redirectUri);
-  params.append("code", code);
+  const tokenURL = `${cognitoDomain}/oauth2/token`;
+
+  const params = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    code: code,
+  });
   console.log(params);
 
   try {
-    const tokenResponse = await axios.post(
-      `${cognitoDomain}/oauth2/token`,
-      params,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+    const tokenResponse = await axios.post(tokenURL, params, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-    );
+    });
 
+    // Exchange token post google signup
     const { id_token, access_token, refresh_token } = tokenResponse.data;
-
     const decoded = jwt.decode(id_token);
     const { email, name } = decoded;
 
+    // Check if user exists in db
     let user = await User.findOne({ email });
-
     if (!user) {
       user = new User({ email, name });
       user = await user.save();
     }
+
+    // Create session token
     const sessionToken = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
     res.redirect(
-      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -195,12 +196,11 @@ const addBusinessDetails = async (req, res) => {
   const { id, details } = req.body;
 
   try {
-    
     const user = await User.findOne({ id });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     user.businessDetails = details;
     const data = await user.save();
     res.status(200).json({ message: "Business details added", data });
@@ -215,5 +215,5 @@ export default {
   verifyLoginOtp,
   authWithGoogle,
   googleCallback,
-  addBusinessDetails
+  addBusinessDetails,
 };
