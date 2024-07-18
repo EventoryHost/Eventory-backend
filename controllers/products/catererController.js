@@ -16,16 +16,18 @@ const createCaterer = async (req, res) => {
 
     const menuFileUrl = getFileUrls(req.files, "menu")[0] || req.body.menu;
     const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellation_policy")[0] || req.body.cancellation_policy;
+      getFileUrls(req.files, "cancellation_policy")[0] ||
+      req.body.cancellation_policy;
     const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "terms_and_conditions")[0] || req.body.terms_and_conditions;
+      getFileUrls(req.files, "terms_and_conditions")[0] ||
+      req.body.terms_and_conditions;
     const cateringServiceImagesUrls = getFileUrls(
       req.files,
-      "catering_service_images"
+      "catering_service_images",
     );
     const videosOfEventSetupsUrls = getFileUrls(
       req.files,
-      "videos_of_event_setups"
+      "videos_of_event_setups",
     );
 
     const newCaterer = new Caterer({

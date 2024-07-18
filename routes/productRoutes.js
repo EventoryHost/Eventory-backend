@@ -15,7 +15,7 @@ router.post(
     { name: "catering_service_images", maxCount: 10 },
     { name: "videos_of_event_setups", maxCount: 5 },
   ]),
-  catererController.createCaterer
+  catererController.createCaterer,
 );
 
 router.post(
@@ -26,9 +26,7 @@ router.post(
     { name: "photosVideos", maxCount: 10 },
     { name: "virtualTour", maxCount: 1 },
   ]),
-  venueController.createVenue
+  venueController.createVenue,
 );
-
-
 
 export default router;

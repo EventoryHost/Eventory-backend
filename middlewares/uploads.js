@@ -20,18 +20,19 @@ const getFolderName = (mimeType) => {
   }
 };
 
-const upload = (vendorType) => multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.AWS_S3_BUCKET_NAME,
-    acl: "public-read",
+const upload = (vendorType) =>
+  multer({
+    storage: multerS3({
+      s3: s3,
+      bucket: process.env.AWS_S3_BUCKET_NAME,
+      acl: "public-read",
 
-    key: (req, file, cb) => {
-      const folder = `${vendorType}/${req.body.name}/${getFolderName(file.mimetype)}`;
-      const filename = `${folder}${file.originalname}`;
-      cb(null, filename);
-    },
-  }),
-});
+      key: (req, file, cb) => {
+        const folder = `${vendorType}/${req.body.name}/${getFolderName(file.mimetype)}`;
+        const filename = `${folder}${file.originalname}`;
+        cb(null, filename);
+      },
+    }),
+  });
 
 export default upload;
