@@ -14,7 +14,7 @@ router.post(
     { name: "terms_and_conditions", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
   ]),
-  catererController.createCaterer
+  catererController.createCaterer,
 );
 
 router.post(
@@ -24,7 +24,7 @@ router.post(
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
   ]),
-  venueController.createVenue
+  venueController.createVenue,
 );
 
 export default router;

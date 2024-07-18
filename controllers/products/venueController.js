@@ -55,4 +55,4 @@ const getAllVenues = async (req, res) => {
   }
 };
 
-export default {createVenue}
+export default { createVenue };
