@@ -59,8 +59,7 @@ const venueSchema = new Schema({
     seasonal: [String],
   },
 
-  photosVideos: [String],
-  virtualTour: String,
+  portfolio: [String],
 
   socialLinks: {
     instagramURL: String,

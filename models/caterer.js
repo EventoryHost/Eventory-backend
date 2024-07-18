@@ -3,7 +3,9 @@ const Schema = _Schema;
 
 const catererSchema = new Schema({
   name: { type: String, required: true },
+  managerName: { type: String, required: true },
   id: { type: String, required: true },
+
   cuisine_specialities: [String],
   regional_specialities: [String],
   service_style_offered: [String],
@@ -15,7 +17,7 @@ const catererSchema = new Schema({
   beverages: [String],
   special_dietary_options: [String],
   pre_set_menus: [String],
-  customizable: { type: Boolean, default: false },
+  customizable: { type: Boolean,},
   event_types_catered: [String],
   additional_services: [String],
   staff_provided: [String],
@@ -23,10 +25,14 @@ const catererSchema = new Schema({
   minimum_order_requirements: String,
   advance_booking_period: String,
   deposit_required: String,
-  per_plate_rates: String,
-
-  package_deals: String,
-  per_plate_price_range: String,
+  per_plate_rates: {
+    max: String,
+    min: String,
+  },
+  deal_package_rates: {
+    max: String,
+    min: String,
+  },
 
   cancellation_policy: {
     type: String,
@@ -39,8 +45,7 @@ const catererSchema = new Schema({
     type: String,
     required: true,
   },
-  catering_service_images: [String],
-  videos_of_event_setups: [String],
+  portfolio: [String],
 });
 
 const Caterer = model("Caterer", catererSchema);

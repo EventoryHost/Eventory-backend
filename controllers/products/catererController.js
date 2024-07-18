@@ -16,28 +16,22 @@ const createCaterer = async (req, res) => {
 
     const menuFileUrl = getFileUrls(req.files, "menu")[0] || req.body.menu;
     const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellation_policy")[0] || req.body.cancellation_policy;
+      getFileUrls(req.files, "cancellation_policy")[0] ||
+      req.body.cancellation_policy;
     const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "terms_and_conditions")[0] || req.body.terms_and_conditions;
-    const cateringServiceImagesUrls = getFileUrls(
-      req.files,
-      "catering_service_images"
-    );
-    const videosOfEventSetupsUrls = getFileUrls(
-      req.files,
-      "videos_of_event_setups"
-    );
+      getFileUrls(req.files, "terms_and_conditions")[0] ||
+      req.body.terms_and_conditions;
+    const portfolioUrls = getFileUrls(req.files, "portfolio");
 
     const newCaterer = new Caterer({
       name: req.body.name,
+      managerName: req.body.managerName,
       id: req.body.id,
       cuisine_specialities: req.body.cuisine_specialities,
       regional_specialities: req.body.regional_specialities,
       service_style_offered: req.body.service_style_offered,
-      menu: {
-        type: req.body.menuType,
-        file: menuFileUrl,
-      },
+      menu: menuFileUrl,
+      menuType: req.body.menuType,
       appetizers: req.body.appetizers,
       main_course: req.body.main_course,
       beverages: req.body.beverages,
@@ -54,19 +48,12 @@ const createCaterer = async (req, res) => {
       per_plate_rates: req.body.per_plate_rates,
       package_deals: req.body.package_deals,
       per_plate_price_range: req.body.per_plate_price_range,
-      cancellation_policy: {
-        file: cancellationPolicyFileUrl,
-        via: req.body.cancellationPolicyVia,
-      },
+      cancellation_policy: cancellationPolicyFileUrl,
       tasting_sessions: req.body.tasting_sessions,
       business_licenses: req.body.business_licenses,
       food_safety_certificates: req.body.food_safety_certificates,
-      terms_and_conditions: {
-        file: termsAndConditionsFileUrl,
-        via: req.body.termsAndConditionsVia,
-      },
-      catering_service_images: cateringServiceImagesUrls,
-      videos_of_event_setups: videosOfEventSetupsUrls,
+      terms_and_conditions: termsAndConditionsFileUrl,
+      portfolio: portfolioUrls,
     });
 
     const savedCaterer = await newCaterer.save();
