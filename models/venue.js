@@ -21,8 +21,12 @@ const venueSchema = new Schema({
     type: String,
     required: true,
   },
-  capacity: {
-    type: Number,
+  seatedCapacity: {
+    type: String,
+    required: true,
+  },
+  standingCapacity: {
+    type: String,
     required: true,
   },
   decorServices: {
@@ -50,9 +54,9 @@ const venueSchema = new Schema({
     required: true,
   },
   rates: {
-    hourly: String,
-    daily: String,
-    seasonal: String,
+    hourly: [String],
+    daily: [String],
+    seasonal: [String],
   },
 
   photosVideos: [String],

@@ -4,9 +4,9 @@ const Schema = _Schema;
 const catererSchema = new Schema({
   name: { type: String, required: true },
   id: { type: String, required: true },
-  cuisine_specialities: String,
-  regional_specialities: String,
-  service_style_offered: String,
+  cuisine_specialities: [String],
+  regional_specialities: [String],
+  service_style_offered: [String],
   menu: String,
   menuType: String,
 
