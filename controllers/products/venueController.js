@@ -14,14 +14,9 @@ const createVenue = async (req, res) => {
       return res.status(400).json({ message: "Venue already exists" });
     }
 
-    const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "termsConditions")[0] || req.body.termsConditions;
-    const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] ||
-      req.body.cancellationPolicy;
-    const photosVideosUrls = getFileUrls(req.files, "photosVideos");
-    const virtualTourUrl =
-      getFileUrls(req.files, "virtualTour")[0] || req.body.virtualTour;
+    const termsAndConditionsFileUrl = getFileUrls( req.files, "termsConditions")[0] || req.body.termsConditions;
+    const cancellationPolicyFileUrl = getFileUrls( req.files, "cancellationPolicy")[0] || req.body.cancellationPolicy;
+    const portfolioUrls = getFileUrls( req.files, "portfolio");
 
     const newVenue = new Venue({
       id: req.body.id,
@@ -39,8 +34,7 @@ const createVenue = async (req, res) => {
       cancellationPolicy: cancellationPolicyFileUrl,
       rates: req.body.rates,
       media: req.body.media,
-      photosVideos: photosVideosUrls,
-      virtualTour: virtualTourUrl,
+      portfolio: portfolioUrls,
       socialLinks: req.body.socialLinks,
       restrictionsPolicies: req.body.restrictionsPolicies,
       specialFeatures: req.body.specialFeatures,

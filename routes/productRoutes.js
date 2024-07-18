@@ -12,8 +12,7 @@ router.post(
     { name: "menu", maxCount: 1 },
     { name: "cancellation_policy", maxCount: 1 },
     { name: "terms_and_conditions", maxCount: 1 },
-    { name: "catering_service_images", maxCount: 10 },
-    { name: "videos_of_event_setups", maxCount: 5 },
+    { name: "portfolio", maxCount: 20 },
   ]),
   catererController.createCaterer,
 );
@@ -23,8 +22,7 @@ router.post(
   upload("Venues").fields([
     { name: "termsConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "photosVideos", maxCount: 10 },
-    { name: "virtualTour", maxCount: 1 },
+    { name: "portfolio", maxCount: 20 },
   ]),
   venueController.createVenue,
 );
