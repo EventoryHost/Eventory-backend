@@ -1,8 +1,10 @@
+import dotenv from "dotenv";
+dotenv.config();
+import { cognito } from "../config/awsConfig.js";
+
 import axios from "axios";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import cognito from "../config/awsConfig.js";
-dotenv.config();
 
 import {
   AdminInitiateAuthCommand,
