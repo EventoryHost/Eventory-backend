@@ -17,7 +17,7 @@ const catererSchema = new Schema({
   beverages: [String],
   special_dietary_options: [String],
   pre_set_menus: [String],
-  customizable: { type: Boolean,},
+  customizable: { type: Boolean },
   event_types_catered: [String],
   additional_services: [String],
   staff_provided: [String],
