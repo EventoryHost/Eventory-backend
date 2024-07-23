@@ -54,9 +54,27 @@ const venueSchema = new Schema({
     required: true,
   },
   rates: {
-    hourly: [String],
-    daily: [String],
-    seasonal: [String],
+    hourly: [
+      {
+        package_name: String,
+        max: String,
+        min: String,
+      },
+    ],
+    daily: [
+      {
+        package_name: String,
+        max: String,
+        min: String,
+      },
+    ],
+    seasonal: [
+      {
+        package_name: String,
+        max: String,
+        min: String,
+      },
+    ],
   },
 
   portfolio: [String],
