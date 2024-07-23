@@ -14,9 +14,12 @@ const createVenue = async (req, res) => {
       return res.status(400).json({ message: "Venue already exists" });
     }
 
-    const termsAndConditionsFileUrl = getFileUrls( req.files, "termsConditions")[0] || req.body.termsConditions;
-    const cancellationPolicyFileUrl = getFileUrls( req.files, "cancellationPolicy")[0] || req.body.cancellationPolicy;
-    const portfolioUrls = getFileUrls( req.files, "portfolio");
+    const termsAndConditionsFileUrl =
+      getFileUrls(req.files, "termsConditions")[0] || req.body.termsConditions;
+    const cancellationPolicyFileUrl =
+      getFileUrls(req.files, "cancellationPolicy")[0] ||
+      req.body.cancellationPolicy;
+    const portfolioUrls = getFileUrls(req.files, "portfolio");
 
     const newVenue = new Venue({
       id: req.body.id,
