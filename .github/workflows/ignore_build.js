@@ -31,11 +31,14 @@ function shouldSkipCommit() {
   return /\[skip ci\]|\[skip vercel\]|chore|wip/.test(commitMessage);
 }
 
-function notTargetBranch() {
-  return process.env.VERCEL_ENV !== "production";
+function targetBranch() {
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL === "eventorydevbackend.vercel.app" && process.env.VERCEL_GIT_PULL_REQUEST_ID !== "") {
+    return true;
+  }
+  return process.env.VERCEL_ENV === "production";
 }
 
-if (notTargetBranch() || shouldSkipCommit() || hasNoRelevantChanges() || hasNonDeployableChanges()) {
+if (!targetBranch() || shouldSkipCommit() || hasNoRelevantChanges() /*|| hasNonDeployableChanges()*/) {
   process.exitCode = 0;
 } else {
   process.exitCode = 1;
