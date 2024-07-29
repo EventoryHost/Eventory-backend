@@ -14,16 +14,23 @@ const createEventPlanner = async (req, res) => {
       return res.status(400).json({ message: "Event Planner already exists" });
     }
 
-    const portfolioUrls = getFileUrls(req.files, "portfolio") || req.body.portfolio;
+    const portfolioUrls =
+      getFileUrls(req.files, "portfolio") || req.body.portfolio;
     const termsConditionsUrls =
       getFileUrls(req.files, "termsConditions") || req.body.termsConditions;
-    const cancellationPolicyUrls = getFileUrls(req.files, "cancellationPolicy") || req.body.cancellationPolicy;
-    const insurancePolicyUrls = getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
+    const cancellationPolicyUrls =
+      getFileUrls(req.files, "cancellationPolicy") ||
+      req.body.cancellationPolicy;
+    const insurancePolicyUrls =
+      getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
     const awardsUrls = getFileUrls(req.files, "awards") || req.body.awards;
-    const clientTestimonialsUrls = getFileUrls(req.files, "clientTestimonials") || req.body.clientTestimonials;
-    const onlineRatingsUrls = getFileUrls(req.files, "onlineRatings") || req.body.onlineRatings;
-    const privacyPolicyUrls = getFileUrls(req.files, "privacyPolicy") || req.body.privacyPolicy;
-    
+    const clientTestimonialsUrls =
+      getFileUrls(req.files, "clientTestimonials") ||
+      req.body.clientTestimonials;
+    const onlineRatingsUrls =
+      getFileUrls(req.files, "onlineRatings") || req.body.onlineRatings;
+    const privacyPolicyUrls =
+      getFileUrls(req.files, "privacyPolicy") || req.body.privacyPolicy;
 
     const newEventPlanner = new EventPlanner({
       ...req.body,

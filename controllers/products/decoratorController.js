@@ -1,4 +1,4 @@
-import {Decorator} from "../../models/decoraters.js";
+import { Decorator } from "../../models/decoraters.js";
 
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
