@@ -11,7 +11,7 @@ const createProp = async (req, res) => {
       venId: req.body.venId,
     });
     if (alreadyExists) {
-      return res.status(400).json({ message: "Prop already exists" });
+      return res.status(400).json({ message: "Prop Rental already exists" });
     }
 
     const furnitureAndDecorListUrl =

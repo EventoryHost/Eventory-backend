@@ -8,7 +8,7 @@ const createVenue = async (req, res) => {
   try {
     const alreadyExists = await Venue.findOne({
       name: req.body.name,
-      id: req.body.id,
+      id: req.body.venId,
     });
     if (alreadyExists) {
       return res.status(400).json({ message: "Venue already exists" });

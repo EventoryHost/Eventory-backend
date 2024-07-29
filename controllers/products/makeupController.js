@@ -7,7 +7,10 @@ const getFileUrls = (files, fieldName) => {
 const createMakeupArtist = async (req, res) => {
   try {
     const MakeupArtist = createMakeupArtistSchema(req.body.type);
-    const alreadyExists = await MakeupArtist.findOne({ name: req.body.name });
+    const alreadyExists = await MakeupArtist.findOne({
+      name: req.body.name,
+      id: req.body.venId,
+    });
     if (alreadyExists) {
       return res.status(400).json({ message: "Makeup Artist already exists" });
     }
@@ -25,8 +28,6 @@ const createMakeupArtist = async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-
-
 };
 
 export default { createMakeupArtist };
