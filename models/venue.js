@@ -1,7 +1,10 @@
 import { Schema as _Schema, model } from "mongoose";
+import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const venueSchema = new Schema({
+  id: { type: String, default: generateUniqueId("ser"), required: true },
+  venId: { type: String, required: true },
   id: { type: String, required: true },
   name: {
     type: String,
@@ -89,4 +92,4 @@ const venueSchema = new Schema({
 
 const Venue = model("Venue", venueSchema);
 
-export default Venue;
+export {Venue, venueSchema};

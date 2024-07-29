@@ -1,10 +1,12 @@
 import { Schema as _Schema, model } from "mongoose";
+import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const catererSchema = new Schema({
   name: { type: String, required: true },
   managerName: { type: String, required: true },
-  id: { type: String, required: true },
+  id: { type: String, default: generateUniqueId("ser"), required: true },
+  venId: { type: String, required: true },
 
   cuisine_specialities: [String],
   regional_specialities: [String],
@@ -56,4 +58,4 @@ const catererSchema = new Schema({
 
 const Caterer = model("Caterer", catererSchema);
 
-export default Caterer;
+export default {Caterer, catererSchema};
