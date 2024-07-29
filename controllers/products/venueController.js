@@ -1,4 +1,4 @@
-import Venue from "../../models/venue.js";
+import {Venue} from "../../models/venue.js";
 
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
@@ -8,7 +8,7 @@ const createVenue = async (req, res) => {
   try {
     const alreadyExists = await Venue.findOne({
       name: req.body.name,
-      id: req.body.id,
+      id: req.body.venId,
     });
     if (alreadyExists) {
       return res.status(400).json({ message: "Venue already exists" });
@@ -35,7 +35,20 @@ const createVenue = async (req, res) => {
       facilities: req.body.facilities,
       termsConditions: termsAndConditionsFileUrl,
       cancellationPolicy: cancellationPolicyFileUrl,
-      rates: req.body.rates,
+      rates: {
+        hourly: {
+          type: req.body.rates.hourly.type,
+          priceRange: req.body.rates.hourly.priceRange,
+        },
+        daily: {
+          type: req.body.rates.daily.type,
+          priceRange: req.body.rates.daily.priceRange,
+        },
+        seasonal: {
+          type: req.body.rates.seasonal.type,
+          priceRange: req.body.rates.seasonal.priceRange,
+        },
+      },
       media: req.body.media,
       portfolio: portfolioUrls,
       socialLinks: req.body.socialLinks,

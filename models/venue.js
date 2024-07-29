@@ -1,7 +1,10 @@
 import { Schema as _Schema, model } from "mongoose";
+import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const venueSchema = new Schema({
+  id: { type: String, default: generateUniqueId("ser"), required: true },
+  venId: { type: String, required: true },
   id: { type: String, required: true },
   name: {
     type: String,
@@ -54,27 +57,11 @@ const venueSchema = new Schema({
     required: true,
   },
   rates: {
-    hourly: [
-      {
-        package_name: String,
-        max: String,
-        min: String,
-      },
-    ],
-    daily: [
-      {
-        package_name: String,
-        max: String,
-        min: String,
-      },
-    ],
-    seasonal: [
-      {
-        package_name: String,
-        max: String,
-        min: String,
-      },
-    ],
+    packageRates: {
+      hourly: [{ name: String, min: String, max: String }],
+      daily: [{ name: String, min: String, max: String }],
+      seasonal: [{ name: String, min: String, max: String }],
+    },
   },
 
   portfolio: [String],
@@ -89,4 +76,4 @@ const venueSchema = new Schema({
 
 const Venue = model("Venue", venueSchema);
 
-export default Venue;
+export { Venue, venueSchema };
