@@ -8,6 +8,9 @@ authRoutes.post("/verify-otp-signup", authController.verifySignUpOtp);
 authRoutes.post("/verify-otp-login", authController.verifyLoginOtp);
 authRoutes.get("/google-auth", authController.authWithGoogle);
 authRoutes.get("/oauth2/idpresponse", authController.googleCallback);
+authRoutes.post("/add-vendor", authController.createVendor);
+authRoutes.get("/get-vendor", authController.getVendor);
 authRoutes.post("/add-business-details", authController.addBusinessDetails);
+
 
 export default authRoutes;

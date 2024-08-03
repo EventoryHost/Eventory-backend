@@ -1,8 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
-import  generateUniqueId  from "../utils/generateId.js";
-
-
+import generateUniqueId from "../utils/generateId.js";
 
 const decoratorSchema = Schema({
   name: { type: String, required: true },

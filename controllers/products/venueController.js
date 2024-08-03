@@ -1,4 +1,4 @@
-import {Venue} from "../../models/venue.js";
+import { Venue } from "../../models/venue.js";
 
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];

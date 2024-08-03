@@ -14,6 +14,41 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { Vendor as User } from "../models/users.js";
 
+const createVendor = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const newUser = new User({
+      name,
+      email,
+    });
+
+    const user = await newUser.save();
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getVendor = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const signUp = async (req, res) => {
   const { mobile } = req.body;
 
@@ -167,11 +202,11 @@ const googleCallback = async (req, res) => {
     const sessionToken = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "1h" }
     );
 
     res.redirect(
-      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -217,4 +252,6 @@ export default {
   authWithGoogle,
   googleCallback,
   addBusinessDetails,
+  createVendor,
+  getVendor,
 };
