@@ -63,4 +63,4 @@ const transportSchema = new Schema({
 
 const Transport = model("Transport", transportSchema);
 
-export default {Transport, transportSchema};
+export default { Transport, transportSchema };

@@ -40,4 +40,4 @@ const createPhotographer = async (req, res) => {
   }
 };
 
-export default {createPhotographer};
+export default { createPhotographer };

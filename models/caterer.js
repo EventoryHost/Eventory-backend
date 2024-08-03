@@ -58,4 +58,4 @@ const catererSchema = new Schema({
 
 const Caterer = model("Caterer", catererSchema);
 
-export default {Caterer, catererSchema};
+export default { Caterer, catererSchema };

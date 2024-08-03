@@ -22,7 +22,7 @@ router.post(
     { name: "terms_and_conditions", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
   ]),
-  catererController.createCaterer
+  catererController.createCaterer,
 );
 
 router.post(
@@ -32,7 +32,7 @@ router.post(
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
   ]),
-  venueController.createVenue
+  venueController.createVenue,
 );
 
 router.post(
@@ -43,7 +43,7 @@ router.post(
     { name: "portfolio", maxCount: 20 },
     {},
   ]),
-  eventPlannerController.createEventPlanner
+  eventPlannerController.createEventPlanner,
 );
 
 router.post(
@@ -58,7 +58,7 @@ router.post(
     { name: "onlineRatings", maxCount: 20 },
     { name: "privacyPolicy", maxCount: 1 },
   ]),
-  decoratorController.createDecorator
+  decoratorController.createDecorator,
 );
 
 router.post(
@@ -68,7 +68,7 @@ router.post(
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
   ]),
-  transportController.createTransport
+  transportController.createTransport,
 );
 
 router.post(
@@ -79,13 +79,13 @@ router.post(
     { name: "terms_and_conditions", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
   ]),
-  invitationController.createInvitation
+  invitationController.createInvitation,
 );
 
 router.post(
   "/add-makeup-artist",
   upload("Makeup Artists").fields([{ name: "portfolio", maxCount: 20 }]),
-  makeupController.createMakeupArtist
+  makeupController.createMakeupArtist,
 );
 
 router.post(
@@ -94,7 +94,7 @@ router.post(
     { name: "giftImages", maxCount: 20 },
     { name: "termsAndConditions", maxCount: 1 },
   ]),
-  giftController.createGift
+  giftController.createGift,
 );
 
 router.post(
@@ -108,7 +108,7 @@ router.post(
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "insurancePolicy", maxCount: 1 },
   ]),
-  propController.createProp
+  propController.createProp,
 );
 
 router.post(
