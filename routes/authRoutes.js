@@ -12,5 +12,4 @@ authRoutes.post("/add-vendor", authController.createVendor);
 authRoutes.get("/get-vendor", authController.getVendor);
 authRoutes.post("/add-business-details", authController.addBusinessDetails);
 
-
 export default authRoutes;
