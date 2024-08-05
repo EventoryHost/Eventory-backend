@@ -23,9 +23,9 @@ const decoratorSchema = Schema({
   customDesignProcess: { type: String },
 
   themeElements: { type: [String], default: [] },
-  backdropOptions: { type: String, customisable: Boolean },
-  stageDecorationOptions: { type: String, customisable: Boolean },
-  propAndAccessorySelection: { type: String, customisable: Boolean },
+  backdropOptions: { options: [String], customisable: { type: Boolean } },
+  stageDecorationOptions: { options: [String], customisable: { type: Boolean } },
+  propAndAccessorySelection: { options: [String], customisable: { type: Boolean } },
 
   freeConsultation: { type: Boolean, default: false },
   writtenThemeProposal: { type: Boolean, default: false },
