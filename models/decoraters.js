@@ -24,8 +24,14 @@ const decoratorSchema = Schema({
 
   themeElements: { type: [String], default: [] },
   backdropOptions: { options: [String], customisable: { type: Boolean } },
-  stageDecorationOptions: { options: [String], customisable: { type: Boolean } },
-  propAndAccessorySelection: { options: [String], customisable: { type: Boolean } },
+  stageDecorationOptions: {
+    options: [String],
+    customisable: { type: Boolean },
+  },
+  propAndAccessorySelection: {
+    options: [String],
+    customisable: { type: Boolean },
+  },
 
   freeConsultation: { type: Boolean, default: false },
   writtenThemeProposal: { type: Boolean, default: false },
