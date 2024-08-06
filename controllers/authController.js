@@ -126,7 +126,7 @@ const verifyLoginOtp = async (req, res) => {
 };
 
 const verifySignUpOtp = async (req, res) => {
-  const { otp, mobile } = req.body;
+  const { name, otp, mobile } = req.body;
 
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
@@ -139,6 +139,7 @@ const verifySignUpOtp = async (req, res) => {
     const command = new ConfirmSignUpCommand(params);
     const data = await cognito.send(command);
     const newUser = new User({
+      name,
       mobile,
     });
     await newUser.save();
