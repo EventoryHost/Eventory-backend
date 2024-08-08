@@ -38,8 +38,16 @@ const createVendor = async (req, res) => {
 
 const getVendor = async (req, res) => {
   try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
+    const { email, phone } = req.body;
+    if (!email && !phone) {
+      return res.status(400).json({ message: "Email or phone is required" });
+    }
+    var user;
+    if (!email) {
+      user = await User.findOne({ phone });
+    } else if (!phone) {
+      user = await User.findOne({ email });
+    }
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
