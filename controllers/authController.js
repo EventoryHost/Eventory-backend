@@ -211,11 +211,11 @@ const googleCallback = async (req, res) => {
     const sessionToken = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     res.redirect(
-      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
