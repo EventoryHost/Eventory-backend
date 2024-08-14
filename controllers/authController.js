@@ -38,12 +38,14 @@ const createVendor = async (req, res) => {
 
 const getVendor = async (req, res) => {
   try {
-    const { email, phone } = req.body;
+    let { email, phone } = req.body;
+
     if (!email && !phone) {
       return res.status(400).json({ message: "Email or phone is required" });
     }
-    var user;
+    let user;
     if (!email) {
+      phone = "+91" + phone;
       user = await User.findOne({ phone });
     } else if (!phone) {
       user = await User.findOne({ email });
@@ -145,12 +147,12 @@ const verifySignUpOtp = async (req, res) => {
 
   try {
     const command = new ConfirmSignUpCommand(params);
-    const data = await cognito.send(command);
+    await cognito.send(command);
     const newUser = new User({
       name,
       mobile,
     });
-    await newUser.save();
+    const data = await newUser.save();
     res.status(200).json({ message: "Vendor registered", data });
   } catch (error) {
     res.status(400).json({ error: error.message });
