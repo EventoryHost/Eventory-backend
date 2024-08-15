@@ -39,7 +39,7 @@ const createVendor = async (req, res) => {
 const getVendor = async (req, res) => {
   try {
     let { email, phone } = req.body;
-    
+
     if (!email && !phone) {
       return res.status(400).json({ message: "Email or phone is required" });
     }
