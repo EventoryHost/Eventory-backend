@@ -23,6 +23,7 @@ const createVenue = async (req, res) => {
 
     const newVenue = new Venue({
       id: req.body.id,
+      venId: req.body.venId,
       name: req.body.name,
       venueType: req.body.venueType,
       operatingHours: req.body.operatingHours,
@@ -35,20 +36,7 @@ const createVenue = async (req, res) => {
       facilities: req.body.facilities,
       termsConditions: termsAndConditionsFileUrl,
       cancellationPolicy: cancellationPolicyFileUrl,
-      rates: {
-        hourly: {
-          type: req.body.rates.hourly.type,
-          priceRange: req.body.rates.hourly.priceRange,
-        },
-        daily: {
-          type: req.body.rates.daily.type,
-          priceRange: req.body.rates.daily.priceRange,
-        },
-        seasonal: {
-          type: req.body.rates.seasonal.type,
-          priceRange: req.body.rates.seasonal.priceRange,
-        },
-      },
+      rates: req.body.rates,
       media: req.body.media,
       portfolio: portfolioUrls,
       socialLinks: req.body.socialLinks,
