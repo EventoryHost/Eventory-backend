@@ -15,26 +15,26 @@ const createProp = async (req, res) => {
     }
 
     const furnitureAndDecorListUrl =
-      getFileUrls(req.files, "furnitureAndDecorList") ||
+      getFileUrls(req.files, "furnitureAndDecorList")[0] ||
       req.body.furnitureAndDecorList;
 
     const tentAndCanopyListUrl =
-      getFileUrls(req.files, "tentAndCanopyList") || req.body.tentAndCanopyList;
+      getFileUrls(req.files, "tentAndCanopyList")[0] || req.body.tentAndCanopyList;
 
     const audioVisualListUrl =
-      getFileUrls(req.files, "audioVisualList") || req.body.audioVisualList;
+      getFileUrls(req.files, "audioVisualList")[0] || req.body.audioVisualList;
 
     const privacyPolicyUrl =
-      getFileUrls(req.files, "privacyPolicy") || req.body.privacyPolicy;
+      getFileUrls(req.files, "privacyPolicy")[0] || req.body.privacyPolicy;
 
     const termsAndConditionsUrl =
-      getFileUrls(req.files, "termsAndConditions") ||
+      getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
     const cancellationPolicyUrl =
-      getFileUrls(req.files, "cancellationPolicy") ||
+      getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
     const insurancePolicyUrl =
-      getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
+      getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
 
     const newProp = new propRental({
       ...req.body,
@@ -55,6 +55,9 @@ const createProp = async (req, res) => {
       cancellationPolicy: cancellationPolicyUrl,
       insurancePolicy: insurancePolicyUrl,
     });
+
+    const savedProp = await newProp.save(); 
+    res.status(201).json(savedProp);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -1,4 +1,4 @@
-import Caterer from "../../models/caterer.js";
+import { Caterer } from "../../models/caterer.js";
 
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
@@ -24,24 +24,39 @@ const createCaterer = async (req, res) => {
     const portfolioUrls = getFileUrls(req.files, "portfolio");
 
     const newCaterer = new Caterer({
-      name: req.body.name,
       managerName: req.body.managerName,
-      id: req.body.id,
+
+      venId: req.body.venId,
+      name: req.body.name,
       cuisine_specialities: req.body.cuisine_specialities,
       regional_specialities: req.body.regional_specialities,
       service_style_offered: req.body.service_style_offered,
-      menu: menuFileUrl,
-      menuType: req.body.menuType,
       appetizers: req.body.appetizers,
-      main_course: req.body.main_course,
       beverages: req.body.beverages,
+      main_course: req.body.main_course,
       special_dietary_options: req.body.special_dietary_options,
       pre_set_menus: req.body.pre_set_menus,
-      customizable: req.body.customizable,
-      event_types_catered: req.body.event_types_catered,
       additional_services: req.body.additional_services,
-      staff_provided: req.body.staff_provided,
+      event_types_catered: req.body.event_types_catered,
       equipment_provided: req.body.equipment_provided,
+      rates: {
+        hourly: {
+          type: req.body.rates.hourly.type,
+          priceRange: req.body.rates.hourly.priceRange,
+        },
+        daily: {
+          type: req.body.rates.daily.type,
+          priceRange: req.body.rates.daily.priceRange,
+        },
+        seasonal: {
+          type: req.body.rates.seasonal.type,
+          priceRange: req.body.rates.seasonal.priceRange,
+        },
+      },
+      menu: menuFileUrl,
+      menuType: req.body.menuType,
+      customizable: req.body.customizable,
+      staff_provided: req.body.staff_provided,
       minimum_order_requirements: req.body.minimum_order_requirements,
       advance_booking_period: req.body.advance_booking_period,
       deposit_required: req.body.deposit_required,
@@ -49,9 +64,9 @@ const createCaterer = async (req, res) => {
       package_deals: req.body.package_deals,
       per_plate_price_range: req.body.per_plate_price_range,
       cancellation_policy: cancellationPolicyFileUrl,
-      tasting_sessions: req.body.tasting_sessions,
-      business_licenses: req.body.business_licenses,
-      food_safety_certificates: req.body.food_safety_certificates,
+      tasting_sessions: req.body.tasting_sessions === "true",
+      business_licenses: req.body.business_licenses === "true",
+      food_safety_certificates: req.body.food_safety_certificates === "true",
       terms_and_conditions: termsAndConditionsFileUrl,
       portfolio: portfolioUrls,
     });
