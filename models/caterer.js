@@ -4,7 +4,7 @@ const Schema = _Schema;
 
 const catererSchema = new Schema({
   name: { type: String, required: true },
-  managerName: { type: String, required: true },
+  managerName: { type: String },
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
 
@@ -27,20 +27,22 @@ const catererSchema = new Schema({
   minimum_order_requirements: String,
   advance_booking_period: String,
   deposit_required: String,
-  per_plate_rates: [
-    {
-      package_name: String,
-      max: String,
-      min: String,
-    },
-  ],
-  deal_package_rates: [
-    {
-      package_name: String,
-      max: String,
-      min: String,
-    },
-  ],
+  rates: {
+    per_plate_rates: [
+      {
+        package_name: String,
+        min: String,
+        max: String,
+      },
+    ],
+    deal_package_rates: [
+      {
+        package_name: String,
+        min: String,
+        max: String,
+      },
+    ],
+  },
 
   cancellation_policy: {
     type: String,
@@ -58,4 +60,4 @@ const catererSchema = new Schema({
 
 const Caterer = model("Caterer", catererSchema);
 
-export default { Caterer, catererSchema };
+export { Caterer, catererSchema };

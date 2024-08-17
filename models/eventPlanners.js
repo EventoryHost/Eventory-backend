@@ -1,6 +1,6 @@
 import { decoratorSchema } from "./decoraters.js";
 import { venueSchema } from "./venue.js";
-import caterer from "./caterer.js";
+import { catererSchema } from "./caterer.js";
 import transport from "./transport.js";
 import invitation from "./invitations.js";
 
@@ -8,8 +8,8 @@ import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
-delete caterer.catererSchema.id;
-delete caterer.catererSchema.venId;
+delete catererSchema.id;
+delete catererSchema.venId;
 
 delete transport.transportSchema.id;
 delete transport.transportSchema.venId;
@@ -46,7 +46,7 @@ const eventPlannerSchema = new Schema({
   },
   decor: decoratorSchema,
   venueProvider: venueSchema,
-  catering: caterer.catererSchema,
+  catering: catererSchema,
   transport: transport.transportSchema,
   invitation: invitation.invitationSchema,
 
