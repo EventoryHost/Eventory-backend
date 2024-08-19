@@ -52,7 +52,7 @@ const createDecorator = async (req, res) => {
       setupAndInstallation: req.body.setupAndInstallation,
       proposalRevisions: req.body.proposalRevisions,
       consultationProcess: req.body.consultationProcess,
-      packageRates: req.body.packageRates,
+      rates: req.body.rates,
       advancePayment: req.body.advancePayment,
       portfolio: portfolioUrls,
       clientTestimonials: clientTestimonialsUrls,

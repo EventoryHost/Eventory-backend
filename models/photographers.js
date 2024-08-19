@@ -7,7 +7,6 @@ const photographerSchema = Schema({
   venId: { type: String, required: true },
   type: {
     type: String,
-    enum: ["individual", "group", "organization"],
     required: true,
   },
   name: {
@@ -15,10 +14,7 @@ const photographerSchema = Schema({
     required: true,
   },
   numberOfMembers: {
-    type: Number,
-    required: function () {
-      return this.type !== "individual";
-    },
+    type: String,
   },
   clientTestimonials: {
     type: [String],
@@ -76,10 +72,12 @@ const photographerSchema = Schema({
   termsAndConditions: {
     type: String,
   },
-  packageRates: {
-    hourly: [{ name: String, min: String, max: String }],
-    deals: [{ name: String, min: String, max: String }],
-    workers: [{ name: String, min: String, max: String }],
+  rates: {
+    packageRates: {
+      hourly: [{ name: String, min: String, max: String }],
+      deals: [{ name: String, min: String, max: String }],
+      workers: [{ name: String, min: String, max: String }],
+    },
   },
 });
 
