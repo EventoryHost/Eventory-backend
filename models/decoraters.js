@@ -39,10 +39,12 @@ const decoratorSchema = Schema({
   proposalRevisions: { type: Boolean, default: false },
   consultationProcess: { type: String },
 
-  packageRates: {
-    hourly: [{ name: String, min: String, max: String }],
-    daily: [{ name: String, min: String, max: String }],
-    additionalCharges: [{ name: String, min: String, max: String }],
+  rates: {
+    packageRates: {
+      hourly: [{ name: String, min: String, max: String }],
+      daily: [{ name: String, min: String, max: String }],
+      additionalCharges: [{ name: String, min: String, max: String }],
+    },
   },
 
   advancePayment: { type: String, required: true },
