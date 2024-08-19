@@ -23,11 +23,11 @@ const propRentalSchema = new Schema({
     type: String,
   },
   yearsOfExperience: {
-    type: Number,
+    type: String,
     required: true,
   },
   numberOfWorkers: {
-    type: Number,
+    type: String,
   },
   furnitureAndDecor: {
     listUrl: {
