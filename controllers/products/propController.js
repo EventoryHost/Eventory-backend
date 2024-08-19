@@ -19,7 +19,8 @@ const createProp = async (req, res) => {
       req.body.furnitureAndDecorList;
 
     const tentAndCanopyListUrl =
-      getFileUrls(req.files, "tentAndCanopyList")[0] || req.body.tentAndCanopyList;
+      getFileUrls(req.files, "tentAndCanopyList")[0] ||
+      req.body.tentAndCanopyList;
 
     const audioVisualListUrl =
       getFileUrls(req.files, "audioVisualList")[0] || req.body.audioVisualList;
@@ -56,7 +57,7 @@ const createProp = async (req, res) => {
       insurancePolicy: insurancePolicyUrl,
     });
 
-    const savedProp = await newProp.save(); 
+    const savedProp = await newProp.save();
     res.status(201).json(savedProp);
   } catch (error) {
     res.status(400).json({ error: error.message });
