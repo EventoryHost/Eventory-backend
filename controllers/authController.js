@@ -1,8 +1,9 @@
-import axios from "axios";
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken";
-import cognito from "../config/awsConfig.js";
 dotenv.config();
+import { cognito } from "../config/awsConfig.js";
+
+import axios from "axios";
+import jwt from "jsonwebtoken";
 
 import {
   AdminInitiateAuthCommand,
@@ -12,6 +13,51 @@ import {
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { Vendor as User } from "../models/users.js";
+
+const createVendor = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const newUser = new User({
+      name,
+      email,
+    });
+
+    const user = await newUser.save();
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getVendor = async (req, res) => {
+  try {
+    let { email, phone } = req.body;
+
+    if (!email && !phone) {
+      return res.status(400).json({ message: "Email or phone is required" });
+    }
+    let user;
+    if (!email) {
+      phone = "+91" + phone;
+      user = await User.findOne({ phone });
+    } else if (!phone) {
+      user = await User.findOne({ email });
+    }
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 const signUp = async (req, res) => {
   const { mobile } = req.body;
@@ -90,7 +136,7 @@ const verifyLoginOtp = async (req, res) => {
 };
 
 const verifySignUpOtp = async (req, res) => {
-  const { otp, mobile } = req.body;
+  const { name, otp, mobile } = req.body;
 
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
@@ -101,11 +147,12 @@ const verifySignUpOtp = async (req, res) => {
 
   try {
     const command = new ConfirmSignUpCommand(params);
-    const data = await cognito.send(command);
+    await cognito.send(command);
     const newUser = new User({
+      name,
       mobile,
     });
-    await newUser.save();
+    const data = await newUser.save();
     res.status(200).json({ message: "Vendor registered", data });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -216,4 +263,6 @@ export default {
   authWithGoogle,
   googleCallback,
   addBusinessDetails,
+  createVendor,
+  getVendor,
 };
