@@ -20,7 +20,7 @@ const photographerSchema = Schema({
     type: [String],
   },
   portfolio: {
-    type: String,
+    type: [String],
     required: true,
   },
   specialization: {
@@ -67,10 +67,10 @@ const photographerSchema = Schema({
     default: false,
   },
   cancellationPolicy: {
-    type: String,
+    type: [String],
   },
   termsAndConditions: {
-    type: String,
+    type: [String],
   },
   rates: {
     packageRates: {
