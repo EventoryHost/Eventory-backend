@@ -31,7 +31,7 @@ const propRentalSchema = new Schema({
   },
   furnitureAndDecor: {
     listUrl: {
-      type: String,
+      type: [String],
     },
     furniture: {
       type: [String],
@@ -43,7 +43,7 @@ const propRentalSchema = new Schema({
   },
   tentAndCanopy: {
     listUrl: {
-      type: String,
+      type: [String],
     },
     items: {
       type: [String],
@@ -52,7 +52,7 @@ const propRentalSchema = new Schema({
   },
   audioVisual: {
     listUrl: {
-      type: String,
+      type: [String],
     },
     audioEquipment: {
       type: [String],
@@ -65,10 +65,10 @@ const propRentalSchema = new Schema({
     },
     packageRates: pricingSchema,
   },
-  insurancePolicy: { type: String },
-  cancellationPolicy: { type: String },
-  termsAndConditions: { type: String },
-  privacyPolicy: { type: String },
+  insurancePolicy: { type: [String] },
+  cancellationPolicy: { type: [String] },
+  termsAndConditions: { type: [String] },
+  privacyPolicy: { type: [String] },
 });
 
 const PropRental = model("PropRental", propRentalSchema);

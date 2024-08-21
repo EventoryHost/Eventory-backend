@@ -1,10 +1,21 @@
+import { parse } from "dotenv";
 import propRental from "../../models/props.js";
 
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
 };
 
+const parseJSON = (data) => {
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    return [];
+  }
+};
+
 const createProp = async (req, res) => {
+  console.log("Request Body:", req.body);
+
   try {
     const alreadyExists = await propRental.findOne({
       name: req.body.name,
@@ -37,16 +48,33 @@ const createProp = async (req, res) => {
     const insurancePolicyUrl =
       getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
 
+    const furnitureAndDecor = {
+      ...req.body.furnitureAndDecor,
+      listUrl: furnitureAndDecorListUrl,
+      furniture: parseJSON(req.body.furnitureAndDecor.furniture),
+      decor: parseJSON(req.body.furnitureAndDecor.decor),
+      packageRates: {
+        hourly: parseJSON(req.body.furnitureAndDecor.packageRates.hourly),
+        deal: parseJSON(req.body.furnitureAndDecor.packageRates.deal),
+        worker: parseJSON(req.body.furnitureAndDecor.packageRates.worker),
+      },
+    };
+
+    const tentAndCanopy = {
+      ...req.body.tentAndCanopy,
+      listUrl: tentAndCanopyListUrl,
+      items: parseJSON(req.body.tentAndCanopy.items),
+      packageRates: {
+        hourly: parseJSON(req.body.tentAndCanopy.packageRates.hourly),
+        deal: parseJSON(req.body.tentAndCanopy.packageRates.deal),
+        worker: parseJSON(req.body.tentAndCanopy.packageRates.worker),
+      },
+    };
+
     const newProp = new propRental({
       ...req.body,
-      furnitureAndDecor: {
-        ...req.body.furnitureAndDecor,
-        listUrl: furnitureAndDecorListUrl,
-      },
-      tentAndCanopy: {
-        ...req.body.tentAndCanopy,
-        listUrl: tentAndCanopyListUrl,
-      },
+      furnitureAndDecor,
+      tentAndCanopy,
       audioVisual: {
         ...req.body.audioVisual,
         listUrl: audioVisualListUrl,

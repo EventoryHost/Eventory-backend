@@ -4,8 +4,11 @@ import connectDB from "../config/db.js";
 import cors from "cors";
 import productRoutes from "../routes/productRoutes.js";
 import authRoutes from "../routes/authRoutes.js";
+import emailRoutes from "../routes/emailRoutes.js";
 import chalk from "chalk";
 import morgan from "morgan";
+import razorpayRoutes from "../routes/razorpayRoutes.js";
+import queryRoutes from "../routes/queryRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -27,7 +30,10 @@ app.use(
 );
 app.use("/", router);
 app.use("/api/products", productRoutes);
+app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
+app.use("/api/query", queryRoutes);
+app.use("/api/email", emailRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
