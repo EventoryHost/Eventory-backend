@@ -4,7 +4,7 @@ import connectDB from "../config/db.js";
 import cors from "cors";
 import productRoutes from "../routes/productRoutes.js";
 import authRoutes from "../routes/authRoutes.js";
-import emailRoutes from "../routes/emailRoutes.js"; 
+import emailRoutes from "../routes/emailRoutes.js";
 import chalk from "chalk";
 import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";

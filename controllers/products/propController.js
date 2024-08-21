@@ -8,8 +8,7 @@ const getFileUrls = (files, fieldName) => {
 const parseJSON = (data) => {
   try {
     return JSON.parse(data);
-  }
-  catch (e) {
+  } catch (e) {
     return [];
   }
 };
@@ -49,7 +48,6 @@ const createProp = async (req, res) => {
     const insurancePolicyUrl =
       getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
 
-
     const furnitureAndDecor = {
       ...req.body.furnitureAndDecor,
       listUrl: furnitureAndDecorListUrl,
@@ -60,7 +58,7 @@ const createProp = async (req, res) => {
         deal: parseJSON(req.body.furnitureAndDecor.packageRates.deal),
         worker: parseJSON(req.body.furnitureAndDecor.packageRates.worker),
       },
-    }
+    };
 
     const tentAndCanopy = {
       ...req.body.tentAndCanopy,
@@ -71,8 +69,7 @@ const createProp = async (req, res) => {
         deal: parseJSON(req.body.tentAndCanopy.packageRates.deal),
         worker: parseJSON(req.body.tentAndCanopy.packageRates.worker),
       },
-    }
-
+    };
 
     const newProp = new propRental({
       ...req.body,

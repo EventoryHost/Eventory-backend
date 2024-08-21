@@ -18,7 +18,7 @@ const createOrder = async (req, res) => {
       currency,
       receipt,
     });
-    return res.json(order);  
+    return res.json(order);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
