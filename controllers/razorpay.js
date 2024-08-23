@@ -12,6 +12,7 @@ const createOrder = async (req, res) => {
   try {
     const key_id = process.env.RAZORPAY_KEY;
     const key_secret = process.env.RAZORPAY_SECRET;
+    console.log(key_id, key_secret);
     var razorpay = new Razorpay({
       key_id,
       key_secret,
