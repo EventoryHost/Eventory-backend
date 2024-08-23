@@ -19,13 +19,14 @@ router.post("/send-email", async (req, res) => {
     // Setup email data
     let mailOptions = {
       from: `"Eventory" <${process.env.EMAIL_USER}>`,
-      to: process.env.RECEIVER_EMAIL, 
+      to: process.env.RECEIVER_EMAIL,
       cc: `<${process.env.EMAIL_USER}>`,
       subject: `Business Query from ${fullName}`,
-      text: `You have received a new message from your business query contact form.\n\n` +
-            `Name: ${fullName}\n` +
-            `Email: ${email}\n\n` +
-            `Message:\n${message}`,
+      text:
+        `You have received a new message from your business query contact form.\n\n` +
+        `Name: ${fullName}\n` +
+        `Email: ${email}\n\n` +
+        `Message:\n${message}`,
     };
 
     await transporter.sendMail(mailOptions);
