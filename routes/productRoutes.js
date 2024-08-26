@@ -100,9 +100,9 @@ router.post(
 router.post(
   "/add-prop-rental",
   upload("Props").fields([
-    { name: "furnitureAndDecorList", maxCount: 1 },
-    { name: "tentAndCanopyList", maxCount: 1 },
-    { name: "audioVisualList", maxCount: 1 },
+    { name: "furnitureAndDecorListUrl", maxCount: 1 },
+    { name: "tentAndCanopyListUrl", maxCount: 1 },
+    { name: "audioVisualListUrl", maxCount: 1 },
     { name: "privacyPolicy", maxCount: 1 },
     { name: "termsAndConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
