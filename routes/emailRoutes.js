@@ -116,7 +116,6 @@ router.post("/send-email", async (req, res) => {
     let userMailOptions = {
       from: `"Eventory Support" <${process.env.RECEIVER_EMAIL}>`,
       to: email, // Send to the user's email
-      cc :"sumit182003@gmail.com",
       subject: 'Thank You for Your Query',
       html: userEmailBody, // Set the HTML body
     };
