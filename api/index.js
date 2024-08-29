@@ -24,7 +24,7 @@ app.use(
     origin: "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders:
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization, Access-Control-Allow-Origin",
     credentials: true,
   }),
 );
