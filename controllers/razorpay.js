@@ -35,10 +35,10 @@ const verifyPayment = async (req, res) => {
 
     const generatedSignature = crypto
       .createHmac("sha256", key_secret)
-      .update(order_id + "|" + payment_id)  // Use the variables directly
+      .update(order_id + "|" + payment_id) // Use the variables directly
       .digest("hex");
-    console.log(generatedSignature)
-    console.log(signature)
+    console.log(generatedSignature);
+    console.log(signature);
     if (generatedSignature === signature) {
       return res.json({ message: "Payment verified" });
     } else {
