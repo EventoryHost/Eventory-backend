@@ -95,14 +95,12 @@ router.post("/send-email", async (req, res) => {
     // Email to Eventory support
     let supportMailOptions = {
       from: `"Eventory Notifications" <${process.env.EMAIL_USER}>`,
-      to: process.env.RECEIVER_EMAIL,  // Internal support email
+      to: process.env.RECEIVER_EMAIL, // Internal support email
       cc: `<${process.env.EMAIL_USER}>`, // CC to own account
       subject: `New Business Query from ${fullName}`,
-      html: supportEmailBody,  // HTML content
+      html: supportEmailBody, // HTML content
     };
-    
 
-    
     // Send email to Eventory support
     await transporter.sendMail(supportMailOptions);
 
@@ -189,7 +187,7 @@ router.post("/send-email", async (req, res) => {
     let userMailOptions = {
       from: `"Eventory Support" <${process.env.RECEIVER_EMAIL}>`,
       to: email, // Send to the user's email
-      subject: 'Thank You for Your Query',
+      subject: "Thank You for Your Query",
       html: userEmailBody, // Set the HTML body
     };
 
@@ -201,7 +199,6 @@ router.post("/send-email", async (req, res) => {
     console.error("Error sending emails:", error);
     res.status(500).send("Failed to send emails");
   }
-    
 });
 
 export default router;
