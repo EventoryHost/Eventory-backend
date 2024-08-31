@@ -78,9 +78,10 @@ const signUp = async (req, res) => {
     }
     const command = new SignUpCommand(params);
     const data = await cognito.send(command);
-    console.log(data);
+    login(req, res);
+    // console.log(data);
 
-    res.status(200).json({ message: "OTP sent", data });
+    // res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
