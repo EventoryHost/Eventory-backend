@@ -38,9 +38,9 @@ const createVendor = async (req, res) => {
 };
 const getVendor = async (req, res) => {
   try {
-    let { email, vendorId, phone } = req.body;
+    let { email, vendorId, mobile } = req.body;
 
-    if (!email && !phone && !vendorId) {
+    if (!email && !mobile && !vendorId) {
       return res.status(400).json({ message: "Please provide at least one detail to get vendor." });
     }
 
@@ -49,9 +49,9 @@ const getVendor = async (req, res) => {
       user = await User.findOne({id : vendorId});
     } else if (email) {
       user = await User.findOne({ email });
-    } else if (phone) {
-      phone = "+91" + phone;
-      user = await User.findOne({ phone });
+    } else if (mobile) {
+      mobile = "+91" + mobile;
+      user = await User.findOne({ mobile });
     }
 
     if (!user) {
