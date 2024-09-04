@@ -50,7 +50,7 @@ const giftSchema = new Schema({
     },
   },
   termsAndConditions: {
-    type: String,
+    type: [String],
     trim: true,
   },
 });
