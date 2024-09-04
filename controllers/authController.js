@@ -38,15 +38,15 @@ const createVendor = async (req, res) => {
 
 const getVendor = async (req, res) => {
   try {
-    let { email, phone } = req.body;
+    let { email, mobile } = req.body;
 
-    if (!email && !phone) {
+    if (!email && !mobile) {
       return res.status(400).json({ message: "Email or phone is required" });
     }
     let user;
     if (!email) {
-      phone = "+91" + phone;
-      user = await User.findOne({ phone });
+      mobile = "+91" + mobile;
+      user = await User.findOne({ mobile });
     } else if (!phone) {
       user = await User.findOne({ email });
     }
@@ -78,9 +78,8 @@ const signUp = async (req, res) => {
     }
     const command = new SignUpCommand(params);
     const data = await cognito.send(command);
-    console.log(data);
+    login(req, res);
 
-    res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -109,7 +108,7 @@ const login = async (req, res) => {
 };
 
 const verifyLoginOtp = async (req, res) => {
-  const { mobile, code, session } = req.body;
+  const { mobile, code, session, name } = req.body;
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -127,8 +126,17 @@ const verifyLoginOtp = async (req, res) => {
 
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
-    const data = await cognito.send(command);
-
+    var data = await cognito.send(command);
+    const user = await User.findOne({ mobile: `+91${mobile}` });
+    if (!user) {
+      const newUser = new User({
+        name,
+        mobile,
+      });
+      var userData = await newUser.save();
+      data = { ...data, userData };
+      return res.status(200).json({ message: "Vendor registered", data });
+    }
     res.status(200).json({ message: "Login Success", data });
   } catch (error) {
     res.status(400).json({ error: error.message });
