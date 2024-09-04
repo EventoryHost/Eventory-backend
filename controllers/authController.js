@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 dotenv.config();
 import { cognito } from "../config/awsConfig.js";
 
@@ -35,24 +36,28 @@ const createVendor = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 const getVendor = async (req, res) => {
   try {
-    let { email, phone } = req.body;
+    let { email, vendorId, phone } = req.body;
 
-    if (!email && !phone) {
-      return res.status(400).json({ message: "Email or phone is required" });
+    if (!email && !phone && !vendorId) {
+      return res.status(400).json({ message: "Please provide at least one detail to get vendor." });
     }
+
     let user;
-    if (!email) {
+    if (vendorId) {
+      user = await User.findOne({id : vendorId});
+    } else if (email) {
+      user = await User.findOne({ email });
+    } else if (phone) {
       phone = "+91" + phone;
       user = await User.findOne({ phone });
-    } else if (!phone) {
-      user = await User.findOne({ email });
     }
+
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found." });
     }
+
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
