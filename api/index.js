@@ -26,7 +26,6 @@ app.use(
     allowedHeaders:
       "Origin, X-Requested-With, Content-Type, Accept, Authorization, Access-Control-Allow-Origin",
     credentials: true,
-    
   }),
 );
 app.use("/", router);
