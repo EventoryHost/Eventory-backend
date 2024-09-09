@@ -34,7 +34,7 @@ const verifyPayment = async (req, res) => {
 
     const generatedSignature = crypto
       .createHmac("sha256", key_secret)
-      .update({ order_id } + "|" + { payment_id })
+      .update(order_id + "|" + payment_id) 
       .digest("hex");
 
     if (generatedSignature === signature) {
