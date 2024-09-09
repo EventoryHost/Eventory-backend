@@ -7,6 +7,8 @@ const createQuery = async (req, res) => {
     const query = new Query({
       fullname,
       email,
+      services,
+      city,
       message,
     });
 

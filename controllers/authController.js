@@ -41,12 +41,14 @@ const getVendor = async (req, res) => {
     let { email, vendorId, mobile } = req.body;
 
     if (!email && !mobile && !vendorId) {
-      return res.status(400).json({ message: "Please provide at least one detail to get vendor." });
+      return res
+        .status(400)
+        .json({ message: "Please provide at least one detail to get vendor." });
     }
 
     let user;
     if (vendorId) {
-      user = await User.findOne({id : vendorId});
+      user = await User.findOne({ id: vendorId });
     } else if (email) {
       user = await User.findOne({ email });
     } else if (mobile) {
@@ -84,7 +86,6 @@ const signUp = async (req, res) => {
     const command = new SignUpCommand(params);
     const data = await cognito.send(command);
     login(req, res);
-
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
