@@ -12,6 +12,7 @@ const createOrder = async (req, res) => {
   try {
     const key_id = process.env.RAZORPAY_KEY;
     const key_secret = process.env.RAZORPAY_SECRET;
+    console.log(key_id, key_secret);
     var razorpay = new Razorpay({
       key_id,
       key_secret,
@@ -36,7 +37,8 @@ const verifyPayment = async (req, res) => {
       .createHmac("sha256", key_secret)
       .update(order_id + "|" + payment_id) 
       .digest("hex");
-
+    console.log(generatedSignature)
+    console.log(signature)
     if (generatedSignature === signature) {
       return res.json({ message: "Payment verified" });
     } else {
