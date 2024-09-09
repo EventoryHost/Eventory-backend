@@ -4,19 +4,19 @@ import nodemailer from "nodemailer";
 const router = express.Router();
 
 router.post("/send-email", async (req, res) => {
-  const { fullName, email, message } = req.body;
+    const { fullName, email, message, services, city } = req.body;
 
-  try {
-    // Create a transporter object using SMTP transport
-    let transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    try {
 
-    let supportEmailBody = `
+        let transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+        let supportEmailBody = `
   <!DOCTYPE html>
   <html lang="en">
   <head>
@@ -78,6 +78,8 @@ router.post("/send-email", async (req, res) => {
           <div class="content">
               <p><strong>Sender's Name:</strong> ${fullName}</p>
               <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Services:</strong> ${services.join(", ")}</p>
+              <p><strong>City:</strong> ${city}</p>
               <p><strong>Message Details:</strong></p>
               <div class="message-box">
                   <p>${message}</p>
@@ -92,20 +94,20 @@ router.post("/send-email", async (req, res) => {
   </html>
 `;
 
-    // Email to Eventory support
-    let supportMailOptions = {
-      from: `"Eventory Notifications" <${process.env.EMAIL_USER}>`,
-      to: process.env.RECEIVER_EMAIL, // Internal support email
-      cc: `<${process.env.EMAIL_USER}>`, // CC to own account
-      subject: `New Business Query from ${fullName}`,
-      html: supportEmailBody, // HTML content
-    };
+        // Email to Eventory support
+        let supportMailOptions = {
+            from: `"Eventory Notifications" <${process.env.EMAIL_USER}>`,
+            to: process.env.RECEIVER_EMAIL, // Internal support email
+            cc: `<${process.env.EMAIL_USER}>`, // CC to own account
+            subject: `New Business Query from ${fullName}`,
+            html: supportEmailBody, // HTML content
+        };
 
-    // Send email to Eventory support
-    await transporter.sendMail(supportMailOptions);
+        // Send email to Eventory support
+        await transporter.sendMail(supportMailOptions);
 
-    // Email to user
-    let userEmailBody = `
+        // Email to user
+        let userEmailBody = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -184,21 +186,21 @@ router.post("/send-email", async (req, res) => {
       </html>
     `;
 
-    let userMailOptions = {
-      from: `"Eventory Support" <${process.env.RECEIVER_EMAIL}>`,
-      to: email, // Send to the user's email
-      subject: "Thank You for Your Query",
-      html: userEmailBody, // Set the HTML body
-    };
+        let userMailOptions = {
+            from: `"Eventory Support" <${process.env.RECEIVER_EMAIL}>`,
+            to: email,
+            subject: "Thank You for Your Query",
+            html: userEmailBody,
+        };
 
-    // Send email to the user
-    await transporter.sendMail(userMailOptions);
+        // Send email to the user
+        await transporter.sendMail(userMailOptions);
 
-    res.status(200).send("Emails sent successfully");
-  } catch (error) {
-    console.error("Error sending emails:", error);
-    res.status(500).send("Failed to send emails");
-  }
+        res.status(200).send("Emails sent successfully");
+    } catch (error) {
+        console.error("Error sending emails:", error);
+        res.status(500).send("Failed to send emails");
+    }
 });
 
 export default router;
