@@ -7,6 +7,8 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 
 import {
+  AdminDeleteUserCommand,
+  AdminGetUserCommand,
   AdminInitiateAuthCommand,
   AdminRespondToAuthChallengeCommand,
   ConfirmSignUpCommand,
@@ -77,19 +79,35 @@ const signUp = async (req, res) => {
     Password: "123456",
     UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
   };
-
+  
   try {
-    const user = await userExists(`+91${mobile}`);
+    const getUserCommand = new AdminGetUserCommand({
+      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      Username: `+91${mobile}`,
+    });
+    var user = await cognito.send(getUserCommand);
+
     if (user) {
+      const deleteCommand = new AdminDeleteUserCommand({
+        UserPoolId: process.env.COGNITO_USER_POOL_ID,
+        Username: `+91${mobile}`,
+      });
+      await cognito.send(deleteCommand);
+    }
+    var user = await userExists(`${mobile}`);
+
+    if (user !== null) {
       return res.status(400).json({ message: "User already exists" });
     }
     const command = new SignUpCommand(params);
-    const data = await cognito.send(command);
+    await cognito.send(command);
     login(req, res);
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+    if (error.name !== 'UserNotFoundException') {
+      res.status(400).json({ error: error.message });
+    }
+  };
+}
 
 const login = async (req, res) => {
   const { mobile } = req.body;
@@ -238,19 +256,12 @@ const googleCallback = async (req, res) => {
   }
 };
 
-const userExists = async (phoneNumber) => {
-  const params = {
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Filter: `phone_number="${phoneNumber}"`,
-  };
+const userExists = async (credential) => {
+  const user = await User.findOne({
+    $or: [{ email: credential }, { mobile: credential }],
+  });
+  return user;
 
-  try {
-    const command = new ListUsersCommand(params);
-    const data = await cognito.send(command);
-    return data.Users && data.Users.length > 0;
-  } catch (error) {
-    throw error;
-  }
 };
 
 const addBusinessDetails = async (req, res) => {
