@@ -79,7 +79,7 @@ const signUp = async (req, res) => {
     Password: "123456",
     UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
   };
-  
+
   try {
     const getUserCommand = new AdminGetUserCommand({
       UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -102,13 +102,12 @@ const signUp = async (req, res) => {
     const command = new SignUpCommand(params);
     await cognito.send(command);
     login(req, res);
-
   } catch (error) {
-    if (error.name !== 'UserNotFoundException') {
+    if (error.name !== "UserNotFoundException") {
       res.status(400).json({ error: error.message });
     }
-  };
-}
+  }
+};
 
 const login = async (req, res) => {
   const { mobile } = req.body;
@@ -262,7 +261,6 @@ const userExists = async (credential) => {
     $or: [{ email: credential }, { mobile: credential }],
   });
   return user;
-
 };
 
 const addBusinessDetails = async (req, res) => {
