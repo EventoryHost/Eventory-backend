@@ -102,6 +102,7 @@ const signUp = async (req, res) => {
     const command = new SignUpCommand(params);
     await cognito.send(command);
     login(req, res);
+
   } catch (error) {
     if (error.name !== 'UserNotFoundException') {
       res.status(400).json({ error: error.message });
