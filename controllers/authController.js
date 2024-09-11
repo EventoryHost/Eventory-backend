@@ -81,6 +81,12 @@ const signUp = async (req, res) => {
   };
 
   try {
+
+    var user = await userExists(`${mobile}`);
+
+    if (user !== null) {
+      return res.status(400).json({ message: "User already exists" });
+    }
     const getUserCommand = new AdminGetUserCommand({
       UserPoolId: process.env.COGNITO_USER_POOL_ID,
       Username: `+91${mobile}`,
@@ -93,11 +99,6 @@ const signUp = async (req, res) => {
         Username: `+91${mobile}`,
       });
       await cognito.send(deleteCommand);
-    }
-    var user = await userExists(`${mobile}`);
-
-    if (user !== null) {
-      return res.status(400).json({ message: "User already exists" });
     }
     const command = new SignUpCommand(params);
     await cognito.send(command);
