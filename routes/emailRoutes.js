@@ -5,10 +5,9 @@ import nodemailer from "nodemailer";
 const router = express.Router();
 
 router.post("/send-email", async (req, res) => {
-  const { fullName, email, message } = req.body;
+  const { fullName, email, message, services, city } = req.body;
 
   try {
-    // Create a transporter object using SMTP transport
     let transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -79,6 +78,8 @@ router.post("/send-email", async (req, res) => {
           <div class="content">
               <p><strong>Sender's Name:</strong> ${fullName}</p>
               <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Services:</strong> ${services.join(", ")}</p>
+              <p><strong>City:</strong> ${city}</p>
               <p><strong>Message Details:</strong></p>
               <div class="message-box">
                   <p>${message}</p>
@@ -187,9 +188,9 @@ router.post("/send-email", async (req, res) => {
 
     let userMailOptions = {
       from: `"Eventory Support" <${process.env.RECEIVER_EMAIL}>`,
-      to: email, // Send to the user's email
+      to: email,
       subject: "Thank You for Your Query",
-      html: userEmailBody, // Set the HTML body
+      html: userEmailBody,
     };
 
     // Send email to the user

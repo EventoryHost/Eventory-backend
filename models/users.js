@@ -6,7 +6,7 @@ const Schema = _Schema;
 const vendorSchema = new Schema({
   id: { type: String, default: generateUniqueId("ven"), required: true },
   name: { type: String, required: true },
-  phone: { type: String },
+  mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
 });
