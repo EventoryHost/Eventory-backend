@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 dotenv.config();
 import { cognito } from "../config/awsConfig.js";
 
@@ -6,6 +7,8 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 
 import {
+  AdminDeleteUserCommand,
+  AdminGetUserCommand,
   AdminInitiateAuthCommand,
   AdminRespondToAuthChallengeCommand,
   ConfirmSignUpCommand,
@@ -35,24 +38,30 @@ const createVendor = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 const getVendor = async (req, res) => {
   try {
-    let { email, phone } = req.body;
+    let { email, vendorId, mobile } = req.body;
 
-    if (!email && !phone) {
-      return res.status(400).json({ message: "Email or phone is required" });
+    if (!email && !mobile && !vendorId) {
+      return res
+        .status(400)
+        .json({ message: "Please provide at least one detail to get vendor." });
     }
+
     let user;
-    if (!email) {
-      phone = "+91" + phone;
-      user = await User.findOne({ phone });
-    } else if (!phone) {
+    if (vendorId) {
+      user = await User.findOne({ id: vendorId });
+    } else if (email) {
       user = await User.findOne({ email });
+    } else if (mobile) {
+      mobile = "+91" + mobile;
+      user = await User.findOne({ mobile });
     }
+
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found." });
     }
+
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -72,17 +81,31 @@ const signUp = async (req, res) => {
   };
 
   try {
-    const user = await userExists(`+91${mobile}`);
+    const getUserCommand = new AdminGetUserCommand({
+      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      Username: `+91${mobile}`,
+    });
+    var user = await cognito.send(getUserCommand);
+
     if (user) {
+      const deleteCommand = new AdminDeleteUserCommand({
+        UserPoolId: process.env.COGNITO_USER_POOL_ID,
+        Username: `+91${mobile}`,
+      });
+      await cognito.send(deleteCommand);
+    }
+    var user = await userExists(`${mobile}`);
+
+    if (user !== null) {
       return res.status(400).json({ message: "User already exists" });
     }
     const command = new SignUpCommand(params);
-    const data = await cognito.send(command);
-    console.log(data);
-
-    res.status(200).json({ message: "OTP sent", data });
+    await cognito.send(command);
+    login(req, res);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error.name !== "UserNotFoundException") {
+      res.status(400).json({ error: error.message });
+    }
   }
 };
 
@@ -109,7 +132,7 @@ const login = async (req, res) => {
 };
 
 const verifyLoginOtp = async (req, res) => {
-  const { mobile, code, session } = req.body;
+  const { mobile, code, session, name } = req.body;
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -127,8 +150,17 @@ const verifyLoginOtp = async (req, res) => {
 
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
-    const data = await cognito.send(command);
-
+    var data = await cognito.send(command);
+    const user = await User.findOne({ mobile: `+91${mobile}` });
+    if (!user) {
+      const newUser = new User({
+        name,
+        mobile,
+      });
+      var userData = await newUser.save();
+      data = { ...data, userData };
+      return res.status(200).json({ message: "Vendor registered", data });
+    }
     res.status(200).json({ message: "Login Success", data });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -224,19 +256,11 @@ const googleCallback = async (req, res) => {
   }
 };
 
-const userExists = async (phoneNumber) => {
-  const params = {
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Filter: `phone_number="${phoneNumber}"`,
-  };
-
-  try {
-    const command = new ListUsersCommand(params);
-    const data = await cognito.send(command);
-    return data.Users && data.Users.length > 0;
-  } catch (error) {
-    throw error;
-  }
+const userExists = async (credential) => {
+  const user = await User.findOne({
+    $or: [{ email: credential }, { mobile: credential }],
+  });
+  return user;
 };
 
 const addBusinessDetails = async (req, res) => {
