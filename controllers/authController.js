@@ -81,11 +81,14 @@ const signUp = async (req, res) => {
   };
 
   try {
-    const getUserCommand = new AdminGetUserCommand({
-      UserPoolId: process.env.COGNITO_USER_POOL_ID,
-      Username: `+91${mobile}`,
-    });
-    var user = await cognito.send(getUserCommand);
+    var user = await userExists(`${mobile}`);
+
+    if (user !== null) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    user = await isNewUser(mobile);
+    console.log(user);
 
     if (user) {
       const deleteCommand = new AdminDeleteUserCommand({
@@ -94,16 +97,13 @@ const signUp = async (req, res) => {
       });
       await cognito.send(deleteCommand);
     }
-    var user = await userExists(`${mobile}`);
-
-    if (user !== null) {
-      return res.status(400).json({ message: "User already exists" });
-    }
     const command = new SignUpCommand(params);
     await cognito.send(command);
     login(req, res);
   } catch (error) {
-    if (error.name !== "UserNotFoundException") {
+    if (error.name === "UserNotFoundException") {
+      console.log("New User");
+    } else {
       res.status(400).json({ error: error.message });
     }
   }
@@ -279,6 +279,23 @@ const addBusinessDetails = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+const isNewUser = async (mobile) => {
+  try {
+    const getUserCommand = new AdminGetUserCommand({
+      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      Username: `+91${mobile}`,
+    });
+    var user = await cognito.send(getUserCommand);
+    return true;
+  } catch (error) {
+    if (error.name === "UserNotFoundException") {
+      return false;
+    }
+    return error;
+  }
+};
+
 export default {
   login,
   signUp,
