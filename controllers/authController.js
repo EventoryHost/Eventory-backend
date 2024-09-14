@@ -105,10 +105,9 @@ const signUp = async (req, res) => {
       console.log("New User");
     } else {
       res.status(400).json({ error: error.message });
-
     }
-  };
-}
+  }
+};
 
 const login = async (req, res) => {
   const { mobile } = req.body;
@@ -295,8 +294,7 @@ const isNewUser = async (mobile) => {
     }
     return error;
   }
-
-}
+};
 
 export default {
   login,
