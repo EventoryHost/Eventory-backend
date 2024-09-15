@@ -21,6 +21,10 @@ const createCaterer = async (req, res) => {
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "terms_and_conditions")[0] ||
       req.body.terms_and_conditions;
+      
+    const portfolioUrls = getFileUrls(req.files, "portfolio")[0] ||
+    req.body.portfolio;
+
     const clientTestimonialsUrls =
       getFileUrls(req.files, "client_testimonials") ||
       req.body.client_testimonials;
@@ -46,6 +50,7 @@ const createCaterer = async (req, res) => {
         per_plate_rates:req.body.rates.per_plate_rates,
         deal_package_rates: req.body.rates.deal_package_rates,
       },
+
       menu: menuFileUrl,
       menuType: req.body.menuType,
       customizable: req.body.customizable,
