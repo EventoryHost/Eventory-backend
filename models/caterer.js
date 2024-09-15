@@ -56,7 +56,11 @@ const catererSchema = new Schema({
     required: true,
   },
   portfolio: [String],
-  
+
+  client_testimonials: {
+    type: String,
+    required: true,
+  },
 });
 
 const Caterer = model("Caterer", catererSchema);

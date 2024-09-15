@@ -21,7 +21,9 @@ const createCaterer = async (req, res) => {
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "terms_and_conditions")[0] ||
       req.body.terms_and_conditions;
-    const portfolioUrls = getFileUrls(req.files, "portfolio");
+    const clientTestimonialsUrls =
+      getFileUrls(req.files, "client_testimonials") ||
+      req.body.client_testimonials;
 
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
@@ -39,19 +41,10 @@ const createCaterer = async (req, res) => {
       additional_services: req.body.additional_services,
       event_types_catered: req.body.event_types_catered,
       equipment_provided: req.body.equipment_provided,
+
       rates: {
-        hourly: {
-          type: req.body.rates.hourly.type,
-          priceRange: req.body.rates.hourly.priceRange,
-        },
-        daily: {
-          type: req.body.rates.daily.type,
-          priceRange: req.body.rates.daily.priceRange,
-        },
-        seasonal: {
-          type: req.body.rates.seasonal.type,
-          priceRange: req.body.rates.seasonal.priceRange,
-        },
+        per_plate_rates:req.body.rates.per_plate_rates,
+        deal_package_rates: req.body.rates.deal_package_rates,
       },
       menu: menuFileUrl,
       menuType: req.body.menuType,
@@ -69,6 +62,7 @@ const createCaterer = async (req, res) => {
       food_safety_certificates: req.body.food_safety_certificates === "true",
       terms_and_conditions: termsAndConditionsFileUrl,
       portfolio: portfolioUrls,
+      client_testimonials: clientTestimonialsUrls,
     });
 
     const savedCaterer = await newCaterer.save();

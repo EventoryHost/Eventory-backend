@@ -21,6 +21,7 @@ router.post(
     { name: "cancellation_policy", maxCount: 1 },
     { name: "terms_and_conditions", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
+    { name: "client_testimonials", maxCount: 1 },
   ]),
   catererController.createCaterer,
 );
