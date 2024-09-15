@@ -26,7 +26,7 @@ const createCaterer = async (req, res) => {
     req.body.portfolio;
 
     const clientTestimonialsUrls =
-      getFileUrls(req.files, "client_testimonials") ||
+      getFileUrls(req.files, "client_testimonials")[0] ||
       req.body.client_testimonials;
 
     const newCaterer = new Caterer({
