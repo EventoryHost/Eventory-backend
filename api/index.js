@@ -19,7 +19,8 @@ app.use(morgan("dev"));
 
 connectDB();
 
-app.use(json());
+app.use(express.json());
+
 app.use(
   cors({
     origin: "*",

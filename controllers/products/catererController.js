@@ -29,6 +29,8 @@ const createCaterer = async (req, res) => {
       getFileUrls(req.files, "client_testimonials")[0] ||
       req.body.client_testimonials;
 
+      console.log(req.body.rates.per_plate_rates)
+
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
 
@@ -47,7 +49,7 @@ const createCaterer = async (req, res) => {
       equipment_provided: req.body.equipment_provided,
 
       rates: {
-        per_plate_rates:req.body.rates.per_plate_rates,
+        per_plate_rates: req.body.rates.per_plate_rates,
         deal_package_rates: req.body.rates.deal_package_rates,
       },
 

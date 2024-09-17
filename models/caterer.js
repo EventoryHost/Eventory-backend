@@ -11,7 +11,9 @@ const catererSchema = new Schema({
   cuisine_specialities: [String],
   regional_specialities: [String],
   service_style_offered: [String],
-  menu: String,
+  menu:  {
+    type: String,required: false
+  },
   menuType: [String],
 
   appetizers: [String],
