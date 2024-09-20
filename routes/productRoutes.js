@@ -17,11 +17,12 @@ router.get("/caterer", catererController.getAllCaterers);
 router.post(
   "/add-caterer",
   upload("Caterers").fields([
-    { name: "menu", maxCount: 1 },
+    { name: "menu", maxCount: 10 },
     { name: "cancellation_policy", maxCount: 1 },
     { name: "terms_and_conditions", maxCount: 1 },
-    { name: "portfolio", maxCount: 20 },
-    { name: "client_testimonials", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+    { name: "client_testimonials", maxCount: 10 },
   ]),
   catererController.createCaterer,
 );
@@ -52,10 +53,11 @@ router.post(
   upload("Event Planner").fields([
     { name: "termsConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "portfolio", maxCount: 20 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+    { name: "themePhotos", maxCount: 20 },
+    { name: "themeVideos", maxCount: 20 },
     { name: "insurance", maxCount: 1 },
-    { name: "awards", maxCount: 20 },
-    { name: "clientTestimonials", maxCount: 20 },
     { name: "onlineRatings", maxCount: 20 },
     { name: "privacyPolicy", maxCount: 1 },
   ]),

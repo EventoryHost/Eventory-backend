@@ -4,17 +4,16 @@ const Schema = _Schema;
 
 const catererSchema = new Schema({
   name: { type: String, required: true },
-  managerName: { type: String,required: true  },
+  managerName: { type: String, required: true },
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  capacity: { type: String, required: true },
 
-  cuisine_specialities: [String],
-  regional_specialities: [String],
-  service_style_offered: [String],
-  menu:  {
-    type: String,required: false
-  },
-  menuType: [String],
+  cuisine_specialities: { type: [String], required: true },
+  regional_specialities: { type: [String], required: true },
+  service_style_offered: { type: [String], required: true },
+  menu: { type: [String], required: true },
+  vegOrNonVeg: { type: String, required: true },
 
   appetizers: [String],
   main_course: [String],
@@ -22,46 +21,27 @@ const catererSchema = new Schema({
   special_dietary_options: [String],
   pre_set_menus: [String],
   customizable: { type: Boolean },
-  event_types_catered: [String],
+  event_types_catered: { type: [String], required: true },
   additional_services: [String],
-  staff_provided: [String],
+  staff_provided: { type: [String], required: true },
   equipment_provided: [String],
-  minimum_order_requirements: [String],
-  advance_booking_period: [String],
-  deposit_required: [String],
-  rates: {
-    per_plate_rates: [
-      {
-        package_name: String,
-        min: String,
-        max: String,
-      },
-    ],
-    deal_package_rates: [
-      {
-        package_name: String,
-        min: String,
-        max: String,
-      },
-    ],
-  },
+  minimum_order_requirements: { type: String, required: true },
+  advance_booking_period: { type: String, required: true },
 
   cancellation_policy: {
     type: String,
-    required: true,
   },
-  tasting_sessions: { type: Boolean, default: false },
-  business_licenses: { type: Boolean, default: false },
-  food_safety_certificates: { type: Boolean, default: false },
+  tasting_sessions: { type: Boolean, required: true },
+  business_licenses: { type: Boolean, required:false },
+  food_safety_certificates: { type: Boolean, required: false },
   terms_and_conditions: {
     type: String,
-    required: true,
   },
-  portfolio: [String],
+  photos: { type: [String], required: true },
+  videos: { type: [String], required: true },
 
   client_testimonials: {
     type: String,
-    required: true,
   },
 });
 
