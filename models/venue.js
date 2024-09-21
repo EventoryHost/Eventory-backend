@@ -5,73 +5,67 @@ const Schema = _Schema;
 const venueSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
-  id: { type: String, required: true },
   name: {
     type: String,
     required: true,
   },
+  managarName: { type: String, required: true },
+  capacity: { type: String, required: true },
   operatingHours: {
     openingTime: {
       type: String,
-      required: true,
     },
     closingTime: {
       type: String,
-      required: true,
     },
   },
+  address: { type: String, required: true },
   venueDescription: {
     type: String,
+  },
+  catererServices: {
+    type: Boolean,
     required: true,
   },
-  seatedCapacity: {
-    type: String,
-    required: true,
-  },
-  standingCapacity: {
-    type: String,
-    required: true,
-  },
+
+
   decorServices: {
-    type: String,
+    type: Boolean,
     required: true,
   },
+  venueTypes: { type: [String], required: true },
+
   audioVisualEquipment: {
     type: [String],
-    required: true,
   },
   accessibilityFeatures: {
     type: [String],
     required: true,
   },
+  restrictionsPolicies: { type: [String], required: true },
+  speacialFeatures: { type: [String], },
   facilities: {
     type: [String],
     required: true,
   },
   termsConditions: {
     type: String,
-    required: true,
   },
   cancellationPolicy: {
     type: String,
-    required: true,
   },
-  rates: {
-    packageRates: {
-      hourly: [{ name: String, min: String, max: String }],
-      daily: [{ name: String, min: String, max: String }],
-      seasonal: [{ name: String, min: String, max: String }],
-    },
+  insurancePolicy: {
+    type: String,
   },
 
-  portfolio: [String],
+  photos: { type: [String], required: true },
+  videos: { type: [String], required: true },
+  instagramURL: { type: String },
+  websiteURL: { type: String },
+  awards: { type: String },
+  clientTestimonials: { type: String },
+  advanceBookingPeriod: { type: String, required: true },
 
-  socialLinks: {
-    instagramURL: String,
-    websiteURL: String,
-  },
-  restrictionsPolicies: [String],
-  specialFeatures: [String],
 });
 
 const Venue = model("Venue", venueSchema);
