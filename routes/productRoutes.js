@@ -32,7 +32,9 @@ router.post(
   upload("Venues").fields([
     { name: "termsConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "portfolio", maxCount: 20 },
+    { name: "insurancePolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   venueController.createVenue,
 );
