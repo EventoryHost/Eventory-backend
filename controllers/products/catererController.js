@@ -22,13 +22,15 @@ const createCaterer = async (req, res) => {
       getFileUrls(req.files, "terms_and_conditions")[0] ||
       req.body.terms_and_conditions;
 
-    const photosUrls = getFileUrls(req.files, "photos") || req.body.photos;
-    const videosUrls = getFileUrls(req.files, "videos") || req.body.videos;
+    const photosUrls = getFileUrls(req.files, "photos");
+    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos");
+    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const clientTestimonialsUrls =
-      getFileUrls(req.files, "client_testimonials") ||
+      getFileUrls(req.files, "client_testimonials")[0] ||
       req.body.client_testimonials;
-
 
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
@@ -51,7 +53,7 @@ const createCaterer = async (req, res) => {
       vegOrNonVeg: req.body.vegOrNonVeg,
 
       menu: menuFileUrl,
-      customizable: req.body.customizable,
+      customizable: req.body.customizable === "true",
       staff_provided: req.body.staff_provided,
       minimum_order_requirements: req.body.minimum_order_requirements,
       advance_booking_period: req.body.advance_booking_period,
@@ -61,8 +63,8 @@ const createCaterer = async (req, res) => {
       business_licenses: req.body.business_licenses === "true",
       food_safety_certificates: req.body.food_safety_certificates === "true",
       terms_and_conditions: termsAndConditionsFileUrl,
-      photos: photosUrls,
-      videos: videosUrls,
+      photos: Array.isArray(photos) ? photos : [photos],
+      videos: Array.isArray(videos) ? videos : [videos],
       client_testimonials: clientTestimonialsUrls,
     });
 
