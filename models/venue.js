@@ -9,7 +9,7 @@ const venueSchema = new Schema({
     type: String,
     required: true,
   },
-  managarName: { type: String, required: true },
+  managerName: { type: String, required: true },
   capacity: { type: String, required: true },
   operatingHours: {
     openingTime: {
@@ -49,13 +49,13 @@ const venueSchema = new Schema({
     required: true,
   },
   termsConditions: {
-    type: String,
+    type: Schema.Types.Mixed,
   },
   cancellationPolicy: {
-    type: String,
+    type: Schema.Types.Mixed,
   },
   insurancePolicy: {
-    type: String,
+    type: Schema.Types.Mixed,
   },
 
   photos: { type: [String], required: true },
@@ -64,7 +64,7 @@ const venueSchema = new Schema({
   websiteURL: { type: String },
   awards: { type: String },
   clientTestimonials: { type: String },
-  advanceBookingPeriod: { type: String, required: true },
+  advanceBookingPeriod: { type: String },
 
 });
 

@@ -26,7 +26,7 @@ const createVenue = async (req, res) => {
 
     const newVenue = new Venue({
       id: req.body.id,
-      managarName: req.body.managarName,
+      managerName: req.body.managerName,
       venId: req.body.venId,
       name: req.body.name,
       capacity: req.body.capacity,
