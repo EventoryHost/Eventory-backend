@@ -49,13 +49,13 @@ const venueSchema = new Schema({
     required: true,
   },
   termsConditions: {
-    type: Schema.Types.Mixed,
+    type: [String],
   },
   cancellationPolicy: {
-    type: Schema.Types.Mixed,
+    type: [String],
   },
   insurancePolicy: {
-    type: Schema.Types.Mixed,
+    type: [String],
   },
 
   photos: { type: [String], required: true },
