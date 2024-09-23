@@ -14,17 +14,27 @@ const createCaterer = async (req, res) => {
       return res.status(400).json({ message: "Caterer already exists" });
     }
 
-    const menuFileUrl = getFileUrls(req.files, "menu")[0] || req.body.menu;
+    const menuFileUrl = getFileUrls(req.files, "menu") || req.body.menu;
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellation_policy")[0] ||
       req.body.cancellation_policy;
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "terms_and_conditions")[0] ||
       req.body.terms_and_conditions;
-    const portfolioUrls = getFileUrls(req.files, "portfolio");
+
+    const photosUrls = getFileUrls(req.files, "photos");
+    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos");
+    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
+
+    const clientTestimonialsUrls =
+      getFileUrls(req.files, "client_testimonials")[0] ||
+      req.body.client_testimonials;
 
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
+      capacity: req.body.capacity,
 
       venId: req.body.venId,
       name: req.body.name,
@@ -39,36 +49,23 @@ const createCaterer = async (req, res) => {
       additional_services: req.body.additional_services,
       event_types_catered: req.body.event_types_catered,
       equipment_provided: req.body.equipment_provided,
-      rates: {
-        hourly: {
-          type: req.body.rates.hourly.type,
-          priceRange: req.body.rates.hourly.priceRange,
-        },
-        daily: {
-          type: req.body.rates.daily.type,
-          priceRange: req.body.rates.daily.priceRange,
-        },
-        seasonal: {
-          type: req.body.rates.seasonal.type,
-          priceRange: req.body.rates.seasonal.priceRange,
-        },
-      },
+
+      vegOrNonVeg: req.body.vegOrNonVeg,
+
       menu: menuFileUrl,
-      menuType: req.body.menuType,
-      customizable: req.body.customizable,
+      customizable: req.body.customizable === "true",
       staff_provided: req.body.staff_provided,
       minimum_order_requirements: req.body.minimum_order_requirements,
       advance_booking_period: req.body.advance_booking_period,
       deposit_required: req.body.deposit_required,
-      per_plate_rates: req.body.per_plate_rates,
-      package_deals: req.body.package_deals,
-      per_plate_price_range: req.body.per_plate_price_range,
       cancellation_policy: cancellationPolicyFileUrl,
       tasting_sessions: req.body.tasting_sessions === "true",
       business_licenses: req.body.business_licenses === "true",
       food_safety_certificates: req.body.food_safety_certificates === "true",
       terms_and_conditions: termsAndConditionsFileUrl,
-      portfolio: portfolioUrls,
+      photos: Array.isArray(photos) ? photos : [photos],
+      videos: Array.isArray(videos) ? videos : [videos],
+      client_testimonials: clientTestimonialsUrls,
     });
 
     const savedCaterer = await newCaterer.save();
