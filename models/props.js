@@ -11,26 +11,33 @@ const pricingSchema = new Schema({
 const propRentalSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
-  contactPersonName: {
+  managerName: {
     type: String,
     required: true,
   },
-  contactPhoneNumber: {
+  
+  workDescription: {
+    type: String,
+  },
+  eventSize: {
     type: String,
     required: true,
   },
-  descriptionOfWork: {
-    type: String,
-  },
-  yearsOfExperience: {
+  itemCatalogue: {
     type: String,
     required: true,
   },
-  numberOfWorkers: {
-    type: String,
-  },
+  customization: { type: Boolean, required: true },
+  maintenance: { type: String, required: true },
+  services: { type: String, required: true },
+  photos: { type: [String], required: true },
+  videos: { type: [String], required: true },
+  
   furnitureAndDecor: {
     listUrl: {
+      type: [String],
+    },
+    typeOfEvents: {
       type: [String],
     },
     furniture: {
@@ -39,16 +46,17 @@ const propRentalSchema = new Schema({
     decor: {
       type: [String],
     },
-    packageRates: pricingSchema,
   },
   tentAndCanopy: {
     listUrl: {
       type: [String],
     },
+    typeOfEvents: {
+      type: [String],
+    },
     items: {
       type: [String],
     },
-    packageRates: pricingSchema,
   },
   audioVisual: {
     listUrl: {
@@ -63,12 +71,14 @@ const propRentalSchema = new Schema({
     lightEquipment: {
       type: [String],
     },
-    packageRates: pricingSchema,
   },
-  insurancePolicy: { type: [String] },
+  awardsAndRecognize: { type: String, required: false },
+  clientTestimonial: { type: String, required: false },
+  instaUrl: { type: String, required: false },
+  websiteUrl: { type: String, required: false },
+
   cancellationPolicy: { type: [String] },
   termsAndConditions: { type: [String] },
-  privacyPolicy: { type: [String] },
 });
 
 const PropRental = model("PropRental", propRentalSchema);

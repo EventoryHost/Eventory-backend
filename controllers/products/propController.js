@@ -25,8 +25,6 @@ const createProp = async (req, res) => {
     const audioVisualListUrl =
       getFileUrls(req.files, "audioVisualList")[0] || req.body.audioVisualList;
 
-    const privacyPolicyUrl =
-      getFileUrls(req.files, "privacyPolicy")[0] || req.body.privacyPolicy;
 
     const termsAndConditionsUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
@@ -34,27 +32,36 @@ const createProp = async (req, res) => {
     const cancellationPolicyUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
-    const insurancePolicyUrl =
-      getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
+
+    const itemCatalogueUrl =
+      getFileUrls(req.files, "itemCatalogue")[0] || req.body.itemCatalogue;
+
+      const photosUrls = getFileUrls(req.files, "photos");
+    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos");
+    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const newProp = new propRental({
       ...req.body,
+      itemCatalogue: itemCatalogueUrl,
+      customization: req.body.customization === "true",
+      maintenance: req.body.maintenance,
+      services: req.body.services,
+
       furnitureAndDecor: {
         ...req.body.furnitureAndDecor,
-        listUrl: furnitureAndDecorListUrl,
       },
       tentAndCanopy: {
         ...req.body.tentAndCanopy,
-        listUrl: tentAndCanopyListUrl,
       },
       audioVisual: {
         ...req.body.audioVisual,
-        listUrl: audioVisualListUrl,
       },
-      privacyPolicy: privacyPolicyUrl,
       termsAndConditions: termsAndConditionsUrl,
       cancellationPolicy: cancellationPolicyUrl,
-      insurancePolicy: insurancePolicyUrl,
+      photos: Array.isArray(photos) ? photos : [photos],
+      videos: Array.isArray(videos) ? videos : [videos],
     });
 
     const savedProp = await newProp.save();

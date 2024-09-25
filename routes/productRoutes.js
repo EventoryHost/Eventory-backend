@@ -107,11 +107,13 @@ router.post(
   upload("Props").fields([
     { name: "furnitureAndDecorListUrl", maxCount: 1 },
     { name: "tentAndCanopyListUrl", maxCount: 1 },
+    { name: "itemCatalogue", maxCount: 1 },
     { name: "audioVisualListUrl", maxCount: 1 },
     { name: "privacyPolicy", maxCount: 1 },
     { name: "termsAndConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "insurancePolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   propController.createProp,
 );
