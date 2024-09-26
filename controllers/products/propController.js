@@ -6,24 +6,24 @@ const getFileUrls = (files, fieldName) => {
 
 const createProp = async (req, res) => {
   try {
-    const alreadyExists = await propRental.findOne({
-      name: req.body.name,
-      venId: req.body.venId,
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Prop Rental already exists" });
-    }
+    // const alreadyExists = await propRental.findOne({
+    //   name: req.body.name,
+    //   venId: req.body.venId,
+    // });
+    // if (alreadyExists) {
+    //   return res.status(400).json({ message: "Prop Rental already exists" });
+    // }
 
     const furnitureAndDecorListUrl =
-      getFileUrls(req.files, "furnitureAndDecorList")[0] ||
+      getFileUrls(req.files, "furnitureAndDecorListUrl")[0] ||
       req.body.furnitureAndDecorList;
 
     const tentAndCanopyListUrl =
-      getFileUrls(req.files, "tentAndCanopyList")[0] ||
+      getFileUrls(req.files, "tentAndCanopyListUrl")[0] ||
       req.body.tentAndCanopyList;
 
     const audioVisualListUrl =
-      getFileUrls(req.files, "audioVisualList")[0] || req.body.audioVisualList;
+      getFileUrls(req.files, "audioVisualListUrl")[0] || req.body.audioVisualList;
 
 
     const termsAndConditionsUrl =
@@ -50,12 +50,15 @@ const createProp = async (req, res) => {
       services: req.body.services,
 
       furnitureAndDecor: {
+        listUrl:furnitureAndDecorListUrl,
         ...req.body.furnitureAndDecor,
       },
       tentAndCanopy: {
+        listUrl:tentAndCanopyListUrl,
         ...req.body.tentAndCanopy,
       },
       audioVisual: {
+        listUrl:audioVisualListUrl,
         ...req.body.audioVisual,
       },
       termsAndConditions: termsAndConditionsUrl,

@@ -62,6 +62,9 @@ const propRentalSchema = new Schema({
     listUrl: {
       type: [String],
     },
+    typeOfEvents: {
+      type: [String],
+    },
     audioEquipment: {
       type: [String],
     },
