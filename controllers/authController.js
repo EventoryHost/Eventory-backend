@@ -88,7 +88,6 @@ const signUp = async (req, res) => {
     }
 
     user = await isNewUser(mobile);
-    console.log(user);
 
     if (user) {
       const deleteCommand = new AdminDeleteUserCommand({
@@ -124,8 +123,8 @@ const login = async (req, res) => {
 
   try {
     const command = new AdminInitiateAuthCommand(params);
-    const user = await User.findOne({ mobile: `+91${mobile}` });
-    if (user) {
+    const userExists = isNewUser(mobile)
+    if (userExists) {
       const data = await cognito.send(command);
       return res.status(200).json({ message: "OTP sent", data })
     }
