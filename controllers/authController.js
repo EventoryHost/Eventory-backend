@@ -249,7 +249,7 @@ const googleCallback = async (req, res) => {
 
     // Create session token
     const sessionToken = jwt.sign(
-      { userId: user.id, email: user.email },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "1h" },
     );
