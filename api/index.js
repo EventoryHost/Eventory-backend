@@ -51,7 +51,7 @@ app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
-app.use("/api/about-email" , aboutEmailRoutes);
+app.use("/api/about-email", aboutEmailRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
