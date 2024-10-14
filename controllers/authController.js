@@ -123,10 +123,10 @@ const login = async (req, res) => {
 
   try {
     const command = new AdminInitiateAuthCommand(params);
-    const userExists = isNewUser(mobile)
+    const userExists = isNewUser(mobile);
     if (userExists) {
       const data = await cognito.send(command);
-      return res.status(200).json({ message: "OTP sent", data })
+      return res.status(200).json({ message: "OTP sent", data });
     }
     return res.status(400).json({ message: "User does not exist" });
   } catch (error) {

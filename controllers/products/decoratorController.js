@@ -58,7 +58,6 @@ const createDecorator = async (req, res) => {
       videos: videosUrls,
       website: req.body.website,
       instagram: req.body.instagram,
-
     });
 
     const savedDecorator = await newDecorator.save();
