@@ -14,15 +14,14 @@ const createQuery = async (req, res) => {
 
     const newQuery = await query.save();
 
-    if (!newQuery) return res.status(500).json({ error: "Error While Createing Quary" });
+    if (!newQuery)
+      return res.status(500).json({ error: "Error While Createing Quary" });
     // console.log(newQuery)
     return res.status(200).json(newQuery);
-
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 const createreachoutQuery = async (req, res) => {
   try {
@@ -36,15 +35,14 @@ const createreachoutQuery = async (req, res) => {
 
     const newQuery = await query.save();
 
-    if (!newQuery) return res.status(500).json({ error: "Error While Createing Quary" });
+    if (!newQuery)
+      return res.status(500).json({ error: "Error While Createing Quary" });
     // console.log(newQuery)
     return res.status(200).json(newQuery);
-
   } catch (error) {
     // console.log(error)
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 export default { createQuery, createreachoutQuery };

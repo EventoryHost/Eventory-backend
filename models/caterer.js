@@ -32,7 +32,7 @@ const catererSchema = new Schema({
     type: String,
   },
   tasting_sessions: { type: Boolean, required: true },
-  business_licenses: { type: Boolean, required:false },
+  business_licenses: { type: Boolean, required: false },
   food_safety_certificates: { type: Boolean, required: false },
   terms_and_conditions: {
     type: String,

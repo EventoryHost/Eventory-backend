@@ -28,7 +28,6 @@ const venueSchema = new Schema({
     required: true,
   },
 
-
   decorServices: {
     type: Boolean,
     required: true,
@@ -43,7 +42,7 @@ const venueSchema = new Schema({
     required: true,
   },
   restrictionsPolicies: { type: [String], required: true },
-  speacialFeatures: { type: [String], },
+  speacialFeatures: { type: [String] },
   facilities: {
     type: [String],
     required: true,
@@ -65,7 +64,6 @@ const venueSchema = new Schema({
   awards: { type: String },
   clientTestimonials: { type: String },
   advanceBookingPeriod: { type: String },
-
 });
 
 const Venue = model("Venue", venueSchema);

@@ -15,7 +15,7 @@ const propRentalSchema = new Schema({
     type: String,
     required: true,
   },
-  
+
   workDescription: {
     type: String,
   },
@@ -32,7 +32,7 @@ const propRentalSchema = new Schema({
   services: { type: String, required: true },
   photos: { type: [String], required: true },
   videos: { type: [String], required: true },
-  
+
   furnitureAndDecor: {
     listUrl: {
       type: [String],
