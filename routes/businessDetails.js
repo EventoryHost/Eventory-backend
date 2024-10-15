@@ -3,7 +3,6 @@ import express from "express";
 const router = express.Router();
 import { BusinessDetailsModel } from "../models/reduxStores/businessDetails.js";
 import { CateringModel } from "../models/reduxStores/Catering.js";
-
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
     const { userId, businessDetails2 } = req.body;
@@ -56,6 +55,24 @@ router.post("/business-details", async (req, res) => {
         res.status(500).json({ message: "Failed to save or update business details." });
     }
 });
+
+// Route to fetch business details by userId
+router.get("/business-details/:userId", async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const businessDetails = await BusinessDetailsModel.findOne({ userId });
+        if (businessDetails) {
+            res.status(200).json(businessDetails);
+        } else {
+            res.status(404).json({ message: "Business details not found." });
+        }
+    } catch (error) {
+        console.error("Error fetching business details:", error);
+        res.status(500).json({ message: "Failed to fetch business details." });
+    }
+});
+
 
 /** CATERING DETAILS ROUTES **/
 
