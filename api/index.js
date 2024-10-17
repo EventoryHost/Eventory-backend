@@ -10,7 +10,7 @@ import chalk from "chalk";
 import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
-import {businessDetailsRoutes} from "../routes/businessDetails.js"
+import {businessDetailsRoutes} from "../routes/reduxRoutes/businessDetails.js"
 
 const app = express();
 const port = 4000;  
