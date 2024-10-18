@@ -4,6 +4,8 @@ const router = express.Router();
 import { BusinessDetailsModel } from "../../models/reduxStores/businessDetails.js";
 import { CateringModel } from "../../models/reduxStores/Catering.js";
 import { decoratorRoutes } from "./decorator.js";
+import { giftRoutes } from "./gifts.js";
+import { venueRoutes } from "./venue-provider.js";
 
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
@@ -76,6 +78,8 @@ router.get("/business-details/:userId", async (req, res) => {
 });
 
 router.use("/decorator-details", decoratorRoutes);
+router.use("/gifts-details", giftRoutes);
+router.use("/venue-provider-details",venueRoutes);
 
 /** CATERING DETAILS ROUTES **/
 
