@@ -6,6 +6,10 @@ import { CateringModel } from "../../models/reduxStores/Catering.js";
 import { decoratorRoutes } from "./decorator.js";
 import { giftRoutes } from "./gifts.js";
 import { venueRoutes } from "./venue-provider.js";
+import { pavRoutes } from "./pav.js";
+import { makeupArtistRoutes } from "./makeUpArtist.js";
+import { propRentalRoutes } from "./prop-rental.js";
+import { invitationRoutes } from "./invitation.js";
 
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
@@ -80,6 +84,10 @@ router.get("/business-details/:userId", async (req, res) => {
 router.use("/decorator-details", decoratorRoutes);
 router.use("/gifts-details", giftRoutes);
 router.use("/venue-provider-details",venueRoutes);
+router.use("/pav-details", pavRoutes);
+router.use("/prop-rental-details", propRentalRoutes);
+router.use("/invitation-details", invitationRoutes);
+router.use("/makeup-artist-details", makeupArtistRoutes);
 
 /** CATERING DETAILS ROUTES **/
 
