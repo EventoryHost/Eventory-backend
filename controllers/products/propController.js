@@ -23,8 +23,8 @@ const createProp = async (req, res) => {
       req.body.tentAndCanopyList;
 
     const audioVisualListUrl =
-      getFileUrls(req.files, "audioVisualListUrl")[0] || req.body.audioVisualList;
-
+      getFileUrls(req.files, "audioVisualListUrl")[0] ||
+      req.body.audioVisualList;
 
     const termsAndConditionsUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
@@ -36,7 +36,7 @@ const createProp = async (req, res) => {
     const itemCatalogueUrl =
       getFileUrls(req.files, "itemCatalogue")[0] || req.body.itemCatalogue;
 
-      const photosUrls = getFileUrls(req.files, "photos");
+    const photosUrls = getFileUrls(req.files, "photos");
     const photos = photosUrls.length ? photosUrls : req.body.photos || [];
 
     const videosUrls = getFileUrls(req.files, "videos");
@@ -50,15 +50,15 @@ const createProp = async (req, res) => {
       services: req.body.services,
 
       furnitureAndDecor: {
-        listUrl:furnitureAndDecorListUrl,
+        listUrl: furnitureAndDecorListUrl,
         ...req.body.furnitureAndDecor,
       },
       tentAndCanopy: {
-        listUrl:tentAndCanopyListUrl,
+        listUrl: tentAndCanopyListUrl,
         ...req.body.tentAndCanopy,
       },
       audioVisual: {
-        listUrl:audioVisualListUrl,
+        listUrl: audioVisualListUrl,
         ...req.body.audioVisual,
       },
       termsAndConditions: termsAndConditionsUrl,

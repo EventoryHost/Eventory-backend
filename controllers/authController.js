@@ -88,7 +88,6 @@ const signUp = async (req, res) => {
     }
 
     user = await isNewUser(mobile);
-    console.log(user);
 
     if (user) {
       const deleteCommand = new AdminDeleteUserCommand({
@@ -124,9 +123,14 @@ const login = async (req, res) => {
 
   try {
     const command = new AdminInitiateAuthCommand(params);
-    const data = await cognito.send(command);
-    res.status(200).json({ message: "OTP sent", data });
+    const userExists = isNewUser(mobile);
+    if (userExists) {
+      const data = await cognito.send(command);
+      return res.status(200).json({ message: "OTP sent", data });
+    }
+    return res.status(400).json({ message: "User does not exist" });
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -150,19 +154,21 @@ const verifyLoginOtp = async (req, res) => {
 
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
-    var data = await cognito.send(command);
+    var data = await cognito.send(command); // if otp not valid will throw error
     const user = await User.findOne({ mobile: `+91${mobile}` });
     if (!user) {
       const newUser = new User({
         name,
-        mobile,
+        mobile: `+91${mobile}`,
       });
       var userData = await newUser.save();
       data = { ...data, userData };
       return res.status(200).json({ message: "Vendor registered", data });
     }
+    data = { ...data, user };
     res.status(200).json({ message: "Login Success", data });
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -243,7 +249,7 @@ const googleCallback = async (req, res) => {
 
     // Create session token
     const sessionToken = jwt.sign(
-      { userId: user.id, email: user.email },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "1h" },
     );

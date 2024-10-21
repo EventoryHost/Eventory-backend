@@ -20,9 +20,10 @@ const createVenue = async (req, res) => {
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
 
-      const photosUrls = getFileUrls(req.files, "photos") || req.body.photos;
-      const videosUrls = getFileUrls(req.files, "videos") || req.body.videos;
-      const insurancePolicyUrl = getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
+    const photosUrls = getFileUrls(req.files, "photos") || req.body.photos;
+    const videosUrls = getFileUrls(req.files, "videos") || req.body.videos;
+    const insurancePolicyUrl =
+      getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
 
     const newVenue = new Venue({
       id: req.body.id,
