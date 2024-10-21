@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
-import 'dotenv/config.js';
+import { Router } from "express";
+import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
+import "dotenv/config.js";
 
 const router = Router();
 
@@ -14,27 +14,27 @@ const s3Client = new S3Client({
 });
 
 function getFileNameFromUrl(url) {
-    const comIndex = url.indexOf('.com');
-  
-    if (comIndex === -1) {
-      return null; 
-    }
-  
-    const substringAfterCom = url.substring(comIndex + 4); 
+  const comIndex = url.indexOf(".com");
 
-    const dashIndex = substringAfterCom.indexOf('-');
-  
-    if (dashIndex !== -1) {
-      return substringAfterCom.substring(dashIndex + 1); // No splitting to keep the extension
-    }
-  
+  if (comIndex === -1) {
     return null;
   }
 
+  const substringAfterCom = url.substring(comIndex + 4);
+
+  const dashIndex = substringAfterCom.indexOf("-");
+
+  if (dashIndex !== -1) {
+    return substringAfterCom.substring(dashIndex + 1); // No splitting to keep the extension
+  }
+
+  return null;
+}
+
 // Function to get the file size from S3 using AWS SDK v3
 async function getFileSizeFromS3(url) {
-  const bucketName = 'eventory-bucket'; // replace with your S3 bucket name
-  const key = url.split('.com/')[1]; // Extract the key from the URL
+  const bucketName = "eventory-bucket"; // replace with your S3 bucket name
+  const key = url.split(".com/")[1]; // Extract the key from the URL
 
   const params = {
     Bucket: bucketName,
@@ -51,11 +51,11 @@ async function getFileSizeFromS3(url) {
 }
 
 // Define the route
-router.post('/get-file-info', async (req, res) => {
+router.post("/get-file-info", async (req, res) => {
   const { url } = req.body;
 
   if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
+    return res.status(400).json({ error: "URL is required" });
   }
 
   try {
