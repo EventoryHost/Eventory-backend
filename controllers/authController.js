@@ -81,7 +81,7 @@ const signUp = async (req, res) => {
   };
 
   try {
-    var user = await userExists(`${mobile}`);
+    var user = await userExists(`+91${mobile}`);
 
     if (user !== null) {
       return res.status(400).json({ message: "User already exists" });
