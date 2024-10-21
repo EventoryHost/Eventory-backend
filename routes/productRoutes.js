@@ -130,5 +130,5 @@ router.post(
   photographerController.createPhotographer,
 );
 
-router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory)
+router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 export default router;
