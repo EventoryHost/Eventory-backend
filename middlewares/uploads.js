@@ -28,7 +28,7 @@ const upload = (vendorType) =>
 
       key: (req, file, cb) => {
         const folder = `${vendorType}/${req.body.name}/${getFolderName(file.mimetype)}`;
-        const filename = `${folder}${file.fieldname}`;
+        const filename = `${folder}${file.fieldname}-${file.originalname}`;
         cb(null, filename);
       },
     }),
