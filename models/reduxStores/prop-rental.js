@@ -2,25 +2,26 @@ import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 
 const pricingSchema = new Schema({
-    hourly: [{ name: String, min: String, max: String }],
-    deal: [{ name: String, min: String, max: String }],
-    worker: [{ name: String, min: String, max: String }],
+  hourly: [{ name: String, min: String, max: String }],
+  deal: [{ name: String, min: String, max: String }],
+  worker: [{ name: String, min: String, max: String }],
 });
 
-const propRentalSchema = new Schema({
+const propRentalSchema = new Schema(
+  {
     userId: { type: String },
     managerName: {
-        type: String,
+      type: String,
     },
 
     workDescription: {
-        type: String,
+      type: String,
     },
     eventSize: {
-        type: String,
+      type: String,
     },
     itemCatalogue: {
-        type: String,
+      type: String,
     },
     customization: { type: Boolean },
     maintenance: { type: String },
@@ -29,46 +30,46 @@ const propRentalSchema = new Schema({
     videos: { type: [String] },
 
     furnitureAndDecor: {
-        listUrl: {
-            type: [String],
-        },
-        typeOfEvents: {
-            type: [String],
-        },
-        furniture: {
-            type: [String],
-        },
-        decor: {
-            type: [String],
-        },
+      listUrl: {
+        type: [String],
+      },
+      typeOfEvents: {
+        type: [String],
+      },
+      furniture: {
+        type: [String],
+      },
+      decor: {
+        type: [String],
+      },
     },
     tentAndCanopy: {
-        listUrl: {
-            type: [String],
-        },
-        typeOfEvents: {
-            type: [String],
-        },
-        items: {
-            type: [String],
-        },
+      listUrl: {
+        type: [String],
+      },
+      typeOfEvents: {
+        type: [String],
+      },
+      items: {
+        type: [String],
+      },
     },
     audioVisual: {
-        listUrl: {
-            type: [String],
-        },
-        typeOfEvents: {
-            type: [String],
-        },
-        audioEquipment: {
-            type: [String],
-        },
-        visualEquipment: {
-            type: [String],
-        },
-        lightEquipment: {
-            type: [String],
-        },
+      listUrl: {
+        type: [String],
+      },
+      typeOfEvents: {
+        type: [String],
+      },
+      audioEquipment: {
+        type: [String],
+      },
+      visualEquipment: {
+        type: [String],
+      },
+      lightEquipment: {
+        type: [String],
+      },
     },
     awardsAndRecognize: { type: String, required: false },
     clientTestimonial: { type: String, required: false },
@@ -77,7 +78,9 @@ const propRentalSchema = new Schema({
 
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
-}, { timestamps: true });
+  },
+  { timestamps: true },
+);
 
 const PropRentalModel = model("ReduxPropRental", propRentalSchema);
 
