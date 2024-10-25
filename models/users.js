@@ -1,5 +1,5 @@
 import { mongoose, Schema as _Schema } from "mongoose";
-import { businessSchema } from "./businessDetails.js";
+import { businessSchema } from "./reduxStores/businessDetails.js";
 import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
