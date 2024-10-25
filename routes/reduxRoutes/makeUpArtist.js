@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import createMakeupArtistSchema from "../../models/reduxStores/makeupArtist.js"; // Import the factory function
+import createMakeupArtistSchema from "../../models/reduxStores/makeUpArtist.js"; // Import the factory function
 
 // POST or PUT route to save or update makeup artist details
 router.post("/", async (req, res) => {
