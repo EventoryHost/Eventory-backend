@@ -14,13 +14,14 @@ const s3Client = new S3Client({
 });
 
 function getFileNameFromUrl(url) {
-  const comIndex = url.indexOf(".com");
+  const decodedUrl = decodeURIComponent(url);
+  const comIndex = decodedUrl.indexOf(".com");
 
   if (comIndex === -1) {
     return null;
   }
 
-  const substringAfterCom = url.substring(comIndex + 4);
+  const substringAfterCom = decodedUrl.substring(comIndex + 4);
 
   const dashIndex = substringAfterCom.indexOf("-");
 
@@ -33,8 +34,10 @@ function getFileNameFromUrl(url) {
 
 // Function to get the file size from S3 using AWS SDK v3
 async function getFileSizeFromS3(url) {
+  const decodedUrl = decodeURIComponent(url);
+
   const bucketName = "eventory-bucket"; // replace with your S3 bucket name
-  const key = url.split(".com/")[1]; // Extract the key from the URL
+  const key = decodedUrl.split(".com/")[1]; // Extract the key from the URL
 
   const params = {
     Bucket: bucketName,
