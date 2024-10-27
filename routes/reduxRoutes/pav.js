@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import PAVModel  from "../../models/reduxStores/pav.js";  // Import the PAV model
+import PAVModel from "../../models/reduxStores/pav.js"; // Import the PAV model
 
 // POST or PUT route to save or update PAV details
 router.post("/", async (req, res) => {
@@ -11,9 +11,9 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ message: "User ID is required." });
     }
 
-    if (!pavData || Object.keys(pavData).length === 0) {
-        return res.status(400).json({ message: "PAV details are required." });
-    }
+  if (!pavData || Object.keys(pavData).length === 0) {
+    return res.status(400).json({ message: "PAV details are required." });
+  }
 
     try {
         const existingDetails = await PAVModel.findOne({ id });
@@ -43,15 +43,20 @@ router.get("/:id", async (req, res) => {
     try {
         const pavDetails = await PAVModel.findOne({ id });
 
-        if (!pavDetails) {
-            return res.status(404).json({ message: "PAV details not found." });
-        }
-
-        res.status(200).json(pavDetails);
-    } catch (error) {
-        console.error("Error retrieving PAV details:", error);
-        res.status(500).json({ message: "Failed to retrieve PAV details.", error: error.message });
+    if (!pavDetails) {
+      return res.status(404).json({ message: "PAV details not found." });
     }
+
+    res.status(200).json(pavDetails);
+  } catch (error) {
+    console.error("Error retrieving PAV details:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to retrieve PAV details.",
+        error: error.message,
+      });
+  }
 });
 
 // Export the router

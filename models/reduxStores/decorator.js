@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const DecoratorSchema = new mongoose.Schema({
   id: { type: String, unique: true },
@@ -37,6 +37,6 @@ const DecoratorSchema = new mongoose.Schema({
   
 }, { timestamps: true });
 
-const DecoratorModel = mongoose.model('ReduxDecorator', DecoratorSchema);
+const DecoratorModel = mongoose.model("ReduxDecorator", DecoratorSchema);
 
 export { DecoratorModel };

@@ -34,36 +34,35 @@ const photographerSchema = Schema({
   eventsize: { type: String },
   events: { type: [String] },
 
-  // Added missing fields from the API request
-  photoSelectedstyles: { type: [String] },  // Photo styles selected
-  photoequipments: { type: [String] },      // Photo equipment list
-  photoAddons: { type: [String] },          // Photo Add-ons
-  photofinaldeliverymethods: { type: [String] },  // Final delivery methods for photos
-  videoSelectedstyles: { type: [String] },  // Video styles selected
-  equipments: { type: [String] },           // Video equipments (API spelling)
-  videoAddons: { type: [String] },          // Video Add-ons
-  videofinaldeliverymethods: { type: [String] },  // Final delivery methods for videos
-  Selectedvideoequipments: { type: [String] },  // Video equipments (API spelling)
+    // Added missing fields from the API request
+    photoSelectedstyles: { type: [String] }, // Photo styles selected
+    photoequipments: { type: [String] }, // Photo equipment list
+    photoAddons: { type: [String] }, // Photo Add-ons
+    photofinaldeliverymethods: { type: [String] }, // Final delivery methods for photos
+    videoSelectedstyles: { type: [String] }, // Video styles selected
+    equipments: { type: [String] }, // Video equipments (API spelling)
+    videoAddons: { type: [String] }, // Video Add-ons
+    videofinaldeliverymethods: { type: [String] }, // Final delivery methods for videos
+    Selectedvideoequipments: { type: [String] }, // Video equipments (API spelling)
 
+    Durationoffinaldelivery: { type: String },
+    Packagetype: { type: String },
+    availablefordestinationevents: { type: String },
+    postproductionservices: { type: String },
+    proposalsToClients: { type: String },
+    freeInitialConsultation: { type: String },
+    advanceSetup: { type: String },
+    bookingDeposit: { type: String },
 
-  Durationoffinaldelivery: { type: String },
-  Packagetype: { type: String },
-  availablefordestinationevents: { type: String },
-  postproductionservices: { type: String },
-  proposalsToClients: { type: String },
-  freeInitialConsultation: { type: String },
-  advanceSetup: { type: String },
-  bookingDeposit: { type: String },
-
-  Recongnition_awards: { type: String },
-  websiteurl: { type: String },
-  intstagramurl: { type: String },
-  advbookingperiod: { type: String },
-  writtenthemeproposalafterconsultaion: { type: Boolean },
-  freerevisionforinitialthemeproposal: { type: Boolean },
-
-
-}, { timestamps: true });
+    Recongnition_awards: { type: String },
+    websiteurl: { type: String },
+    intstagramurl: { type: String },
+    advbookingperiod: { type: String },
+    writtenthemeproposalafterconsultaion: { type: Boolean },
+    freerevisionforinitialthemeproposal: { type: Boolean },
+  },
+  { timestamps: true },
+);
 
 const PAVModel = model("ReduxPhotographer", photographerSchema);
 

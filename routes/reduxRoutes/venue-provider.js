@@ -1,7 +1,7 @@
 // backend/routes/reduxRoutes/venue-provider.js
 import express from "express";
 const router = express.Router();
-import VenueModel from "../../models/reduxStores/venue-provider.js";  // Assuming the Venue schema/model is defined in this path
+import VenueModel from "../../models/reduxStores/venue-provider.js"; // Assuming the Venue schema/model is defined in this path
 
 // POST or PUT route to save or update venue details
 router.post("/", async (req, res) => {
@@ -12,9 +12,9 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ message: "User ID is required." });
     }
 
-    if (!venueData || Object.keys(venueData).length === 0) {
-        return res.status(400).json({ message: "Venue details are required." });
-    }
+  if (!venueData || Object.keys(venueData).length === 0) {
+    return res.status(400).json({ message: "Venue details are required." });
+  }
 
     try {
         const existingDetails = await VenueModel.findOne({ id });
@@ -44,15 +44,20 @@ router.get("/:id", async (req, res) => {
     try {
         const venueDetails = await VenueModel.findOne({ id });
 
-        if (!venueDetails) {
-            return res.status(404).json({ message: "Venue details not found." });
-        }
-
-        res.status(200).json(venueDetails);
-    } catch (error) {
-        console.error("Error retrieving venue details:", error);
-        res.status(500).json({ message: "Failed to retrieve venue details.", error: error.message });
+    if (!venueDetails) {
+      return res.status(404).json({ message: "Venue details not found." });
     }
+
+    res.status(200).json(venueDetails);
+  } catch (error) {
+    console.error("Error retrieving venue details:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to retrieve venue details.",
+        error: error.message,
+      });
+  }
 });
 
 // Export the router

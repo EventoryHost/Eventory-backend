@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const CateringSchema = new mongoose.Schema({
   id: { type: String, unique: true },
@@ -18,39 +18,39 @@ const CateringSchema = new mongoose.Schema({
   menu: { type: [String],  }, // Menu items (you might need to adjust this)
   vegOrNonVeg: { type: String,  }, // Whether the catering is veg or non-veg
 
-  // Selected items
-  selectedAppetizers: { type: [String],  },
-  selectedBeverages: { type: [String],  },
-  selectedMainCourses: { type: [String],  },
-  selectedDietaryOptions: { type: [String],  },
-  
-  preSetMenu: { type: String }, // Can be adjusted based on requirements
-  customizableMenu: { type: Boolean,  }, // Is the menu customizable?
+    // Selected items
+    selectedAppetizers: { type: [String] },
+    selectedBeverages: { type: [String] },
+    selectedMainCourses: { type: [String] },
+    selectedDietaryOptions: { type: [String] },
 
-  // Additional fields based on your final model
-  cancellationPolicy: { type: String }, // Cancellation policy
-  termsAndConditions: { type: String }, // Terms and conditions
-  clientTestimonials: { type: String }, // Testimonials from clients
+    preSetMenu: { type: String }, // Can be adjusted based on requirements
+    customizableMenu: { type: Boolean }, // Is the menu customizable?
 
-  eventTypes: { type: [String],  }, // Event types catered by the service
-  additionalServices: { type: [String],  }, // Additional services provided
+    // Additional fields based on your final model
+    cancellationPolicy: { type: String }, // Cancellation policy
+    termsAndConditions: { type: String }, // Terms and conditions
+    clientTestimonials: { type: String }, // Testimonials from clients
 
-  staffProvides: { type: [String],  }, // Staff provided by the catering service
-  equipmentsProvided: { type: [String],  }, // Equipment provided by the catering service
+    eventTypes: { type: [String] }, // Event types catered by the service
+    additionalServices: { type: [String] }, // Additional services provided
 
-  minOrderReq: { type: String,  }, // Minimum order requirements
-  AdvBooking: { type: String,  }, // Advance booking period
-  photos: { type: [String],  }, // Photos related to catering
-  videos: { type: [String],  }, // Videos related to catering
-  tastingSessions: { type: Boolean,  }, // Tasting sessions offered
-  businessLicenses: { type: Boolean,  }, // Business licenses held
-  foodSafety: { type: Boolean,  }, // Food safety certificates held
+    staffProvides: { type: [String] }, // Staff provided by the catering service
+    equipmentsProvided: { type: [String] }, // Equipment provided by the catering service
 
+    minOrderReq: { type: String }, // Minimum order requirements
+    AdvBooking: { type: String }, // Advance booking period
+    photos: { type: [String] }, // Photos related to catering
+    videos: { type: [String] }, // Videos related to catering
+    tastingSessions: { type: Boolean }, // Tasting sessions offered
+    businessLicenses: { type: Boolean }, // Business licenses held
+    foodSafety: { type: Boolean }, // Food safety certificates held
 
-  
-  // Optionally you could add more specific fields related to your use case
-}, { timestamps: true }); // Optional: include timestamps for createdAt and updatedAt fields
+    // Optionally you could add more specific fields related to your use case
+  },
+  { timestamps: true },
+); // Optional: include timestamps for createdAt and updatedAt fields
 
-const CateringModel = mongoose.model('ReduxCatering', CateringSchema);
+const CateringModel = mongoose.model("ReduxCatering", CateringSchema);
 
 export { CateringModel };

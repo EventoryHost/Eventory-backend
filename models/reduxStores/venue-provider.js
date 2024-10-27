@@ -61,4 +61,4 @@ const venueSchema = new Schema({
 
 const VenueModel = model("ReduxVenueProvider", venueSchema);
 
-export default  VenueModel ;
+export default VenueModel;

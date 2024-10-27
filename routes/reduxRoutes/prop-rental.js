@@ -1,7 +1,7 @@
 // backend/routes/prop-rental.js
 import express from "express";
 const router = express.Router();
-import PropRentalModel  from "../../models/reduxStores/prop-rental.js";
+import PropRentalModel from "../../models/reduxStores/prop-rental.js";
 
 // POST or PUT route to save or update prop rental details
 router.post("/", async (req, res) => {
@@ -12,9 +12,11 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ message: "User ID is required." });
     }
 
-    if (!propRentalData || Object.keys(propRentalData).length === 0) {
-        return res.status(400).json({ message: "Prop rental details are required." });
-    }
+  if (!propRentalData || Object.keys(propRentalData).length === 0) {
+    return res
+      .status(400)
+      .json({ message: "Prop rental details are required." });
+  }
 
     try {
         const existingDetails = await PropRentalModel.findOne({ id });
@@ -44,15 +46,22 @@ router.get("/:id", async (req, res) => {
     try {
         const propRentalDetails = await PropRentalModel.findOne({ id });
 
-        if (!propRentalDetails) {
-            return res.status(404).json({ message: "Prop rental details not found." });
-        }
-
-        res.status(200).json(propRentalDetails);
-    } catch (error) {
-        console.error("Error retrieving prop rental details:", error);
-        res.status(500).json({ message: "Failed to retrieve prop rental details.", error: error.message });
+    if (!propRentalDetails) {
+      return res
+        .status(404)
+        .json({ message: "Prop rental details not found." });
     }
+
+    res.status(200).json(propRentalDetails);
+  } catch (error) {
+    console.error("Error retrieving prop rental details:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to retrieve prop rental details.",
+        error: error.message,
+      });
+  }
 });
 
 // Export the router

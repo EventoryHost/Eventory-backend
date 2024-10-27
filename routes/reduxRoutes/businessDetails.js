@@ -15,11 +15,23 @@ import { invitationRoutes } from "./invitation.js";
 router.post("/business-details", async (req, res) => {
     const { id, businessDetails2 } = req.body;
 
-    if (!businessDetails2) {
-        return res.status(400).json({ message: "Please provide business details." });
-    }
+  if (!businessDetails2) {
+    return res
+      .status(400)
+      .json({ message: "Please provide business details." });
+  }
 
-    const { businessName, category, gstin, years, businessAddress, teamsize, annualrevenue, pinCode, cities } = businessDetails2;
+  const {
+    businessName,
+    category,
+    gstin,
+    years,
+    businessAddress,
+    teamsize,
+    annualrevenue,
+    pinCode,
+    cities,
+  } = businessDetails2;
 
     try {
         const existingDetails = await BusinessDetailsModel.findOne({ id });
@@ -55,13 +67,17 @@ router.post("/business-details", async (req, res) => {
                 annualrevenue,
             });
 
-            await newBusinessDetails.save();
-            return res.status(201).json({ message: "Business details saved successfully." });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Failed to save or update business details." });
+      await newBusinessDetails.save();
+      return res
+        .status(201)
+        .json({ message: "Business details saved successfully." });
     }
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Failed to save or update business details." });
+  }
 });
 
 // Route to fetch business details by id
@@ -83,7 +99,7 @@ router.get("/business-details/:id", async (req, res) => {
 
 router.use("/decorator-details", decoratorRoutes);
 router.use("/gifts-details", giftRoutes);
-router.use("/venue-provider-details",venueRoutes);
+router.use("/venue-provider-details", venueRoutes);
 router.use("/pav-details", pavRoutes);
 router.use("/prop-rental-details", propRentalRoutes);
 router.use("/invitation-details", invitationRoutes);
@@ -100,9 +116,9 @@ router.post("/catering-details", async (req, res) => {
         return res.status(400).json({ message: "User ID is required." });
     }
 
-    if (!cateringData || Object.keys(cateringData).length === 0) {
-        return res.status(400).json({ message: "Catering details are required." });
-    }
+  if (!cateringData || Object.keys(cateringData).length === 0) {
+    return res.status(400).json({ message: "Catering details are required." });
+  }
 
     try {
         // Check if the catering details already exist
@@ -135,15 +151,20 @@ router.get("/catering-details/:id", async (req, res) => {
     try {
         const cateringDetails = await CateringModel.findOne({ id });
 
-        if (!cateringDetails) {
-            return res.status(404).json({ message: "Catering details not found." });
-        }
-
-        res.status(200).json(cateringDetails);
-    } catch (error) {
-        console.error("Error retrieving catering details:", error);
-        res.status(500).json({ message: "Failed to retrieve catering details.", error: error.message });
+    if (!cateringDetails) {
+      return res.status(404).json({ message: "Catering details not found." });
     }
+
+    res.status(200).json(cateringDetails);
+  } catch (error) {
+    console.error("Error retrieving catering details:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to retrieve catering details.",
+        error: error.message,
+      });
+  }
 });
 
 // Export the router
