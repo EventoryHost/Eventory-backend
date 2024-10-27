@@ -5,10 +5,10 @@ import PropRentalModel  from "../../models/reduxStores/prop-rental.js";
 
 // POST or PUT route to save or update prop rental details
 router.post("/", async (req, res) => {
-    const { userId, propRentalData } = req.body;
+    const { id, propRentalData } = req.body;
 
-    // Validate userId and propRentalData
-    if (!userId) {
+    // Validate id and propRentalData
+    if (!id) {
         return res.status(400).json({ message: "User ID is required." });
     }
 
@@ -17,17 +17,17 @@ router.post("/", async (req, res) => {
     }
 
     try {
-        const existingDetails = await PropRentalModel.findOne({ userId });
+        const existingDetails = await PropRentalModel.findOne({ id });
 
         if (existingDetails) {
             const updatedDetails = await PropRentalModel.findOneAndUpdate(
-                { userId },
+                { id },
                 { $set: propRentalData },
                 { new: true, upsert: false }
             );
             return res.status(200).json({ message: "Prop rental details updated successfully.", data: updatedDetails });
         } else {
-            const newPropRentalDetails = new PropRentalModel({ userId, ...propRentalData });
+            const newPropRentalDetails = new PropRentalModel({ id, ...propRentalData });
             await newPropRentalDetails.save();
             return res.status(201).json({ message: "Prop rental details saved successfully.", data: newPropRentalDetails });
         }
@@ -38,11 +38,11 @@ router.post("/", async (req, res) => {
 });
 
 // GET route to retrieve prop rental details by user ID
-router.get("/:userId", async (req, res) => {
-    const { userId } = req.params;
+router.get("/:id", async (req, res) => {
+    const { id } = req.params;
 
     try {
-        const propRentalDetails = await PropRentalModel.findOne({ userId });
+        const propRentalDetails = await PropRentalModel.findOne({ id });
 
         if (!propRentalDetails) {
             return res.status(404).json({ message: "Prop rental details not found." });

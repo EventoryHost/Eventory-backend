@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const DecoratorSchema = new mongoose.Schema({
-  userId: { type: String, unique: true },
+  id: { type: String, unique: true },
   businessName: { type: String },
   teamsizelist: { type: String },
   durationlist: { type: String,  },

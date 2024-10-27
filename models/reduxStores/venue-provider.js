@@ -2,7 +2,7 @@ import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 
 const venueSchema = new Schema({
-  userId: { type: String },
+  id: { type: String },
   name: {
     type: String,
   },

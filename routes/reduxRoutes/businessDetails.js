@@ -13,7 +13,7 @@ import { invitationRoutes } from "./invitation.js";
 
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
-    const { userId, businessDetails2 } = req.body;
+    const { id, businessDetails2 } = req.body;
 
     if (!businessDetails2) {
         return res.status(400).json({ message: "Please provide business details." });
@@ -22,11 +22,11 @@ router.post("/business-details", async (req, res) => {
     const { businessName, category, gstin, years, businessAddress, teamsize, annualrevenue, pinCode, cities } = businessDetails2;
 
     try {
-        const existingDetails = await BusinessDetailsModel.findOne({ userId });
+        const existingDetails = await BusinessDetailsModel.findOne({ id });
 
         if (existingDetails) {
             await BusinessDetailsModel.findOneAndUpdate(
-                { userId },
+                { id },
                 {
                     businessName,
                     category,
@@ -43,7 +43,7 @@ router.post("/business-details", async (req, res) => {
             return res.status(200).json({ message: "Business details updated successfully." });
         } else {
             const newBusinessDetails = new BusinessDetailsModel({
-                userId,
+                id,
                 businessName,
                 category,
                 gstin,
@@ -64,12 +64,12 @@ router.post("/business-details", async (req, res) => {
     }
 });
 
-// Route to fetch business details by userId
-router.get("/business-details/:userId", async (req, res) => {
-    const { userId } = req.params;
+// Route to fetch business details by id
+router.get("/business-details/:id", async (req, res) => {
+    const { id } = req.params;
 
     try {
-        const businessDetails = await BusinessDetailsModel.findOne({ userId });
+        const businessDetails = await BusinessDetailsModel.findOne({ id });
         if (businessDetails) {
             res.status(200).json(businessDetails);
         } else {
@@ -93,10 +93,10 @@ router.use("/makeup-artist-details", makeupArtistRoutes);
 
 // POST or PUT route to save or update catering details
 router.post("/catering-details", async (req, res) => {
-    const { userId, cateringData } = req.body; // Extracting cateringData from the nested structure
+    const { id, cateringData } = req.body; // Extracting cateringData from the nested structure
 
-    // Validate userId and cateringData
-    if (!userId) {
+    // Validate id and cateringData
+    if (!id) {
         return res.status(400).json({ message: "User ID is required." });
     }
 
@@ -106,19 +106,19 @@ router.post("/catering-details", async (req, res) => {
 
     try {
         // Check if the catering details already exist
-        const existingDetails = await CateringModel.findOne({ userId });
+        const existingDetails = await CateringModel.findOne({ id });
 
         if (existingDetails) {
             // Update existing catering details
             const updatedDetails = await CateringModel.findOneAndUpdate(
-                { userId },
+                { id },
                 { $set: cateringData }, // Explicitly set the fields to update
                 { new: true, upsert: false } // No need for upsert here since it already exists
             );
             return res.status(200).json({ message: "Catering details updated successfully.", data: updatedDetails });
         } else {
             // Create new catering details
-            const newCateringDetails = new CateringModel({ userId, ...cateringData });
+            const newCateringDetails = new CateringModel({ id, ...cateringData });
             await newCateringDetails.save();
             return res.status(201).json({ message: "Catering details saved successfully.", data: newCateringDetails });
         }
@@ -129,11 +129,11 @@ router.post("/catering-details", async (req, res) => {
 });
 
 // GET route to retrieve catering details by user ID
-router.get("/catering-details/:userId", async (req, res) => {
-    const { userId } = req.params;
+router.get("/catering-details/:id", async (req, res) => {
+    const { id } = req.params;
 
     try {
-        const cateringDetails = await CateringModel.findOne({ userId });
+        const cateringDetails = await CateringModel.findOne({ id });
 
         if (!cateringDetails) {
             return res.status(404).json({ message: "Catering details not found." });
