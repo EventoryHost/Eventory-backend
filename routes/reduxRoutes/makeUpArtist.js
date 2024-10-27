@@ -29,33 +29,27 @@ router.post("/", async (req, res) => {
         { $set: makeupArtistData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "Makeup artist details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Makeup artist details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newMakeupArtistDetails = new MakeupArtistModel({
         userId,
         ...makeupArtistData,
       });
       await newMakeupArtistDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Makeup artist details saved successfully.",
-          data: newMakeupArtistDetails,
-        });
+      return res.status(201).json({
+        message: "Makeup artist details saved successfully.",
+        data: newMakeupArtistDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating makeup artist details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update makeup artist details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update makeup artist details.",
+      error: error.message,
+    });
   }
 });
 
@@ -77,12 +71,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(makeupArtistDetails);
   } catch (error) {
     console.error("Error retrieving makeup artist details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve makeup artist details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve makeup artist details.",
+      error: error.message,
+    });
   }
 });
 
