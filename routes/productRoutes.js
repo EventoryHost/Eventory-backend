@@ -53,18 +53,15 @@ router.post(
 
 router.post(
   "/add-decorator",
-  upload("Event Planner").fields([
-    { name: "termsConditions", maxCount: 1 },
+  upload("Decorator").fields([
+    { name: "termsAndConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "photos", maxCount: 20 },
     { name: "videos", maxCount: 20 },
-    { name: "themePhotos", maxCount: 20 },
-    { name: "themeVideos", maxCount: 20 },
-    { name: "insurance", maxCount: 1 },
-    { name: "onlineRatings", maxCount: 20 },
-    { name: "privacyPolicy", maxCount: 1 },
+    { name: "themephotos", maxCount: 20 },
+    { name: "themevideos", maxCount: 20 },
   ]),
-  decoratorController.createDecorator,
+  decoratorController.createDecorator
 );
 
 router.post(
