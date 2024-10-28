@@ -15,8 +15,10 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-    const themePhotosUrls = getFileUrls(req.files, "themephotos")[0] || req.body.themephotos;
-    const themeVideosUrls = getFileUrls(req.files, "themevideos")[0] || req.body.themevideos;
+    const themePhotosUrls =
+      getFileUrls(req.files, "themephotos")[0] || req.body.themephotos;
+    const themeVideosUrls =
+      getFileUrls(req.files, "themevideos")[0] || req.body.themevideos;
     const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
     const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
     const insuranceFileUrl =

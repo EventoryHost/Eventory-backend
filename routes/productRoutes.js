@@ -61,7 +61,7 @@ router.post(
     { name: "themephotos", maxCount: 20 },
     { name: "themevideos", maxCount: 20 },
   ]),
-  decoratorController.createDecorator
+  decoratorController.createDecorator,
 );
 
 router.post(

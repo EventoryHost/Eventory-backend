@@ -24,30 +24,24 @@ router.post("/", async (req, res) => {
         { $set: pavData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "PAV details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "PAV details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newPAVDetails = new PAVModel({ userId, ...pavData });
       await newPAVDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "PAV details saved successfully.",
-          data: newPAVDetails,
-        });
+      return res.status(201).json({
+        message: "PAV details saved successfully.",
+        data: newPAVDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating PAV details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update PAV details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update PAV details.",
+      error: error.message,
+    });
   }
 });
 
@@ -65,12 +59,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(pavDetails);
   } catch (error) {
     console.error("Error retrieving PAV details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve PAV details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve PAV details.",
+      error: error.message,
+    });
   }
 });
 

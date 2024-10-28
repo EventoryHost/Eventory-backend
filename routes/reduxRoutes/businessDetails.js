@@ -133,31 +133,25 @@ router.post("/catering-details", async (req, res) => {
         { $set: cateringData }, // Explicitly set the fields to update
         { new: true, upsert: false }, // No need for upsert here since it already exists
       );
-      return res
-        .status(200)
-        .json({
-          message: "Catering details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Catering details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       // Create new catering details
       const newCateringDetails = new CateringModel({ userId, ...cateringData });
       await newCateringDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Catering details saved successfully.",
-          data: newCateringDetails,
-        });
+      return res.status(201).json({
+        message: "Catering details saved successfully.",
+        data: newCateringDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating catering details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update catering details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update catering details.",
+      error: error.message,
+    });
   }
 });
 
@@ -175,12 +169,10 @@ router.get("/catering-details/:userId", async (req, res) => {
     res.status(200).json(cateringDetails);
   } catch (error) {
     console.error("Error retrieving catering details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve catering details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve catering details.",
+      error: error.message,
+    });
   }
 });
 

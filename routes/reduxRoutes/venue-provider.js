@@ -25,30 +25,24 @@ router.post("/", async (req, res) => {
         { $set: venueData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "Venue details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Venue details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newVenueDetails = new VenueModel({ userId, ...venueData });
       await newVenueDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Venue details saved successfully.",
-          data: newVenueDetails,
-        });
+      return res.status(201).json({
+        message: "Venue details saved successfully.",
+        data: newVenueDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating venue details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update venue details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update venue details.",
+      error: error.message,
+    });
   }
 });
 
@@ -66,12 +60,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(venueDetails);
   } catch (error) {
     console.error("Error retrieving venue details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve venue details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve venue details.",
+      error: error.message,
+    });
   }
 });
 

@@ -27,33 +27,27 @@ router.post("/", async (req, res) => {
         { $set: propRentalData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "Prop rental details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Prop rental details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newPropRentalDetails = new PropRentalModel({
         userId,
         ...propRentalData,
       });
       await newPropRentalDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Prop rental details saved successfully.",
-          data: newPropRentalDetails,
-        });
+      return res.status(201).json({
+        message: "Prop rental details saved successfully.",
+        data: newPropRentalDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating prop rental details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update prop rental details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update prop rental details.",
+      error: error.message,
+    });
   }
 });
 
@@ -73,12 +67,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(propRentalDetails);
   } catch (error) {
     console.error("Error retrieving prop rental details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve prop rental details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve prop rental details.",
+      error: error.message,
+    });
   }
 });
 
