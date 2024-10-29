@@ -24,7 +24,6 @@ router.get("/pav", photographerController.getAllPav);
 router.get("/prop-rental", propController.getAllProp);
 router.get("/venue", venueController.getAllVenues);
 
-
 router.post(
   "/add-caterer",
   upload("Caterers").fields([

@@ -76,4 +76,4 @@ const getAllDecorators = async (req, res) => {
   }
 };
 
-export default { createDecorator,getAllDecorators };
+export default { createDecorator, getAllDecorators };

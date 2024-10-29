@@ -48,4 +48,4 @@ const getAllInvitation = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
-export default { createInvitation,getAllInvitation };
+export default { createInvitation, getAllInvitation };

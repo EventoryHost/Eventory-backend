@@ -48,4 +48,4 @@ const getAllPav = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
-export default { createPhotographer,getAllPav };
+export default { createPhotographer, getAllPav };
