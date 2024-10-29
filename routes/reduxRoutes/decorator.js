@@ -25,30 +25,24 @@ router.post("/", async (req, res) => {
         { $set: decoratorData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "Decorator details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Decorator details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newDecoratorDetails = new DecoratorModel({ id, ...decoratorData });
       await newDecoratorDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Decorator details saved successfully.",
-          data: newDecoratorDetails,
-        });
+      return res.status(201).json({
+        message: "Decorator details saved successfully.",
+        data: newDecoratorDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating decorator details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update decorator details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update decorator details.",
+      error: error.message,
+    });
   }
 });
 
