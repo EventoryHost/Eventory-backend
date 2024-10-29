@@ -2,7 +2,7 @@
 import express from "express";
 const router = express.Router();
 import { BusinessDetailsModel } from "../../models/reduxStores/businessDetails.js";
-import { CateringModel } from "../../models/reduxStores/Catering.js";
+import { CateringModel } from "../../models/reduxStores/catering.js";
 import { decoratorRoutes } from "./decorator.js";
 import { giftRoutes } from "./gifts.js";
 import { venueRoutes } from "./venue-provider.js";
