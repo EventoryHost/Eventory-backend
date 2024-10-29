@@ -40,5 +40,12 @@ const createInvitation = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
-
-export default { createInvitation };
+const getAllInvitation = async (req, res) => {
+  try {
+    const invitation = await Invitation.Invitation.find();
+    res.status(200).json(invitation);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+export default { createInvitation, getAllInvitation };

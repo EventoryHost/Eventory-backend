@@ -40,4 +40,12 @@ const createPhotographer = async (req, res) => {
   }
 };
 
-export default { createPhotographer };
+const getAllPav = async (req, res) => {
+  try {
+    const pav = await Photographer.find();
+    res.status(200).json(pav);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+export default { createPhotographer, getAllPav };
