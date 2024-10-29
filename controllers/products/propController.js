@@ -74,4 +74,13 @@ const createProp = async (req, res) => {
   }
 };
 
-export default { createProp };
+const getAllProp = async (req, res) => {
+  try {
+    const prop = await propRental.find();
+    res.status(200).json(prop);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createProp,getAllProp };

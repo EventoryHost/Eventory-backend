@@ -77,7 +77,8 @@ const createCaterer = async (req, res) => {
 
 const getAllCaterers = async (req, res) => {
   try {
-    const caterers = await res.json(caterers);
+    const caterers = await Caterer.find();
+    res.status(200).json(caterers);
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

@@ -34,4 +34,13 @@ const createGift = async (req, res) => {
   }
 };
 
-export default { createGift };
+const getAllGift = async (req, res) => {
+  try {
+    const gift = await Gift.find();
+    res.status(200).json(gift);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createGift,getAllGift };

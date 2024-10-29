@@ -15,6 +15,16 @@ import vendorController from "../controllers/products/vendorController.js";
 const router = Router();
 
 router.get("/caterer", catererController.getAllCaterers);
+router.get("/decorator", decoratorController.getAllDecorators);
+router.get("/event-planner", eventPlannerController.getAllEventPlanner);
+router.get("/gift", giftController.getAllGift);
+router.get("/invitation", invitationController.getAllInvitation);
+router.get("/makeup", makeupController.getAllMakeupArtist);
+router.get("/pav", photographerController.getAllPav);
+router.get("/prop-rental", propController.getAllProp);
+router.get("/venue", venueController.getAllVenues);
+
+
 router.post(
   "/add-caterer",
   upload("Caterers").fields([

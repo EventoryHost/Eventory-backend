@@ -48,4 +48,13 @@ const createEventPlanner = async (req, res) => {
   }
 };
 
-export default { createEventPlanner };
+const getAllEventPlanner = async (req, res) => {
+  try {
+    const event = await EventPlanner.find();
+    res.status(200).json(event);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createEventPlanner,getAllEventPlanner };
