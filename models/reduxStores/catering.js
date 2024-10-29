@@ -1,22 +1,23 @@
 import mongoose from "mongoose";
 
-const CateringSchema = new mongoose.Schema({
-  id: { type: String, unique: true },
-  cateringName: { type: String },
-  businessName: { type: String },
-  servingCapacity: { type: String,  },
-  
-  // New fields based on the final model
-  regionalSpecialties: { type: [String],  }, // Renamed to match final model
-  cuisineSpecialties: { type: [String],  }, // Renamed to match final model
-  serviceStyles: { type: [String],  }, // Renamed to match final model
-  
-  // Additional fields
-  venId: { type: String,  }, // Vendor ID
-  capacity: { type: String,  }, // General capacity description
-  veg : { type: [String],  },
-  menu: { type: [String],  }, // Menu items (you might need to adjust this)
-  vegOrNonVeg: { type: String,  }, // Whether the catering is veg or non-veg
+const CateringSchema = new mongoose.Schema(
+  {
+    id: { type: String, unique: true },
+    cateringName: { type: String },
+    businessName: { type: String },
+    servingCapacity: { type: String },
+
+    // New fields based on the final model
+    regionalSpecialties: { type: [String] }, // Renamed to match final model
+    cuisineSpecialties: { type: [String] }, // Renamed to match final model
+    serviceStyles: { type: [String] }, // Renamed to match final model
+
+    // Additional fields
+    venId: { type: String }, // Vendor ID
+    capacity: { type: String }, // General capacity description
+    veg: { type: [String] },
+    menu: { type: [String] }, // Menu items (you might need to adjust this)
+    vegOrNonVeg: { type: String }, // Whether the catering is veg or non-veg
 
     // Selected items
     selectedAppetizers: { type: [String] },

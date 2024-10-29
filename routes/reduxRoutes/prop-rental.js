@@ -5,12 +5,12 @@ import PropRentalModel from "../../models/reduxStores/prop-rental.js";
 
 // POST or PUT route to save or update prop rental details
 router.post("/", async (req, res) => {
-    const { id, propRentalData } = req.body;
+  const { id, propRentalData } = req.body;
 
-    // Validate id and propRentalData
-    if (!id) {
-        return res.status(400).json({ message: "User ID is required." });
-    }
+  // Validate id and propRentalData
+  if (!id) {
+    return res.status(400).json({ message: "User ID is required." });
+  }
 
   if (!propRentalData || Object.keys(propRentalData).length === 0) {
     return res
@@ -18,33 +18,51 @@ router.post("/", async (req, res) => {
       .json({ message: "Prop rental details are required." });
   }
 
-    try {
-        const existingDetails = await PropRentalModel.findOne({ id });
+  try {
+    const existingDetails = await PropRentalModel.findOne({ id });
 
-        if (existingDetails) {
-            const updatedDetails = await PropRentalModel.findOneAndUpdate(
-                { id },
-                { $set: propRentalData },
-                { new: true, upsert: false }
-            );
-            return res.status(200).json({ message: "Prop rental details updated successfully.", data: updatedDetails });
-        } else {
-            const newPropRentalDetails = new PropRentalModel({ id, ...propRentalData });
-            await newPropRentalDetails.save();
-            return res.status(201).json({ message: "Prop rental details saved successfully.", data: newPropRentalDetails });
-        }
-    } catch (error) {
-        console.error("Error saving/updating prop rental details:", error);
-        res.status(500).json({ message: "Failed to save or update prop rental details.", error: error.message });
+    if (existingDetails) {
+      const updatedDetails = await PropRentalModel.findOneAndUpdate(
+        { id },
+        { $set: propRentalData },
+        { new: true, upsert: false },
+      );
+      return res
+        .status(200)
+        .json({
+          message: "Prop rental details updated successfully.",
+          data: updatedDetails,
+        });
+    } else {
+      const newPropRentalDetails = new PropRentalModel({
+        id,
+        ...propRentalData,
+      });
+      await newPropRentalDetails.save();
+      return res
+        .status(201)
+        .json({
+          message: "Prop rental details saved successfully.",
+          data: newPropRentalDetails,
+        });
     }
+  } catch (error) {
+    console.error("Error saving/updating prop rental details:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to save or update prop rental details.",
+        error: error.message,
+      });
+  }
 });
 
 // GET route to retrieve prop rental details by user ID
 router.get("/:id", async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    try {
-        const propRentalDetails = await PropRentalModel.findOne({ id });
+  try {
+    const propRentalDetails = await PropRentalModel.findOne({ id });
 
     if (!propRentalDetails) {
       return res
@@ -55,12 +73,10 @@ router.get("/:id", async (req, res) => {
     res.status(200).json(propRentalDetails);
   } catch (error) {
     console.error("Error retrieving prop rental details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve prop rental details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve prop rental details.",
+      error: error.message,
+    });
   }
 });
 

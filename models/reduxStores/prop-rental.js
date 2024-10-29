@@ -7,7 +7,8 @@ const pricingSchema = new Schema({
   worker: [{ name: String, min: String, max: String }],
 });
 
-const propRentalSchema = new Schema({
+const propRentalSchema = new Schema(
+  {
     id: { type: String },
     managerName: {
       type: String,
