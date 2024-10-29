@@ -71,14 +71,14 @@ const getVendor = async (req, res) => {
 const signUp = async (req, res) => {
   const { mobile } = req.body;
 
-  const params = {
+  /*const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
 
     Username: `+91${mobile}`,
     Password: "123456",
     UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
-  };
+  };*/
 
   try {
     var user = await userExists(`+91${mobile}`);
@@ -90,14 +90,14 @@ const signUp = async (req, res) => {
     user = await isNewUser(mobile);
 
     if (user) {
-      const deleteCommand = new AdminDeleteUserCommand({
+      /* const deleteCommand = new AdminDeleteUserCommand({
         UserPoolId: process.env.COGNITO_USER_POOL_ID,
         Username: `+91${mobile}`,
       });
-      await cognito.send(deleteCommand);
+      await cognito.send(deleteCommand);*/
     }
-    const command = new SignUpCommand(params);
-    await cognito.send(command);
+    //const command = new SignUpCommand(params);
+    //await cognito.send(command);
     login(req, res);
   } catch (error) {
     if (error.name === "UserNotFoundException") {
@@ -110,7 +110,7 @@ const signUp = async (req, res) => {
 
 const login = async (req, res) => {
   const { mobile } = req.body;
-  const params = {
+  /*const params = {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -119,14 +119,14 @@ const login = async (req, res) => {
     AuthParameters: {
       USERNAME: `+91${mobile}`,
     },
-  };
+  };*/
 
   try {
-    const command = new AdminInitiateAuthCommand(params);
+    //const command = new AdminInitiateAuthCommand(params);
     const userExists = isNewUser(mobile);
     if (userExists) {
-      const data = await cognito.send(command);
-      return res.status(200).json({ message: "OTP sent", data });
+      // const data = await cognito.send(command);
+      return res.status(200).json({ message: "OTP sent", data: "otp done h bhai" });
     }
     return res.status(400).json({ message: "User does not exist" });
   } catch (error) {
@@ -138,7 +138,7 @@ const login = async (req, res) => {
 const verifyLoginOtp = async (req, res) => {
   const { mobile, code, session, name } = req.body;
 
-  const params = {
+  /*const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -150,11 +150,12 @@ const verifyLoginOtp = async (req, res) => {
       ANSWER: code,
     },
     Session: session,
-  };
+  };*/
 
   try {
-    const command = new AdminRespondToAuthChallengeCommand(params);
-    var data = await cognito.send(command); // if otp not valid will throw error
+    //const command = new AdminRespondToAuthChallengeCommand(params);
+    //var data = await cognito.send(command); // if otp not valid will throw error
+    let data;
     const user = await User.findOne({ mobile: `+91${mobile}` });
     if (!user) {
       const newUser = new User({
@@ -176,16 +177,16 @@ const verifyLoginOtp = async (req, res) => {
 const verifySignUpOtp = async (req, res) => {
   const { name, otp, mobile } = req.body;
 
-  const params = {
+  /*const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
     Username: `+91${mobile}`,
     ConfirmationCode: otp,
-  };
+  };*/
 
   try {
-    const command = new ConfirmSignUpCommand(params);
-    await cognito.send(command);
+    //const command = new ConfirmSignUpCommand(params);
+    //await cognito.send(command);
     const newUser = new User({
       name,
       mobile,
@@ -288,11 +289,11 @@ const addBusinessDetails = async (req, res) => {
 
 const isNewUser = async (mobile) => {
   try {
-    const getUserCommand = new AdminGetUserCommand({
+    /*const getUserCommand = new AdminGetUserCommand({
       UserPoolId: process.env.COGNITO_USER_POOL_ID,
       Username: `+91${mobile}`,
     });
-    var user = await cognito.send(getUserCommand);
+    var user = await cognito.send(getUserCommand);*/
     return true;
   } catch (error) {
     if (error.name === "UserNotFoundException") {
