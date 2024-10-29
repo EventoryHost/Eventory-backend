@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import AutoIncrement from "mongoose-sequence";
+import AutoIncrementFactory from "mongoose-sequence";  // Use AutoIncrementFactory for initialization
 
-
+const AutoIncrement = AutoIncrementFactory(mongoose);
 
 const venueQuotationSchema = new mongoose.Schema({
     quoteNumber: {
@@ -51,8 +51,7 @@ const venueQuotationSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-venueQuotationSchema.plugin(AutoIncrement(mongoose), { inc_field: 'quoteNumber' });
+venueQuotationSchema.plugin(AutoIncrement, { inc_field: 'quoteNumber' });
 
-// Correct export statement
 const venueQuotation = mongoose.model('venueQuotation', venueQuotationSchema);
-export default venueQuotation;  // Ensure default export
+export default venueQuotation;
