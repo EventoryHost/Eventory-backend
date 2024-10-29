@@ -5,10 +5,6 @@ const Schema = _Schema;
 const photographerSchema = Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
-  type: {
-    type: String,
-    required: true,
-  },
   name: {
     type: String,
     required: true,
