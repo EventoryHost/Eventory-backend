@@ -12,6 +12,7 @@ import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import venueQuotation from "../models/venueQuotation.js";
+import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -40,20 +41,24 @@ app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api" , venueQuotationRoutes)
 
 // Create a new quotation
 app.post('/api/quotations', async (req, res) => {
   try {
     const newQuotation = new venueQuotation({
+      quoteNumber: req.body.quoteNumber,
       event_name: req.body.event_name,
       number_of_guest: req.body.number_of_guest,
       date: req.body.date,
       time: req.body.time,
       budget: req.body.budget,
       requirements: req.body.requirements,
+      status: req.body.status || 'Pending',
       user_id: req.body.user_id,
       user_name: req.body.user_name,
-      vendor_id: req.body.vendor_id 
+      vendor_id: req.body.vendor_id,     
+      vendor_type: req.body.vendor_type, 
     });
 
     // Save the document to MongoDB

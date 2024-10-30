@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import AutoIncrement from "mongoose-sequence";
+// import AutoIncrement from "mongoose-sequence";
 
 
 
@@ -49,9 +49,12 @@ const venueQuotationSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    vendor_type: {
+        type: String,
+    },
 }, { timestamps: true });
 
-venueQuotationSchema.plugin(AutoIncrement(mongoose), { inc_field: 'quoteNumber' });
+// venueQuotationSchema.plugin(AutoIncrement(mongoose), { inc_field: 'quoteNumber' });
 
 // Correct export statement
 const venueQuotation = mongoose.model('venueQuotation', venueQuotationSchema);
