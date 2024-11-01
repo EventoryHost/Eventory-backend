@@ -78,4 +78,13 @@ const createDecorator = async (req, res) => {
   }
 };
 
-export default { createDecorator };
+const getAllDecorators = async (req, res) => {
+  try {
+    const decorators = await Decorator.find();
+    res.status(200).json(decorators);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createDecorator, getAllDecorators };

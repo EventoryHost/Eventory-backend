@@ -4,10 +4,10 @@ import PAVModel from "../../models/reduxStores/pav.js"; // Import the PAV model
 
 // POST or PUT route to save or update PAV details
 router.post("/", async (req, res) => {
-  const { userId, pavData } = req.body;
+  const { id, pavData } = req.body;
 
-  // Validate userId and pavData
-  if (!userId) {
+  // Validate id and pavData
+  if (!id) {
     return res.status(400).json({ message: "User ID is required." });
   }
 
@@ -16,11 +16,11 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    const existingDetails = await PAVModel.findOne({ userId });
+    const existingDetails = await PAVModel.findOne({ id });
 
     if (existingDetails) {
       const updatedDetails = await PAVModel.findOneAndUpdate(
-        { userId },
+        { id },
         { $set: pavData },
         { new: true, upsert: false },
       );
@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
         data: updatedDetails,
       });
     } else {
-      const newPAVDetails = new PAVModel({ userId, ...pavData });
+      const newPAVDetails = new PAVModel({ id, ...pavData });
       await newPAVDetails.save();
       return res.status(201).json({
         message: "PAV details saved successfully.",
@@ -46,11 +46,11 @@ router.post("/", async (req, res) => {
 });
 
 // GET route to retrieve PAV details by user ID
-router.get("/:userId", async (req, res) => {
-  const { userId } = req.params;
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const pavDetails = await PAVModel.findOne({ userId });
+    const pavDetails = await PAVModel.findOne({ id });
 
     if (!pavDetails) {
       return res.status(404).json({ message: "PAV details not found." });

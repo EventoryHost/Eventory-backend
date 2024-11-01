@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const CateringSchema = new mongoose.Schema(
   {
-    userId: { type: String, unique: true },
+    id: { type: String, unique: true },
     cateringName: { type: String },
     businessName: { type: String },
     servingCapacity: { type: String },

@@ -4,7 +4,7 @@ const Schema = _Schema;
 
 const photographerSchema = Schema(
   {
-    userId: { type: String },
+    id: { type: String },
     type: { type: String },
     name: { type: String },
     numberOfMembers: { type: String },

@@ -5,10 +5,10 @@ import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 
 // POST or PUT route to save or update decorator details
 router.post("/", async (req, res) => {
-  const { userId, decoratorData } = req.body;
+  const { id, decoratorData } = req.body;
 
-  // Validate userId and decoratorData
-  if (!userId) {
+  // Validate id and decoratorData
+  if (!id) {
     return res.status(400).json({ message: "User ID is required." });
   }
 
@@ -17,23 +17,28 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    const existingDetails = await DecoratorModel.findOne({ userId });
+    const existingDetails = await DecoratorModel.findOne({ id });
 
     if (existingDetails) {
       const updatedDetails = await DecoratorModel.findOneAndUpdate(
-        { userId },
+        { id },
         { $set: decoratorData },
         { new: true, upsert: false },
       );
       return res.status(200).json({
         message: "Decorator details updated successfully.",
         data: updatedDetails,
+
       });
     } else {
       const newDecoratorDetails = new DecoratorModel({
         userId,
         ...decoratorData,
+
+
       });
+    } else {
+      const newDecoratorDetails = new DecoratorModel({ id, ...decoratorData });
       await newDecoratorDetails.save();
       return res.status(201).json({
         message: "Decorator details saved successfully.",
@@ -50,11 +55,11 @@ router.post("/", async (req, res) => {
 });
 
 // GET route to retrieve decorator details by user ID
-router.get("/:userId", async (req, res) => {
-  const { userId } = req.params;
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const decoratorDetails = await DecoratorModel.findOne({ userId });
+    const decoratorDetails = await DecoratorModel.findOne({ id });
 
     if (!decoratorDetails) {
       return res.status(404).json({ message: "Decorator details not found." });
