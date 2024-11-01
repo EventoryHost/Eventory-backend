@@ -27,33 +27,27 @@ router.post("/", async (req, res) => {
         { $set: invitationData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "Invitation details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Invitation details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newInvitationDetails = new InvitationModel({
         userId,
         ...invitationData,
       });
       await newInvitationDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Invitation details saved successfully.",
-          data: newInvitationDetails,
-        });
+      return res.status(201).json({
+        message: "Invitation details saved successfully.",
+        data: newInvitationDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating invitation details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update invitation details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update invitation details.",
+      error: error.message,
+    });
   }
 });
 
@@ -71,12 +65,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(invitationDetails);
   } catch (error) {
     console.error("Error retrieving invitation details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve invitation details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve invitation details.",
+      error: error.message,
+    });
   }
 });
 

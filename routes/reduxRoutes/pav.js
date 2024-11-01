@@ -4,10 +4,10 @@ import PAVModel from "../../models/reduxStores/pav.js"; // Import the PAV model
 
 // POST or PUT route to save or update PAV details
 router.post("/", async (req, res) => {
-  const { userId, pavData } = req.body;
+  const { id, pavData } = req.body;
 
-  // Validate userId and pavData
-  if (!userId) {
+  // Validate id and pavData
+  if (!id) {
     return res.status(400).json({ message: "User ID is required." });
   }
 
@@ -16,47 +16,41 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    const existingDetails = await PAVModel.findOne({ userId });
+    const existingDetails = await PAVModel.findOne({ id });
 
     if (existingDetails) {
       const updatedDetails = await PAVModel.findOneAndUpdate(
-        { userId },
+        { id },
         { $set: pavData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "PAV details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "PAV details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
-      const newPAVDetails = new PAVModel({ userId, ...pavData });
+      const newPAVDetails = new PAVModel({ id, ...pavData });
       await newPAVDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "PAV details saved successfully.",
-          data: newPAVDetails,
-        });
+      return res.status(201).json({
+        message: "PAV details saved successfully.",
+        data: newPAVDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating PAV details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update PAV details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update PAV details.",
+      error: error.message,
+    });
   }
 });
 
 // GET route to retrieve PAV details by user ID
-router.get("/:userId", async (req, res) => {
-  const { userId } = req.params;
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const pavDetails = await PAVModel.findOne({ userId });
+    const pavDetails = await PAVModel.findOne({ id });
 
     if (!pavDetails) {
       return res.status(404).json({ message: "PAV details not found." });
@@ -65,12 +59,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(pavDetails);
   } catch (error) {
     console.error("Error retrieving PAV details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve PAV details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve PAV details.",
+      error: error.message,
+    });
   }
 });
 
