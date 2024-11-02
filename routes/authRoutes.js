@@ -11,7 +11,11 @@ authRoutes.get("/google-auth", authController.authWithGoogle);
 authRoutes.get("/oauth2/idpresponse", authController.googleCallback);
 authRoutes.post("/add-vendor", authController.createVendor);
 authRoutes.post("/get-vendor", authController.getVendor);
-authRoutes.put('/:id/profile-pic',upload('vendors').single('profilePic'),authController.updateProfilePic)
+authRoutes.put(
+  "/:id/profile-pic",
+  upload("vendors").single("profilePic"),
+  authController.updateProfilePic,
+);
 authRoutes.post("/add-business-details", authController.addBusinessDetails);
 
 export default authRoutes;

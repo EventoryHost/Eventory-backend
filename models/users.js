@@ -9,7 +9,7 @@ const vendorSchema = new Schema({
   mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
-  profilePic: { type: String }
+  profilePic: { type: String },
 });
 
 export const Vendor = mongoose.model("Vendors", vendorSchema);

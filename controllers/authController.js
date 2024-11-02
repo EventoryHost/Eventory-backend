@@ -310,7 +310,7 @@ const updateProfilePic = async (req, res) => {
     const updatedVendor = await User.findOneAndUpdate(
       { id: vendorId }, // Query by the custom ID field
       { profilePic: req.file.location }, // Store the path of the uploaded file
-      { new: true } // Return the updated document
+      { new: true }, // Return the updated document
     );
 
     if (!updatedVendor) {
@@ -333,5 +333,5 @@ export default {
   addBusinessDetails,
   createVendor,
   getVendor,
-  updateProfilePic
+  updateProfilePic,
 };
