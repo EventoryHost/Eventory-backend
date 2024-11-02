@@ -302,6 +302,27 @@ const isNewUser = async (mobile) => {
   }
 };
 
+const updateProfilePic = async (req, res) => {
+  const vendorId = req.params.id; // This should be your custom ID, e.g., 'ven20241024155014318'
+
+  try {
+    // Use `findOneAndUpdate` with the custom id field
+    const updatedVendor = await User.findOneAndUpdate(
+      { id: vendorId }, // Query by the custom ID field
+      { profilePic: req.file.location }, // Store the path of the uploaded file
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedVendor) {
+      return res.status(404).send({ message: "Vendor not found" });
+    }
+
+    res.status(200).send(updatedVendor);
+  } catch (error) {
+    res.status(500).send({ message: "Error updating vendor", error });
+  }
+};
+
 export default {
   login,
   signUp,
@@ -312,4 +333,5 @@ export default {
   addBusinessDetails,
   createVendor,
   getVendor,
+  updateProfilePic
 };

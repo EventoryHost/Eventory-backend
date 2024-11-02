@@ -27,7 +27,11 @@ const upload = (vendorType) =>
       acl: "public-read",
 
       key: (req, file, cb) => {
-        const folder = `${vendorType}/${req.body.name}/${getFolderName(file.mimetype)}`;
+        const userId = req.params.id; 
+        const folder = req.body.name
+        ? `${vendorType}/${req.body.name}/${getFolderName(file.mimetype)}`
+        : `${vendorType}/${userId}/${getFolderName(file.mimetype)}`;
+        
         const filename = `${folder}${file.fieldname}-${file.originalname}`;
         cb(null, filename);
       },
