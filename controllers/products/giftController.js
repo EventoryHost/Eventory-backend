@@ -43,4 +43,4 @@ const getAllGift = async (req, res) => {
   }
 };
 
-export default { createGift,getAllGift };
+export default { createGift, getAllGift };

@@ -59,8 +59,6 @@ const createVenue = async (req, res) => {
   }
 };
 
-
-
 const getAllVenues = async (req, res) => {
   try {
     const venue = await Venue.find();
@@ -70,4 +68,4 @@ const getAllVenues = async (req, res) => {
   }
 };
 
-export default { createVenue ,getAllVenues};
+export default { createVenue, getAllVenues };

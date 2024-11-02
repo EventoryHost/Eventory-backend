@@ -57,4 +57,4 @@ const getAllEventPlanner = async (req, res) => {
   }
 };
 
-export default { createEventPlanner,getAllEventPlanner };
+export default { createEventPlanner, getAllEventPlanner };

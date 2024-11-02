@@ -83,4 +83,4 @@ const getAllProp = async (req, res) => {
   }
 };
 
-export default { createProp,getAllProp };
+export default { createProp, getAllProp };

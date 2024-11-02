@@ -41,4 +41,4 @@ const getAllMakeupArtist = async (req, res) => {
   }
 };
 
-export default { createMakeupArtist ,getAllMakeupArtist};
+export default { createMakeupArtist, getAllMakeupArtist };
