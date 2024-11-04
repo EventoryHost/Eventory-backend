@@ -6,6 +6,7 @@ const getFileUrls = (files, fieldName) => {
 
 const createPhotographer = async (req, res) => {
   try {
+    // Check if the photographer already exists based on name and vendor ID
     const alreadyExists = await Photographer.findOne({
       name: req.body.name,
       venId: req.body.venId,
@@ -14,25 +15,25 @@ const createPhotographer = async (req, res) => {
       return res.status(400).json({ message: "Photographer already exists" });
     }
 
-    const portfolioUrl =
-      getFileUrls(req.files, "portfolio") || req.body.portfolio;
-    const clientTestimonialsUrl =
-      getFileUrls(req.files, "clientTestimonials") ||
-      req.body.clientTestimonials;
-    const cancellationPolicyUrl =
-      getFileUrls(req.files, "cancellationPolicy") ||
+    // Process file uploads if available
+    const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
+    const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
+    const cancellationPolicyFileUrl =
+      getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
-    const termsAndConditionsUrl =
-      getFileUrls(req.files, "termsAndConditions") ||
+    const termsAndConditionsFileUrl =
+      getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
-
+    // Create a new photographer with provided data
     const newPhotographer = new Photographer({
       ...req.body,
-      portfolio: portfolioUrl,
-      clientTestimonials: clientTestimonialsUrl,
-      cancellationPolicy: cancellationPolicyUrl,
-      termsAndConditions: termsAndConditionsUrl,
+      photos: photosUrls,
+      videos: videosUrls,
+      cancellationPolicy : cancellationPolicyFileUrl,
+      termsAndConditions : termsAndConditionsFileUrl
     });
+
+    // Save the photographer to the database
     await newPhotographer.save();
     res.status(201).json({ message: "Photographer created successfully" });
   } catch (error) {
@@ -40,6 +41,7 @@ const createPhotographer = async (req, res) => {
   }
 };
 
+// Fetch all photographers
 const getAllPav = async (req, res) => {
   try {
     const pav = await Photographer.find();
@@ -48,4 +50,5 @@ const getAllPav = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 export default { createPhotographer, getAllPav };

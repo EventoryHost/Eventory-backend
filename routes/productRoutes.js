@@ -128,10 +128,10 @@ router.post(
 router.post(
   "/add-photographer",
   upload("Photographers").fields([
-    { name: "portfolio", maxCount: 20 },
-    { name: "clientTestimonials", maxCount: 20 },
-    { name: "cancellationPolicy", maxCount: 1 },
     { name: "termsAndConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   photographerController.createPhotographer,
 );
