@@ -10,6 +10,7 @@ const transportSchema = new Schema({
     required: true,
     trim: true,
   },
+  vendorType: { type: String, default: "transport" },
   numberOfWorkers: {
     type: Number,
     required: true,

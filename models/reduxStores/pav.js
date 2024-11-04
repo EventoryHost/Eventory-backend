@@ -32,6 +32,7 @@ const photographerSchema = Schema(
     },
     fullName: { type: String },
     description: { type: String },
+    eventType : { type: String , default  : "Photographer" },
     eventsize: { type: String },
     events: { type: [String] },
 

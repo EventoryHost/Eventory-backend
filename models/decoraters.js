@@ -8,6 +8,8 @@ const decoratorSchema = Schema({
   venId: { type: String, required: true },
   eventSize: { type: String, required: true },
   duration: { type: String },
+  description : { type: String },
+  vendorType : { type: String, default: "decorator" },
   eventTypes: {
     types: { type: [String], default: [], required: true },
     wedding: { type: [String] },

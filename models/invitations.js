@@ -6,6 +6,11 @@ const Schema = _Schema;
 const invitationSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  description: {
+    type: String,
+    trim: true,
+  },
+  vendorType: { type: String, default: "invitation" },
   portfolio: {
     type: String,
     required: true,

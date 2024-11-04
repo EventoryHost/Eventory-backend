@@ -14,6 +14,8 @@ const invitationSchema = new Schema(
     yearsOfExperience: {
       type: String,
     },
+    description : { type: String },
+    vendorType: { type: String, default: "invitation" },
     invitationTypes: {
       formal: {
         type: [String],
