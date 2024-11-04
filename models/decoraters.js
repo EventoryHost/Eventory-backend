@@ -24,7 +24,7 @@ const decoratorSchema = Schema({
   themeElements: { type: [String], required: true },
   themePhotos: { type: [String], required: true },
   themeVideos: { type: [String], required: true },
-  setupAndInstallation: { type: Boolean, default: false },
+  themeProposels: { type: Boolean, default: false },
   proposalRevisions: { type: Boolean, default: false },
   consultationProcess: { type: String },
   advanceBookingPeriod: { type: String, required: true },
