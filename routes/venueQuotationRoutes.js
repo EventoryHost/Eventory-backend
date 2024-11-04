@@ -1,10 +1,10 @@
-import express from 'express';
-import venueQuotation from '../models/venueQuotation.js'; 
+import express from "express";
+import venueQuotation from "../models/venueQuotation.js";
 
 const router = express.Router();
 
 // Create a new quotation
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const newQuotation = new venueQuotation({
       event_name: req.body.event_name,
@@ -15,30 +15,30 @@ router.post('/', async (req, res) => {
       requirements: req.body.requirements,
       user_id: req.body.user_id,
       user_name: req.body.user_name,
-      vendor_id: req.body.vendor_id
+      vendor_id: req.body.vendor_id,
     });
 
     const savedQuotation = await newQuotation.save();
     res.status(201).json({
-      message: 'Quotation created successfully!',
-      data: savedQuotation
+      message: "Quotation created successfully!",
+      data: savedQuotation,
     });
   } catch (error) {
     res.status(500).json({
-      message: 'Error creating quotation',
-      error: error.message
+      message: "Error creating quotation",
+      error: error.message,
     });
   }
 });
 
 // Get quotations by vendor id
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;
 
     if (!vendor_id) {
       return res.status(400).json({
-        message: "vendor_id is required"
+        message: "vendor_id is required",
       });
     }
 
@@ -46,18 +46,18 @@ router.get('/', async (req, res) => {
 
     if (quotations.length === 0) {
       return res.status(404).json({
-        message: `No quotations found for vendor_id: ${vendor_id}`
+        message: `No quotations found for vendor_id: ${vendor_id}`,
       });
     }
 
     res.status(200).json({
-      message: 'Quotations retrieved successfully!',
-      data: quotations
+      message: "Quotations retrieved successfully!",
+      data: quotations,
     });
   } catch (error) {
     res.status(500).json({
-      message: 'Error retrieving quotations',
-      error: error.message
+      message: "Error retrieving quotations",
+      error: error.message,
     });
   }
 });

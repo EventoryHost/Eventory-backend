@@ -11,8 +11,7 @@ import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
-import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";  
-
+import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -41,7 +40,7 @@ app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
-app.use("/api/quotations", venueQuotationRoutes);  
+app.use("/api/quotations", venueQuotationRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
