@@ -5,7 +5,7 @@ const Schema = _Schema;
 const photographerSchema = Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
-  //page-1 
+  //page-1
   name: {
     type: String,
     required: true,
@@ -16,7 +16,7 @@ const photographerSchema = Schema({
     type: [String],
     required: true,
   },
-  //page 2 
+  //page 2
   Videography: {
     equipmentAvailable: {
       type: [String],
@@ -45,7 +45,7 @@ const photographerSchema = Schema({
       type: [String],
     },
   },
-  //page-3 
+  //page-3
   duration: { type: String },
   PackageTypes: {
     type: String,

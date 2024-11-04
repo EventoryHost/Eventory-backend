@@ -29,8 +29,8 @@ const createPhotographer = async (req, res) => {
       ...req.body,
       photos: photosUrls,
       videos: videosUrls,
-      cancellationPolicy : cancellationPolicyFileUrl,
-      termsAndConditions : termsAndConditionsFileUrl
+      cancellationPolicy: cancellationPolicyFileUrl,
+      termsAndConditions: termsAndConditionsFileUrl,
     });
 
     // Save the photographer to the database
