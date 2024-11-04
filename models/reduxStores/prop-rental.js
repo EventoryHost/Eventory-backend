@@ -9,7 +9,7 @@ const pricingSchema = new Schema({
 
 const propRentalSchema = new Schema(
   {
-    userId: { type: String },
+    id: { type: String },
     managerName: {
       type: String,
     },
