@@ -14,6 +14,7 @@ const giftSchema = new Schema(
       type: String,
       trim: true,
     },
+    venueType: { type: String, default: "gift" },
     minimumOrderQuantity: {
       type: String,
     },

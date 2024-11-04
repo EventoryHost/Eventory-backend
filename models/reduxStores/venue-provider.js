@@ -20,6 +20,7 @@ const venueSchema = new Schema({
   venueDescription: {
     type: String,
   },
+  venueType : { type: String, default: "venue-provider" },
   catererServices: {
     type: Boolean,
   },

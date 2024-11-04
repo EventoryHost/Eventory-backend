@@ -13,8 +13,9 @@ const propRentalSchema = new Schema({
   venId: { type: String, required: true },
   managerName: {
     type: String,
-    required: true,
+    required: true, 
   },
+  vendorType: { type: String, default: "propRental" },
 
   workDescription: {
     type: String,

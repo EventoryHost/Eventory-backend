@@ -9,6 +9,7 @@ const venueSchema = new Schema({
     type: String,
     required: true,
   },
+  vendorType  : { type: String, default: "venue" },
   managerName: { type: String, required: true },
   capacity: { type: String, required: true },
   operatingHours: {
