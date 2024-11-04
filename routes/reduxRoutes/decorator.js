@@ -28,14 +28,6 @@ router.post("/", async (req, res) => {
       return res.status(200).json({
         message: "Decorator details updated successfully.",
         data: updatedDetails,
-
-      });
-    } else {
-      const newDecoratorDetails = new DecoratorModel({
-        userId,
-        ...decoratorData,
-
-
       });
     } else {
       const newDecoratorDetails = new DecoratorModel({ id, ...decoratorData });
