@@ -122,9 +122,10 @@ const login = async (req, res) => {
   };
 
   try {
-    const command = new AdminInitiateAuthCommand(params);
-    const userExists = isNewUser(mobile);
+    
+    const userExists = userExists(mobile);
     if (userExists) {
+      const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
       return res.status(200).json({ message: "OTP sent", data });
     }
