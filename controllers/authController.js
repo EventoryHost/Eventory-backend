@@ -143,7 +143,7 @@ const login = async (req, res) => {
       const data = await cognito.send(command);
       return res.status(200).json({ message: "OTP sent", data });
     }
-    return res.status(400).json({ message: "User does not exist" });
+    return res.status(404).json({ message: "User does not exist" });
   } catch (error) {
     console.log(error);
     res.status(400).json({ error: error.message });
