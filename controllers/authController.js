@@ -98,7 +98,21 @@ const signUp = async (req, res) => {
     }
     const command = new SignUpCommand(params);
     await cognito.send(command);
-    login(req, res);
+
+    const signUpParams = {
+      AuthFlow: "CUSTOM_AUTH",
+      ClientId: process.env.COGNITO_APP_CLIENT_ID,
+      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      Username: `+91${mobile}`,
+
+      AuthParameters: {
+        USERNAME: `+91${mobile}`,
+      },
+    };
+
+    const signUpCommand = new AdminInitiateAuthCommand(signUpParams);
+    const data = await cognito.send(signUpCommand);
+    return res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
     if (error.name === "UserNotFoundException") {
       console.log("New User");
@@ -122,9 +136,9 @@ const login = async (req, res) => {
   };
 
   try {
-    
-    const userExists = userExists(mobile);
-    if (userExists) {
+
+    const user = await userExists(`+91${mobile}`);
+    if (user) {
       const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
       return res.status(200).json({ message: "OTP sent", data });
