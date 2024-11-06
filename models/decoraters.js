@@ -7,7 +7,7 @@ const decoratorSchema = Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
   eventSize: { type: String, required: true },
-  description : { type: String, required: true },
+  description: { type: String, required: true },
   duration: { type: String },
   eventTypes: {
     types: { type: [String], default: [], required: true },

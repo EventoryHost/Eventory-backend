@@ -1,14 +1,20 @@
 import mongoose from "mongoose";
 import { Booking } from "./models/bookings.js";
 
-mongoose.connect( "mongodb+srv://eventorycareers:C%40reersEventory1234@eventory.0aghroh.mongodb.net/dev?retryWrites=true&w=majority&appName=Eventory", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log("Connected to MongoDB");
-}).catch((error) => {
-  console.error("Error connecting to MongoDB:", error);
-});
+mongoose
+  .connect(
+    "mongodb+srv://eventorycareers:C%40reersEventory1234@eventory.0aghroh.mongodb.net/dev?retryWrites=true&w=majority&appName=Eventory",
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    },
+  )
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((error) => {
+    console.error("Error connecting to MongoDB:", error);
+  });
 
 async function createBooking() {
   const newBooking = new Booking({
