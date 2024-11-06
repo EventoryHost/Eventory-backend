@@ -1,5 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import mongoose from "mongoose";
 const Schema = _Schema;
 
 const invitationSchema = new Schema({
@@ -147,6 +148,6 @@ const invitationSchema = new Schema({
   advancePayment: { type: String },
 });
 
-const Invitation = model("Invitations", invitationSchema);
+const Invitation = mongoose.model("Invitations", invitationSchema);
 
 export default { Invitation, invitationSchema };

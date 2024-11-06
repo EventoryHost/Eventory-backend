@@ -25,30 +25,24 @@ router.post("/", async (req, res) => {
         { $set: giftsData },
         { new: true, upsert: false },
       );
-      return res
-        .status(200)
-        .json({
-          message: "Gift details updated successfully.",
-          data: updatedDetails,
-        });
+      return res.status(200).json({
+        message: "Gift details updated successfully.",
+        data: updatedDetails,
+      });
     } else {
       const newGiftDetails = new GiftModel({ userId, ...giftsData });
       await newGiftDetails.save();
-      return res
-        .status(201)
-        .json({
-          message: "Gift details saved successfully.",
-          data: newGiftDetails,
-        });
+      return res.status(201).json({
+        message: "Gift details saved successfully.",
+        data: newGiftDetails,
+      });
     }
   } catch (error) {
     console.error("Error saving/updating gift details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to save or update gift details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to save or update gift details.",
+      error: error.message,
+    });
   }
 });
 
@@ -66,12 +60,10 @@ router.get("/:userId", async (req, res) => {
     res.status(200).json(giftDetails);
   } catch (error) {
     console.error("Error retrieving gift details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to retrieve gift details.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to retrieve gift details.",
+      error: error.message,
+    });
   }
 });
 

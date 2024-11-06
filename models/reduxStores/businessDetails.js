@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export const businessSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
+  id: { type: String, required: true },
   businessName: { type: String, required: true },
   category: { type: String, required: true },
   gstin: { type: String, required: true },
@@ -13,6 +13,6 @@ export const businessSchema = new mongoose.Schema({
   annualrevenue: { type: String, required: true },
 });
 
-const BusinessDetailsModel = mongoose.model(" ", businessSchema);
+const BusinessDetailsModel = mongoose.model(" reduxBusinessDetails ", businessSchema);
 
 export { BusinessDetailsModel };

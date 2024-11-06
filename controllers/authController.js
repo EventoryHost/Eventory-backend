@@ -98,7 +98,21 @@ const signUp = async (req, res) => {
     }
     const command = new SignUpCommand(params);
     await cognito.send(command);
-    login(req, res);
+
+    const signUpParams = {
+      AuthFlow: "CUSTOM_AUTH",
+      ClientId: process.env.COGNITO_APP_CLIENT_ID,
+      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      Username: `+91${mobile}`,
+
+      AuthParameters: {
+        USERNAME: `+91${mobile}`,
+      },
+    };
+
+    const signUpCommand = new AdminInitiateAuthCommand(signUpParams);
+    const data = await cognito.send(signUpCommand);
+    return res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
     if (error.name === "UserNotFoundException") {
       console.log("New User");
@@ -122,13 +136,14 @@ const login = async (req, res) => {
   };
 
   try {
-    const command = new AdminInitiateAuthCommand(params);
-    const userExists = isNewUser(mobile);
-    if (userExists) {
+
+    const user = await userExists(`+91${mobile}`);
+    if (user) {
+      const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
       return res.status(200).json({ message: "OTP sent", data });
     }
-    return res.status(400).json({ message: "User does not exist" });
+    return res.status(404).json({ message: "User does not exist" });
   } catch (error) {
     console.log(error);
     res.status(400).json({ error: error.message });
@@ -302,6 +317,27 @@ const isNewUser = async (mobile) => {
   }
 };
 
+const updateProfilePic = async (req, res) => {
+  const vendorId = req.params.id; // This should be your custom ID, e.g., 'ven20241024155014318'
+
+  try {
+    // Use `findOneAndUpdate` with the custom id field
+    const updatedVendor = await User.findOneAndUpdate(
+      { id: vendorId }, // Query by the custom ID field
+      { profilePic: req.file.location }, // Store the path of the uploaded file
+      { new: true }, // Return the updated document
+    );
+
+    if (!updatedVendor) {
+      return res.status(404).send({ message: "Vendor not found" });
+    }
+
+    res.status(200).send(updatedVendor);
+  } catch (error) {
+    res.status(500).send({ message: "Error updating vendor", error });
+  }
+};
+
 export default {
   login,
   signUp,
@@ -312,4 +348,5 @@ export default {
   addBusinessDetails,
   createVendor,
   getVendor,
+  updateProfilePic,
 };
