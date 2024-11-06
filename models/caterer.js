@@ -14,7 +14,7 @@ const catererSchema = new Schema({
   service_style_offered: { type: [String], required: true },
   menu: { type: [String], required: true },
   vegOrNonVeg: { type: String, required: true },
-
+  description: { type: String, required: true },
   appetizers: [String],
   main_course: [String],
   beverages: [String],

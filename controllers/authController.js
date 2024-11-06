@@ -136,7 +136,6 @@ const login = async (req, res) => {
   };
 
   try {
-
     const user = await userExists(`+91${mobile}`);
     if (user) {
       const command = new AdminInitiateAuthCommand(params);

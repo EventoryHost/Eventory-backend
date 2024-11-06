@@ -49,7 +49,7 @@ const eventPlannerSchema = new Schema({
   catering: catererSchema,
   transport: transport.transportSchema,
   invitation: invitation.invitationSchema,
-
+  description: { type: String, required: true },
   packageRates: {
     per_theme: [{ name: String, min: String, max: String }],
     package: [{ name: String, min: String, max: String }],
