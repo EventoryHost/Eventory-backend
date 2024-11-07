@@ -1,0 +1,57 @@
+import { readFileSync } from "fs";
+import { ses } from "../config/awsConfig.js";
+import { SendRawEmailCommand } from "@aws-sdk/client-ses";
+import dotenv from "dotenv";
+import mime from "mime-types";
+import path from "path";
+dotenv.config();
+
+const sendEmailInvoice = async (email, filePath) => {
+    try {
+        const fileContent = readFileSync(filePath);
+        const fileName = path.basename(filePath);
+        const fileType = mime.lookup(filePath);
+    
+        const boundary = "----=_Part_0_123456789.123456789";
+        const rawEmail = [
+          `From: ${process.env.EMAIL_FROM}`,
+          `To: ${email}`,
+          `Subject: Your Invoice from Eventory`,
+          `MIME-Version: 1.0`,
+          `Content-Type: multipart/mixed; boundary="${boundary}"`,
+          ``,
+          `--${boundary}`,
+          `Content-Type: text/plain; charset=UTF-8`,
+          `Content-Transfer-Encoding: 7bit`,
+          ``,
+          `Thank you for your payment. Please find your invoice attached.`,
+          ``,
+          `--${boundary}`,
+          `Content-Type: ${fileType}; name="${fileName}"`,
+          `Content-Disposition: attachment; filename="${fileName}"`,
+          `Content-Transfer-Encoding: base64`,
+          ``,
+          fileContent.toString("base64"),
+          ``,
+          `--${boundary}--`,
+        ].join("\r\n");
+    
+        const params = {
+          RawMessage: {
+            Data: rawEmail,
+          },
+        };
+
+        try {
+            const command = new SendRawEmailCommand(params);
+            await ses.send(command);
+            return res.status(200).json({ message: "Email sent successfully" });
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export { sendEmailInvoice };
