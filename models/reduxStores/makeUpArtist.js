@@ -3,6 +3,7 @@ const Schema = _Schema;
 
 const makeupArtistBaseSchema = {
   userId: { type: String, required: true }, // ID of the user creating this entry
+  pageNumber : { type: Number , default: 1},
   type: {
     type: String,
     enum: ["individual", "group", "company"], // Defining artist type
