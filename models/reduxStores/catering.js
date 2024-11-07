@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const CateringSchema = new mongoose.Schema(
   {
     id: { type: String, unique: true },
+    pageNumber : { type: Number , default: 1},
     cateringName: { type: String },
     businessName: { type: String },
     servingCapacity: { type: String },
