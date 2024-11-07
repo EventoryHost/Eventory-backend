@@ -42,6 +42,7 @@ const createDecorator = async (req, res) => {
     const newDecorator = new Decorator({
       name: req.body.name,
       id: req.body.id,
+      description: req.body.description,
       eventSize: req.body.eventSize,
       venId: req.body.venId,
       eventTypes,

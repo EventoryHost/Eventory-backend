@@ -29,6 +29,7 @@ const createPhotographer = async (req, res) => {
     const newPhotographer = new Photographer({
       ...req.body,
       portfolio: portfolioUrl,
+      description: req.body.description,
       clientTestimonials: clientTestimonialsUrl,
       cancellationPolicy: cancellationPolicyUrl,
       termsAndConditions: termsAndConditionsUrl,
