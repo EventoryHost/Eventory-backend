@@ -5,6 +5,7 @@ const Schema = _Schema;
 const transportSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  description: { type: String, required: true },
   contactPersonName: {
     type: String,
     required: true,
