@@ -177,9 +177,13 @@ const verifyLoginOtp = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.id, mobile: user.mobile, name: user.name }, process.env.JWT_SECRET, {
-      expiresIn: '24h',
-    });
+    const token = jwt.sign(
+      { id: user.id, mobile: user.mobile, name: user.name },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h",
+      },
+    );
 
     res.status(200).json({ message: "Login Success", token, user });
   } catch (error) {
