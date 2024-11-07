@@ -68,7 +68,7 @@ const eventPlannerSchema = new Schema({
   privacyPolicy: { type: String },
   specializations: { type: String },
   description: { type: String },
-  VendorType : { type: String, default: "eventPlanner" },
+  VendorType: { type: String, default: "eventPlanner" },
 });
 
 const EventPlanner = model("EventPlanner", eventPlannerSchema);
