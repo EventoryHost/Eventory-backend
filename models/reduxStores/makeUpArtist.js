@@ -9,7 +9,7 @@ const makeupArtistBaseSchema = {
     required: true,
   },
   description: { type: String }, // Short description of services or expertise
-  venueType : { type: String, default: "makeupArtist" }, // Type of venue
+  venueType: { type: String, default: "makeupArtist" }, // Type of venue
   types_of_artists: { type: [String], required: true }, // Types of artists in the team, like hair, makeup, etc.
 
   // Package rates for hourly, deals, and workers
