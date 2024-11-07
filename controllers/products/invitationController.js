@@ -29,6 +29,7 @@ const createInvitation = async (req, res) => {
     const newInvitation = new Invitation({
       ...req.body,
       portfolio: portfolioUrls,
+      description: req.body.description,
       termsAndConditions: termsAndConditionsFileUrl,
       cancellationPolicy: cancellationPolicyFileUrl,
       clientTestimonials: clientTestimonialsUrls,
