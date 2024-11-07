@@ -158,7 +158,6 @@ const verifyLoginOtp = async (req, res) => {
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
     Username: `+91${mobile}`,
     Password: "123456",
-
     ChallengeResponses: {
       USERNAME: `+91${mobile}`,
       ANSWER: code,
@@ -168,45 +167,27 @@ const verifyLoginOtp = async (req, res) => {
 
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
-    var data = await cognito.send(command); // if otp not valid will throw error
-    const user = await User.findOne({ mobile: `+91${mobile}` });
+    var data = await cognito.send(command); // Throws error if OTP not valid
+
+    let user = await User.findOne({ mobile: `+91${mobile}` });
     if (!user) {
-      const newUser = new User({
-        name,
-        mobile: `+91${mobile}`,
-      });
-      var userData = await newUser.save();
-      data = { ...data, userData };
-      return res.status(200).json({ message: "Vendor registered", data });
+      user = new User({ name, mobile: `+91${mobile}` });
+      await user.save();
+      data = { ...data, user };
     }
-    data = { ...data, user };
-    res.status(200).json({ message: "Login Success", data });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, mobile: user.mobile, name: user.name },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h",
+      },
+    );
+
+    res.status(200).json({ message: "Login Success", token, user });
   } catch (error) {
     console.log(error);
-    res.status(400).json({ error: error.message });
-  }
-};
-
-const verifySignUpOtp = async (req, res) => {
-  const { name, otp, mobile } = req.body;
-
-  const params = {
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Username: `+91${mobile}`,
-    ConfirmationCode: otp,
-  };
-
-  try {
-    const command = new ConfirmSignUpCommand(params);
-    await cognito.send(command);
-    const newUser = new User({
-      name,
-      mobile,
-    });
-    const data = await newUser.save();
-    res.status(200).json({ message: "Vendor registered", data });
-  } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
@@ -340,7 +321,6 @@ const updateProfilePic = async (req, res) => {
 export default {
   login,
   signUp,
-  verifySignUpOtp,
   verifyLoginOtp,
   authWithGoogle,
   googleCallback,
