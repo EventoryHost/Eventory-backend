@@ -53,4 +53,33 @@ router.put('/:flowType/updatePageNumber', async (req, res) => {
     }
 });
 
+// New route to fetch the last visited page number for a vendor
+router.get('/:flowType/getLastPageNumber/:vendorId', async (req, res) => {
+    const { flowType, vendorId } = req.params;
+
+    try {
+        const Model = getModelByFlowType(flowType);
+
+        if (!Model) {
+            return res.status(400).json({ message: 'Invalid flow type' });
+        }
+
+        // Fetch the vendor document by vendorId
+        const vendor = await Model.findOne({ id: vendorId });
+
+        if (!vendor) {
+            return res.status(404).json({ message: 'Vendor not found' });
+        }
+
+        // Return the page number (last visited page)
+        res.json({
+            lastPageNumber: vendor.pageNumber || 1 // Return 1 if pageNumber is not set
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
 export default router;
