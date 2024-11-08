@@ -37,6 +37,7 @@ const createCaterer = async (req, res) => {
       capacity: req.body.capacity,
 
       venId: req.body.venId,
+      description: req.body.description,
       name: req.body.name,
       cuisine_specialities: req.body.cuisine_specialities,
       regional_specialities: req.body.regional_specialities,
