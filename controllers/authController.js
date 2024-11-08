@@ -41,7 +41,15 @@ const createVendor = async (req, res) => {
 
 const updateVendor = async (req, res) => {
   try {
-    const { vendorId, name, email, phoneNumber, panNo, gstin, businessDetails } = req.body;
+    const {
+      vendorId,
+      name,
+      email,
+      phoneNumber,
+      panNo,
+      gstin,
+      businessDetails,
+    } = req.body;
     // Check if vendorId is provided
     if (!vendorId) {
       return res.status(400).json({ message: "Please provide a vendorId." });
@@ -59,7 +67,7 @@ const updateVendor = async (req, res) => {
       ...user.businessDetails,
       ...businessDetails,
       panNo,
-      gstin
+      gstin,
     };
     user.name = name || user.name;
     user.email = email || user.email;
@@ -67,7 +75,6 @@ const updateVendor = async (req, res) => {
 
     const data = await user.save();
     res.status(200).json({ message: "Vendor Details updated", data });
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
