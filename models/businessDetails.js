@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 export const businessSchema = new mongoose.Schema({
   businessName: { type: String, required: true },
   category: { type: String, required: true },
-  gstin: { type: String, required: true },
+  gstin: { type: String },
+  panNo: { type: String },
   teamsize: { type: String, required: true },
   years: { type: String, required: true },
   businessAddress: { type: String, required: true },
