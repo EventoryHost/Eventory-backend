@@ -42,8 +42,6 @@ async function generateInvoice(customer, paymentDetails) {
         await vendor.save();
         console.log('Invoice URL saved to MongoDB');
 
-
-
         return pdfOptions.path;
     } catch (error) {
         console.error('Error generating invoice:', error);

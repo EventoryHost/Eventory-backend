@@ -1,5 +1,9 @@
 import Razorpay from "razorpay";
+import generateInvoice from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
+import { Vendor } from "../models/users.js";
+import { sendEmailInvoice } from "./sesController.js"
+
 dotenv.config();
 import crypto from "crypto";
 
@@ -29,7 +33,7 @@ const createOrder = async (req, res) => {
 };
 
 const verifyPayment = async (req, res) => {
-  const { order_id, payment_id, signature } = req.body;
+  const { order_id, payment_id, signature, ven_id } = req.body;
   try {
     const key_secret = process.env.RAZORPAY_SECRET;
 
@@ -40,7 +44,21 @@ const verifyPayment = async (req, res) => {
     console.log(generatedSignature);
     console.log(signature);
     if (generatedSignature === signature) {
+      const paymentDetails = await Razorpay.payments.fetch(payment_id);
+      const formattedDetails = {
+        invoiceNumber: `INV-${Date.now()}`,
+        invoiceDate: new Date().toLocaleDateString(),
+        amount: paymentDetails.amount,
+        method: paymentDetails.method,
+        created_at: new Date(paymentDetails.created_at * 1000).toLocaleDateString(),
+        id: paymentDetails.id,
+      };
+      const vendor = await Vendor.findById(ven_id);
+      const filePath = await generateInvoice(vendor, formattedDetails);
+      await sendEmailInvoice(vendor.email, filePath);
+
       return res.json({ message: "Payment verified" });
+
     } else {
       return res.status(400).json({ error: "Invalid payment" });
     }
