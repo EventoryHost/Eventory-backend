@@ -19,29 +19,37 @@ const createVenue = async (req, res) => {
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
-    const portfolioUrls = getFileUrls(req.files, "portfolio");
+
+    const photosUrls = getFileUrls(req.files, "photos") || req.body.photos;
+    const videosUrls = getFileUrls(req.files, "videos") || req.body.videos;
+    const insurancePolicyUrl =
+      getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
 
     const newVenue = new Venue({
       id: req.body.id,
+      managerName: req.body.managerName,
       venId: req.body.venId,
       name: req.body.name,
-      venueType: req.body.venueType,
+      capacity: req.body.capacity,
+      address: req.body.address,
+      venueTypes: req.body.venueTypes,
       operatingHours: req.body.operatingHours,
       venueDescription: req.body.venueDescription,
-      seatedCapacity: req.body.seatedCapacity,
-      standingCapacity: req.body.standingCapacity,
       decorServices: req.body.decorServices,
+      catererServices: req.body.catererServices,
+      restrictionsPolicies: req.body.restrictionsPolicies,
+      speacialFeatures: req.body.speacialFeatures,
       audioVisualEquipment: req.body.audioVisualEquipment,
       accessibilityFeatures: req.body.accessibilityFeatures,
       facilities: req.body.facilities,
+      photos: photosUrls,
+      videos: videosUrls,
+      instagramURL: req.body.instagramURL,
+      websiteURL: req.body.websiteURL,
+      awards: req.body.awards,
       termsConditions: termsAndConditionsFileUrl,
       cancellationPolicy: cancellationPolicyFileUrl,
-      rates: req.body.rates,
-      media: req.body.media,
-      portfolio: portfolioUrls,
-      socialLinks: req.body.socialLinks,
-      restrictionsPolicies: req.body.restrictionsPolicies,
-      specialFeatures: req.body.specialFeatures,
+      insurancePolicy: insurancePolicyUrl,
     });
 
     const savedVenue = await newVenue.save();
@@ -53,10 +61,11 @@ const createVenue = async (req, res) => {
 
 const getAllVenues = async (req, res) => {
   try {
-    const Venues = await res.json(Venues);
+    const venue = await Venue.find();
+    res.status(200).json(venue);
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 };
 
-export default { createVenue };
+export default { createVenue, getAllVenues };

@@ -6,27 +6,25 @@ const getFileUrls = (files, fieldName) => {
 
 const createProp = async (req, res) => {
   try {
-    const alreadyExists = await propRental.findOne({
-      name: req.body.name,
-      venId: req.body.venId,
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Prop Rental already exists" });
-    }
+    // const alreadyExists = await propRental.findOne({
+    //   name: req.body.name,
+    //   venId: req.body.venId,
+    // });
+    // if (alreadyExists) {
+    //   return res.status(400).json({ message: "Prop Rental already exists" });
+    // }
 
     const furnitureAndDecorListUrl =
-      getFileUrls(req.files, "furnitureAndDecorList")[0] ||
+      getFileUrls(req.files, "furnitureAndDecorListUrl")[0] ||
       req.body.furnitureAndDecorList;
 
     const tentAndCanopyListUrl =
-      getFileUrls(req.files, "tentAndCanopyList")[0] ||
+      getFileUrls(req.files, "tentAndCanopyListUrl")[0] ||
       req.body.tentAndCanopyList;
 
     const audioVisualListUrl =
-      getFileUrls(req.files, "audioVisualList")[0] || req.body.audioVisualList;
-
-    const privacyPolicyUrl =
-      getFileUrls(req.files, "privacyPolicy")[0] || req.body.privacyPolicy;
+      getFileUrls(req.files, "audioVisualListUrl")[0] ||
+      req.body.audioVisualList;
 
     const termsAndConditionsUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
@@ -34,27 +32,40 @@ const createProp = async (req, res) => {
     const cancellationPolicyUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
-    const insurancePolicyUrl =
-      getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
+
+    const itemCatalogueUrl =
+      getFileUrls(req.files, "itemCatalogue")[0] || req.body.itemCatalogue;
+
+    const photosUrls = getFileUrls(req.files, "photos");
+    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos");
+    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const newProp = new propRental({
       ...req.body,
+      itemCatalogue: itemCatalogueUrl,
+      customization: req.body.customization === "true",
+      maintenance: req.body.maintenance,
+      services: req.body.services,
+      description: req.body.description,
+
       furnitureAndDecor: {
-        ...req.body.furnitureAndDecor,
         listUrl: furnitureAndDecorListUrl,
+        ...req.body.furnitureAndDecor,
       },
       tentAndCanopy: {
-        ...req.body.tentAndCanopy,
         listUrl: tentAndCanopyListUrl,
+        ...req.body.tentAndCanopy,
       },
       audioVisual: {
-        ...req.body.audioVisual,
         listUrl: audioVisualListUrl,
+        ...req.body.audioVisual,
       },
-      privacyPolicy: privacyPolicyUrl,
       termsAndConditions: termsAndConditionsUrl,
       cancellationPolicy: cancellationPolicyUrl,
-      insurancePolicy: insurancePolicyUrl,
+      photos: Array.isArray(photos) ? photos : [photos],
+      videos: Array.isArray(videos) ? videos : [videos],
     });
 
     const savedProp = await newProp.save();
@@ -64,4 +75,13 @@ const createProp = async (req, res) => {
   }
 };
 
-export default { createProp };
+const getAllProp = async (req, res) => {
+  try {
+    const prop = await propRental.find();
+    res.status(200).json(prop);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createProp, getAllProp };

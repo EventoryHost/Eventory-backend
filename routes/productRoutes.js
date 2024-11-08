@@ -10,17 +10,29 @@ import makeupController from "../controllers/products/makeupController.js";
 import giftController from "../controllers/products/giftController.js";
 import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers/products/photographerController.js";
+import vendorController from "../controllers/products/vendorController.js";
 
 const router = Router();
 
 router.get("/caterer", catererController.getAllCaterers);
+router.get("/decorator", decoratorController.getAllDecorators);
+router.get("/event-planner", eventPlannerController.getAllEventPlanner);
+router.get("/gift", giftController.getAllGift);
+router.get("/invitation", invitationController.getAllInvitation);
+router.get("/makeup", makeupController.getAllMakeupArtist);
+router.get("/pav", photographerController.getAllPav);
+router.get("/prop-rental", propController.getAllProp);
+router.get("/venue", venueController.getAllVenues);
+
 router.post(
   "/add-caterer",
   upload("Caterers").fields([
-    { name: "menu", maxCount: 1 },
+    { name: "menu", maxCount: 10 },
     { name: "cancellation_policy", maxCount: 1 },
     { name: "terms_and_conditions", maxCount: 1 },
-    { name: "portfolio", maxCount: 20 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+    { name: "client_testimonials", maxCount: 10 },
   ]),
   catererController.createCaterer,
 );
@@ -30,7 +42,9 @@ router.post(
   upload("Venues").fields([
     { name: "termsConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "portfolio", maxCount: 20 },
+    { name: "insurancePolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   venueController.createVenue,
 );
@@ -48,15 +62,13 @@ router.post(
 
 router.post(
   "/add-decorator",
-  upload("Event Planner").fields([
-    { name: "termsConditions", maxCount: 1 },
+  upload("Decorator").fields([
+    { name: "termsAndConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "portfolio", maxCount: 20 },
-    { name: "insurance", maxCount: 1 },
-    { name: "awards", maxCount: 20 },
-    { name: "clientTestimonials", maxCount: 20 },
-    { name: "onlineRatings", maxCount: 20 },
-    { name: "privacyPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+    { name: "themephotos", maxCount: 20 },
+    { name: "themevideos", maxCount: 20 },
   ]),
   decoratorController.createDecorator,
 );
@@ -102,11 +114,13 @@ router.post(
   upload("Props").fields([
     { name: "furnitureAndDecorListUrl", maxCount: 1 },
     { name: "tentAndCanopyListUrl", maxCount: 1 },
+    { name: "itemCatalogue", maxCount: 1 },
     { name: "audioVisualListUrl", maxCount: 1 },
     { name: "privacyPolicy", maxCount: 1 },
     { name: "termsAndConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
-    { name: "insurancePolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   propController.createProp,
 );
@@ -114,12 +128,13 @@ router.post(
 router.post(
   "/add-photographer",
   upload("Photographers").fields([
-    { name: "portfolio", maxCount: 20 },
-    { name: "clientTestimonials", maxCount: 20 },
-    { name: "cancellationPolicy", maxCount: 1 },
     { name: "termsAndConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   photographerController.createPhotographer,
 );
 
+router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 export default router;

@@ -1,17 +1,13 @@
 import { Schema as _Schema, model } from "mongoose";
-import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const venueSchema = new Schema({
-  id: { type: String, default: generateUniqueId("ser"), required: true },
-  venId: { type: String, required: true },
+  id: { type: String },
   name: {
     type: String,
-    required: true,
   },
-  vendorType: { type: String, default: "venue" },
-  managerName: { type: String, required: true },
-  capacity: { type: String, required: true },
+  managerName: { type: String },
+  capacity: { type: String },
   operatingHours: {
     openingTime: {
       type: String,
@@ -20,33 +16,30 @@ const venueSchema = new Schema({
       type: String,
     },
   },
-  address: { type: String, required: true },
+  address: { type: String },
   venueDescription: {
     type: String,
   },
+  venueType: { type: String, default: "venue-provider" },
   catererServices: {
     type: Boolean,
-    required: true,
   },
 
   decorServices: {
     type: Boolean,
-    required: true,
   },
-  venueTypes: { type: [String], required: true },
+  venueTypes: { type: [String] },
 
   audioVisualEquipment: {
     type: [String],
   },
   accessibilityFeatures: {
     type: [String],
-    required: true,
   },
-  restrictionsPolicies: { type: [String], required: true },
+  restrictionsPolicies: { type: [String] },
   speacialFeatures: { type: [String] },
   facilities: {
     type: [String],
-    required: true,
   },
   termsConditions: {
     type: [String],
@@ -58,8 +51,8 @@ const venueSchema = new Schema({
     type: [String],
   },
 
-  photos: { type: [String], required: true },
-  videos: { type: [String], required: true },
+  photos: { type: [String] },
+  videos: { type: [String] },
   instagramURL: { type: String },
   websiteURL: { type: String },
   awards: { type: String },
@@ -67,6 +60,6 @@ const venueSchema = new Schema({
   advanceBookingPeriod: { type: String },
 });
 
-const Venue = model("Venue", venueSchema);
+const VenueModel = model("ReduxVenueProvider", venueSchema);
 
-export { Venue, venueSchema };
+export default VenueModel;
