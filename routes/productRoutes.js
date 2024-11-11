@@ -49,7 +49,6 @@ router.post(
   venueController.createVenue,
 );
 
-
 router.post(
   "/add-event-planner",
   upload("Event Planner").fields([
