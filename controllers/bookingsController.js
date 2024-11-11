@@ -42,12 +42,12 @@ export const getBooking = async (req, res) => {
 
 export const updateSchedule = async (req, res) => {
   const { serid } = req.query; // Retrieve the service id from the query parameters
-  const { bookingId, calendarEvent,vendorType } = req.body; // Expecting a bookingId and calendarEvent from the request body
+  const { bookingId, calendarEvent, vendorType } = req.body; // Expecting a bookingId and calendarEvent from the request body
 
   try {
     // Find the venue by the serid
-    const model=vendorModels[vendorType]
-    console.log(model)
+    const model = vendorModels[vendorType];
+    console.log(model);
     const venue = await model.findOne({ id: serid });
 
     if (!venue) {
@@ -56,7 +56,7 @@ export const updateSchedule = async (req, res) => {
 
     const bookingIdNum = Number(bookingId); // Ensure the bookingId is a number
     const eventIndex = venue.schedule.findIndex(
-      (event) => event.id === bookingIdNum
+      (event) => event.id === bookingIdNum,
     );
 
     if (eventIndex !== -1) {
@@ -84,12 +84,12 @@ export const updateSchedule = async (req, res) => {
 };
 
 export const deleteSchedule = async (req, res) => {
-  const { bookingId ,serid, vendorType} = req.body; // Expecting a bookingId from the request body
+  const { bookingId, serid, vendorType } = req.body; // Expecting a bookingId from the request body
 
   try {
     // Find the venue by the serid
-    const model=vendorModels[vendorType]
-    console.log(model)
+    const model = vendorModels[vendorType];
+    console.log(model);
     const venue = await model.findOne({ id: serid });
 
     if (!venue) {
@@ -98,7 +98,7 @@ export const deleteSchedule = async (req, res) => {
 
     const bookingIdNum = Number(bookingId); // Ensure the bookingId is a number
     const eventIndex = venue.schedule.findIndex(
-      (event) => event.id === bookingIdNum
+      (event) => event.id === bookingIdNum,
     );
 
     if (eventIndex !== -1) {
@@ -110,6 +110,8 @@ export const deleteSchedule = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
   } catch (err) {
-    return res.status(500).json({ message: "An error occurred", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "An error occurred", error: err.message });
   }
 };
