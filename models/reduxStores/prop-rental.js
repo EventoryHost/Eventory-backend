@@ -17,6 +17,7 @@ const propRentalSchema = new Schema(
     workDescription: {
       type: String,
     },
+    venueType: { type: String, default: "propRental" },
     eventSize: {
       type: String,
     },

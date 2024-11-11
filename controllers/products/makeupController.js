@@ -19,6 +19,7 @@ const createMakeupArtist = async (req, res) => {
 
     const newMakeupArtist = new MakeupArtist({
       ...req.body,
+      description: req.body.description,
       portfolio: portfolioUrls,
     });
 

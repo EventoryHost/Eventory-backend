@@ -24,6 +24,7 @@ const createGift = async (req, res) => {
     const newGift = new Gift({
       ...req.body,
       giftImages: giftImagesUrls,
+      description: req.body.description,
       termsAndConditions: termsAndConditionsUrls,
     });
 
