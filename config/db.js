@@ -4,7 +4,7 @@ import chalk from "chalk";
 
 const connectDB = async () => {
   try {
-    await connect(process.env.MONGO_URI_DEV);
+    await connect(process.env.MONGO_URI);
     console.log(chalk.greenBright("MongoDB connected..."));
   } catch (err) {
     console.error(chalk.redBright(err.message));

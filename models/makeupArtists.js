@@ -5,6 +5,7 @@ const Schema = _Schema;
 const makeupArtistBaseSchema = {
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  vendorType: { type: String, default: "makeupArtist" },
   type: {
     type: String,
     required: true,
