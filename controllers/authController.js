@@ -38,6 +38,48 @@ const createVendor = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+const updateVendor = async (req, res) => {
+  try {
+    const {
+      vendorId,
+      name,
+      email,
+      phoneNumber,
+      panNo,
+      gstin,
+      businessDetails,
+    } = req.body;
+    // Check if vendorId is provided
+    if (!vendorId) {
+      return res.status(400).json({ message: "Please provide a vendorId." });
+    }
+
+    // Find user by vendorId
+    const user = await User.findOne({ id: vendorId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user details
+    user.businessDetails = {
+      ...user.businessDetails,
+      ...businessDetails,
+      panNo,
+      gstin,
+    };
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.mobile = phoneNumber || user.mobile;
+
+    const data = await user.save();
+    res.status(200).json({ message: "Vendor Details updated", data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const getVendor = async (req, res) => {
   try {
     let { email, vendorId, mobile } = req.body;
@@ -272,7 +314,6 @@ const addBusinessDetails = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
     user.businessDetails = details;
     const data = await user.save();
     res.status(200).json({ message: "Business details added", data });
@@ -322,6 +363,7 @@ export default {
   login,
   signUp,
   verifyLoginOtp,
+  updateVendor,
   authWithGoogle,
   googleCallback,
   addBusinessDetails,
