@@ -2,6 +2,15 @@ import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
+const eventSchema = new Schema({
+  calendarId: { type: String }, // Example: "upcoming"
+  description: { type: String }, // Event description
+  end: { type: String, required: true }, // End time, e.g., "2024-11-06 20:30"
+  id: { type: Number, required: true }, // Unique event id
+  start: { type: String, required: true }, // Start time, e.g., "2024-11-06 19:30"
+  title: { type: String, required: true }, // Event title
+});
+
 const venueSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
@@ -65,6 +74,7 @@ const venueSchema = new Schema({
   awards: { type: String },
   clientTestimonials: { type: String },
   advanceBookingPeriod: { type: String },
+  schedule: [eventSchema],
 });
 
 const Venue = model("Venue", venueSchema);
