@@ -5,38 +5,55 @@ const Schema = _Schema;
 const photographerSchema = Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  description: {
+    type: String,
+    required: true,
+  },
+  vendorType: { type: String, default: "photographer" },
   name: {
     type: String,
     required: true,
   },
-  numberOfMembers: {
-    type: String,
-  },
-  clientTestimonials: {
-    type: [String],
-  },
-  portfolio: {
-    type: [String],
-    required: true,
-  },
-  specialization: {
-    type: [String],
-    required: true,
-  },
+  eventSize: { type: String, required: true },
+  description: { type: String },
   eventTypes: {
     type: [String],
     required: true,
   },
-  customizablePackage: {
-    type: Boolean,
-    default: false,
+  //page 2
+  Videography: {
+    equipmentAvailable: {
+      type: [String],
+    },
+    typesofstyles: {
+      type: [String],
+    },
+    addonsOrUpgradeAvailable: {
+      type: [String],
+    },
+    finalDeliveryMethods: {
+      type: [String],
+    },
   },
-  customizableSoundAndLightingRates: {
-    type: Boolean,
-    default: false,
+  Photography: {
+    equipmentAvailable: {
+      type: [String],
+    },
+    typesofstyles: {
+      type: [String],
+    },
+    addonsOrUpgradeAvailable: {
+      type: [String],
+    },
+    finalDeliveryMethods: {
+      type: [String],
+    },
   },
-  equipmentAvailable: {
-    type: [String],
+  //page-3
+  duration: { type: String },
+  PackageTypes: {
+    type: String,
+    default: "Both",
   },
   designProposals: {
     type: Boolean,
@@ -46,34 +63,39 @@ const photographerSchema = Schema({
     type: Boolean,
     default: false,
   },
-  advanceSetup: {
-    type: Boolean,
-    default: false,
-  },
-  collaborateWithVendors: {
-    type: Boolean,
-    default: false,
-  },
-  setupAndInstallation: {
-    type: Boolean,
-    default: false,
-  },
   bookingDepositRequired: {
     type: Boolean,
     default: false,
   },
+  availableForOutofTownbooking: {
+    type: Boolean,
+    default: false,
+  },
+  Advancesetup: {
+    type: Boolean,
+    default: false,
+  },
+  postproductionservices: {
+    type: Boolean,
+    default: false,
+  },
+  // page-4
+  photos: { type: [String], required: true },
+  videos: { type: [String], required: true },
+  clientTestimonials: { type: String },
+  awards: { type: String },
+  website: { type: String },
+  instagram: { type: String },
+  advanceBookingPeriod: { type: String, required: true },
+  initialthemeProposels: { type: Boolean, default: false },
+  WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
+
+  //page-5
   cancellationPolicy: {
     type: [String],
   },
   termsAndConditions: {
     type: [String],
-  },
-  rates: {
-    packageRates: {
-      hourly: [{ name: String, min: String, max: String }],
-      deals: [{ name: String, min: String, max: String }],
-      workers: [{ name: String, min: String, max: String }],
-    },
   },
 });
 

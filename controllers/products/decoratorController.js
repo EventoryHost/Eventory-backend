@@ -15,8 +15,10 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-    const themePhotosUrls = getFileUrls(req.files, "themephotos")[0] || req.body.themephotos;
-    const themeVideosUrls = getFileUrls(req.files, "themevideos")[0] || req.body.themevideos;
+    const themePhotosUrls =
+      getFileUrls(req.files, "themephotos")[0] || req.body.themephotos;
+    const themeVideosUrls =
+      getFileUrls(req.files, "themevideos")[0] || req.body.themevideos;
     const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
     const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
     const insuranceFileUrl =
@@ -40,6 +42,7 @@ const createDecorator = async (req, res) => {
     const newDecorator = new Decorator({
       name: req.body.name,
       id: req.body.id,
+      description: req.body.description,
       eventSize: req.body.eventSize,
       venId: req.body.venId,
       eventTypes,
@@ -76,4 +79,13 @@ const createDecorator = async (req, res) => {
   }
 };
 
-export default { createDecorator };
+const getAllDecorators = async (req, res) => {
+  try {
+    const decorators = await Decorator.find();
+    res.status(200).json(decorators);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createDecorator, getAllDecorators };

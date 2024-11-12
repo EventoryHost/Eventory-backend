@@ -2,7 +2,7 @@ import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 
 const venueSchema = new Schema({
-  userId: { type: String },
+  id: { type: String },
   name: {
     type: String,
   },
@@ -20,6 +20,7 @@ const venueSchema = new Schema({
   venueDescription: {
     type: String,
   },
+  venueType: { type: String, default: "venue-provider" },
   catererServices: {
     type: Boolean,
   },

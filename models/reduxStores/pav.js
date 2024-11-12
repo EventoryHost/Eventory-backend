@@ -4,7 +4,7 @@ const Schema = _Schema;
 
 const photographerSchema = Schema(
   {
-    userId: { type: String },
+    id: { type: String },
     type: { type: String },
     name: { type: String },
     numberOfMembers: { type: String },
@@ -32,6 +32,7 @@ const photographerSchema = Schema(
     },
     fullName: { type: String },
     description: { type: String },
+    eventType: { type: String, default: "Photographer" },
     eventsize: { type: String },
     events: { type: [String] },
 

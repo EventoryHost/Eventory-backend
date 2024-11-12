@@ -38,6 +38,48 @@ const createVendor = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+const updateVendor = async (req, res) => {
+  try {
+    const {
+      vendorId,
+      name,
+      email,
+      phoneNumber,
+      panNo,
+      gstin,
+      businessDetails,
+    } = req.body;
+    // Check if vendorId is provided
+    if (!vendorId) {
+      return res.status(400).json({ message: "Please provide a vendorId." });
+    }
+
+    // Find user by vendorId
+    const user = await User.findOne({ id: vendorId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user details
+    user.businessDetails = {
+      ...user.businessDetails,
+      ...businessDetails,
+      panNo,
+      gstin,
+    };
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.mobile = phoneNumber || user.mobile;
+
+    const data = await user.save();
+    res.status(200).json({ message: "Vendor Details updated", data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const getVendor = async (req, res) => {
   try {
     let { email, vendorId, mobile } = req.body;
@@ -128,7 +170,7 @@ const login = async (req, res) => {
       // const data = await cognito.send(command);
       return res.status(200).json({ message: "OTP sent", data: "otp done h bhai" });
     }
-    return res.status(400).json({ message: "User does not exist" });
+    return res.status(404).json({ message: "User does not exist" });
   } catch (error) {
     console.log(error);
     res.status(400).json({ error: error.message });
@@ -144,7 +186,6 @@ const verifyLoginOtp = async (req, res) => {
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
     Username: `+91${mobile}`,
     Password: "123456",
-
     ChallengeResponses: {
       USERNAME: `+91${mobile}`,
       ANSWER: code,
@@ -310,14 +351,36 @@ const isNewUser = async (mobile) => {
   }
 };
 
+const updateProfilePic = async (req, res) => {
+  const vendorId = req.params.id; // This should be your custom ID, e.g., 'ven20241024155014318'
+
+  try {
+    // Use `findOneAndUpdate` with the custom id field
+    const updatedVendor = await User.findOneAndUpdate(
+      { id: vendorId }, // Query by the custom ID field
+      { profilePic: req.file.location }, // Store the path of the uploaded file
+      { new: true }, // Return the updated document
+    );
+
+    if (!updatedVendor) {
+      return res.status(404).send({ message: "Vendor not found" });
+    }
+
+    res.status(200).send(updatedVendor);
+  } catch (error) {
+    res.status(500).send({ message: "Error updating vendor", error });
+  }
+};
+
 export default {
   login,
   signUp,
-  verifySignUpOtp,
   verifyLoginOtp,
+  updateVendor,
   authWithGoogle,
   googleCallback,
   addBusinessDetails,
   createVendor,
   getVendor,
+  updateProfilePic,
 };
