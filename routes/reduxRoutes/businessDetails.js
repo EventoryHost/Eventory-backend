@@ -114,16 +114,17 @@ router.post("/catering-details", async (req, res) => {
   const { userId, cateringData } = req.body; // Extracting cateringData from the nested structure
 
   // Validate userId and cateringData
+  console.log(userId)
   if (!userId) {
     return res.status(400).json({ message: "User ID is required." });
   }
-
   if (!cateringData || Object.keys(cateringData).length === 0) {
     return res.status(400).json({ message: "Catering details are required." });
   }
 
   try {
     // Check if the catering details already exist
+
     const existingDetails = await CateringModel.findOne({ userId });
 
     if (existingDetails) {
@@ -141,7 +142,9 @@ router.post("/catering-details", async (req, res) => {
         });
     } else {
       // Create new catering details
+      
       const newCateringDetails = new CateringModel({ userId, ...cateringData });
+      
       await newCateringDetails.save();
       return res
         .status(201)

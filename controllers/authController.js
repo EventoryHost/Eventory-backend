@@ -136,7 +136,7 @@ const login = async (req, res) => {
 };
 
 const verifyLoginOtp = async (req, res) => {
-  const { mobile, code, session, name } = req.body;
+  const { mobile,  name } = req.body;
 
   /*const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -167,7 +167,14 @@ const verifyLoginOtp = async (req, res) => {
       return res.status(200).json({ message: "Vendor registered", data });
     }
     data = { ...data, user };
-    res.status(200).json({ message: "Login Success", data });
+    const token = jwt.sign(
+      { id: user.id, mobile: user.mobile, name: user.name },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h",
+      },
+    );
+    res.status(200).json({ message: "Login Success",token, data });
   } catch (error) {
     console.log(error);
     res.status(400).json({ error: error.message });
@@ -278,7 +285,7 @@ const addBusinessDetails = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
+    details.userId = id;
     user.businessDetails = details;
     const data = await user.save();
     res.status(200).json({ message: "Business details added", data });
