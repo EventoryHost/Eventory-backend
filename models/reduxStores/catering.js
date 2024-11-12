@@ -16,7 +16,7 @@ const CateringSchema = new mongoose.Schema(
     serviceStyles: { type: [String] }, // Renamed to match final model
 
     // Additional fields
-    venId: { type: String }, // Vendor ID
+    venId: { type: String }, 
     capacity: { type: String }, // General capacity
     veg: { type: [String] },
     menu: { type: [String] }, // Menu items (you might need to adjust this)
