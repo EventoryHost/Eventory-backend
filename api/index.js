@@ -50,7 +50,7 @@ app.options("/api/business-details/:userId", (req, res) => {
 });
 app.use("/", router);
 app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
-app.use("/api" , updatePageRoutes); // Route to update page number in consistency feature
+app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
 app.use("/api/products", productRoutes);
 app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
