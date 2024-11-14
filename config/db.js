@@ -5,7 +5,7 @@ import chalk from "chalk";
 const connectDB = async () => {
   try {
     await connect(
-      "mongodb+srv://eventorycareers:C%40reersEventory1234@eventory.0aghroh.mongodb.net/dev?retryWrites=true&w=majority&appName=Eventory",
+      process.env.MONGO_URI,
     );
     console.log(chalk.greenBright("MongoDB connected..."));
   } catch (err) {
