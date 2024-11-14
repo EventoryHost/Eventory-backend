@@ -1,5 +1,5 @@
 import { mongoose, Schema as _Schema } from "mongoose";
-import { businessSchema } from "./businessDetails.js";
+import { businessSchema } from "./reduxStores/businessDetails.js";
 import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
@@ -9,6 +9,7 @@ const vendorSchema = new Schema({
   mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
+  profilePic: { type: String },
 });
 
 export const Vendor = mongoose.model("Vendors", vendorSchema);

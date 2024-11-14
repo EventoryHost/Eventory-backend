@@ -1,10 +1,16 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import mongoose from "mongoose";
 const Schema = _Schema;
 
 const invitationSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  description: {
+    type: String,
+    trim: true,
+  },
+  vendorType: { type: String, default: "invitation" },
   portfolio: {
     type: String,
     required: true,
@@ -147,6 +153,6 @@ const invitationSchema = new Schema({
   advancePayment: { type: String },
 });
 
-const Invitation = model("Invitations", invitationSchema);
+const Invitation = mongoose.model("Invitations", invitationSchema);
 
 export default { Invitation, invitationSchema };
