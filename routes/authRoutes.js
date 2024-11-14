@@ -16,5 +16,6 @@ authRoutes.put(
   authController.updateProfilePic,
 );
 authRoutes.post("/add-business-details", authController.addBusinessDetails);
+authRoutes.post("/updateVendor", authController.updateVendor);
 
 export default authRoutes;
