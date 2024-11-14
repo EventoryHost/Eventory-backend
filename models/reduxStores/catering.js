@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const CateringSchema = new mongoose.Schema(
   {
     id: { type: String, unique: true },
-    pageNumber : { type: String , default: "1"},
+    pageNumber: { type: String, default: "1" },
     cateringName: { type: String },
     businessName: { type: String },
     servingCapacity: { type: String },
@@ -16,7 +16,7 @@ const CateringSchema = new mongoose.Schema(
     serviceStyles: { type: [String] }, // Renamed to match final model
 
     // Additional fields
-    venId: { type: String }, 
+    venId: { type: String },
     capacity: { type: String }, // General capacity
     veg: { type: [String] },
     menu: { type: [String] }, // Menu items (you might need to adjust this)
