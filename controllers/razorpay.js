@@ -7,6 +7,13 @@ import { sendEmailInvoice } from "./sesController.js"
 dotenv.config();
 import crypto from "crypto";
 
+const key_id = process.env.RAZORPAY_KEY;
+const key_secret = process.env.RAZORPAY_SECRET;
+var razorpay = new Razorpay({
+  key_id,
+  key_secret,
+});
+
 const createOrder = async (req, res) => {
   var { amount, currency, receipt } = req.body;
   amount = parseInt(amount);
@@ -14,13 +21,6 @@ const createOrder = async (req, res) => {
   console.log(amount, currency, receipt);
 
   try {
-    const key_id = process.env.RAZORPAY_KEY;
-    const key_secret = process.env.RAZORPAY_SECRET;
-    console.log(key_id, key_secret);
-    var razorpay = new Razorpay({
-      key_id,
-      key_secret,
-    });
     const order = await razorpay.orders.create({
       amount: amount * 100,
       currency,
@@ -31,6 +31,15 @@ const createOrder = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+const getAllPayments = async () => {
+  try {
+    const payments = await razorpay.payments.all();
+    return console.log(payments.items[0]);
+  } catch (error) {
+    return console.log(error);
+  }
+}
 
 const verifyPayment = async (req, res) => {
   const { order_id, payment_id, signature, ven_id } = req.body;
@@ -44,9 +53,9 @@ const verifyPayment = async (req, res) => {
     console.log(generatedSignature);
     console.log(signature);
     if (generatedSignature === signature) {
-      const paymentDetails = await Razorpay.payments.fetch(payment_id);
+      const paymentDetails = await razorpay.payments.fetch(payment_id);
       const formattedDetails = {
-        invoiceNumber: `INV-${Date.now()}`,
+        invoiceNumber: `INV-${paymentDetails.id}`,
         invoiceDate: new Date().toLocaleDateString(),
         amount: paymentDetails.amount,
         method: paymentDetails.method,
@@ -67,4 +76,9 @@ const verifyPayment = async (req, res) => {
   }
 };
 
-export default { createOrder, verifyPayment };
+getAllPayments();
+
+export default {
+  createOrder,
+  verifyPayment,
+};

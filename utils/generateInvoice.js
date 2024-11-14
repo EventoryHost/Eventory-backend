@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { uploadInvoiceToS3 } from '../controllers/s3Controller';
+import { uploadInvoiceToS3 } from '../controllers/s3Controller.js';
 import { Vendor } from "../models/users.js";
 
 
@@ -48,26 +48,5 @@ async function generateInvoice(customer, paymentDetails) {
         throw error;
     }
 }
-
-
-// Sample data
-const customer = {
-    name: "John Doe",
-    businessDetails: {
-        businessName: "Doe Ventures",
-        businessAddress: "123 Elm Street, Springfield"
-    }
-};
-
-const paymentDetails = {
-    invoiceNumber: "INV-00123",
-    invoiceDate: "2023-10-01",
-    dueDate: "2023-10-15",
-    paymentMethod: "Credit Card",
-    amount: "1500"
-};
-
-// Generate PDF
-generateInvoice(customer, paymentDetails);
 
 export default generateInvoice;
