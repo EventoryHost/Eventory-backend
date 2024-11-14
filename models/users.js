@@ -9,6 +9,7 @@ const vendorSchema = new Schema({
   mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
+  profilePic: { type: String },
   invoices: [String],
   serviceIds: [String],
 });

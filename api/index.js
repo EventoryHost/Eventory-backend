@@ -7,11 +7,14 @@ import authRoutes from "../routes/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes/aboutEmailRoutes.js";
 import chalk from "chalk";
+import bookingRoutes from "../routes/bookingRoutes.js";
 import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
+import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
+import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -46,7 +49,8 @@ app.options("/api/business-details/:userId", (req, res) => {
   res.sendStatus(200);
 });
 app.use("/", router);
-app.use("/api", businessDetailsRoutes);
+app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
+app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
 app.use("/api/products", productRoutes);
 app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
@@ -54,6 +58,8 @@ app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/quotations", venueQuotationRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");

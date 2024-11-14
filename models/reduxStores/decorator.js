@@ -2,8 +2,11 @@ import mongoose from "mongoose";
 
 const DecoratorSchema = new mongoose.Schema(
   {
-    userId: { type: String, unique: true },
+    id: { type: String, unique: true },
+    pageNumber: { type: Number, default: 1 },
     businessName: { type: String },
+    description: { type: String },
+    venueType: { type: [String], default: "decorator" },
     teamsizelist: { type: String },
     durationlist: { type: String },
     typeOfevents: { type: [String] },

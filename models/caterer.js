@@ -7,14 +7,16 @@ const catererSchema = new Schema({
   managerName: { type: String, required: true },
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
+  vendorType: { type: String, default: "caterer" },
   capacity: { type: String, required: true },
+  description: { type: String },
 
   cuisine_specialities: { type: [String], required: true },
   regional_specialities: { type: [String], required: true },
   service_style_offered: { type: [String], required: true },
   menu: { type: [String], required: true },
   vegOrNonVeg: { type: String, required: true },
-
+  description: { type: String, required: true },
   appetizers: [String],
   main_course: [String],
   beverages: [String],

@@ -61,10 +61,11 @@ const createVenue = async (req, res) => {
 
 const getAllVenues = async (req, res) => {
   try {
-    const Venues = await res.json(Venues);
+    const venue = await Venue.find();
+    res.status(200).json(venue);
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 };
 
-export default { createVenue };
+export default { createVenue, getAllVenues };

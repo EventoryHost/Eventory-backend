@@ -9,7 +9,8 @@ const pricingSchema = new Schema({
 
 const propRentalSchema = new Schema(
   {
-    userId: { type: String },
+    id: { type: String },
+    pageNumber: { type: Number, default: 1 },
     managerName: {
       type: String,
     },
@@ -17,6 +18,7 @@ const propRentalSchema = new Schema(
     workDescription: {
       type: String,
     },
+    venueType: { type: String, default: "propRental" },
     eventSize: {
       type: String,
     },

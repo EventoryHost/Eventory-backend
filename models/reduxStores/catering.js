@@ -2,10 +2,13 @@ import mongoose from "mongoose";
 
 const CateringSchema = new mongoose.Schema(
   {
-    userId: { type: String, unique: true },
+    id: { type: String, unique: true },
+    pageNumber: { type: String, default: "1" },
     cateringName: { type: String },
     businessName: { type: String },
     servingCapacity: { type: String },
+    description: { type: String },
+    venueType: { type: String, default: "catering" },
 
     // New fields based on the final model
     regionalSpecialties: { type: [String] }, // Renamed to match final model
@@ -13,8 +16,8 @@ const CateringSchema = new mongoose.Schema(
     serviceStyles: { type: [String] }, // Renamed to match final model
 
     // Additional fields
-    venId: { type: String }, // Vendor ID
-    capacity: { type: String }, // General capacity description
+    venId: { type: String },
+    capacity: { type: String }, // General capacity
     veg: { type: [String] },
     menu: { type: [String] }, // Menu items (you might need to adjust this)
     vegOrNonVeg: { type: String }, // Whether the catering is veg or non-veg

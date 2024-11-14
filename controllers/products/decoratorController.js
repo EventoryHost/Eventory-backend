@@ -15,37 +15,47 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-    const themePhotosUrls = getFileUrls(req.files, "themePhotos");
-    const themeVideosUrls = getFileUrls(req.files, "themeVideos");
-    const photosUrls = getFileUrls(req.files, "photos");
-    const videosUrls = getFileUrls(req.files, "videos");
+    const themePhotosUrls =
+      getFileUrls(req.files, "themephotos")[0] || req.body.themephotos;
+    const themeVideosUrls =
+      getFileUrls(req.files, "themevideos")[0] || req.body.themevideos;
+    const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
+    const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
     const insuranceFileUrl =
       getFileUrls(req.files, "insurance")[0] || req.body.insurance;
     const privacyPolicyFileUrl =
       getFileUrls(req.files, "privacyPolicy")[0] || req.body.privacyPolicy;
     const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellation_policy")[0] ||
-      req.body.cancellation_policy;
+      getFileUrls(req.files, "cancellationPolicy")[0] ||
+      req.body.cancellationPolicy;
     const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "terms_and_conditions")[0] ||
-      req.body.terms_and_conditions;
+      getFileUrls(req.files, "termsAndConditions")[0] ||
+      req.body.termsAndConditions;
 
+    const eventTypes = {
+      types: req.body.typesOfEvents || [],
+      wedding: req.body.weddingEvents || [],
+      corporate: req.body.corporateEvents || [],
+      seasonal: req.body.seasonalEvents || [],
+      cultural: req.body.culturalEvents || [],
+    };
     const newDecorator = new Decorator({
       name: req.body.name,
       id: req.body.id,
+      description: req.body.description,
       eventSize: req.body.eventSize,
       venId: req.body.venId,
-      eventTypes: req.body.eventTypes,
+      eventTypes,
+      propSelection: req.body.propthemesOffered,
       themesOffered: req.body.themesOffered,
-      propSelection: req.body.propSelection,
-      colorSchemeAssistance: req.body.colorSchemeAssistance,
-      themeCustomization: req.body.themeCustomization,
-      venueAdaptability: req.body.venueAdaptability,
+      colorSchemeAssistance: req.body.colorschmes,
+      themeCustomization: req.body.customizationsThemes,
+      venueAdaptability: req.body.adobtThemes,
       customDesignProcess: req.body.customDesignProcess,
       themeElements: req.body.themeElements,
       themePhotos: themePhotosUrls,
       themeVideos: themeVideosUrls,
-      setupAndInstallation: req.body.setupAndInstallation,
+      themeProposels: req.body.themeProposels,
       advanceBookingPeriod: req.body.advanceBookingPeriod,
       proposalRevisions: req.body.proposalRevisions,
       consultationProcess: req.body.consultationProcess,
@@ -64,8 +74,18 @@ const createDecorator = async (req, res) => {
     const savedDecorator = await newDecorator.save();
     res.status(201).json(savedDecorator);
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };
 
-export default { createDecorator };
+const getAllDecorators = async (req, res) => {
+  try {
+    const decorators = await Decorator.find();
+    res.status(200).json(decorators);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createDecorator, getAllDecorators };
