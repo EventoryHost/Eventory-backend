@@ -6,7 +6,7 @@ const giftSchema = new Schema(
     userId: {
       type: String,
     },
-    pageNumber : { type: Number , default: 1},
+    pageNumber: { type: Number, default: 1 },
     vendorName: {
       type: String,
       trim: true,

@@ -4,7 +4,7 @@ const Schema = _Schema;
 const invitationSchema = new Schema(
   {
     userId: { type: String },
-    pageNumber : { type: Number , default: 1},
+    pageNumber: { type: Number, default: 1 },
     portfolio: {
       type: String,
     },

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const DecoratorSchema = new mongoose.Schema(
   {
     id: { type: String, unique: true },
-    pageNumber : { type: Number , default: 1},
+    pageNumber: { type: Number, default: 1 },
     businessName: { type: String },
     description: { type: String },
     venueType: { type: [String], default: "decorator" },
