@@ -10,6 +10,7 @@ const pricingSchema = new Schema({
 const propRentalSchema = new Schema(
   {
     id: { type: String },
+    pageNumber: { type: Number, default: 1 },
     managerName: {
       type: String,
     },
