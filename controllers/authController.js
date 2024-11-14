@@ -314,7 +314,6 @@ const addBusinessDetails = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    details.id = id;
     user.businessDetails = details;
     const data = await user.save();
     res.status(200).json({ message: "Business details added", data });
