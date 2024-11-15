@@ -16,7 +16,8 @@ const uploadInvoiceToS3 = async (invoicePath, invoiceName) => {
             Key: `invoices/${invoiceName}`,
             Body: fileContent,
             ContentType: 'application/pdf',
-            ServerSideEncryption: 'AES256'
+            ServerSideEncryption: 'AES256',
+            ACL: 'public-read'
         };
 
         const command = new PutObjectCommand(params);

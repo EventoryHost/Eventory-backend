@@ -40,11 +40,17 @@ async function generateInvoice(customer, paymentDetails) {
         console.log('Invoice uploaded to S3:', invoiceUrl);
         const vendor = await Vendor.findOne({ id: customer.id });
         vendor.invoices.push(invoiceUrl);
-
         await vendor.save();
-        console.log('Invoice URL saved to MongoDB');
 
-        return pdfOptions.path;
+
+
+        console.log('Invoice URL saved to MongoDB');
+        const result = {
+            "path": pdfOptions.path,
+            "url": invoiceUrl,
+        }
+        return result;
+
     } catch (error) {
         console.error('Error generating invoice:', error);
         throw error;

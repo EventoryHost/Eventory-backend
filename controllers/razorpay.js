@@ -6,6 +6,8 @@ import { sendEmailInvoice } from "./sesController.js"
 
 dotenv.config();
 import crypto from "crypto";
+import fs from "fs";
+import { sendInvoiceToWhatsApp } from "./waController.js";
 
 const key_id = process.env.RAZORPAY_KEY;
 const key_secret = process.env.RAZORPAY_SECRET;
@@ -57,15 +59,17 @@ const verifyPayment = async (req, res) => {
       const formattedDetails = {
         invoiceNumber: `${paymentDetails.id}`,
         invoiceDate: new Date().toLocaleDateString(),
-        amount: paymentDetails.amount,
+        amount: paymentDetails.amount / 100,
         method: paymentDetails.method,
         created_at: new Date(paymentDetails.created_at * 1000).toLocaleDateString(),
         id: paymentDetails.id,
       };
-      const vendor = await Vendor.findOne({id: ven_id});
+      const vendor = await Vendor.findOne({ id: ven_id });
       console.log(vendor);
       const filePath = await generateInvoice(vendor, formattedDetails);
-      await sendEmailInvoice(vendor.email, filePath);
+      await sendEmailInvoice(vendor.email, filePath.path);
+      await sendInvoiceToWhatsApp(filePath.url, vendor.mobile, formattedDetails.amount);
+      await fs.unlink(filePath.path, (err) => { });
 
       return res.json({ message: "Payment verified" });
 
