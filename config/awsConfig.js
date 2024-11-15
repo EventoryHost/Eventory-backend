@@ -26,6 +26,6 @@ const ses = new SESClient({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET,
   },
-})
+});
 
 export { cognito, s3, ses };
