@@ -55,14 +55,15 @@ const verifyPayment = async (req, res) => {
     if (generatedSignature === signature) {
       const paymentDetails = await razorpay.payments.fetch(payment_id);
       const formattedDetails = {
-        invoiceNumber: `INV-${paymentDetails.id}`,
+        invoiceNumber: `${paymentDetails.id}`,
         invoiceDate: new Date().toLocaleDateString(),
         amount: paymentDetails.amount,
         method: paymentDetails.method,
         created_at: new Date(paymentDetails.created_at * 1000).toLocaleDateString(),
         id: paymentDetails.id,
       };
-      const vendor = await Vendor.findById(ven_id);
+      const vendor = await Vendor.findOne({id: ven_id});
+      console.log(vendor);
       const filePath = await generateInvoice(vendor, formattedDetails);
       await sendEmailInvoice(vendor.email, filePath);
 
@@ -72,11 +73,11 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Invalid payment" });
     }
   } catch (error) {
+    console.log(error.message);
     return res.status(500).json({ error: error.message });
   }
 };
 
-getAllPayments();
 
 export default {
   createOrder,

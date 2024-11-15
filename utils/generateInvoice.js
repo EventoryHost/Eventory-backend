@@ -14,7 +14,7 @@ async function generateInvoice(customer, paymentDetails) {
         html = html.replace('{{invoiceNumber}}', paymentDetails.invoiceNumber);
         html = html.replace('{{invoiceDate}}', paymentDetails.invoiceDate);
         html = html.replace('{{dueDate}}', paymentDetails.dueDate || 'N/A');
-        html = html.replace('{{paymentMethod}}', paymentDetails.paymentMethod);
+        html = html.replace('{{paymentMethod}}', paymentDetails.method);
         html = html.replace('{{customerName}}', customer.name);
         html = html.replace('{{customerBusinessName}}', customer.businessDetails.businessName);
         html = html.replace('{{customerAddress}}', customer.businessDetails.businessAddress);
@@ -37,7 +37,9 @@ async function generateInvoice(customer, paymentDetails) {
 
         console.log(`Invoice generated at: ${pdfOptions.path}`);
         const invoiceUrl = await uploadInvoiceToS3(pdfOptions.path, `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`);
-        const vendor = await Vendor.findById(customer.id).invoices.push(invoiceUrl);
+        console.log('Invoice uploaded to S3:', invoiceUrl);
+        const vendor = await Vendor.findOne({ id: customer.id });
+        vendor.invoices.push(invoiceUrl);
 
         await vendor.save();
         console.log('Invoice URL saved to MongoDB');
@@ -48,5 +50,7 @@ async function generateInvoice(customer, paymentDetails) {
         throw error;
     }
 }
+
+
 
 export default generateInvoice;

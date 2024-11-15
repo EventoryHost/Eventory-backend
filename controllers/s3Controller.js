@@ -10,7 +10,7 @@ dotenv.config();
 const uploadInvoiceToS3 = async (invoicePath, invoiceName) => {
     try {
         const fileContent = await fs.promises.readFile(invoicePath);
-        
+
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: `invoices/${invoiceName}`,
@@ -20,7 +20,7 @@ const uploadInvoiceToS3 = async (invoicePath, invoiceName) => {
         };
 
         const command = new PutObjectCommand(params);
-        const result = await s3.send(command);
+        await s3.send(command);
         return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/invoices/${invoiceName}`;
     } catch (error) {
         console.error('Error uploading invoice to S3:', error);
