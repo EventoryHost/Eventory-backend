@@ -26,7 +26,11 @@ async function generateInvoice(customer, paymentDetails) {
     html = html.replace("{{amount}}", paymentDetails.amount);
 
     // Launch Puppeteer and create PDF
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        executablePath: puppeteer.executablePath() // Use the installed Chrome
+    });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
 
