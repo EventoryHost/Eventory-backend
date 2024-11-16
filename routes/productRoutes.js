@@ -28,6 +28,7 @@ router.post(
   "/add-caterer",
   upload("Caterers").fields([
     { name: "menu", maxCount: 10 },
+    { name: "food_safety_certificates", maxCount: 10 },
     { name: "cancellation_policy", maxCount: 1 },
     { name: "terms_and_conditions", maxCount: 1 },
     { name: "photos", maxCount: 20 },
