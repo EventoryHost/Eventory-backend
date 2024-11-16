@@ -65,10 +65,13 @@ app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
 });
 
+/*
 app.listen(port, () => {
   console.log(
     "Server listening on port " + chalk.blueBright("http://localhost:" + port),
   );
 });
+
+*/
 
 export default app;
