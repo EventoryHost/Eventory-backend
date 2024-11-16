@@ -27,9 +27,9 @@ async function generateInvoice(customer, paymentDetails) {
 
     // Launch Puppeteer and create PDF
     const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        executablePath: puppeteer.executablePath() // Use the installed Chrome
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: puppeteer.executablePath(), // Use the installed Chrome
     });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
