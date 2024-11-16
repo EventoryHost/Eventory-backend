@@ -6,25 +6,25 @@ import { Vendor } from "../models/users.js";
 import chromium from "@sparticuz/chromium";
 
 async function generateInvoice(customer, paymentDetails) {
-    try {
-        const templatePath = path.resolve("templates", "invoiceTemplate.html");
-        let html = readFileSync(templatePath, "utf8");
+  try {
+    const templatePath = path.resolve("templates", "invoiceTemplate.html");
+    let html = readFileSync(templatePath, "utf8");
 
-        // Replace placeholders with actual data
-        html = html.replace("{{invoiceNumber}}", paymentDetails.invoiceNumber);
-        html = html.replace("{{invoiceDate}}", paymentDetails.invoiceDate);
-        html = html.replace("{{dueDate}}", paymentDetails.dueDate || "N/A");
-        html = html.replace("{{paymentMethod}}", paymentDetails.method);
-        html = html.replace("{{customerName}}", customer.name);
-        html = html.replace(
-            "{{customerBusinessName}}",
-            customer.businessDetails.businessName,
-        );
-        html = html.replace(
-            "{{customerAddress}}",
-            customer.businessDetails.businessAddress,
-        );
-        html = html.replace("{{amount}}", paymentDetails.amount);
+    // Replace placeholders with actual data
+    html = html.replace("{{invoiceNumber}}", paymentDetails.invoiceNumber);
+    html = html.replace("{{invoiceDate}}", paymentDetails.invoiceDate);
+    html = html.replace("{{dueDate}}", paymentDetails.dueDate || "N/A");
+    html = html.replace("{{paymentMethod}}", paymentDetails.method);
+    html = html.replace("{{customerName}}", customer.name);
+    html = html.replace(
+      "{{customerBusinessName}}",
+      customer.businessDetails.businessName,
+    );
+    html = html.replace(
+      "{{customerAddress}}",
+      customer.businessDetails.businessAddress,
+    );
+    html = html.replace("{{amount}}", paymentDetails.amount);
 
     // Launch Puppeteer and create PDF
     const browser = await puppeteer.launch({
@@ -36,32 +36,31 @@ async function generateInvoice(customer, paymentDetails) {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
 
-        // Define PDF options
-        const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    // Define PDF options
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
+    await browser.close();
 
-        await browser.close();
+    const invoiceUrl = await uploadInvoiceToS3(
+      pdfBuffer,
+      `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
+    );
+    console.log("Invoice uploaded to S3:", invoiceUrl);
+    const vendor = await Vendor.findOne({ id: customer.id });
+    vendor.invoices.push(invoiceUrl);
+    await vendor.save();
 
-        const invoiceUrl = await uploadInvoiceToS3(
-            pdfBuffer,
-            `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
-        );
-        console.log("Invoice uploaded to S3:", invoiceUrl);
-        const vendor = await Vendor.findOne({ id: customer.id });
-        vendor.invoices.push(invoiceUrl);
-        await vendor.save();
-
-        console.log("Invoice URL saved to MongoDB");
-        const result = {
-            fileName: `invoice-${paymentDetails.invoiceNumber}.pdf`,
-            pdf: pdfBuffer,
-            url: invoiceUrl,
-        };
-        return result;
-    } catch (error) {
-        console.error("Error generating invoice:", error);
-        throw error;
-    }
+    console.log("Invoice URL saved to MongoDB");
+    const result = {
+      fileName: `invoice-${paymentDetails.invoiceNumber}.pdf`,
+      pdf: pdfBuffer,
+      url: invoiceUrl,
+    };
+    return result;
+  } catch (error) {
+    console.error("Error generating invoice:", error);
+    throw error;
+  }
 }
 
 export default generateInvoice;

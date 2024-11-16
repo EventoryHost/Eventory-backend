@@ -6,7 +6,6 @@ dotenv.config();
 
 const uploadInvoiceToS3 = async (pdfBuffer, invoiceName) => {
   try {
-
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `invoices/${invoiceName}`,

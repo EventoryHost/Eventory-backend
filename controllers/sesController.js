@@ -6,7 +6,7 @@ import mime from "mime-types";
 import path from "path";
 dotenv.config();
 
-const sendEmailInvoice = async (email,pdfBuffer, fileName) => {
+const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
   try {
     const fileType = mime.lookup(fileName);
 
