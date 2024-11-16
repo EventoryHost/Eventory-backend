@@ -10,11 +10,9 @@ import makeupController from "../controllers/products/makeupController.js";
 import giftController from "../controllers/products/giftController.js";
 import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers/products/photographerController.js";
-import  vendorController  from "../controllers/products/vendorController.js";
+import vendorController from "../controllers/products/vendorController.js";
 
 const router = Router();
-
-
 
 router.get("/caterer", catererController.getAllCaterers);
 router.get("/decorator", decoratorController.getAllDecorators);
@@ -137,8 +135,7 @@ router.post(
   ]),
   photographerController.createPhotographer,
 );
-router.get('/:vendor/:id', vendorController.getVendorByIdAndCategory
-);
+router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 
 router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 export default router;

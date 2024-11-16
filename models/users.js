@@ -10,6 +10,8 @@ const vendorSchema = new Schema({
   email: { type: String },
   businessDetails: businessSchema,
   profilePic: { type: String },
+  invoices: { type: [String], default: [] },
+  serviceIds: { type: [String], default: [] },
 });
 
 export const Vendor = mongoose.model("Vendors", vendorSchema);
