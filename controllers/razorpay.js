@@ -2,7 +2,7 @@ import Razorpay from "razorpay";
 import generateInvoice from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
 import { Vendor } from "../models/users.js";
-import { sendEmailInvoice } from "./sesController.js"
+import { sendEmailInvoice } from "./sesController.js";
 
 dotenv.config();
 import crypto from "crypto";
@@ -41,7 +41,7 @@ const getAllPayments = async () => {
   } catch (error) {
     return console.log(error);
   }
-}
+};
 
 const verifyPayment = async (req, res) => {
   const { order_id, payment_id, signature, ven_id } = req.body;
@@ -61,18 +61,23 @@ const verifyPayment = async (req, res) => {
         invoiceDate: new Date().toLocaleDateString(),
         amount: paymentDetails.amount / 100,
         method: paymentDetails.method,
-        created_at: new Date(paymentDetails.created_at * 1000).toLocaleDateString(),
+        created_at: new Date(
+          paymentDetails.created_at * 1000,
+        ).toLocaleDateString(),
         id: paymentDetails.id,
       };
       const vendor = await Vendor.findOne({ id: ven_id });
       console.log(vendor);
       const filePath = await generateInvoice(vendor, formattedDetails);
       await sendEmailInvoice(vendor.email, filePath.path);
-      await sendInvoiceToWhatsApp(filePath.url, vendor.mobile, formattedDetails.amount);
-      await fs.unlink(filePath.path, (err) => { });
+      await sendInvoiceToWhatsApp(
+        filePath.url,
+        vendor.mobile,
+        formattedDetails.amount,
+      );
+      await fs.unlink(filePath.path, (err) => {});
 
       return res.json({ message: "Payment verified" });
-
     } else {
       return res.status(400).json({ error: "Invalid payment" });
     }
@@ -81,7 +86,6 @@ const verifyPayment = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 export default {
   createOrder,

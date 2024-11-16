@@ -45,13 +45,12 @@ const sendEmailInvoice = async (email, filePath) => {
     try {
       const command = new SendRawEmailCommand(params);
       return await ses.send(command);
-
     } catch (error) {
       return error.message;
     }
   } catch (error) {
     return error.message;
   }
-}
+};
 
 export { sendEmailInvoice };

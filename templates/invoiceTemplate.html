@@ -1,56 +1,72 @@
 <!-- invoiceTemplate.html -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Invoice</title>
     <style>
-        /* Add your custom styles for the invoice */
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .header { text-align: center; }
-        .details, .items { margin-top: 20px; }
-        .items th, .items td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+      /* Add your custom styles for the invoice */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+      }
+      .details,
+      .items {
+        margin-top: 20px;
+      }
+      .items th,
+      .items td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: left;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="header">
-        <h1>Eventory</h1>
-        <p>13-D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi - 110001</p>
-        <p>Phone: +91 8800725840 | Email: support@eventory.in</p>
+      <h1>Eventory</h1>
+      <p>
+        13-D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi - 110001
+      </p>
+      <p>Phone: +91 8800725840 | Email: support@eventory.in</p>
     </div>
     <div class="details">
-        <h2>Invoice</h2>
-        <p><strong>Invoice Number:</strong> {{invoiceNumber}}</p>
-        <p><strong>Invoice Date:</strong> {{invoiceDate}}</p>
-        <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+      <h2>Invoice</h2>
+      <p><strong>Invoice Number:</strong> {{invoiceNumber}}</p>
+      <p><strong>Invoice Date:</strong> {{invoiceDate}}</p>
+      <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
     </div>
     <div class="customer">
-        <h3>Billed To:</h3>
-        <p>{{customerName}}</p>
-        <p>{{customerBusinessName}}</p>
-        <p>{{customerAddress}}</p>
+      <h3>Billed To:</h3>
+      <p>{{customerName}}</p>
+      <p>{{customerBusinessName}}</p>
+      <p>{{customerAddress}}</p>
     </div>
     <div class="items">
-        <h3>Description of Charges</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Description</th>
-                    <th>Amount (₹)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Vendor Registration</td>
-                    <td>Registration for platform services</td>
-                    <td>{{amount}}</td>
-                </tr>
-            </tbody>
-        </table>
+      <h3>Description of Charges</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Description</th>
+            <th>Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Vendor Registration</td>
+            <td>Registration for platform services</td>
+            <td>{{amount}}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
     <div class="footer">
-        <p>Thank You for Choosing Eventory!</p>
+      <p>Thank You for Choosing Eventory!</p>
     </div>
-</body>
+  </body>
 </html>
