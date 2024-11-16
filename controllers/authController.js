@@ -38,6 +38,48 @@ const createVendor = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+const updateVendor = async (req, res) => {
+  try {
+    const {
+      vendorId,
+      name,
+      email,
+      phoneNumber,
+      panNo,
+      gstin,
+      businessDetails,
+    } = req.body;
+    // Check if vendorId is provided
+    if (!vendorId) {
+      return res.status(400).json({ message: "Please provide a vendorId." });
+    }
+
+    // Find user by vendorId
+    const user = await User.findOne({ id: vendorId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user details
+    user.businessDetails = {
+      ...user.businessDetails,
+      ...businessDetails,
+      panNo,
+      gstin,
+    };
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.mobile = phoneNumber || user.mobile;
+
+    const data = await user.save();
+    res.status(200).json({ message: "Vendor Details updated", data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const getVendor = async (req, res) => {
   try {
     let { email, vendorId, mobile } = req.body;
@@ -158,7 +200,6 @@ const verifyLoginOtp = async (req, res) => {
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
     Username: `+91${mobile}`,
     Password: "123456",
-
     ChallengeResponses: {
       USERNAME: `+91${mobile}`,
       ANSWER: code,
@@ -168,45 +209,27 @@ const verifyLoginOtp = async (req, res) => {
 
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
-    var data = await cognito.send(command); // if otp not valid will throw error
-    const user = await User.findOne({ mobile: `+91${mobile}` });
+    var data = await cognito.send(command); // Throws error if OTP not valid
+
+    let user = await User.findOne({ mobile: `+91${mobile}` });
     if (!user) {
-      const newUser = new User({
-        name,
-        mobile: `+91${mobile}`,
-      });
-      var userData = await newUser.save();
-      data = { ...data, userData };
-      return res.status(200).json({ message: "Vendor registered", data });
+      user = new User({ name, mobile: `+91${mobile}` });
+      await user.save();
+      data = { ...data, user };
     }
-    data = { ...data, user };
-    res.status(200).json({ message: "Login Success", data });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, mobile: user.mobile, name: user.name },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h",
+      },
+    );
+
+    res.status(200).json({ message: "Login Success", token, user });
   } catch (error) {
     console.log(error);
-    res.status(400).json({ error: error.message });
-  }
-};
-
-const verifySignUpOtp = async (req, res) => {
-  const { name, otp, mobile } = req.body;
-
-  const params = {
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Username: `+91${mobile}`,
-    ConfirmationCode: otp,
-  };
-
-  try {
-    const command = new ConfirmSignUpCommand(params);
-    await cognito.send(command);
-    const newUser = new User({
-      name,
-      mobile,
-    });
-    const data = await newUser.save();
-    res.status(200).json({ message: "Vendor registered", data });
-  } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
@@ -291,7 +314,6 @@ const addBusinessDetails = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
     user.businessDetails = details;
     const data = await user.save();
     res.status(200).json({ message: "Business details added", data });
@@ -340,8 +362,8 @@ const updateProfilePic = async (req, res) => {
 export default {
   login,
   signUp,
-  verifySignUpOtp,
   verifyLoginOtp,
+  updateVendor,
   authWithGoogle,
   googleCallback,
   addBusinessDetails,

@@ -3,6 +3,7 @@ const Schema = _Schema;
 
 const venueSchema = new Schema({
   id: { type: String },
+  pageNumber: { type: Number, default: 1 },
   name: {
     type: String,
   },
@@ -20,6 +21,7 @@ const venueSchema = new Schema({
   venueDescription: {
     type: String,
   },
+  venueType: { type: String, default: "venue-provider" },
   catererServices: {
     type: Boolean,
   },

@@ -4,6 +4,7 @@ const Schema = _Schema;
 const invitationSchema = new Schema(
   {
     userId: { type: String },
+    pageNumber: { type: Number, default: 1 },
     portfolio: {
       type: String,
     },
@@ -14,6 +15,8 @@ const invitationSchema = new Schema(
     yearsOfExperience: {
       type: String,
     },
+    description: { type: String },
+    vendorType: { type: String, default: "invitation" },
     invitationTypes: {
       formal: {
         type: [String],

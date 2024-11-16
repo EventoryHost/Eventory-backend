@@ -28,6 +28,7 @@ const createPhotographer = async (req, res) => {
     const newPhotographer = new Photographer({
       ...req.body,
       photos: photosUrls,
+      description: req.body.description,
       videos: videosUrls,
       cancellationPolicy: cancellationPolicyFileUrl,
       termsAndConditions: termsAndConditionsFileUrl,

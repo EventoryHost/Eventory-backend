@@ -12,6 +12,7 @@ import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
+import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
 
@@ -48,7 +49,8 @@ app.options("/api/business-details/:userId", (req, res) => {
   res.sendStatus(200);
 });
 app.use("/", router);
-app.use("/api", businessDetailsRoutes);
+app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
+app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
 app.use("/api/products", productRoutes);
 app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
@@ -63,10 +65,10 @@ app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
 });
 
-app.listen(port, () => {
-  console.log(
-    "Server listening on port " + chalk.blueBright("http://localhost:" + port),
-  );
-});
+// app.listen(port, () => {
+//   console.log(
+//     "Server listening on port " + chalk.blueBright("http://localhost:" + port),
+//   );
+// });
 
 export default app;

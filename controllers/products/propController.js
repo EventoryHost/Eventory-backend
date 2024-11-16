@@ -48,6 +48,7 @@ const createProp = async (req, res) => {
       customization: req.body.customization === "true",
       maintenance: req.body.maintenance,
       services: req.body.services,
+      description: req.body.description,
 
       furnitureAndDecor: {
         listUrl: furnitureAndDecorListUrl,

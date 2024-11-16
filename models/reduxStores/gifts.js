@@ -6,6 +6,7 @@ const giftSchema = new Schema(
     userId: {
       type: String,
     },
+    pageNumber: { type: Number, default: 1 },
     vendorName: {
       type: String,
       trim: true,
@@ -14,6 +15,7 @@ const giftSchema = new Schema(
       type: String,
       trim: true,
     },
+    venueType: { type: String, default: "gift" },
     minimumOrderQuantity: {
       type: String,
     },

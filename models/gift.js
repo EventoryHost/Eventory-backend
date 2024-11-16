@@ -54,6 +54,10 @@ const giftSchema = new Schema({
     type: [String],
     trim: true,
   },
+  vendorType: {
+    type: String,
+    default: "gift",
+  },
 });
 
 const Gift = model("Gift", giftSchema);
