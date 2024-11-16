@@ -26,15 +26,15 @@ async function generateInvoice(customer, paymentDetails) {
         );
         html = html.replace("{{amount}}", paymentDetails.amount);
 
-        // Launch Puppeteer and create PDF
-        const browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-        });
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: "load" });
+    // Launch Puppeteer and create PDF
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
 
         // Define PDF options
         const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
