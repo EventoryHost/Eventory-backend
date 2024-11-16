@@ -19,6 +19,7 @@
     "@aws-sdk/lib-storage": "^3.614.0",
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
+    "chrome-aws-lambda": "^10.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
@@ -30,6 +31,7 @@
     "multer-s3": "^3.0.1",
     "nodemailer": "^6.9.14",
     "puppeteer": "^23.8.0",
+    "puppeteer-core": "^23.8.0",
     "razorpay": "^2.9.4"
   },
   "devDependencies": {
