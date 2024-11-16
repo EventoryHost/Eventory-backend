@@ -7,7 +7,7 @@ import { Vendor } from "../models/users.js";
 
 async function generateInvoice(customer, paymentDetails) {
     try {
-        const templatePath = path.join('templates', 'invoiceTemplate.html');
+        const templatePath = path.resolve('templates', 'invoiceTemplate.html');
         let html = readFileSync(templatePath, 'utf8');
 
         // Replace placeholders with actual data
