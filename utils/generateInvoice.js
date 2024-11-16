@@ -5,9 +5,9 @@ import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
 import { Vendor } from "../models/users.js";
 
 async function generateInvoice(customer, paymentDetails) {
-    try {
-        const templatePath = path.resolve('templates', 'invoiceTemplate.html');
-        let html = readFileSync(templatePath, 'utf8');
+  try {
+    const templatePath = path.resolve("templates", "invoiceTemplate.html");
+    let html = readFileSync(templatePath, "utf8");
 
     // Replace placeholders with actual data
     html = html.replace("{{invoiceNumber}}", paymentDetails.invoiceNumber);
