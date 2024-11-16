@@ -68,7 +68,7 @@ const verifyPayment = async (req, res) => {
       const file = await generateInvoice(vendor, formattedDetails);
       await sendEmailInvoice(vendor.email, file.pdf, file.fileName);
       await sendInvoiceToWhatsApp(
-        filePath.url,
+        file.url,
         vendor.mobile,
         formattedDetails.amount,
       );
