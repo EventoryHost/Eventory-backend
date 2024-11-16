@@ -52,8 +52,6 @@ const verifyPayment = async (req, res) => {
       .createHmac("sha256", key_secret)
       .update(order_id + "|" + payment_id)
       .digest("hex");
-    console.log(generatedSignature);
-    console.log(signature);
     if (generatedSignature === signature) {
       const paymentDetails = await razorpay.payments.fetch(payment_id);
       const formattedDetails = {
@@ -67,15 +65,13 @@ const verifyPayment = async (req, res) => {
         id: paymentDetails.id,
       };
       const vendor = await Vendor.findOne({ id: ven_id });
-      console.log(vendor);
-      const filePath = await generateInvoice(vendor, formattedDetails);
-      await sendEmailInvoice(vendor.email, filePath.path);
+      const file = await generateInvoice(vendor, formattedDetails);
+      await sendEmailInvoice(vendor.email, file.pdf, file.fileName);
       await sendInvoiceToWhatsApp(
         filePath.url,
         vendor.mobile,
         formattedDetails.amount,
       );
-      await fs.unlink(filePath.path, (err) => {});
 
       return res.json({ message: "Payment verified" });
     } else {

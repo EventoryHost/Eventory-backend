@@ -4,14 +4,13 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 dotenv.config();
 
-const uploadInvoiceToS3 = async (invoicePath, invoiceName) => {
+const uploadInvoiceToS3 = async (pdfBuffer, invoiceName) => {
   try {
-    const fileContent = await fs.promises.readFile(invoicePath);
 
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `invoices/${invoiceName}`,
-      Body: fileContent,
+      Body: pdfBuffer,
       ContentType: "application/pdf",
       ServerSideEncryption: "AES256",
       ACL: "public-read",

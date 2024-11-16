@@ -6,11 +6,9 @@ import mime from "mime-types";
 import path from "path";
 dotenv.config();
 
-const sendEmailInvoice = async (email, filePath) => {
+const sendEmailInvoice = async (email,pdfBuffer, fileName) => {
   try {
-    const fileContent = readFileSync(filePath);
-    const fileName = path.basename(filePath);
-    const fileType = mime.lookup(filePath);
+    const fileType = mime.lookup(fileName);
 
     const boundary = "----=_Part_0_123456789.123456789";
     const rawEmail = [
@@ -31,7 +29,7 @@ const sendEmailInvoice = async (email, filePath) => {
       `Content-Disposition: attachment; filename="${fileName}"`,
       `Content-Transfer-Encoding: base64`,
       ``,
-      fileContent.toString("base64"),
+      pdfBuffer.toString("base64"),
       ``,
       `--${boundary}--`,
     ].join("\r\n");

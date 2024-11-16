@@ -5,12 +5,5 @@
       "source": "/(.*)",
       "destination": "/api"
     }
-  ],
-  "build": {
-    "env": {
-      "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
-      "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/chromium-browser"
-    }
-  },
-  "installCommand": "apt-get update && apt-get install -y chromium-browser libnss3"
+  ]
 }
