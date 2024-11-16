@@ -30,7 +30,7 @@ async function generateInvoice(customer, paymentDetails) {
     const browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath('/usr/bin/chromium-browser'),
+        executablePath: await chromium.executablePath(),
         headless: chromium.headless,
       });
     const page = await browser.newPage();
