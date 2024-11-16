@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
 import { Vendor } from "../models/users.js";
-import chromium from "chrome-aws-lambda";
+import chromium from "@sparticuz/chromium";
 
 async function generateInvoice(customer, paymentDetails) {
   try {
@@ -28,11 +28,11 @@ async function generateInvoice(customer, paymentDetails) {
 
     // Launch Puppeteer and create PDF
     const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath || '/usr/bin/chromium-browser',
-      headless: chromium.headless,
-    });
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath('/usr/bin/chromium-browser'),
+        headless: chromium.headless,
+      });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
 
