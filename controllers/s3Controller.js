@@ -7,7 +7,7 @@ dotenv.config();
 const uploadInvoiceToS3 = async (pdfBuffer, invoiceName) => {
   try {
     const params = {
-      Bucket: `${process.env.AWS_BUCKET_NAME}`,
+      Bucket: `${process.env.AWS_S3_BUCKET_NAME}`,
       Key: `invoices/${invoiceName}`,
       Body: pdfBuffer,
       ContentType: "application/pdf",
@@ -17,7 +17,7 @@ const uploadInvoiceToS3 = async (pdfBuffer, invoiceName) => {
 
     const command = new PutObjectCommand(params);
     await s3.send(command);
-    return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/invoices/${invoiceName}`;
+    return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.amazonaws.com/invoices/${invoiceName}`;
   } catch (error) {
     console.error("Error uploading invoice to S3:", error);
     throw error;

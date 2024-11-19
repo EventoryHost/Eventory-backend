@@ -14,6 +14,8 @@ const cognito = new CognitoIdentityProviderClient({
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
+  forcePathStyle: true,
+  endpoint: "https://s3.ap-south-1.amazonaws.com/",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET,
