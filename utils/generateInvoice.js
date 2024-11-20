@@ -1,4 +1,6 @@
-import puppeteer from "puppeteer-core";
+import dotenv from "dotenv";
+dotenv.config();
+
 import { readFileSync } from "fs";
 import path from "path";
 import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
@@ -27,12 +29,18 @@ async function generateInvoice(customer, paymentDetails) {
     html = html.replace("{{amount}}", paymentDetails.amount);
 
     // Launch Puppeteer and create PDF
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const puppeteer = process.env.IS_LOCAL === "true"
+      ? await import("puppeteer")
+      : await import("puppeteer-core");
+
+    const browser = process.env.IS_LOCAL === "true" ?
+      await puppeteer.launch() :
+      await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
 
@@ -62,5 +70,7 @@ async function generateInvoice(customer, paymentDetails) {
     throw error;
   }
 }
+
+
 
 export default generateInvoice;

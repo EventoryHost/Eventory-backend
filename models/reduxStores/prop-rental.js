@@ -31,6 +31,8 @@ const propRentalSchema = new Schema(
     photos: { type: [String] },
     videos: { type: [String] },
 
+    services: { type: String },
+
     furnitureAndDecor: {
       listUrl: {
         type: [String],
