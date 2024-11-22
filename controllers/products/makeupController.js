@@ -19,6 +19,7 @@ const createMakeupArtist = async (req, res) => {
 
     const newMakeupArtist = new MakeupArtist({
       ...req.body,
+      description: req.body.description,
       portfolio: portfolioUrls,
     });
 
@@ -30,4 +31,15 @@ const createMakeupArtist = async (req, res) => {
   }
 };
 
-export default { createMakeupArtist };
+const getAllMakeupArtist = async (req, res) => {
+  try {
+    const MakeupArtist = createMakeupArtistSchema(req.body.type);
+
+    const makeup = await MakeupArtist.find();
+    res.status(200).json(makeup);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createMakeupArtist, getAllMakeupArtist };

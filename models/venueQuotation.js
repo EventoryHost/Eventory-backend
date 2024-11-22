@@ -1,61 +1,60 @@
 import mongoose from "mongoose";
-// import AutoIncrement from "mongoose-sequence";
+import AutoIncrementFactory from "mongoose-sequence"; // Use AutoIncrementFactory for initialization
 
+const AutoIncrement = AutoIncrementFactory(mongoose);
 
-
-const venueQuotationSchema = new mongoose.Schema({
+const venueQuotationSchema = new mongoose.Schema(
+  {
     quoteNumber: {
-        type: Number,
-        unique: true,
+      type: Number,
+      unique: true,
     },
     event_name: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     number_of_guest: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     date: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     time: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     budget: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     requirements: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     status: {
-        type: String,
-        enum: ['Pending', 'Accepted', 'Rejected', 'In Progress'],
-        default: 'Pending',
+      type: String,
+      enum: ["Pending", "Accepted", "Rejected", "In Progress"],
+      default: "Pending",
     },
     user_id: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     user_name: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     vendor_id: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
-    vendor_type: {
-        type: String,
-    },
-}, { timestamps: true });
+  },
+  { timestamps: true },
+);
 
-// venueQuotationSchema.plugin(AutoIncrement(mongoose), { inc_field: 'quoteNumber' });
+venueQuotationSchema.plugin(AutoIncrement, { inc_field: "quoteNumber" });
 
-// Correct export statement
-const venueQuotation = mongoose.model('venueQuotation', venueQuotationSchema);
-export default venueQuotation;  // Ensure default export
+const venueQuotation = mongoose.model("venueQuotation", venueQuotationSchema);
+export default venueQuotation;

@@ -1,6 +1,6 @@
 import { mongoose, Schema as _Schema } from "mongoose";
-import { businessSchema } from "./businessDetails.js";
 import generateUniqueId from "../utils/generateId.js";
+import { businessSchema } from "./businessDetails.js";
 const Schema = _Schema;
 
 const vendorSchema = new Schema({
@@ -9,6 +9,9 @@ const vendorSchema = new Schema({
   mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
+  profilePic: { type: String },
+  invoices: { type: [String], default: [] },
+  serviceIds: { type: [String], default: [] },
 });
 
 export const Vendor = mongoose.model("Vendors", vendorSchema);

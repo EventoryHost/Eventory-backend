@@ -15,6 +15,15 @@ import vendorController from "../controllers/products/vendorController.js";
 const router = Router();
 
 router.get("/caterer", catererController.getAllCaterers);
+router.get("/decorator", decoratorController.getAllDecorators);
+router.get("/event-planner", eventPlannerController.getAllEventPlanner);
+router.get("/gift", giftController.getAllGift);
+router.get("/invitation", invitationController.getAllInvitation);
+router.get("/makeup", makeupController.getAllMakeupArtist);
+router.get("/pav", photographerController.getAllPav);
+router.get("/prop-rental", propController.getAllProp);
+router.get("/venue", venueController.getAllVenues);
+
 router.post(
   "/add-caterer",
   upload("Caterers").fields([
@@ -53,16 +62,13 @@ router.post(
 
 router.post(
   "/add-decorator",
-  upload("Event Planner").fields([
-    { name: "termsConditions", maxCount: 1 },
+  upload("Decorator").fields([
+    { name: "termsAndConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "photos", maxCount: 20 },
     { name: "videos", maxCount: 20 },
-    { name: "themePhotos", maxCount: 20 },
-    { name: "themeVideos", maxCount: 20 },
-    { name: "insurance", maxCount: 1 },
-    { name: "onlineRatings", maxCount: 20 },
-    { name: "privacyPolicy", maxCount: 1 },
+    { name: "themephotos", maxCount: 20 },
+    { name: "themevideos", maxCount: 20 },
   ]),
   decoratorController.createDecorator,
 );
@@ -122,13 +128,14 @@ router.post(
 router.post(
   "/add-photographer",
   upload("Photographers").fields([
-    { name: "portfolio", maxCount: 20 },
-    { name: "clientTestimonials", maxCount: 20 },
-    { name: "cancellationPolicy", maxCount: 1 },
     { name: "termsAndConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
   ]),
   photographerController.createPhotographer,
 );
+router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 
 router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 export default router;

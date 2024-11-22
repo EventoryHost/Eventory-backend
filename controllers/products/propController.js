@@ -48,6 +48,7 @@ const createProp = async (req, res) => {
       customization: req.body.customization === "true",
       maintenance: req.body.maintenance,
       services: req.body.services,
+      description: req.body.description,
 
       furnitureAndDecor: {
         listUrl: furnitureAndDecorListUrl,
@@ -74,4 +75,13 @@ const createProp = async (req, res) => {
   }
 };
 
-export default { createProp };
+const getAllProp = async (req, res) => {
+  try {
+    const prop = await propRental.find();
+    res.status(200).json(prop);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createProp, getAllProp };
