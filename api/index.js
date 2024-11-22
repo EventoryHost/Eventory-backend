@@ -61,7 +61,7 @@ app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/quotations", venueQuotationRoutes);
 app.use("/api/bookings", bookingRoutes);
-app.use("/api/verfication" , verificationRoutes);
+app.use("/api/verfication", verificationRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");

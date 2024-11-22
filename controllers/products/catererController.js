@@ -33,8 +33,13 @@ const createCaterer = async (req, res) => {
       req.body.client_testimonials;
 
     // Handle food safety certificates
-    const foodSafetyCertificatesurl = getFileUrls(req.files, "food_safety_certificates");
-    const food_safety_certificates = foodSafetyCertificatesurl.length ? foodSafetyCertificatesurl : req.body.food_safety_certificates || [];
+    const foodSafetyCertificatesurl = getFileUrls(
+      req.files,
+      "food_safety_certificates",
+    );
+    const food_safety_certificates = foodSafetyCertificatesurl.length
+      ? foodSafetyCertificatesurl
+      : req.body.food_safety_certificates || [];
 
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
@@ -63,7 +68,9 @@ const createCaterer = async (req, res) => {
       cancellation_policy: cancellationPolicyFileUrl,
       tasting_sessions: req.body.tasting_sessions === "true",
       business_licenses: req.body.business_licenses === "true",
-      food_safety_certificates: Array.isArray(food_safety_certificates) ? food_safety_certificates : [food_safety_certificates],
+      food_safety_certificates: Array.isArray(food_safety_certificates)
+        ? food_safety_certificates
+        : [food_safety_certificates],
       terms_and_conditions: termsAndConditionsFileUrl,
       photos: Array.isArray(photos) ? photos : [photos],
       videos: Array.isArray(videos) ? videos : [videos],
@@ -76,7 +83,6 @@ const createCaterer = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
-
 
 const getAllCaterers = async (req, res) => {
   try {
