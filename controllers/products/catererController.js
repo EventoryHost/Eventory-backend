@@ -32,10 +32,18 @@ const createCaterer = async (req, res) => {
       getFileUrls(req.files, "client_testimonials")[0] ||
       req.body.client_testimonials;
 
+    // Handle food safety certificates
+    const foodSafetyCertificatesurl = getFileUrls(
+      req.files,
+      "food_safety_certificates",
+    );
+    const food_safety_certificates = foodSafetyCertificatesurl.length
+      ? foodSafetyCertificatesurl
+      : req.body.food_safety_certificates || [];
+
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
       capacity: req.body.capacity,
-
       venId: req.body.venId,
       description: req.body.description,
       name: req.body.name,
@@ -50,9 +58,7 @@ const createCaterer = async (req, res) => {
       additional_services: req.body.additional_services,
       event_types_catered: req.body.event_types_catered,
       equipment_provided: req.body.equipment_provided,
-
       vegOrNonVeg: req.body.vegOrNonVeg,
-
       menu: menuFileUrl,
       customizable: req.body.customizable === "true",
       staff_provided: req.body.staff_provided,
@@ -62,7 +68,9 @@ const createCaterer = async (req, res) => {
       cancellation_policy: cancellationPolicyFileUrl,
       tasting_sessions: req.body.tasting_sessions === "true",
       business_licenses: req.body.business_licenses === "true",
-      food_safety_certificates: req.body.food_safety_certificates === "true",
+      food_safety_certificates: Array.isArray(food_safety_certificates)
+        ? food_safety_certificates
+        : [food_safety_certificates],
       terms_and_conditions: termsAndConditionsFileUrl,
       photos: Array.isArray(photos) ? photos : [photos],
       videos: Array.isArray(videos) ? videos : [videos],
