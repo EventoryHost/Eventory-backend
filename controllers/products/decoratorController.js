@@ -2,7 +2,12 @@ import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
 
 const getFileUrls = (files, fieldName) => {
-  return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
+  // Handle cases where there might be a single file instead of an array of files
+  const fileArray = files[fieldName];
+  if (fileArray) {
+    return Array.isArray(fileArray) ? fileArray.map((file) => file.location) : [fileArray.location];
+  }
+  return [];
 };
 
 const createDecorator = async (req, res) => {
@@ -15,22 +20,33 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-    const themePhotosUrls =
-      getFileUrls(req.files, "themephotos")[0] || req.body.themephotos;
-    const themeVideosUrls =
-      getFileUrls(req.files, "themevideos")[0] || req.body.themevideos;
-    const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
-    const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
+
+
     const insuranceFileUrl =
       getFileUrls(req.files, "insurance")[0] || req.body.insurance;
     const privacyPolicyFileUrl =
       getFileUrls(req.files, "privacyPolicy")[0] || req.body.privacyPolicy;
+
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
+
+
+    const themePhotosUrls = getFileUrls(req.files, "themephotos")
+    const themePhotosUrl = themePhotosUrls.length ? themePhotosUrls : req.body.themephotos || [];
+
+    const themeVideosUrls = getFileUrls(req.files, "themevideos")
+    const themeVideosUrl = themeVideosUrls.length ? themeVideosUrls : req.body.themevideos || [];
+
+
+    const photosUrls = getFileUrls(req.files, "photos")
+    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos")
+    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const eventTypes = {
       types: req.body.typesOfEvents || [],
@@ -53,8 +69,8 @@ const createDecorator = async (req, res) => {
       venueAdaptability: req.body.adobtThemes,
       customDesignProcess: req.body.customDesignProcess,
       themeElements: req.body.themeElements,
-      themePhotos: themePhotosUrls,
-      themeVideos: themeVideosUrls,
+      themePhotos: Array.isArray(themePhotosUrl) ? themePhotosUrl : [themePhotosUrl],
+      themeVideos: Array.isArray(themeVideosUrl) ? themeVideosUrl : [themeVideosUrl],
       themeProposels: req.body.themeProposels,
       advanceBookingPeriod: req.body.advanceBookingPeriod,
       proposalRevisions: req.body.proposalRevisions,
@@ -65,8 +81,8 @@ const createDecorator = async (req, res) => {
       cancellationPolicy: cancellationPolicyFileUrl,
       termsAndConditions: termsAndConditionsFileUrl,
       privacyPolicy: privacyPolicyFileUrl,
-      photos: photosUrls,
-      videos: videosUrls,
+      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
       website: req.body.website,
       instagram: req.body.instagram,
     });

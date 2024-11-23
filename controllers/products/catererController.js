@@ -1,7 +1,13 @@
 import { Caterer } from "../../models/caterer.js";
 
+// Function to handle multiple files
 const getFileUrls = (files, fieldName) => {
-  return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
+  // Handle cases where there might be a single file instead of an array of files
+  const fileArray = files[fieldName];
+  if (fileArray) {
+    return Array.isArray(fileArray) ? fileArray.map((file) => file.location) : [fileArray.location];
+  }
+  return [];
 };
 
 const createCaterer = async (req, res) => {
@@ -14,13 +20,20 @@ const createCaterer = async (req, res) => {
       return res.status(400).json({ message: "Caterer already exists" });
     }
 
-    const menuFileUrl = getFileUrls(req.files, "menu") || req.body.menu;
+
+
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellation_policy")[0] ||
       req.body.cancellation_policy;
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "terms_and_conditions")[0] ||
       req.body.terms_and_conditions;
+
+
+    // Handle file URLs (for both single and multiple files)
+
+    const menuFileUrl = getFileUrls(req.files, "menu");
+    const menu = menuFileUrl.length ? menuFileUrl : req.body.menu || [];
 
     const photosUrls = getFileUrls(req.files, "photos");
     const photos = photosUrls.length ? photosUrls : req.body.photos || [];
@@ -32,10 +45,11 @@ const createCaterer = async (req, res) => {
       getFileUrls(req.files, "client_testimonials")[0] ||
       req.body.client_testimonials;
 
-    // Handle food safety certificates
-    const foodSafetyCertificatesurl = getFileUrls(req.files, "food_safety_certificates");
-    const food_safety_certificates = foodSafetyCertificatesurl.length ? foodSafetyCertificatesurl : req.body.food_safety_certificates || [];
+    // Handle food safety certificates (multiple or single)
+    const foodSafetyCertificatesUrls = getFileUrls(req.files, "food_safety_certificates");
+    const foodSafetyCertificates = foodSafetyCertificatesUrls.length ? foodSafetyCertificatesUrls : req.body.food_safety_certificates || [];
 
+    // Create new caterer
     const newCaterer = new Caterer({
       managerName: req.body.managerName,
       capacity: req.body.capacity,
@@ -54,7 +68,7 @@ const createCaterer = async (req, res) => {
       event_types_catered: req.body.event_types_catered,
       equipment_provided: req.body.equipment_provided,
       vegOrNonVeg: req.body.vegOrNonVeg,
-      menu: menuFileUrl,
+      menu: menu,
       customizable: req.body.customizable === "true",
       staff_provided: req.body.staff_provided,
       minimum_order_requirements: req.body.minimum_order_requirements,
@@ -63,7 +77,7 @@ const createCaterer = async (req, res) => {
       cancellation_policy: cancellationPolicyFileUrl,
       tasting_sessions: req.body.tasting_sessions === "true",
       business_licenses: req.body.business_licenses === "true",
-      food_safety_certificates: Array.isArray(food_safety_certificates) ? food_safety_certificates : [food_safety_certificates],
+      food_safety_certificates: Array.isArray(foodSafetyCertificates) ? foodSafetyCertificates : [foodSafetyCertificates],
       terms_and_conditions: termsAndConditionsFileUrl,
       photos: Array.isArray(photos) ? photos : [photos],
       videos: Array.isArray(videos) ? videos : [videos],
@@ -73,10 +87,10 @@ const createCaterer = async (req, res) => {
     const savedCaterer = await newCaterer.save();
     res.status(201).json(savedCaterer);
   } catch (error) {
+    // console.log(error)
     res.status(400).json({ error: error.message });
   }
 };
-
 
 const getAllCaterers = async (req, res) => {
   try {
