@@ -1,7 +1,12 @@
 import { Venue } from "../../models/venue.js";
 
 const getFileUrls = (files, fieldName) => {
-  return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
+  // Handle cases where there might be a single file instead of an array of files
+  const fileArray = files[fieldName];
+  if (fileArray) {
+    return Array.isArray(fileArray) ? fileArray.map((file) => file.location) : [fileArray.location];
+  }
+  return [];
 };
 
 const createVenue = async (req, res) => {
@@ -20,10 +25,14 @@ const createVenue = async (req, res) => {
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
 
-    const photosUrls = getFileUrls(req.files, "photos") || req.body.photos;
-    const videosUrls = getFileUrls(req.files, "videos") || req.body.videos;
+    const photosUrls = getFileUrls(req.files, "photos")
+    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos")
+    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+
     const insurancePolicyUrl =
-      getFileUrls(req.files, "insurancePolicy") || req.body.insurancePolicy;
+      getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
 
     const newVenue = new Venue({
       id: req.body.id,
@@ -42,8 +51,8 @@ const createVenue = async (req, res) => {
       audioVisualEquipment: req.body.audioVisualEquipment,
       accessibilityFeatures: req.body.accessibilityFeatures,
       facilities: req.body.facilities,
-      photos: photosUrls,
-      videos: videosUrls,
+      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
       instagramURL: req.body.instagramURL,
       websiteURL: req.body.websiteURL,
       awards: req.body.awards,
@@ -53,6 +62,7 @@ const createVenue = async (req, res) => {
     });
 
     const savedVenue = await newVenue.save();
+    // console.log(savedVenue);
     res.status(201).json(savedVenue);
   } catch (error) {
     res.status(400).json({ error: error.message });
