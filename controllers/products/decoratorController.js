@@ -5,7 +5,9 @@ const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
-    return Array.isArray(fileArray) ? fileArray.map((file) => file.location) : [fileArray.location];
+    return Array.isArray(fileArray)
+      ? fileArray.map((file) => file.location)
+      : [fileArray.location];
   }
   return [];
 };
@@ -20,8 +22,6 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-
-
     const insuranceFileUrl =
       getFileUrls(req.files, "insurance")[0] || req.body.insurance;
     const privacyPolicyFileUrl =
@@ -34,18 +34,20 @@ const createDecorator = async (req, res) => {
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
 
+    const themePhotosUrls = getFileUrls(req.files, "themephotos");
+    const themePhotosUrl = themePhotosUrls.length
+      ? themePhotosUrls
+      : req.body.themephotos || [];
 
-    const themePhotosUrls = getFileUrls(req.files, "themephotos")
-    const themePhotosUrl = themePhotosUrls.length ? themePhotosUrls : req.body.themephotos || [];
+    const themeVideosUrls = getFileUrls(req.files, "themevideos");
+    const themeVideosUrl = themeVideosUrls.length
+      ? themeVideosUrls
+      : req.body.themevideos || [];
 
-    const themeVideosUrls = getFileUrls(req.files, "themevideos")
-    const themeVideosUrl = themeVideosUrls.length ? themeVideosUrls : req.body.themevideos || [];
-
-
-    const photosUrls = getFileUrls(req.files, "photos")
+    const photosUrls = getFileUrls(req.files, "photos");
     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos")
+    const videosUrls = getFileUrls(req.files, "videos");
     const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const eventTypes = {
@@ -69,8 +71,12 @@ const createDecorator = async (req, res) => {
       venueAdaptability: req.body.adobtThemes,
       customDesignProcess: req.body.customDesignProcess,
       themeElements: req.body.themeElements,
-      themePhotos: Array.isArray(themePhotosUrl) ? themePhotosUrl : [themePhotosUrl],
-      themeVideos: Array.isArray(themeVideosUrl) ? themeVideosUrl : [themeVideosUrl],
+      themePhotos: Array.isArray(themePhotosUrl)
+        ? themePhotosUrl
+        : [themePhotosUrl],
+      themeVideos: Array.isArray(themeVideosUrl)
+        ? themeVideosUrl
+        : [themeVideosUrl],
       themeProposels: req.body.themeProposels,
       advanceBookingPeriod: req.body.advanceBookingPeriod,
       proposalRevisions: req.body.proposalRevisions,

@@ -5,7 +5,9 @@ const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
-    return Array.isArray(fileArray) ? fileArray.map((file) => file.location) : [fileArray.location];
+    return Array.isArray(fileArray)
+      ? fileArray.map((file) => file.location)
+      : [fileArray.location];
   }
   return [];
 };
@@ -20,15 +22,12 @@ const createCaterer = async (req, res) => {
       return res.status(400).json({ message: "Caterer already exists" });
     }
 
-
-
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellation_policy")[0] ||
       req.body.cancellation_policy;
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "terms_and_conditions")[0] ||
       req.body.terms_and_conditions;
-
 
     // Handle file URLs (for both single and multiple files)
 
@@ -46,8 +45,13 @@ const createCaterer = async (req, res) => {
       req.body.client_testimonials;
 
     // Handle food safety certificates (multiple or single)
-    const foodSafetyCertificatesUrls = getFileUrls(req.files, "food_safety_certificates");
-    const foodSafetyCertificates = foodSafetyCertificatesUrls.length ? foodSafetyCertificatesUrls : req.body.food_safety_certificates || [];
+    const foodSafetyCertificatesUrls = getFileUrls(
+      req.files,
+      "food_safety_certificates",
+    );
+    const foodSafetyCertificates = foodSafetyCertificatesUrls.length
+      ? foodSafetyCertificatesUrls
+      : req.body.food_safety_certificates || [];
 
     // Create new caterer
     const newCaterer = new Caterer({
@@ -77,7 +81,9 @@ const createCaterer = async (req, res) => {
       cancellation_policy: cancellationPolicyFileUrl,
       tasting_sessions: req.body.tasting_sessions === "true",
       business_licenses: req.body.business_licenses === "true",
-      food_safety_certificates: Array.isArray(foodSafetyCertificates) ? foodSafetyCertificates : [foodSafetyCertificates],
+      food_safety_certificates: Array.isArray(foodSafetyCertificates)
+        ? foodSafetyCertificates
+        : [foodSafetyCertificates],
       terms_and_conditions: termsAndConditionsFileUrl,
       photos: Array.isArray(photos) ? photos : [photos],
       videos: Array.isArray(videos) ? videos : [videos],

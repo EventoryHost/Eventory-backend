@@ -4,7 +4,9 @@ const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
-    return Array.isArray(fileArray) ? fileArray.map((file) => file.location) : [fileArray.location];
+    return Array.isArray(fileArray)
+      ? fileArray.map((file) => file.location)
+      : [fileArray.location];
   }
   return [];
 };
@@ -25,10 +27,10 @@ const createVenue = async (req, res) => {
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
 
-    const photosUrls = getFileUrls(req.files, "photos")
+    const photosUrls = getFileUrls(req.files, "photos");
     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos")
+    const videosUrls = getFileUrls(req.files, "videos");
     const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const insurancePolicyUrl =
