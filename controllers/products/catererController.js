@@ -68,7 +68,7 @@ const createCaterer = async (req, res) => {
       event_types_catered: req.body.event_types_catered,
       equipment_provided: req.body.equipment_provided,
       vegOrNonVeg: req.body.vegOrNonVeg,
-      menu: menu,
+      menu: Array.isArray(menu) ? menu : [menu],
       customizable: req.body.customizable === "true",
       staff_provided: req.body.staff_provided,
       minimum_order_requirements: req.body.minimum_order_requirements,
