@@ -29,18 +29,20 @@ async function generateInvoice(customer, paymentDetails) {
     html = html.replace("{{amount}}", paymentDetails.amount);
 
     // Launch Puppeteer and create PDF
-    const puppeteer = process.env.IS_LOCAL === "true"
-      ? await import("puppeteer")
-      : await import("puppeteer-core");
+    const puppeteer =
+      process.env.IS_LOCAL === "true"
+        ? await import("puppeteer")
+        : await import("puppeteer-core");
 
-    const browser = process.env.IS_LOCAL === "true" ?
-      await puppeteer.launch() :
-      await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      });
+    const browser =
+      process.env.IS_LOCAL === "true"
+        ? await puppeteer.launch()
+        : await puppeteer.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+          });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
 
@@ -70,7 +72,5 @@ async function generateInvoice(customer, paymentDetails) {
     throw error;
   }
 }
-
-
 
 export default generateInvoice;

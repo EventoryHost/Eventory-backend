@@ -6,5 +6,4 @@ import { verifyGSTIN } from "../controllers/verificationController.js";
 
 verificationRoutes.get("/GSTIN/:GSTIN", verifyGSTIN);
 
-
 export default verificationRoutes;
