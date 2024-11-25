@@ -1,7 +1,14 @@
 import Photographer from "../../models/photographers.js";
 
 const getFileUrls = (files, fieldName) => {
-  return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
+  // Handle cases where there might be a single file instead of an array of files
+  const fileArray = files[fieldName];
+  if (fileArray) {
+    return Array.isArray(fileArray)
+      ? fileArray.map((file) => file.location)
+      : [fileArray.location];
+  }
+  return [];
 };
 
 const createPhotographer = async (req, res) => {
@@ -16,26 +23,33 @@ const createPhotographer = async (req, res) => {
     }
 
     // Process file uploads if available
-    const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
-    const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
+
+    const photosUrls = getFileUrls(req.files, "photos");
+    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos");
+    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
+
     // Create a new photographer with provided data
     const newPhotographer = new Photographer({
       ...req.body,
-      photos: photosUrls,
       description: req.body.description,
-      videos: videosUrls,
+      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
       cancellationPolicy: cancellationPolicyFileUrl,
       termsAndConditions: termsAndConditionsFileUrl,
     });
 
     // Save the photographer to the database
     await newPhotographer.save();
+    // console.log(newPhotographer);
     res.status(201).json({ message: "Photographer created successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
