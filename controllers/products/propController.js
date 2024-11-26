@@ -33,8 +33,12 @@ const createProp = async (req, res) => {
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
 
-    const itemCatalogueUrl =
-      getFileUrls(req.files, "itemCatalogue")[0] || req.body.itemCatalogue;
+    const itemCatalogueFile = req.files?.itemCatalogue?.[0];
+    const itemCatalogueUrl = itemCatalogueFile
+      ? itemCatalogueFile.location
+      : req.body.itemCatalogue === "true"
+        ? "true"
+        : "false";
 
     const photosUrls = getFileUrls(req.files, "photos");
     const photos = photosUrls.length ? photosUrls : req.body.photos || [];
@@ -48,7 +52,7 @@ const createProp = async (req, res) => {
       customization: req.body.customization === "true",
       maintenance: req.body.maintenance,
       services: req.body.services,
-      description: req.body.description,
+      description: req.body.descriptionOfWork,
 
       furnitureAndDecor: {
         listUrl: furnitureAndDecorListUrl,
