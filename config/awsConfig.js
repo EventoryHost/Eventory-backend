@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client } from "@aws-sdk/client-s3";
+import { SESClient } from "@aws-sdk/client-ses";
 
 const cognito = new CognitoIdentityProviderClient({
   region: process.env.AWS_REGION,
@@ -13,10 +14,20 @@ const cognito = new CognitoIdentityProviderClient({
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
+  forcePathStyle: true,
+  endpoint: "https://s3.ap-south-1.amazonaws.com/",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET,
   },
 });
 
-export { cognito, s3 };
+const ses = new SESClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET,
+  },
+});
+
+export { cognito, s3, ses };

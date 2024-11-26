@@ -25,6 +25,7 @@ router.post("/business-details", async (req, res) => {
     businessName,
     category,
     gstin,
+    panNo,
     years,
     businessAddress,
     teamsize,
@@ -43,6 +44,7 @@ router.post("/business-details", async (req, res) => {
           businessName,
           category,
           gstin,
+          panNo,
           teamsize,
           businessAddress,
           pinCode,
@@ -61,6 +63,7 @@ router.post("/business-details", async (req, res) => {
         businessName,
         category,
         gstin,
+        panNo,
         teamsize,
         businessAddress,
         pinCode,
@@ -113,6 +116,8 @@ router.use("/makeup-artist-details", makeupArtistRoutes);
 router.post("/catering-details", async (req, res) => {
   const { id, cateringData } = req.body; // Extracting cateringData from the nested structure
 
+  console.log("id", id);
+
   // Validate id and cateringData
   if (!id) {
     return res.status(400).json({ message: "User ID is required." });
@@ -160,7 +165,7 @@ router.get("/catering-details/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const cateringDetails = await CateringModel.findOne({ id });
+    const cateringDetails = await CateringModel.findOne({ id: id.trim() });
 
     if (!cateringDetails) {
       return res.status(404).json({ message: "Catering details not found." });

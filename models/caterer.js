@@ -15,7 +15,7 @@ const catererSchema = new Schema({
   regional_specialities: { type: [String], required: true },
   service_style_offered: { type: [String], required: true },
   menu: { type: [String], required: true },
-  vegOrNonVeg: { type: String, required: true },
+  vegOrNonVeg: { type: String },
   description: { type: String, required: true },
   appetizers: [String],
   main_course: [String],
@@ -35,7 +35,7 @@ const catererSchema = new Schema({
   },
   tasting_sessions: { type: Boolean, required: true },
   business_licenses: { type: Boolean, required: false },
-  food_safety_certificates: { type: Boolean, required: false },
+  food_safety_certificates: { type: [String], required: true },
   terms_and_conditions: {
     type: String,
   },
