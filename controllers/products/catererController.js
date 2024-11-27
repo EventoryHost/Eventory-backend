@@ -88,19 +88,21 @@ const createCaterer = async (req, res) => {
       photos: Array.isArray(photos) ? photos : [photos],
       videos: Array.isArray(videos) ? videos : [videos],
       client_testimonials: clientTestimonialsUrls,
+      priceStartingFrom:req.body.priceStartingFrom,
+
     });
 
     const savedCaterer = await newCaterer.save();
-    const vendor = await Vendor.findOne({ id: req.body.venId });
-    if (!vendor) {
-      // If we can't find the vendor, we should probably delete the caterer we just created
-      await Caterer.findByIdAndDelete(savedCaterer._id);
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+    // const vendor = await Vendor.findOne({ id: req.body.venId });
+    // if (!vendor) {
+    //   // If we can't find the vendor, we should probably delete the caterer we just created
+    //   await Caterer.findByIdAndDelete(savedCaterer._id);
+    //   return res.status(404).json({ message: "Vendor not found" });
+    // }
 
-    // Add the new caterer's ID to the vendor's serviceIds array
-    vendor.serviceIds = [...vendor.serviceIds, savedCaterer.id];
-    await vendor.save();
+    // // Add the new caterer's ID to the vendor's serviceIds array
+    // vendor.serviceIds = [...vendor.serviceIds, savedCaterer.id];
+    // await vendor.save();
     
     res.status(201).json(savedCaterer);
   } catch (error) {

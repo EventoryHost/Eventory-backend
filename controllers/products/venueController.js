@@ -61,6 +61,8 @@ const createVenue = async (req, res) => {
       termsConditions: termsAndConditionsFileUrl,
       cancellationPolicy: cancellationPolicyFileUrl,
       insurancePolicy: insurancePolicyUrl,
+      priceStartingFrom:req.body.priceStartingFrom,
+
     });
 
     const savedVenue = await newVenue.save();

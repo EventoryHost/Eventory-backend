@@ -37,6 +37,9 @@ const DecoratorSchema = new mongoose.Schema(
     ratings_reviews: { type: [String] },
     portfolio: { type: [String] },
     certificates_awards: { type: [String] },
+        priceStarts
+:{ type: String },
+
   },
   { timestamps: true },
 );

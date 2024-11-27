@@ -9,7 +9,6 @@ const catererSchema = new Schema({
   venId: { type: String, required: true },
   vendorType: { type: String, default: "caterer" },
   capacity: { type: String, required: true },
-  description: { type: String },
 
   cuisine_specialities: { type: [String], required: true },
   regional_specialities: { type: [String], required: true },
@@ -45,6 +44,8 @@ const catererSchema = new Schema({
   client_testimonials: {
     type: String,
   },
+  priceStartingFrom:{ type: String , required: true },
+
 });
 
 const Caterer = model("Caterer", catererSchema);

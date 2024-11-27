@@ -19,6 +19,8 @@ const propRentalSchema = new Schema({
 
   workDescription: {
     type: String,
+    required: true,
+
   },
   eventSize: {
     type: String,
@@ -83,6 +85,8 @@ const propRentalSchema = new Schema({
 
   cancellationPolicy: { type: [String] },
   termsAndConditions: { type: [String] },
+  priceStartingFrom:{ type: String , required: true },
+
 });
 
 const PropRental = model("PropRental", propRentalSchema);

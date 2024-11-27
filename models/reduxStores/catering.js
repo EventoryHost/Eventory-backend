@@ -9,7 +9,7 @@ const CateringSchema = new mongoose.Schema(
     servingCapacity: { type: String },
     description: { type: String },
     venueType: { type: String, default: "catering" },
-
+    priceStarts:{ type: String },
     // New fields based on the final model
     regionalSpecialties: { type: [String] }, // Renamed to match final model
     cuisineSpecialties: { type: [String] }, // Renamed to match final model

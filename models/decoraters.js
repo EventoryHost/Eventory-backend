@@ -9,7 +9,6 @@ const decoratorSchema = Schema({
   eventSize: { type: String, required: true },
   description: { type: String, required: true },
   duration: { type: String },
-  description: { type: String },
   vendorType: { type: String, default: "decorator" },
   eventTypes: {
     types: { type: [String], default: [], required: true },
@@ -39,6 +38,8 @@ const decoratorSchema = Schema({
   cancellationPolicy: { type: String },
   termsAndConditions: { type: String },
   privacyPolicy: { type: String },
+  priceStartingFrom:{ type: String , required: true },
+
 });
 
 const Decorator = model("Decorator", decoratorSchema);

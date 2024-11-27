@@ -91,6 +91,8 @@ const createDecorator = async (req, res) => {
       videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
       website: req.body.website,
       instagram: req.body.instagram,
+      priceStartingFrom:req.body.priceStartingFrom,
+
     });
 
     const savedDecorator = await newDecorator.save();

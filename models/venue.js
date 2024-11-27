@@ -4,7 +4,6 @@ const Schema = _Schema;
 
 const eventSchema = new Schema({
   calendarId: { type: String }, // Example: "upcoming"
-  description: { type: String }, // Event description
   end: { type: String, required: true }, // End time, e.g., "2024-11-06 20:30"
   id: { type: Number, required: true }, // Unique event id
   start: { type: String, required: true }, // Start time, e.g., "2024-11-06 19:30"
@@ -32,6 +31,8 @@ const venueSchema = new Schema({
   address: { type: String, required: true },
   venueDescription: {
     type: String,
+    required: true,
+
   },
   catererServices: {
     type: Boolean,
@@ -75,6 +76,8 @@ const venueSchema = new Schema({
   clientTestimonials: { type: String },
   advanceBookingPeriod: { type: String },
   schedule: [eventSchema],
+  priceStartingFrom:{ type: String , required: true },
+
 });
 
 const Venue = model("Venue", venueSchema);

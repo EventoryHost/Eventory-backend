@@ -45,6 +45,8 @@ const createPhotographer = async (req, res) => {
       videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
       cancellationPolicy: cancellationPolicyFileUrl,
       termsAndConditions: termsAndConditionsFileUrl,
+      priceStartingFrom:req.body.priceStartingFrom,
+
     });
 
     // Save the photographer to the database
