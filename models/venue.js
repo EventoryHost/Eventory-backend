@@ -13,67 +13,78 @@ const eventSchema = new Schema({
 
 const venueSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
+  basicDetails: {
+    name: {
+      type: String,
+      required: true,
+    },
+    managerName: { type: String, required: true },
+    capacity: { type: String, required: true },
+    operatingHours: {
+      openingTime: {
+        type: String,
+      },
+      closingTime: {
+        type: String,
+      },
+    },
+    address: { type: String, required: true },
+    venueDescription: {
+      type: String,
+    },
+  },
+
+  featureDetails: {
+    catererServices: {
+      type: Boolean,
+      required: true,
+    },
+
+    decorServices: {
+      type: Boolean,
+      required: true,
+    },
+
+    venueTypes: { type: [String], required: true },
+    audioVisualEquipment: {
+      type: [String],
+    },
+    accessibilityFeatures: {
+      type: [String],
+      required: true,
+    },
+    restrictionsPolicies: { type: [String], required: true },
+    speacialFeatures: { type: [String] },
+    facilities: {
+      type: [String],
+      required: true,
+    },
+  },
+  
+  additionalDetails: {
+    photos: { type: [String], required: true },
+    videos: { type: [String], required: true },
+    awards: { type: String },
+    clientTestimonials: { type: String },
+    instagramURL: { type: String },
+    websiteURL: { type: String },
+    advanceBookingPeriod: { type: String },
+  },
+  policies: {
+    termsConditions: {
+      type: [String],
+    },
+    cancellationPolicy: {
+      type: [String],
+    },
+    insurancePolicy: {
+      type: [String],
+    },
+  },
   venId: { type: String, required: true },
-  name: {
-    type: String,
-    required: true,
-  },
+
   vendorType: { type: String, default: "venue" },
-  managerName: { type: String, required: true },
-  capacity: { type: String, required: true },
-  operatingHours: {
-    openingTime: {
-      type: String,
-    },
-    closingTime: {
-      type: String,
-    },
-  },
-  address: { type: String, required: true },
-  venueDescription: {
-    type: String,
-  },
-  catererServices: {
-    type: Boolean,
-    required: true,
-  },
 
-  decorServices: {
-    type: Boolean,
-    required: true,
-  },
-  venueTypes: { type: [String], required: true },
-
-  audioVisualEquipment: {
-    type: [String],
-  },
-  accessibilityFeatures: {
-    type: [String],
-    required: true,
-  },
-  restrictionsPolicies: { type: [String], required: true },
-  speacialFeatures: { type: [String] },
-  facilities: {
-    type: [String],
-    required: true,
-  },
-  termsConditions: {
-    type: [String],
-  },
-  cancellationPolicy: {
-    type: [String],
-  },
-  insurancePolicy: {
-    type: [String],
-  },
-
-  photos: { type: [String], required: true },
-  videos: { type: [String], required: true },
-  instagramURL: { type: String },
-  websiteURL: { type: String },
-  awards: { type: String },
-  clientTestimonials: { type: String },
-  advanceBookingPeriod: { type: String },
   schedule: [eventSchema],
 });
 

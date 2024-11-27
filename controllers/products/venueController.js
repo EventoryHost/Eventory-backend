@@ -38,33 +38,47 @@ const createVenue = async (req, res) => {
 
     const newVenue = new Venue({
       id: req.body.id,
-      managerName: req.body.managerName,
       venId: req.body.venId,
-      name: req.body.name,
-      capacity: req.body.capacity,
-      address: req.body.address,
-      venueTypes: req.body.venueTypes,
-      operatingHours: req.body.operatingHours,
-      venueDescription: req.body.venueDescription,
-      decorServices: req.body.decorServices,
-      catererServices: req.body.catererServices,
-      restrictionsPolicies: req.body.restrictionsPolicies,
-      speacialFeatures: req.body.speacialFeatures,
-      audioVisualEquipment: req.body.audioVisualEquipment,
-      accessibilityFeatures: req.body.accessibilityFeatures,
-      facilities: req.body.facilities,
-      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-      instagramURL: req.body.instagramURL,
-      websiteURL: req.body.websiteURL,
-      awards: req.body.awards,
-      termsConditions: termsAndConditionsFileUrl,
-      cancellationPolicy: cancellationPolicyFileUrl,
-      insurancePolicy: insurancePolicyUrl,
+
+      basicDetails: {
+        managerName: req.body.managerName,
+        name: req.body.name,
+        capacity: req.body.capacity,
+        address: req.body.address,
+        operatingHours: req.body.operatingHours,
+        venueDescription: req.body.venueDescription,
+      },
+      featureDetails:{
+        venueTypes: req.body.venueTypes,
+        decorServices: req.body.decorServices,
+        catererServices: req.body.catererServices,
+        restrictionsPolicies: req.body.restrictionsPolicies,
+        speacialFeatures: req.body.speacialFeatures,
+        audioVisualEquipment: req.body.audioVisualEquipment,
+        accessibilityFeatures: req.body.accessibilityFeatures,
+        facilities: req.body.facilities,
+      },
+      additionalDetails:{
+        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        instagramURL: req.body.instagramURL,
+        websiteURL: req.body.websiteURL,
+        awards: req.body.awards,
+        clientTestimonials:req.body.clientTestimonials,
+        advanceBookingPeriod:req.body.advanceBookingPeriod
+      },
+      
+      policies:{
+        termsConditions: termsAndConditionsFileUrl,
+        cancellationPolicy: cancellationPolicyFileUrl,
+        insurancePolicy: insurancePolicyUrl,
+      },
+      
+      
     });
 
     const savedVenue = await newVenue.save();
-    // console.log(savedVenue);
+    console.log(savedVenue);
     res.status(201).json(savedVenue);
   } catch (error) {
     res.status(400).json({ error: error.message });
