@@ -58,40 +58,59 @@ const createDecorator = async (req, res) => {
       cultural: req.body.culturalEvents || [],
     };
     const newDecorator = new Decorator({
-      name: req.body.name,
+      basicDetails:{
+        name: req.body.name,
+        description: req.body.description,
+        eventSize: req.body.eventSize,
+        eventTypes,
+        duration:req.body.duration,
+      },
+      themesOffered:{
+        themesOffered: req.body.themesOffered,
+        customDesignProcess: req.body.customDesignProcess,
+        propSelection: req.body.propthemesOffered,
+        colorSchemeAssistance: req.body.colorschmes,
+        themeCustomization: req.body.customizationsThemes,
+        venueAdaptability: req.body.adobtThemes,
+      },
+      themesElement:{
+        themeElements: req.body.themeElements,
+        themePhotos: Array.isArray(themePhotosUrl)
+          ? themePhotosUrl
+          : [themePhotosUrl],
+        themeVideos: Array.isArray(themeVideosUrl)
+          ? themeVideosUrl
+          : [themeVideosUrl],
+      },
+      additionalDetails:{
+        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        clientTestimonials: req.body.clientTestimonials,
+        awards: req.body.awards,
+        website: req.body.website,
+        instagram: req.body.instagram,
+        advanceBookingPeriod: req.body.advanceBookingPeriod,
+        priceStartingFrom:req.body.priceStartingFrom,
+        themeProposels: req.body.themeProposels,
+      
+        proposalRevisions: req.body.proposalRevisions,
+      }
+      ,
+      policies:{
+        cancellationPolicy: cancellationPolicyFileUrl,
+        termsAndConditions: termsAndConditionsFileUrl,
+      },
       id: req.body.id,
-      description: req.body.description,
-      eventSize: req.body.eventSize,
       venId: req.body.venId,
-      eventTypes,
-      propSelection: req.body.propthemesOffered,
-      themesOffered: req.body.themesOffered,
-      colorSchemeAssistance: req.body.colorschmes,
-      themeCustomization: req.body.customizationsThemes,
-      venueAdaptability: req.body.adobtThemes,
-      customDesignProcess: req.body.customDesignProcess,
-      themeElements: req.body.themeElements,
-      themePhotos: Array.isArray(themePhotosUrl)
-        ? themePhotosUrl
-        : [themePhotosUrl],
-      themeVideos: Array.isArray(themeVideosUrl)
-        ? themeVideosUrl
-        : [themeVideosUrl],
-      themeProposels: req.body.themeProposels,
-      advanceBookingPeriod: req.body.advanceBookingPeriod,
-      proposalRevisions: req.body.proposalRevisions,
-      consultationProcess: req.body.consultationProcess,
-      clientTestimonials: req.body.clientTestimonials,
-      awards: req.body.awards,
-      insurancePolicy: insuranceFileUrl,
-      cancellationPolicy: cancellationPolicyFileUrl,
-      termsAndConditions: termsAndConditionsFileUrl,
-      privacyPolicy: privacyPolicyFileUrl,
-      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-      website: req.body.website,
-      instagram: req.body.instagram,
-      priceStartingFrom:req.body.priceStartingFrom,
+      
+    
+      
+      // consultationProcess: req.body.consultationProcess,
+      // insurancePolicy: insuranceFileUrl,
+     
+      // privacyPolicy: privacyPolicyFileUrl,
+     
+      
 
     });
 
