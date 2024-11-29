@@ -59,7 +59,7 @@ const venueSchema = new Schema({
       required: true,
     },
   },
-  
+
   additionalDetails: {
     photos: { type: [String], required: true },
     videos: { type: [String], required: true },
@@ -68,7 +68,7 @@ const venueSchema = new Schema({
     instagramURL: { type: String },
     websiteURL: { type: String },
     advanceBookingPeriod: { type: String },
-    priceStartingFrom:{ type: String , required: true },
+    priceStartingFrom: { type: String, required: true },
   },
   policies: {
     termsConditions: {
@@ -86,8 +86,7 @@ const venueSchema = new Schema({
   vendorType: { type: String, default: "venue" },
 
   schedule: [eventSchema],
-  priceStartingFrom:{ type: String , required: true },
-
+  priceStartingFrom: { type: String, required: true },
 });
 
 const Venue = model("Venue", venueSchema);

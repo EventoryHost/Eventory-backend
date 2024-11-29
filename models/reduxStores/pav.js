@@ -63,9 +63,7 @@ const photographerSchema = Schema(
     advbookingperiod: { type: String },
     writtenthemeproposalafterconsultaion: { type: Boolean },
     freerevisionforinitialthemeproposal: { type: Boolean },
-        priceStarts
-:{ type: String },
-
+    priceStarts: { type: String },
   },
   { timestamps: true },
 );

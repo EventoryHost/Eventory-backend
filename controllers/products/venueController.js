@@ -48,7 +48,7 @@ const createVenue = async (req, res) => {
         operatingHours: req.body.operatingHours,
         venueDescription: req.body.venueDescription,
       },
-      featureDetails:{
+      featureDetails: {
         venueTypes: req.body.venueTypes,
         decorServices: req.body.decorServices,
         catererServices: req.body.catererServices,
@@ -58,24 +58,22 @@ const createVenue = async (req, res) => {
         accessibilityFeatures: req.body.accessibilityFeatures,
         facilities: req.body.facilities,
       },
-      additionalDetails:{
+      additionalDetails: {
         photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
         videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
         instagramURL: req.body.instagramURL,
         websiteURL: req.body.websiteURL,
         awards: req.body.awards,
-        clientTestimonials:req.body.clientTestimonials,
-        advanceBookingPeriod:req.body.advanceBookingPeriod,
-        priceStartingFrom:req.body.priceStartingFrom,
+        clientTestimonials: req.body.clientTestimonials,
+        advanceBookingPeriod: req.body.advanceBookingPeriod,
+        priceStartingFrom: req.body.priceStartingFrom,
       },
-      
-      policies:{
+
+      policies: {
         termsConditions: termsAndConditionsFileUrl,
         cancellationPolicy: cancellationPolicyFileUrl,
         insurancePolicy: insurancePolicyUrl,
       },
-      
-      
     });
 
     const savedVenue = await newVenue.save();

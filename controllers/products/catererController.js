@@ -47,7 +47,7 @@ const createCaterer = async (req, res) => {
     // Handle food safety certificates (multiple or single)
     const foodSafetyCertificatesUrls = getFileUrls(
       req.files,
-      "food_safety_certificates"
+      "food_safety_certificates",
     );
     const foodSafetyCertificates = foodSafetyCertificatesUrls.length
       ? foodSafetyCertificatesUrls
@@ -85,7 +85,7 @@ const createCaterer = async (req, res) => {
         staff_provided: req.body.staff_provided,
       },
       additionalDetails: {
-        priceStartingFrom:req.body.priceStartingFrom,
+        priceStartingFrom: req.body.priceStartingFrom,
 
         minimum_order_requirements: req.body.minimum_order_requirements,
         advance_booking_period: req.body.advance_booking_period,
@@ -122,7 +122,7 @@ const createCaterer = async (req, res) => {
 
     res.status(201).json(savedCaterer);
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };

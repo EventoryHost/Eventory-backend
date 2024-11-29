@@ -84,7 +84,7 @@ const propRentalSchema = new Schema(
     termsAndConditions: { type: [String] },
     priceStarts: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const PropRentalModel = model("ReduxPropRental", propRentalSchema);

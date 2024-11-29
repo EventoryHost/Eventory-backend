@@ -9,7 +9,7 @@ const pricingSchema = new Schema({
 });
 
 const propRentalSchema = new Schema({
-  basicDetails:{
+  basicDetails: {
     managerName: {
       type: String,
       required: true,
@@ -17,14 +17,13 @@ const propRentalSchema = new Schema({
     workDescription: {
       type: String,
       required: true,
-  
     },
     eventSize: {
       type: String,
       required: true,
     },
   },
-  serviceDetails:{
+  serviceDetails: {
     itemCatalogue: {
       type: String,
       required: true,
@@ -33,19 +32,17 @@ const propRentalSchema = new Schema({
     maintenance: { type: String, required: true },
     services: { type: String, required: true },
     serviceProvided: { type: String, required: true },
-
   },
-  additionalDetails:{
+  additionalDetails: {
     photos: { type: [String], required: true },
     videos: { type: [String], required: true },
     awardsAndRecognize: { type: String, required: false },
     clientTestimonial: { type: String, required: false },
     instaUrl: { type: String, required: false },
     websiteUrl: { type: String, required: false },
-    priceStartingFrom:{ type: String , required: true },
-
+    priceStartingFrom: { type: String, required: true },
   },
-  policies:{
+  policies: {
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
   },
@@ -96,7 +93,6 @@ const propRentalSchema = new Schema({
       type: [String],
     },
   },
-
 });
 
 const PropRental = model("PropRental", propRentalSchema);
