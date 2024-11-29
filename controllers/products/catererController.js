@@ -85,6 +85,8 @@ const createCaterer = async (req, res) => {
         staff_provided: req.body.staff_provided,
       },
       additionalDetails: {
+        priceStartingFrom:req.body.priceStartingFrom,
+
         minimum_order_requirements: req.body.minimum_order_requirements,
         advance_booking_period: req.body.advance_booking_period,
         photos: Array.isArray(photos) ? photos : [photos],

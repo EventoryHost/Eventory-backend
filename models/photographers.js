@@ -15,7 +15,6 @@ const photographerSchema = Schema({
     required: true,
   },
   eventSize: { type: String, required: true },
-  description: { type: String },
   eventTypes: {
     type: [String],
     required: true,
@@ -97,6 +96,8 @@ const photographerSchema = Schema({
   termsAndConditions: {
     type: [String],
   },
+  priceStartingFrom:{ type: String , required: true },
+
 });
 
 const Photographer = model("Photographer", photographerSchema);

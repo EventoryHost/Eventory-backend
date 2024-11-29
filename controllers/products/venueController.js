@@ -65,7 +65,8 @@ const createVenue = async (req, res) => {
         websiteURL: req.body.websiteURL,
         awards: req.body.awards,
         clientTestimonials:req.body.clientTestimonials,
-        advanceBookingPeriod:req.body.advanceBookingPeriod
+        advanceBookingPeriod:req.body.advanceBookingPeriod,
+        priceStartingFrom:req.body.priceStartingFrom,
       },
       
       policies:{

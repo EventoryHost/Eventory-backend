@@ -60,6 +60,7 @@ const createProp = async (req, res) => {
       maintenance: req.body.maintenance,
       services: req.body.services,
       description: req.body.descriptionOfWork,
+      priceStartingFrom:req.body.priceStartingFrom,
 
       furnitureAndDecor: {
         listUrl: furnitureAndDecorListUrl,

@@ -38,6 +38,8 @@ const catererSchema = new Schema({
     tasting_sessions: { type: Boolean, required: true },
     business_licenses: { type: Boolean, required: false },
     food_safety_certificates: { type: [String], required: true },
+    priceStartingFrom:{ type: String , required: true },
+
   },
   policies: {
     cancellation_policy: {
