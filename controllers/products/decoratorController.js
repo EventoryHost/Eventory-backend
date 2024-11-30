@@ -58,14 +58,14 @@ const createDecorator = async (req, res) => {
       cultural: req.body.culturalEvents || [],
     };
     const newDecorator = new Decorator({
-      basicDetails:{
+      basicDetails: {
         name: req.body.name,
         description: req.body.description,
         eventSize: req.body.eventSize,
         eventTypes,
-        duration:req.body.duration,
+        duration: req.body.duration,
       },
-      themesOffered:{
+      themesOffered: {
         themesOffered: req.body.themesOffered,
         customDesignProcess: req.body.customDesignProcess,
         propSelection: req.body.propthemesOffered,
@@ -73,7 +73,7 @@ const createDecorator = async (req, res) => {
         themeCustomization: req.body.customizationsThemes,
         venueAdaptability: req.body.adobtThemes,
       },
-      themesElement:{
+      themesElement: {
         themeElements: req.body.themeElements,
         themePhotos: Array.isArray(themePhotosUrl)
           ? themePhotosUrl
@@ -82,7 +82,7 @@ const createDecorator = async (req, res) => {
           ? themeVideosUrl
           : [themeVideosUrl],
       },
-      additionalDetails:{
+      additionalDetails: {
         photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
         videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
         clientTestimonials: req.body.clientTestimonials,
@@ -90,28 +90,22 @@ const createDecorator = async (req, res) => {
         website: req.body.website,
         instagram: req.body.instagram,
         advanceBookingPeriod: req.body.advanceBookingPeriod,
-        priceStartingFrom:req.body.priceStartingFrom,
+        priceStartingFrom: req.body.priceStartingFrom,
         themeProposels: req.body.themeProposels,
-      
+
         proposalRevisions: req.body.proposalRevisions,
-      }
-      ,
-      policies:{
+      },
+      policies: {
         cancellationPolicy: cancellationPolicyFileUrl,
         termsAndConditions: termsAndConditionsFileUrl,
       },
       id: req.body.id,
       venId: req.body.venId,
-      
-    
-      
+
       // consultationProcess: req.body.consultationProcess,
       // insurancePolicy: insuranceFileUrl,
-     
-      // privacyPolicy: privacyPolicyFileUrl,
-     
-      
 
+      // privacyPolicy: privacyPolicyFileUrl,
     });
 
     const savedDecorator = await newDecorator.save();
