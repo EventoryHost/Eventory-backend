@@ -9,30 +9,47 @@ const pricingSchema = new Schema({
 });
 
 const propRentalSchema = new Schema({
+  basicDetails: {
+    managerName: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    eventSize: {
+      type: String,
+      required: true,
+    },
+  },
+  serviceDetails: {
+    itemCatalogue: {
+      type: String,
+      required: true,
+    },
+    customization: { type: Boolean, required: true },
+    maintenance: { type: String, required: true },
+    services: { type: String, required: true },
+    serviceProvided: { type: String, required: true },
+  },
+  additionalDetails: {
+    photos: { type: [String], required: true },
+    videos: { type: [String], required: true },
+    awardsAndRecognize: { type: String, required: false },
+    clientTestimonial: { type: String, required: false },
+    instaUrl: { type: String, required: false },
+    websiteUrl: { type: String, required: false },
+    priceStartingFrom: { type: String, required: true },
+  },
+  policies: {
+    cancellationPolicy: { type: [String] },
+    termsAndConditions: { type: [String] },
+  },
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
-  managerName: {
-    type: String,
-    required: true,
-  },
-  vendorType: { type: String, default: "propRental" },
 
-  workDescription: {
-    type: String,
-  },
-  eventSize: {
-    type: String,
-    required: true,
-  },
-  itemCatalogue: {
-    type: String,
-    required: true,
-  },
-  customization: { type: Boolean, required: true },
-  maintenance: { type: String, required: true },
-  services: { type: String, required: true },
-  photos: { type: [String], required: true },
-  videos: { type: [String], required: true },
+  vendorType: { type: String, default: "propRental" },
 
   furnitureAndDecor: {
     listUrl: {
@@ -76,13 +93,6 @@ const propRentalSchema = new Schema({
       type: [String],
     },
   },
-  awardsAndRecognize: { type: String, required: false },
-  clientTestimonial: { type: String, required: false },
-  instaUrl: { type: String, required: false },
-  websiteUrl: { type: String, required: false },
-
-  cancellationPolicy: { type: [String] },
-  termsAndConditions: { type: [String] },
 });
 
 const PropRental = model("PropRental", propRentalSchema);

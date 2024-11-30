@@ -40,8 +40,12 @@ const createProp = async (req, res) => {
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
 
-    const itemCatalogueUrl =
-      getFileUrls(req.files, "itemCatalogue")[0] || req.body.itemCatalogue;
+    const itemCatalogueFile = req.files?.itemCatalogue?.[0];
+    const itemCatalogueUrl = itemCatalogueFile
+      ? itemCatalogueFile.location
+      : req.body.itemCatalogue === "true"
+        ? "true"
+        : "false";
 
     const photosUrls = getFileUrls(req.files, "photos");
     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
@@ -50,12 +54,28 @@ const createProp = async (req, res) => {
     const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const newProp = new propRental({
+      basicDetails: {
+        managerName: req.body.managerName,
+        description: req.body.descriptionOfWork,
+        eventSize: req.body.eventSize,
+      },
+      serviceDetails: {
+        itemCatalogue: itemCatalogueUrl,
+        customization: req.body.customization === "true",
+        maintenance: req.body.maintenance,
+        services: req.body.services,
+        serviceProvided: req.body.serviceProvided,
+      },
+      additionalDetails: {
+        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        awardsAndRecognize: req.body.awardsAndRecognize,
+        clientTestimonial: req.body.clientTestimonial,
+        instaUrl: req.body.instaUrl,
+        websiteUrl: req.body.websiteUrl,
+        priceStartingFrom: req.body.priceStartingFrom,
+      },
       ...req.body,
-      itemCatalogue: itemCatalogueUrl,
-      customization: req.body.customization === "true",
-      maintenance: req.body.maintenance,
-      services: req.body.services,
-      description: req.body.description,
 
       furnitureAndDecor: {
         listUrl: furnitureAndDecorListUrl,
@@ -69,10 +89,10 @@ const createProp = async (req, res) => {
         listUrl: audioVisualListUrl,
         ...req.body.audioVisual,
       },
-      termsAndConditions: termsAndConditionsUrl,
-      cancellationPolicy: cancellationPolicyUrl,
-      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+      policies: {
+        termsAndConditions: termsAndConditionsUrl,
+        cancellationPolicy: cancellationPolicyUrl,
+      },
     });
 
     const savedProp = await newProp.save();
