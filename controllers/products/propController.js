@@ -54,10 +54,10 @@ const createProp = async (req, res) => {
     const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const newProp = new propRental({
-      basicDetails:{
-        managerName:req.body.managerName,
-        description:req.body.descriptionOfWork,
-        eventSize:req.body.eventSize
+      basicDetails: {
+        managerName: req.body.managerName,
+        description: req.body.descriptionOfWork,
+        eventSize: req.body.eventSize,
       },
       serviceDetails: {
         itemCatalogue: itemCatalogueUrl,
