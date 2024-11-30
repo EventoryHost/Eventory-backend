@@ -55,41 +55,56 @@ const createCaterer = async (req, res) => {
 
     // Create new caterer
     const newCaterer = new Caterer({
-      managerName: req.body.managerName,
-      capacity: req.body.capacity,
+      basicDetails: {
+        managerName: req.body.managerName,
+        capacity: req.body.capacity,
+        name: req.body.name,
+        description: req.body.description,
+        cuisine_specialities: req.body.cuisine_specialities,
+        regional_specialities: req.body.regional_specialities,
+        service_style_offered: req.body.service_style_offered,
+      },
       venId: req.body.venId,
-      description: req.body.description,
-      name: req.body.name,
-      cuisine_specialities: req.body.cuisine_specialities,
-      regional_specialities: req.body.regional_specialities,
-      service_style_offered: req.body.service_style_offered,
-      appetizers: req.body.appetizers,
-      beverages: req.body.beverages,
-      main_course: req.body.main_course,
-      special_dietary_options: req.body.special_dietary_options,
-      pre_set_menus: req.body.pre_set_menus,
-      additional_services: req.body.additional_services,
-      event_types_catered: req.body.event_types_catered,
-      equipment_provided: req.body.equipment_provided,
-      vegOrNonVeg: req.body.vegOrNonVeg,
-      menu: Array.isArray(menu) ? menu : [menu],
-      customizable: req.body.customizable === "true",
-      staff_provided: req.body.staff_provided,
-      minimum_order_requirements: req.body.minimum_order_requirements,
-      advance_booking_period: req.body.advance_booking_period,
-      deposit_required: req.body.deposit_required,
-      cancellation_policy: cancellationPolicyFileUrl,
-      tasting_sessions: req.body.tasting_sessions === "true",
-      business_licenses: req.body.business_licenses === "true",
-      food_safety_certificates: Array.isArray(foodSafetyCertificates)
-        ? foodSafetyCertificates
-        : [foodSafetyCertificates],
-      terms_and_conditions: termsAndConditionsFileUrl,
-      photos: Array.isArray(photos) ? photos : [photos],
-      videos: Array.isArray(videos) ? videos : [videos],
-      client_testimonials: clientTestimonialsUrls,
-      priceStartingFrom:req.body.priceStartingFrom,
+      menuDetails: {
+        vegOrNonVeg: req.body.vegOrNonVeg,
+        menu: Array.isArray(menu) ? menu : [menu],
+        appetizers: req.body.appetizers,
+        beverages: req.body.beverages,
+        main_course: req.body.main_course,
+        special_dietary_options: req.body.special_dietary_options,
+        pre_set_menus: req.body.pre_set_menus,
+        customizable: req.body.customizable === "true",
+      },
+      eventDetails: {
+        additional_services: req.body.additional_services,
+        event_types_catered: req.body.event_types_catered,
+      },
+      staffAndEquipmentDetails: {
+        equipment_provided: req.body.equipment_provided,
 
+        staff_provided: req.body.staff_provided,
+      },
+      additionalDetails: {
+        priceStartingFrom: req.body.priceStartingFrom,
+
+        minimum_order_requirements: req.body.minimum_order_requirements,
+        advance_booking_period: req.body.advance_booking_period,
+        photos: Array.isArray(photos) ? photos : [photos],
+        videos: Array.isArray(videos) ? videos : [videos],
+        tasting_sessions: req.body.tasting_sessions === "true",
+        business_licenses: req.body.business_licenses === "true",
+        food_safety_certificates: Array.isArray(foodSafetyCertificates)
+          ? foodSafetyCertificates
+          : [foodSafetyCertificates],
+      },
+      policies: {
+        cancellation_policy: cancellationPolicyFileUrl,
+
+        terms_and_conditions: termsAndConditionsFileUrl,
+
+        client_testimonials: clientTestimonialsUrls,
+      },
+      // deposit_required: req.body.deposit_required,
     });
 
     const savedCaterer = await newCaterer.save();
@@ -103,10 +118,11 @@ const createCaterer = async (req, res) => {
     // // Add the new caterer's ID to the vendor's serviceIds array
     // vendor.serviceIds = [...vendor.serviceIds, savedCaterer.id];
     // await vendor.save();
-    
+    console.log(savedCaterer);
+
     res.status(201).json(savedCaterer);
   } catch (error) {
-    // console.log(error)
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };

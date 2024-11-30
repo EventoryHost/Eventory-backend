@@ -39,14 +39,38 @@ const createPhotographer = async (req, res) => {
 
     // Create a new photographer with provided data
     const newPhotographer = new Photographer({
+      basicDetails: {
+        name: req.body.name,
+        description: req.body.description,
+        eventSize: req.body.eventSize,
+        eventTypes: req.body.eventTypes,
+      },
+      Videography: req.body.Videography,
+      Photography: req.bo.Photography,
+      consultationDetails: {
+        duration: req.body.duration,
+        PackageTypes: req.body.PackageTypes,
+        designProposals: req.body.designProposals,
+        freeInitialConsultation: req.body.freeInitialConsultation,
+        bookingDepositRequired: req.body.bookingDepositRequired,
+        availableForOutofTownbooking: req.body.availableForOutofTownbooking,
+        Advancesetup: req.body.Advancesetup,
+        postproductionservices: req.body.postproductionservices,
+      },
+      additionalDetails: {
+        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        clientTestimonials: req.body.clientTestimonials,
+        awards: req.body.awards,
+        website: req.body.website,
+        instagram: req.body.instagram,
+        priceStartingFrom: req.body.priceStartingFrom,
+      },
       ...req.body,
-      description: req.body.description,
-      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-      cancellationPolicy: cancellationPolicyFileUrl,
-      termsAndConditions: termsAndConditionsFileUrl,
-      priceStartingFrom:req.body.priceStartingFrom,
-
+      policies: {
+        cancellationPolicy: cancellationPolicyFileUrl,
+        termsAndConditions: termsAndConditionsFileUrl,
+      },
     });
 
     // Save the photographer to the database

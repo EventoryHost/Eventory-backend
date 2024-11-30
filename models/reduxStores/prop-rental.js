@@ -82,9 +82,7 @@ const propRentalSchema = new Schema(
 
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
-        priceStarts
-:{ type: String },
-
+    priceStarts: { type: String },
   },
   { timestamps: true },
 );
