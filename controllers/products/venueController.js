@@ -46,7 +46,7 @@ const createVenue = async (req, res) => {
         capacity: req.body.capacity,
         address: req.body.address,
         operatingHours: req.body.operatingHours,
-        venueDescription: req.body.venueDescription,
+        description: req.body.venueDescription,
       },
       featureDetails:{
         venueTypes: req.body.venueTypes,

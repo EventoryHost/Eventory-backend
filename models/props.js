@@ -14,7 +14,7 @@ const propRentalSchema = new Schema({
       type: String,
       required: true,
     },
-    workDescription: {
+    description: {
       type: String,
       required: true,
   

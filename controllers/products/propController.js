@@ -56,7 +56,7 @@ const createProp = async (req, res) => {
     const newProp = new propRental({
       basicDetails:{
         managerName:req.body.managerName,
-        workDescription:req.body.descriptionOfWork,
+        description:req.body.descriptionOfWork,
         eventSize:req.body.eventSize
       },
       serviceDetails:{
