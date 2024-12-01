@@ -21,12 +21,16 @@ const OrderSchema = new mongoose.Schema({
         }
     ],
     description: { type: String },
-    eventDate: { type: Date, },
+    eventDate: { type: String, },
     bookingDate: { type: Date, default: Date.now },
     contactDetails: {
         email: { type: String, },
         phone: { type: String, }
     },
+    event_name: { type: String, },
+    number_of_guest : { type: Number, },
+    time : { type: String, },
+    budget : { type: Number, },
     status: {
         type: String,
         enum: ['pending', 'confirmed', 'cancelled', 'completed'],
