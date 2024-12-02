@@ -50,15 +50,15 @@ const decoratorSchema = Schema({
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
 
-  themeProposels: { type: Boolean, default: false },
-  proposalRevisions: { type: Boolean, default: false },
-  consultationProcess: { type: String },
+  // themeProposels: { type: Boolean, default: false },
+  // proposalRevisions: { type: Boolean, default: false },
+  // consultationProcess: { type: String },
 
   onlineRatings: { type: [String] },
 
-  insurancePolicy: { type: String },
+  // insurancePolicy: { type: String },
 
-  privacyPolicy: { type: String },
+  // privacyPolicy: { type: String },
 });
 
 const Decorator = model("Decorator", decoratorSchema);

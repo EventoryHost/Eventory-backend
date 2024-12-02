@@ -86,7 +86,6 @@ const venueSchema = new Schema({
   vendorType: { type: String, default: "venue" },
 
   schedule: [eventSchema],
-  priceStartingFrom: { type: String, required: true },
 });
 
 const Venue = model("Venue", venueSchema);
