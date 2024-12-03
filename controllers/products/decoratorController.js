@@ -102,7 +102,6 @@ const createDecorator = async (req, res) => {
       },
       id: req.body.id,
       venId: req.body.venId,
-
     });
 
     const savedDecorator = await newDecorator.save();
@@ -113,8 +112,8 @@ const createDecorator = async (req, res) => {
     }
 
     vendor.serviceIds.push({
-      serType: "decorator", 
-      serId: savedDecorator.id, 
+      serType: "decorator",
+      serId: savedDecorator.id,
     });
     await vendor.save();
     res.status(201).json(savedDecorator);

@@ -56,9 +56,7 @@ const decoratorSchema = Schema({
   // proposalRevisions: { type: Boolean, default: false },
   // consultationProcess: { type: String },
 
-
   // onlineRatings: { type: [String] },
-
 });
 
 const Decorator = model("Decorator", decoratorSchema);

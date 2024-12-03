@@ -84,8 +84,8 @@ const createVenue = async (req, res) => {
     }
 
     vendor.serviceIds.push({
-      serType: "venue-provider", 
-      serId: savedVenue.id, 
+      serType: "venue-provider",
+      serId: savedVenue.id,
     });
     await vendor.save();
     console.log(savedVenue);

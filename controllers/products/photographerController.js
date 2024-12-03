@@ -54,7 +54,8 @@ const createPhotographer = async (req, res) => {
         proposalsToClients: req.body.proposalsToClients === "true",
         freeInitialConsultation: req.body.freeInitialConsultation === "true",
         bookingDeposit: req.body.bookingDeposit === "true",
-        availableForDestinationEvents: req.body.availablefordestinationevents === "true",
+        availableForDestinationEvents:
+          req.body.availablefordestinationevents === "true",
         AdvanceSetup: req.body.Advancesetup === "true",
         postProductionServices: req.body.postproductionservices === "true",
       },
@@ -75,7 +76,7 @@ const createPhotographer = async (req, res) => {
     });
 
     // Save the photographer to the database
-    const saved  =await newPhotographer.save();
+    const saved = await newPhotographer.save();
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Photographer.findByIdAndDelete(saved.id);
@@ -83,8 +84,8 @@ const createPhotographer = async (req, res) => {
     }
 
     vendor.serviceIds.push({
-      serType: "pav", 
-      serId: saved.id, 
+      serType: "pav",
+      serId: saved.id,
     });
     await vendor.save();
     // console.log(newPhotographer);

@@ -117,8 +117,8 @@ const createCaterer = async (req, res) => {
     }
 
     vendor.serviceIds.push({
-      serType: "caterer", 
-      serId: savedCaterer.id, 
+      serType: "caterer",
+      serId: savedCaterer.id,
     });
     await vendor.save();
 

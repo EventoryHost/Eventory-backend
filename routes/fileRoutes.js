@@ -4,15 +4,15 @@ const router = Router();
 
 function getFileNameFromUrl(url) {
   const decodedUrl = decodeURIComponent(url);
-  const pathParts = decodedUrl.split('/');
+  const pathParts = decodedUrl.split("/");
   return pathParts[pathParts.length - 1];
 }
 
 async function getFileSizeFromUrl(url) {
   try {
-    const response = await fetch(url, { method: 'HEAD' });
-    if (!response.ok) throw new Error('Failed to fetch file info');
-    return parseInt(response.headers.get('content-length')) || 0;
+    const response = await fetch(url, { method: "HEAD" });
+    if (!response.ok) throw new Error("Failed to fetch file info");
+    return parseInt(response.headers.get("content-length")) || 0;
   } catch (error) {
     throw new Error(`Error fetching file size: ${error.message}`);
   }
@@ -32,14 +32,6 @@ router.post("/get-file-info", async (req, res) => {
 });
 
 export default router;
-
-
-
-
-
-
-
-
 
 // import { Router } from "express";
 // import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";

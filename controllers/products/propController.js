@@ -104,8 +104,8 @@ const createProp = async (req, res) => {
     }
 
     vendor.serviceIds.push({
-      serType: "prop-rental", 
-      serId: savedProp.id, 
+      serType: "prop-rental",
+      serId: savedProp.id,
     });
     await vendor.save();
     // console.log(newProp);

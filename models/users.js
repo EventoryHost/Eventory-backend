@@ -12,11 +12,11 @@ const vendorSchema = new Schema({
   profilePic: { type: String },
   invoices: { type: [String], default: [] },
   serviceIds: [
-  { 
-    serType:{type: String},
-    serId:{type: String}
-   },
-  ]
+    {
+      serType: { type: String },
+      serId: { type: String },
+    },
+  ],
 });
 
 export const Vendor = mongoose.model("Vendors", vendorSchema);
