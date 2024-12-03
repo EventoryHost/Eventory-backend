@@ -1,4 +1,5 @@
 import propRental from "../../models/props.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -96,6 +97,17 @@ const createProp = async (req, res) => {
     });
 
     const savedProp = await newProp.save();
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await propRental.findByIdAndDelete(savedProp.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "prop-rental", 
+      serId: savedProp.id, 
+    });
+    await vendor.save();
     // console.log(newProp);
     res.status(201).json(savedProp);
   } catch (error) {

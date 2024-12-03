@@ -1,4 +1,5 @@
 import { Caterer } from "../../models/caterer.js";
+import { Vendor as User } from "../../models/users.js";
 
 // Function to handle multiple files
 const getFileUrls = (files, fieldName) => {
@@ -108,17 +109,18 @@ const createCaterer = async (req, res) => {
     });
 
     const savedCaterer = await newCaterer.save();
-    // const vendor = await Vendor.findOne({ id: req.body.venId });
-    // if (!vendor) {
-    //   // If we can't find the vendor, we should probably delete the caterer we just created
-    //   await Caterer.findByIdAndDelete(savedCaterer._id);
-    //   return res.status(404).json({ message: "Vendor not found" });
-    // }
 
-    // // Add the new caterer's ID to the vendor's serviceIds array
-    // vendor.serviceIds = [...vendor.serviceIds, savedCaterer.id];
-    // await vendor.save();
-    console.log(savedCaterer);
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Caterer.findByIdAndDelete(savedCaterer.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "caterer", 
+      serId: savedCaterer.id, 
+    });
+    await vendor.save();
 
     res.status(201).json(savedCaterer);
   } catch (error) {

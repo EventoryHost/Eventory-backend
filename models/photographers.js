@@ -1,5 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
@@ -23,6 +24,7 @@ const photographerSchema = Schema({
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "photographer" },
+  schedule: [eventSchema],
 
   //page 2
   Videography: {

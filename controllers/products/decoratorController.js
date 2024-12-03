@@ -1,5 +1,6 @@
 import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -109,6 +110,17 @@ const createDecorator = async (req, res) => {
     });
 
     const savedDecorator = await newDecorator.save();
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Decorator.findByIdAndDelete(savedDecorator.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "decorator", 
+      serId: savedDecorator.id, 
+    });
+    await vendor.save();
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);
