@@ -1,6 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 
 const decoratorSchema = Schema({
   basicDetails: {
@@ -49,16 +50,13 @@ const decoratorSchema = Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
+  schedule: [eventSchema],
 
   // themeProposels: { type: Boolean, default: false },
   // proposalRevisions: { type: Boolean, default: false },
   // consultationProcess: { type: String },
 
-  onlineRatings: { type: [String] },
-
-  // insurancePolicy: { type: String },
-
-  // privacyPolicy: { type: String },
+  // onlineRatings: { type: [String] },
 });
 
 const Decorator = model("Decorator", decoratorSchema);

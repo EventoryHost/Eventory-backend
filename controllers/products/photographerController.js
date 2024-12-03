@@ -1,4 +1,5 @@
 import Photographer from "../../models/photographers.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -53,9 +54,10 @@ const createPhotographer = async (req, res) => {
         proposalsToClients: req.body.proposalsToClients === "true",
         freeInitialConsultation: req.body.freeInitialConsultation === "true",
         bookingDeposit: req.body.bookingDeposit === "true",
-        availablefordestinationevents: req.body.availablefordestinationevents === "true",
-        Advancesetup: req.body.Advancesetup === "true",
-        postproductionservices: req.body.postproductionservices === "true",
+        availableForDestinationEvents:
+          req.body.availablefordestinationevents === "true",
+        AdvanceSetup: req.body.Advancesetup === "true",
+        postProductionServices: req.body.postproductionservices === "true",
       },
       additionalDetails: {
         photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
@@ -74,7 +76,18 @@ const createPhotographer = async (req, res) => {
     });
 
     // Save the photographer to the database
-    await newPhotographer.save();
+    const saved = await newPhotographer.save();
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Photographer.findByIdAndDelete(saved.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "pav",
+      serId: saved.id,
+    });
+    await vendor.save();
     // console.log(newPhotographer);
     res.status(201).json({ message: "Photographer created successfully" });
   } catch (error) {

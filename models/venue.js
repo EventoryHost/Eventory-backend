@@ -2,7 +2,7 @@ import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
-const eventSchema = new Schema({
+export const eventSchema = new Schema({
   calendarId: { type: String }, // Example: "upcoming"
   end: { type: String, required: true }, // End time, e.g., "2024-11-06 20:30"
   id: { type: Number, required: true }, // Unique event id
@@ -12,6 +12,7 @@ const eventSchema = new Schema({
 
 const venueSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
+
   basicDetails: {
     name: {
       type: String,
