@@ -88,8 +88,8 @@ const createDecorator = async (req, res) => {
         videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
         clientTestimonials: req.body.clientTestimonials,
         awards: req.body.awards,
-        website: req.body.website,
-        instagram: req.body.instagram,
+        website: req.body.websiteurl,
+        instagram: req.body.intstagramurl,
         advanceBookingPeriod: req.body.advanceBookingPeriod,
         priceStartingFrom: req.body.priceStartingFrom,
         themeProposels: req.body.themeProposels,
@@ -103,10 +103,6 @@ const createDecorator = async (req, res) => {
       id: req.body.id,
       venId: req.body.venId,
 
-      // consultationProcess: req.body.consultationProcess,
-      // insurancePolicy: insuranceFileUrl,
-
-      // privacyPolicy: privacyPolicyFileUrl,
     });
 
     const savedDecorator = await newDecorator.save();

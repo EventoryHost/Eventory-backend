@@ -32,7 +32,7 @@ const propRentalSchema = new Schema({
     customization: { type: Boolean, required: true },
     maintenance: { type: String, required: true },
     services: { type: String, required: true },
-    serviceProvided: { type: String, required: true },
+    serviceProvided: { type: [String], required: true },
   },
   additionalDetails: {
     photos: { type: [String], required: true },

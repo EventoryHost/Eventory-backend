@@ -62,7 +62,7 @@ const photographerSchema = Schema({
       default: "Both",
     },
 
-    designProposals: {
+    proposalsToClients: {
       type: Boolean,
       default: false,
     },
@@ -70,11 +70,11 @@ const photographerSchema = Schema({
       type: Boolean,
       default: false,
     },
-    bookingDepositRequired: {
+    bookingDeposit: {
       type: Boolean,
       default: false,
     },
-    availableForOutofTownbooking: {
+    availablefordestinationevents: {
       type: Boolean,
       default: false,
     },

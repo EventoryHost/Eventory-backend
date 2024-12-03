@@ -52,6 +52,9 @@ const decoratorSchema = Schema({
   vendorType: { type: String, default: "decorator" },
   schedule: [eventSchema],
 
+  // themeProposels: { type: Boolean, default: false },
+  // proposalRevisions: { type: Boolean, default: false },
+  // consultationProcess: { type: String },
 
 
   // onlineRatings: { type: [String] },
