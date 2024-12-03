@@ -54,9 +54,9 @@ const createPhotographer = async (req, res) => {
         proposalsToClients: req.body.proposalsToClients === "true",
         freeInitialConsultation: req.body.freeInitialConsultation === "true",
         bookingDeposit: req.body.bookingDeposit === "true",
-        availablefordestinationevents: req.body.availablefordestinationevents === "true",
-        Advancesetup: req.body.Advancesetup === "true",
-        postproductionservices: req.body.postproductionservices === "true",
+        availableForDestinationEvents: req.body.availablefordestinationevents === "true",
+        AdvanceSetup: req.body.Advancesetup === "true",
+        postProductionServices: req.body.postproductionservices === "true",
       },
       additionalDetails: {
         photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],

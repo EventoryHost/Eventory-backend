@@ -31,7 +31,7 @@ const photographerSchema = Schema({
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -45,7 +45,7 @@ const photographerSchema = Schema({
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -74,15 +74,15 @@ const photographerSchema = Schema({
       type: Boolean,
       default: false,
     },
-    availablefordestinationevents: {
+    availableForDestinationEvents: {
       type: Boolean,
       default: false,
     },
-    Advancesetup: {
+    AdvanceSetup: {
       type: Boolean,
       default: false,
     },
-    postproductionservices: {
+    postProductionServices: {
       type: Boolean,
       default: false,
     },
