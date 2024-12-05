@@ -1,4 +1,5 @@
 import { Venue } from "../../models/venue.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
