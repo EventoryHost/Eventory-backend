@@ -21,6 +21,7 @@ const OrderSchema = new mongoose.Schema({
         }
     ],
     description: { type: String },
+    quoteNumber : { type: String, },
     eventDate: { type: String, },
     bookingDate: { type: Date, default: Date.now },
     contactDetails: {
@@ -28,9 +29,9 @@ const OrderSchema = new mongoose.Schema({
         phone: { type: String, }
     },
     event_name: { type: String, },
-    number_of_guest : { type: Number, },
+    number_of_guest : { type: String, },
     time : { type: String, },
-    budget : { type: Number, },
+    budget : { type: String, },
     status: {
         type: String,
         enum: ['pending', 'confirmed', 'cancelled', 'completed'],
