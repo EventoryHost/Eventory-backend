@@ -3,7 +3,7 @@ import {
   deleteSchedule,
   getBooking,
   updateSchedule,
-  fetchBooking
+  fetchBooking,
 } from "../controllers/bookingsController.js";
 
 const router = express.Router();
