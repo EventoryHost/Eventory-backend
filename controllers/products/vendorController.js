@@ -9,7 +9,7 @@ const vendorModels = {
   caterer: Caterer,
   decorator: Decorator,
   "venue-provider": Venue,
-  propRental: propRental,
+  "prop-rental": propRental,
   pav: Photographer,
 };
 
@@ -26,7 +26,7 @@ const getVendorByIdAndCategory = async (req, res) => {
     }
 
     // Find vendor by both ID and category model
-    const foundVendor = await VendorModel.findOne({ venId: id });
+    const foundVendor = await VendorModel.findOne({ id: id });
 
     if (!foundVendor) {
       return res.status(404).json({ message: "Vendor not found" });

@@ -1,5 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const pricingSchema = new Schema({
@@ -31,7 +32,7 @@ const propRentalSchema = new Schema({
     customization: { type: Boolean, required: true },
     maintenance: { type: String, required: true },
     services: { type: String, required: true },
-    serviceProvided: { type: String, required: true },
+    serviceProvided: { type: [String], required: true },
   },
   additionalDetails: {
     photos: { type: [String], required: true },
@@ -50,6 +51,7 @@ const propRentalSchema = new Schema({
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "propRental" },
+  schedule: [eventSchema],
 
   furnitureAndDecor: {
     listUrl: {

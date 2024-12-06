@@ -1,5 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
@@ -23,13 +24,14 @@ const photographerSchema = Schema({
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "photographer" },
+  schedule: [eventSchema],
 
   //page 2
   Videography: {
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -43,7 +45,7 @@ const photographerSchema = Schema({
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -60,7 +62,7 @@ const photographerSchema = Schema({
       default: "Both",
     },
 
-    designProposals: {
+    proposalsToClients: {
       type: Boolean,
       default: false,
     },
@@ -68,19 +70,19 @@ const photographerSchema = Schema({
       type: Boolean,
       default: false,
     },
-    bookingDepositRequired: {
+    bookingDeposit: {
       type: Boolean,
       default: false,
     },
-    availableForOutofTownbooking: {
+    availableForDestinationEvents: {
       type: Boolean,
       default: false,
     },
-    Advancesetup: {
+    AdvanceSetup: {
       type: Boolean,
       default: false,
     },
-    postproductionservices: {
+    postProductionServices: {
       type: Boolean,
       default: false,
     },

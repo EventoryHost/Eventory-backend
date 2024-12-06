@@ -1,5 +1,6 @@
 import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -87,8 +88,8 @@ const createDecorator = async (req, res) => {
         videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
         clientTestimonials: req.body.clientTestimonials,
         awards: req.body.awards,
-        website: req.body.website,
-        instagram: req.body.instagram,
+        website: req.body.websiteurl,
+        instagram: req.body.intstagramurl,
         advanceBookingPeriod: req.body.advanceBookingPeriod,
         priceStartingFrom: req.body.priceStartingFrom,
         themeProposels: req.body.themeProposels,
@@ -101,14 +102,20 @@ const createDecorator = async (req, res) => {
       },
       id: req.body.id,
       venId: req.body.venId,
-
-      // consultationProcess: req.body.consultationProcess,
-      // insurancePolicy: insuranceFileUrl,
-
-      // privacyPolicy: privacyPolicyFileUrl,
     });
 
     const savedDecorator = await newDecorator.save();
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Decorator.findByIdAndDelete(savedDecorator.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "decorator",
+      serId: savedDecorator.id,
+    });
+    await vendor.save();
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);

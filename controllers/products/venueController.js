@@ -1,4 +1,5 @@
 import { Venue } from "../../models/venue.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -77,6 +78,17 @@ const createVenue = async (req, res) => {
     });
 
     const savedVenue = await newVenue.save();
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Venue.findByIdAndDelete(savedVenue.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "venue-provider",
+      serId: savedVenue.id,
+    });
+    await vendor.save();
     console.log(savedVenue);
     res.status(201).json(savedVenue);
   } catch (error) {

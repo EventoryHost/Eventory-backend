@@ -16,12 +16,7 @@ const photographerSchema = Schema(
     customizablePackage: { type: Boolean, default: false },
     customizableSoundAndLightingRates: { type: Boolean, default: false },
     equipmentAvailable: { type: [String] }, // To handle photoequipments
-    designProposals: { type: Boolean, default: false },
-    freeInitialConsultation: { type: Boolean, default: false },
-    advanceSetup: { type: Boolean, default: false },
-    collaborateWithVendors: { type: Boolean, default: false },
-    setupAndInstallation: { type: Boolean, default: false },
-    bookingDepositRequired: { type: Boolean, default: false },
+
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
     rates: {
@@ -50,12 +45,12 @@ const photographerSchema = Schema(
 
     Durationoffinaldelivery: { type: String },
     Packagetype: { type: String },
-    availablefordestinationevents: { type: String },
-    postproductionservices: { type: String },
-    proposalsToClients: { type: String },
-    freeInitialConsultation: { type: String },
-    advanceSetup: { type: String },
-    bookingDeposit: { type: String },
+    proposalsToClients: { type: Boolean, default: false },
+    freeInitialConsultation: { type: Boolean, default: false },
+    advanceSetup: { type: Boolean, default: false },
+    availablefordestinationevents: { type: Boolean, default: false },
+    postproductionservices: { type: Boolean, default: false },
+    bookingDeposit: { type: Boolean, default: false },
 
     Recongnition_awards: { type: String },
     websiteurl: { type: String },
