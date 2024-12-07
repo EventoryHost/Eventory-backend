@@ -16,6 +16,7 @@ import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
+import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -41,7 +42,7 @@ app.use(
     ],
     credentials: true,
     exposedHeaders: ["Authorization"],
-  }),
+  })
 );
 app.options("/api/business-details/:userId", (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -62,6 +63,7 @@ app.use("/api/files", fileRoutes);
 app.use("/api/quotations", venueQuotationRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
+app.use("/api", featuredVendorsRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
@@ -69,7 +71,7 @@ app.get("/", (req, res) => {
 
 app.listen(port, () => {
   console.log(
-    "Server listening on port " + chalk.blueBright("http://localhost:" + port),
+    "Server listening on port " + chalk.blueBright("http://localhost:" + port)
   );
 });
 
