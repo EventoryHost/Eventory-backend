@@ -42,7 +42,7 @@ app.use(
     ],
     credentials: true,
     exposedHeaders: ["Authorization"],
-  })
+  }),
 );
 app.options("/api/business-details/:userId", (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -71,7 +71,7 @@ app.get("/", (req, res) => {
 
 app.listen(port, () => {
   console.log(
-    "Server listening on port " + chalk.blueBright("http://localhost:" + port)
+    "Server listening on port " + chalk.blueBright("http://localhost:" + port),
   );
 });
 
