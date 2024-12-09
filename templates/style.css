@@ -1,0 +1,105 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f5f5f5;
+    font-family: Arial, sans-serif;
+
+}
+
+.invoice-container {
+    max-width: 800px;
+    margin: 20px auto;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+header h1 {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.company-details {
+    text-align: right;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.item-details {
+    margin-bottom: 50px;
+}
+
+.company-details a {
+    text-decoration: none;
+    color: #007BFF;
+}
+
+.billing-info {
+    display: grid;
+    grid-template-columns: repeat(3, 2fr);
+    grid-template-rows: repeat(2, 5fr);
+    column-gap: 100px;
+    justify-content: space-between;
+    margin: 50px 10px 50px 10px;
+    font-size: 14px;
+    align-items: center;
+
+
+}
+
+.billed-to h3 {
+    margin-bottom: 10px;
+}
+
+.item-details table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.item-details th,
+.item-details td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.item-details th {
+    background: #f5f5f5;
+    font-weight: bold;
+}
+
+.totals {
+    text-align: right;
+    font-size: 16px;
+    margin-bottom: 50px;
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #555;
+}
+
+footer a {
+    color: #007BFF;
+    text-decoration: none;
+}
+
+img {
+    width: 72px;
+    height: 72px;
+}
