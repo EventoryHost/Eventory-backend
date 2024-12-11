@@ -3,6 +3,8 @@ const Schema = _Schema;
 
 const invitationSchema = new Schema(
   {
+    priceStarts: { type: String },
+
     userId: { type: String },
     pageNumber: { type: Number, default: 1 },
     portfolio: {

@@ -9,6 +9,7 @@ const CateringSchema = new mongoose.Schema(
     servingCapacity: { type: String },
     description: { type: String },
     venueType: { type: String, default: "catering" },
+    priceStarts: { type: String },
 
     // New fields based on the final model
     regionalSpecialties: { type: [String] }, // Renamed to match final model
@@ -48,7 +49,7 @@ const CateringSchema = new mongoose.Schema(
     videos: { type: [String] }, // Videos related to catering
     tastingSessions: { type: Boolean }, // Tasting sessions offered
     businessLicenses: { type: Boolean }, // Business licenses held
-    foodSafety: { type: Boolean }, // Food safety certificates held
+    food_safety_certificates: { type: [String], required: true },
 
     // Optionally you could add more specific fields related to your use case
   },

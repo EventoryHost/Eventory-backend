@@ -59,6 +59,7 @@ const venueSchema = new Schema({
   awards: { type: String },
   clientTestimonials: { type: String },
   advanceBookingPeriod: { type: String },
+  priceStarts: { type: String },
 });
 
 const VenueModel = model("ReduxVenueProvider", venueSchema);

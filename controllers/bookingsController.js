@@ -9,7 +9,7 @@ const vendorModels = {
   caterer: Caterer,
   decorator: Decorator,
   "venue-provider": Venue,
-  propRental: PropRental,
+  "prop-rental": PropRental,
   pav: Photographer,
 };
 

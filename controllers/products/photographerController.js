@@ -1,7 +1,15 @@
 import Photographer from "../../models/photographers.js";
+import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
-  return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
+  // Handle cases where there might be a single file instead of an array of files
+  const fileArray = files[fieldName];
+  if (fileArray) {
+    return Array.isArray(fileArray)
+      ? fileArray.map((file) => file.location)
+      : [fileArray.location];
+  }
+  return [];
 };
 
 const createPhotographer = async (req, res) => {
@@ -16,26 +24,71 @@ const createPhotographer = async (req, res) => {
     }
 
     // Process file uploads if available
-    const photosUrls = getFileUrls(req.files, "photos")[0] || req.body.photos;
-    const videosUrls = getFileUrls(req.files, "videos")[0] || req.body.videos;
+
+    const photosUrls = getFileUrls(req.files, "photos");
+    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+
+    const videosUrls = getFileUrls(req.files, "videos");
+    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+
     const cancellationPolicyFileUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
+
     // Create a new photographer with provided data
     const newPhotographer = new Photographer({
+      basicDetails: {
+        name: req.body.name,
+        description: req.body.description,
+        eventSize: req.body.eventSize,
+        eventTypes: req.body.eventTypes,
+      },
+      Videography: req.body.Videography,
+      Photography: req.body.Photography,
+      consultationDetails: {
+        duration: req.body.duration,
+        PackageTypes: req.body.PackageTypes,
+        proposalsToClients: req.body.proposalsToClients === "true",
+        freeInitialConsultation: req.body.freeInitialConsultation === "true",
+        bookingDeposit: req.body.bookingDeposit === "true",
+        availableForDestinationEvents:
+          req.body.availablefordestinationevents === "true",
+        AdvanceSetup: req.body.Advancesetup === "true",
+        postProductionServices: req.body.postproductionservices === "true",
+      },
+      additionalDetails: {
+        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        clientTestimonials: req.body.clientTestimonials,
+        awards: req.body.awards,
+        website: req.body.website,
+        instagram: req.body.instagram,
+        priceStartingFrom: req.body.priceStartingFrom,
+      },
       ...req.body,
-      photos: photosUrls,
-      description: req.body.description,
-      videos: videosUrls,
-      cancellationPolicy: cancellationPolicyFileUrl,
-      termsAndConditions: termsAndConditionsFileUrl,
+      policies: {
+        cancellationPolicy: cancellationPolicyFileUrl,
+        termsAndConditions: termsAndConditionsFileUrl,
+      },
     });
 
     // Save the photographer to the database
-    await newPhotographer.save();
+    const saved = await newPhotographer.save();
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Photographer.findByIdAndDelete(saved.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "pav",
+      serId: saved.id,
+    });
+    await vendor.save();
+    // console.log(newPhotographer);
     res.status(201).json({ message: "Photographer created successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });

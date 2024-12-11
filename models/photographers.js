@@ -1,31 +1,37 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
+  basicDetails: {
+    name: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    eventSize: { type: String, required: true },
+    eventTypes: {
+      type: [String],
+      required: true,
+    },
+  },
+
   id: { type: String, default: generateUniqueId("ser"), required: true },
   venId: { type: String, required: true },
-  description: {
-    type: String,
-    required: true,
-  },
+
   vendorType: { type: String, default: "photographer" },
-  name: {
-    type: String,
-    required: true,
-  },
-  eventSize: { type: String, required: true },
-  description: { type: String },
-  eventTypes: {
-    type: [String],
-    required: true,
-  },
+  schedule: [eventSchema],
+
   //page 2
   Videography: {
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -39,7 +45,7 @@ const photographerSchema = Schema({
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -49,54 +55,60 @@ const photographerSchema = Schema({
       type: [String],
     },
   },
-  //page-3
-  duration: { type: String },
-  PackageTypes: {
-    type: String,
-    default: "Both",
+  consultationDetails: {
+    duration: { type: String },
+    PackageTypes: {
+      type: String,
+      default: "Both",
+    },
+
+    proposalsToClients: {
+      type: Boolean,
+      default: false,
+    },
+    freeInitialConsultation: {
+      type: Boolean,
+      default: false,
+    },
+    bookingDeposit: {
+      type: Boolean,
+      default: false,
+    },
+    availableForDestinationEvents: {
+      type: Boolean,
+      default: false,
+    },
+    AdvanceSetup: {
+      type: Boolean,
+      default: false,
+    },
+    postProductionServices: {
+      type: Boolean,
+      default: false,
+    },
   },
-  designProposals: {
-    type: Boolean,
-    default: false,
+  additionalDetails: {
+    photos: { type: [String], required: true },
+    videos: { type: [String], required: true },
+    clientTestimonials: { type: String },
+    awards: { type: String },
+    website: { type: String },
+    instagram: { type: String },
+    priceStartingFrom: { type: String, required: true },
+    // advanceBookingPeriod: { type: String, required: true },
+    // initialthemeProposels: { type: Boolean, default: false },
+    // WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
   },
-  freeInitialConsultation: {
-    type: Boolean,
-    default: false,
+  policies: {
+    cancellationPolicy: {
+      type: [String],
+    },
+    termsAndConditions: {
+      type: [String],
+    },
   },
-  bookingDepositRequired: {
-    type: Boolean,
-    default: false,
-  },
-  availableForOutofTownbooking: {
-    type: Boolean,
-    default: false,
-  },
-  Advancesetup: {
-    type: Boolean,
-    default: false,
-  },
-  postproductionservices: {
-    type: Boolean,
-    default: false,
-  },
-  // page-4
-  photos: { type: [String], required: true },
-  videos: { type: [String], required: true },
-  clientTestimonials: { type: String },
-  awards: { type: String },
-  website: { type: String },
-  instagram: { type: String },
-  advanceBookingPeriod: { type: String, required: true },
-  initialthemeProposels: { type: Boolean, default: false },
-  WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
 
   //page-5
-  cancellationPolicy: {
-    type: [String],
-  },
-  termsAndConditions: {
-    type: [String],
-  },
 });
 
 const Photographer = model("Photographer", photographerSchema);
