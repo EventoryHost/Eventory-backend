@@ -21,8 +21,7 @@ async function generateInvoice(customer, paymentDetails) {
       // CGST & SGST for Delhi-based pincodes
       const cgst = tax / 2;
       const sgst = tax / 2;
-      taxSection =
-        `<p>Subtotal: ₹ ${subtotal.toFixed(2)}</p>
+      taxSection = `<p>Subtotal: ₹ ${subtotal.toFixed(2)}</p>
         <p>CGST (9%): ₹ ${cgst.toFixed(2)}</p>
         <p>SGST (9%): ₹ ${sgst.toFixed(2)}</p>
         <h3>Total: ₹ ${paymentDetails.amount}</h3>
@@ -69,14 +68,14 @@ async function generateInvoice(customer, paymentDetails) {
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-        });
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+          });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
-    await page.addStyleTag({ content: css })
+    await page.addStyleTag({ content: css });
 
     // Define PDF options
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
