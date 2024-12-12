@@ -114,11 +114,10 @@ export const getVenueImages = async (req, res) => {
       return res.status(404).json({ message: "Venue not found" });
     }
     return res.status(200).json(venue);
-  }
-  catch (error) {
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const getVenueVideos = async (req, res) => {
   try {
@@ -130,11 +129,9 @@ export const getVenueVideos = async (req, res) => {
 
     const videos = venue.videos || [];
     return res.status(200).json(videos);
-  }
-  catch (error) {
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
-
+};
 
 export default { createVenue, getAllVenues };

@@ -1,5 +1,8 @@
 import express from "express";
-import { getVenueImages, getVenueVideos } from "../controllers/products/venueController.js";
+import {
+  getVenueImages,
+  getVenueVideos,
+} from "../controllers/products/venueController.js";
 const router = express.Router();
 
 router.get("/venue", getVenueImages);
