@@ -105,4 +105,36 @@ const getAllVenues = async (req, res) => {
   }
 };
 
+export const getVenueImages = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const venue = await Venue.findOne({ venId: id }).lean();
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    return res.status(200).json(venue);
+  }
+  catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+}
+
+export const getVenueVideos = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const venue = await Venue.findOne({ venId: id }).lean();
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+
+    const videos = venue.videos || [];
+    return res.status(200).json(videos);
+  }
+  catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+}
+
+
 export default { createVenue, getAllVenues };
