@@ -18,6 +18,7 @@ import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
 import serviceRouter from "../routes/servicesRoutes.js";
 import venueRouter from "../routes/venueRoutes.js";
+import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -65,7 +66,8 @@ app.use("/api/quotations", venueQuotationRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
 app.use("/api/service",serviceRouter);
-app.use("/api/venue", venueRouter);
+app.use("/api/venue", venueRouter);app.use("/api", featuredVendorsRoutes);
+
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
 });
