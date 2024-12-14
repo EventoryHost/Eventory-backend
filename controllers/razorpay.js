@@ -66,13 +66,8 @@ const verifyPayment = async (req, res) => {
       };
       const vendor = await Vendor.findOne({ id: ven_id });
       const file = await generateInvoice(vendor, formattedDetails);
-      if (vendor.email)
-        sendEmailInvoice(vendor.email, file.pdf, file.fileName);
-      sendInvoiceToWhatsApp(
-        file.url,
-        vendor.mobile,
-        formattedDetails.amount,
-      );
+      if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
+      sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
 
       return res.json({ message: "Payment verified" });
     } else {
