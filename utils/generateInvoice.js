@@ -11,11 +11,38 @@ async function generateInvoice(customer, paymentDetails) {
   try {
     const templatePath = path.resolve("templates", "invoiceTemplate.html");
     let html = readFileSync(templatePath, "utf8");
+    let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
+
+    const subtotal = paymentDetails.amount * 0.82;
+    const tax = paymentDetails.amount * 0.18;
+    let taxSection = "";
+    console.log("Customer:", customer.businessDetails);
+    if (customer.businessDetails.pinCode.toString().startsWith("1")) {
+      // CGST & SGST for Delhi-based pincodes
+      const cgst = tax / 2;
+      const sgst = tax / 2;
+      taxSection = `<p>Subtotal: ₹ ${subtotal.toFixed(2)}</p>
+        <p>CGST (9%): ₹ ${cgst.toFixed(2)}</p>
+        <p>SGST (9%): ₹ ${sgst.toFixed(2)}</p>
+        <h3>Total: ₹ ${paymentDetails.amount}</h3>
+
+      `;
+    } else {
+      // IGST for other pincodes
+
+      taxSection = `
+      <p>Subtotal: ₹ ${subtotal.toFixed(2)}</p>
+
+      <p>IGST (18%): ₹ ${tax.toFixed(2)}</p>
+      <h3>Total: ₹ ${paymentDetails.amount}</h3>
+
+      `;
+    }
 
     // Replace placeholders with actual data
+
     html = html.replace("{{invoiceNumber}}", paymentDetails.invoiceNumber);
     html = html.replace("{{invoiceDate}}", paymentDetails.invoiceDate);
-    html = html.replace("{{dueDate}}", paymentDetails.dueDate || "N/A");
     html = html.replace("{{paymentMethod}}", paymentDetails.method);
     html = html.replace("{{customerName}}", customer.name);
     html = html.replace(
@@ -27,7 +54,10 @@ async function generateInvoice(customer, paymentDetails) {
       customer.businessDetails.businessAddress,
     );
     html = html.replace("{{amount}}", paymentDetails.amount);
-
+    html = html.replace("{{gstin}}", customer.businessDetails.gstin);
+    html = html.replaceAll("{{subtotal}}", subtotal.toFixed(2));
+    html = html.replace("{{taxSection}}", taxSection);
+    html = html.replace("{{vendorId}}", customer.id);
     // Launch Puppeteer and create PDF
     const puppeteer =
       process.env.IS_LOCAL === "true"
@@ -45,6 +75,7 @@ async function generateInvoice(customer, paymentDetails) {
           });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
+    await page.addStyleTag({ content: css });
 
     // Define PDF options
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
