@@ -9,12 +9,32 @@ const venueQuotationSchema = new mongoose.Schema(
       type: Number,
       unique: true,
     },
+    user_id: {
+      type: String,
+      required: true,
+    },
     event_name: {
+      type: String,
+      required: true,
+    },
+    full_name: {
       type: String,
       required: true,
     },
     number_of_guest: {
       type: String,
+      required: true,
+    },
+    email:{ 
+      type: String,
+      required: true,
+    },
+    mobile: {
+      type: String,
+      required: true,
+    },
+    event_type: {
+      type: [String],
       required: true,
     },
     date: {
@@ -38,18 +58,14 @@ const venueQuotationSchema = new mongoose.Schema(
       enum: ["Pending", "Accepted", "Rejected", "In Progress"],
       default: "Pending",
     },
-    user_id: {
-      type: String,
-      required: true,
-    },
-    user_name: {
-      type: String,
-      required: true,
-    },
     vendor_id: {
       type: String,
       required: true,
     },
+    service_id : {
+      type: String,
+      required: true,
+    }
   },
   { timestamps: true },
 );

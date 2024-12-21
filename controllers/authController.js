@@ -16,6 +16,7 @@ import {
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { Vendor as User } from "../models/users.js";
+import { Customer } from "../models/customer.js";
 
 const createVendor = async (req, res) => {
   try {
@@ -224,7 +225,53 @@ const verifyLoginOtp = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
-      },
+      }
+    );
+
+    res.status(200).json({ message: "Login Success", token, user });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const verifyCustomerLoginOtp = async (req, res) => {
+  const { mobile, code, session, name } = req.body;
+
+  const params = {
+    ChallengeName: "CUSTOM_CHALLENGE",
+    ClientId: process.env.COGNITO_APP_CLIENT_ID,
+    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    Username: `+91${mobile}`,
+    Password: "123456",
+    ChallengeResponses: {
+      USERNAME: `+91${mobile}`,
+      ANSWER: code,
+    },
+    Session: session,
+  };
+
+  try {
+    const command = new AdminRespondToAuthChallengeCommand(params);
+    var data = await cognito.send(command);
+
+    let user = await Customer.findOne({ phone: `+91${mobile}` });
+    if (!user) {
+      try {
+        const customer = new Customer({ name, phone: `+91${mobile}` });
+        await customer.save();
+        return res.status(200).json(customer);
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    }
+
+    const token = jwt.sign(
+      { id: user.id, mobile: user.phone, name: user.name },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h",
+      }
     );
 
     res.status(200).json({ message: "Login Success", token, user });
@@ -288,11 +335,11 @@ const googleCallback = async (req, res) => {
     const sessionToken = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "1h" }
     );
 
     res.redirect(
-      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -346,7 +393,7 @@ const updateProfilePic = async (req, res) => {
     const updatedVendor = await User.findOneAndUpdate(
       { id: vendorId }, // Query by the custom ID field
       { profilePic: req.file.location }, // Store the path of the uploaded file
-      { new: true }, // Return the updated document
+      { new: true } // Return the updated document
     );
 
     if (!updatedVendor) {
@@ -370,4 +417,5 @@ export default {
   createVendor,
   getVendor,
   updateProfilePic,
+  verifyCustomerLoginOtp,
 };
