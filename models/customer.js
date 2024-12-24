@@ -3,7 +3,7 @@ import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const CustomerSchema = new Schema({
-    id: { type: String, default: generateUniqueId("cus"), required: true },
+    id: { type: String, default: generateUniqueId("cus"), required: true, unique: true },
     name: { type: String, required: true },
     phone: { type: String, required: true },
     bookings: [ 
@@ -12,6 +12,7 @@ const CustomerSchema = new Schema({
         bookingId: { type: String, required: true },
       },
     ],
+    favoriteServices: [ { type: String } ],
   });
   
 
