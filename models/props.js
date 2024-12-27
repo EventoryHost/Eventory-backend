@@ -10,6 +10,7 @@ const pricingSchema = new Schema({
 });
 
 const propRentalSchema = new Schema({
+  type: { type: String, default: "propRental" },
   basicDetails: {
     managerName: {
       type: String,
@@ -47,7 +48,7 @@ const propRentalSchema = new Schema({
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
   },
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  id: { type: String, default: generateUniqueId("prop"), required: true },
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "propRental" },

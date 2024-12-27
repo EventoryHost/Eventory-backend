@@ -11,8 +11,8 @@ export const eventSchema = new Schema({
 });
 
 const venueSchema = new Schema({
-  id: { type: String, default: generateUniqueId("ser"), required: true },
-
+  id: { type: String, default: generateUniqueId("veu"), required: true },
+  type: { type: String, default: "venue" },
   basicDetails: {
     name: {
       type: String,

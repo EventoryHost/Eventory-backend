@@ -4,6 +4,7 @@ import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
+  type: { type: String, default: "pav" },
   basicDetails: {
     name: {
       type: String,
@@ -20,7 +21,7 @@ const photographerSchema = Schema({
     },
   },
 
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  id: { type: String, default: generateUniqueId("pav"), required: true },
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "photographer" },
