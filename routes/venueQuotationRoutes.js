@@ -4,10 +4,8 @@ import { Customer } from "../models/customer.js";
 
 const router = express.Router();
 
-// Create a new quotation
 router.post("/addQuotation", async (req, res) => {
   try {
-    // Use `await` to resolve the promise
     const user = await Customer.findOne({ id: req.body.user_id });
     if (!user) {
       return res.status(404).json({
@@ -24,7 +22,8 @@ router.post("/addQuotation", async (req, res) => {
       mobile: req.body.mobile,
       event_type: req.body.event_type,
       time: req.body.time,
-      date: req.body.date,
+      start_date: req.body.start_date,
+      end_date: req.body.end_date,
       budget: req.body.budget,
       requirements: req.body.requirements,
       vendor_id: req.body.vendor_id,
@@ -38,7 +37,6 @@ router.post("/addQuotation", async (req, res) => {
       bookingId: savedQuotation._id,
     };
 
-    // Ensure `user.bookings` is properly defined before pushing
     if (!user.bookings) {
       user.bookings = [];
     }
@@ -58,7 +56,6 @@ router.post("/addQuotation", async (req, res) => {
   }
 });
 
-// Get quotations by vendor id
 router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;

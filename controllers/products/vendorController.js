@@ -39,6 +39,16 @@ const getVendorByIdAndCategory = async (req, res) => {
   }
 };
 
+export const getVenue = async (req, res) => {
+  try {
+    const venue = await Venue.find();
+    res.json(venue);
+  } catch (error) {
+    console.error("Error fetching venue:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 export default {
   getVendorByIdAndCategory,
 };

@@ -37,7 +37,11 @@ const venueQuotationSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
-    date: {
+    start_date: {
+      type: String,
+      required: true,
+    },
+    end_date: {
       type: String,
       required: true,
     },
