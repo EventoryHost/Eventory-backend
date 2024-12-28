@@ -1,6 +1,6 @@
 import { Caterer } from "../../models/caterer.js";
 import { Vendor as User } from "../../models/users.js";
-import calculateProfileCompletion  from '../../utils/calculateCompletion.js';
+import calculateProfileCompletion from "../../utils/calculateCompletion.js";
 
 // Function to handle multiple files
 const getFileUrls = (files, fieldName) => {
