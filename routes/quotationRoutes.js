@@ -1,12 +1,12 @@
 import express from "express";
-import venueQuotation from "../models/venueQuotation.js";
+import quotation from "../models/quotation";
 
 const router = express.Router();
 
 // Create a new quotation
 router.post("/", async (req, res) => {
   try {
-    const newQuotation = new venueQuotation({
+    const newQuotation = new quotation({
       event_name: req.body.event_name,
       number_of_guest: req.body.number_of_guest,
       date: req.body.date,
@@ -42,7 +42,7 @@ router.get("/", async (req, res) => {
       });
     }
 
-    const quotations = await venueQuotation.find({ vendor_id });
+    const quotations = await quotation.find({ vendor_id });
 
     if (quotations.length === 0) {
       return res.status(404).json({
