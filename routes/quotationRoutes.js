@@ -1,5 +1,5 @@
 import express from "express";
-import quotation from "../models/quotation";
+import quotation from "../models/quotation.js";
 
 const router = express.Router();
 
@@ -7,15 +7,22 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const newQuotation = new quotation({
-      event_name: req.body.event_name,
-      number_of_guest: req.body.number_of_guest,
+      // Meta Data
+      user_id: req.body.user_id,
+      vendor_id: req.body.vendor_id,
+      service_id: req.body.service_id,
+
+      // Data
+      user_name: req.body.user_name,
+      email: req.body.email,
+      mobile: req.body.mobile,
+      event: req.body.event_name,
+      location: req.body.location,
       date: req.body.date,
       time: req.body.time,
       budget: req.body.budget,
+      number_of_guest: req.body.number_of_guest,
       requirements: req.body.requirements,
-      user_id: req.body.user_id,
-      user_name: req.body.user_name,
-      vendor_id: req.body.vendor_id,
     });
 
     const savedQuotation = await newQuotation.save();
