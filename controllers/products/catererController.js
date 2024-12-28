@@ -5,12 +5,12 @@ import calculateProfileCompletion  from '../../utils/calculateCompletion.js';
 // Function to handle multiple files
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
-  // const fileArray = files[fieldName];
-  // if (fileArray) {
-  //   return Array.isArray(fileArray)
-  //     ? fileArray.map((file) => file.location)
-  //     : [fileArray.location];
-  // }
+  const fileArray = files[fieldName];
+  if (fileArray) {
+    return Array.isArray(fileArray)
+      ? fileArray.map((file) => file.location)
+      : [fileArray.location];
+  }
   return [];
 };
 
