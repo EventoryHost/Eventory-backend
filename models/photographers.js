@@ -18,6 +18,7 @@ const photographerSchema = Schema({
       type: [String],
       required: true,
     },
+    profileCompletion: { type: Number, default: 0 },
   },
 
   id: { type: String, default: generateUniqueId("ser"), required: true },

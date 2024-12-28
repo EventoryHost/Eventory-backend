@@ -32,6 +32,7 @@ const venueSchema = new Schema({
     description: {
       type: String,
     },
+    profileCompletion: { type: Number, default: 0 },
   },
 
   featureDetails: {

@@ -23,6 +23,7 @@ const propRentalSchema = new Schema({
       type: String,
       required: true,
     },
+    profileCompletion: { type: Number, default: 0 },
   },
   serviceDetails: {
     itemCatalogue: {

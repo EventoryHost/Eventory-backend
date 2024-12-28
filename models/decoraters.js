@@ -5,6 +5,7 @@ import { eventSchema } from "./venue.js";
 
 const decoratorSchema = Schema({
   basicDetails: {
+    profileCompletion: { type: Number, default: 0 },
     name: { type: String, required: true },
     eventSize: { type: String, required: true },
     description: { type: String, required: true },
