@@ -14,7 +14,7 @@ import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
 import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
-import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
+import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
 
 const app = express();
@@ -59,7 +59,7 @@ app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
-app.use("/api/quotations", venueQuotationRoutes);
+app.use("/api/quotations", quotationRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
 
