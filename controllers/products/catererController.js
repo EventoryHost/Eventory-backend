@@ -1,15 +1,16 @@
 import { Caterer } from "../../models/caterer.js";
 import { Vendor as User } from "../../models/users.js";
+import calculateProfileCompletion  from '../../utils/calculateCompletion.js';
 
 // Function to handle multiple files
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
-  const fileArray = files[fieldName];
-  if (fileArray) {
-    return Array.isArray(fileArray)
-      ? fileArray.map((file) => file.location)
-      : [fileArray.location];
-  }
+  // const fileArray = files[fieldName];
+  // if (fileArray) {
+  //   return Array.isArray(fileArray)
+  //     ? fileArray.map((file) => file.location)
+  //     : [fileArray.location];
+  // }
   return [];
 };
 
@@ -107,6 +108,57 @@ const createCaterer = async (req, res) => {
       },
       // deposit_required: req.body.deposit_required,
     });
+
+    // Calculate profile completion
+    const profileCompletion = calculateProfileCompletion({
+      basicDetails: {
+        name: req.body.name,
+        managerName: req.body.managerName,
+        capacity: req.body.capacity,
+        description: req.body.description,
+        cuisine_specialities: req.body.cuisine_specialities,
+        regional_specialities: req.body.regional_specialities,
+        service_style_offered: req.body.service_style_offered,
+      },
+      menuDetails: {
+        vegOrNonVeg: req.body.vegOrNonVeg,
+        menu: Array.isArray(menu) ? menu : [menu],
+        appetizers: req.body.appetizers,
+        beverages: req.body.beverages,
+        main_course: req.body.main_course,
+        special_dietary_options: req.body.special_dietary_options,
+        pre_set_menus: req.body.pre_set_menus,
+        customizable: req.body.customizable === "true",
+      },
+      eventDetails: {
+        additional_services: req.body.additional_services,
+        event_types_catered: req.body.event_types_catered,
+      },
+      staffAndEquipmentDetails: {
+        equipment_provided: req.body.equipment_provided,
+        staff_provided: req.body.staff_provided,
+      },
+      additionalDetails: {
+        priceStartingFrom: req.body.priceStartingFrom,
+        minimum_order_requirements: req.body.minimum_order_requirements,
+        advance_booking_period: req.body.advance_booking_period,
+        photos: Array.isArray(photos) ? photos : [photos],
+        videos: Array.isArray(videos) ? videos : [videos],
+        tasting_sessions: req.body.tasting_sessions === "true",
+        business_licenses: req.body.business_licenses === "true",
+        food_safety_certificates: Array.isArray(foodSafetyCertificates)
+          ? foodSafetyCertificates
+          : [foodSafetyCertificates],
+      },
+      policies: {
+        cancellation_policy: cancellationPolicyFileUrl,
+        terms_and_conditions: termsAndConditionsFileUrl,
+        client_testimonials: clientTestimonialsUrls,
+      },
+    });
+
+    // Now set profileCompletion for the new caterer
+    newCaterer.basicDetails.profileCompletion = profileCompletion;
 
     const savedCaterer = await newCaterer.save();
 
