@@ -24,12 +24,21 @@ const calculateProfileCompletion = (photographer) => {
   if (photographer.Photography) completedFields++;
   if (photographer.consultationDetails?.duration) completedFields++;
   if (photographer.consultationDetails?.PackageTypes?.length) completedFields++;
-  if (photographer.consultationDetails?.proposalsToClients !== undefined) completedFields++;
-  if (photographer.consultationDetails?.freeInitialConsultation !== undefined) completedFields++;
-  if (photographer.consultationDetails?.bookingDeposit !== undefined) completedFields++;
-  if (photographer.consultationDetails?.availableForDestinationEvents !== undefined) completedFields++;
-  if (photographer.consultationDetails?.AdvanceSetup !== undefined) completedFields++;
-  if (photographer.consultationDetails?.postProductionServices !== undefined) completedFields++;
+  if (photographer.consultationDetails?.proposalsToClients !== undefined)
+    completedFields++;
+  if (photographer.consultationDetails?.freeInitialConsultation !== undefined)
+    completedFields++;
+  if (photographer.consultationDetails?.bookingDeposit !== undefined)
+    completedFields++;
+  if (
+    photographer.consultationDetails?.availableForDestinationEvents !==
+    undefined
+  )
+    completedFields++;
+  if (photographer.consultationDetails?.AdvanceSetup !== undefined)
+    completedFields++;
+  if (photographer.consultationDetails?.postProductionServices !== undefined)
+    completedFields++;
   if (photographer.additionalDetails?.photos?.length) completedFields++;
   if (photographer.additionalDetails?.videos?.length) completedFields++;
   if (photographer.additionalDetails?.clientTestimonials) completedFields++;

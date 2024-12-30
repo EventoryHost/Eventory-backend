@@ -58,7 +58,6 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
-    
 
     // Calculate profile completion
     const fieldsToCheck = [
@@ -87,14 +86,14 @@ const createDecorator = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-      const newDecorator = new Decorator({
-        basicDetails: {
-          name: req.body.name,
-          description: req.body.description,
-          eventSize: req.body.eventSize,
-          eventTypes,
-          duration: req.body.duration,
-          profileCompletion, 
+    const newDecorator = new Decorator({
+      basicDetails: {
+        name: req.body.name,
+        description: req.body.description,
+        eventSize: req.body.eventSize,
+        eventTypes,
+        duration: req.body.duration,
+        profileCompletion,
       },
       themesOffered: {
         themesOffered: req.body.themesOffered,
@@ -132,7 +131,6 @@ const createDecorator = async (req, res) => {
       id: req.body.id,
       venId: req.body.venId,
     });
-
 
     const savedDecorator = await newDecorator.save();
     const vendor = await User.findOne({ id: req.body.venId });
