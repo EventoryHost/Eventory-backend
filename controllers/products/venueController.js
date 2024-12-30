@@ -138,7 +138,6 @@ export const getVenueVideos = async (req, res) => {
   }
 };
 
-
 export const addReviews = async (req, res) => {
   try {
     const { id, name, rating, feedback, photos, type } = req.body;
@@ -161,13 +160,12 @@ export const addReviews = async (req, res) => {
       });
       await venue.save();
       res.status(200).json(venue);
-    }
-    else if(type === "caterer"){
+    } else if (type === "caterer") {
       const caterer = await Caterer.findOne({ id: id });
-      if(!caterer){
+      if (!caterer) {
         return res.status(404).json({ message: "Caterer not found" });
       }
-      if(!caterer.reviews){
+      if (!caterer.reviews) {
         caterer.reviews = [];
       }
       caterer.reviews.push({
@@ -178,13 +176,12 @@ export const addReviews = async (req, res) => {
       });
       await caterer.save();
       res.status(200).json(caterer);
-    }
-    else if(type === "decorator"){
+    } else if (type === "decorator") {
       const decorator = await Decorator.findOne({ id: id });
-      if(!decorator){
+      if (!decorator) {
         return res.status(404).json({ message: "Decorator not found" });
       }
-      if(!decorator.reviews){
+      if (!decorator.reviews) {
         decorator.reviews = [];
       }
       decorator.reviews.push({
@@ -195,13 +192,12 @@ export const addReviews = async (req, res) => {
       });
       await decorator.save();
       res.status(200).json(decorator);
-    }
-    else if(type === "photographer"){
+    } else if (type === "photographer") {
       const photographer = await Photographer.findOne({ id: id });
-      if(!photographer){
+      if (!photographer) {
         return res.status(404).json({ message: "Photographer not found" });
       }
-      if(!photographer.reviews){
+      if (!photographer.reviews) {
         photographer.reviews = [];
       }
       photographer.reviews.push({
@@ -212,13 +208,12 @@ export const addReviews = async (req, res) => {
       });
       await photographer.save();
       res.status(200).json(photographer);
-    }
-    else if(type === "propRental"){
+    } else if (type === "propRental") {
       const prop = PropRental.findOne({ id: id });
-      if(!prop){
+      if (!prop) {
         return res.status(404).json({ message: "Prop Rental not found" });
       }
-      if(!prop.reviews){
+      if (!prop.reviews) {
         prop.reviews = [];
       }
       prop.reviews.push({
