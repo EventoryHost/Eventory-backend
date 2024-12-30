@@ -58,13 +58,43 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
-    const newDecorator = new Decorator({
-      basicDetails: {
-        name: req.body.name,
-        description: req.body.description,
-        eventSize: req.body.eventSize,
-        eventTypes,
-        duration: req.body.duration,
+    
+
+    // Calculate profile completion
+    const fieldsToCheck = [
+      req.body.name,
+      req.body.description,
+      req.body.eventSize,
+      req.body.duration,
+      req.body.themesOffered?.length > 0, // Check if at least one theme is offered
+      req.body.customDesignProcess,
+      req.body.themeElements?.length > 0, // Check if at least one theme element exists
+      req.body.clientTestimonials,
+      req.body.websiteurl,
+      req.body.intstagramurl,
+      req.body.advanceBookingPeriod,
+      req.body.priceStartingFrom,
+      req.body.themeProposels,
+      req.body.proposalRevisions,
+      cancellationPolicyFileUrl,
+      termsAndConditionsFileUrl,
+      themePhotosUrls.length > 0, // At least one photo
+      themeVideosUrls.length > 0, // At least one video
+      photosUrls.length > 0, // At least one additional photo
+      videosUrls.length > 0, // At least one additional video
+    ];
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profileCompletion =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+      const newDecorator = new Decorator({
+        basicDetails: {
+          name: req.body.name,
+          description: req.body.description,
+          eventSize: req.body.eventSize,
+          eventTypes,
+          duration: req.body.duration,
+          profileCompletion, 
       },
       themesOffered: {
         themesOffered: req.body.themesOffered,
@@ -93,7 +123,6 @@ const createDecorator = async (req, res) => {
         advanceBookingPeriod: req.body.advanceBookingPeriod,
         priceStartingFrom: req.body.priceStartingFrom,
         themeProposels: req.body.themeProposels,
-
         proposalRevisions: req.body.proposalRevisions,
       },
       policies: {
@@ -103,6 +132,7 @@ const createDecorator = async (req, res) => {
       id: req.body.id,
       venId: req.body.venId,
     });
+
 
     const savedDecorator = await newDecorator.save();
     const vendor = await User.findOne({ id: req.body.venId });

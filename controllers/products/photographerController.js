@@ -2,7 +2,6 @@ import Photographer from "../../models/photographers.js";
 import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
-  // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
     return Array.isArray(fileArray)
@@ -12,9 +11,37 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+const calculateProfileCompletion = (photographer) => {
+  const totalFields = 20; // Update with the total number of fields to evaluate
+  let completedFields = 0;
+
+  // Increment completedFields for each field that has a value
+  if (photographer.basicDetails?.name) completedFields++;
+  if (photographer.basicDetails?.description) completedFields++;
+  if (photographer.basicDetails?.eventSize) completedFields++;
+  if (photographer.basicDetails?.eventTypes?.length) completedFields++;
+  if (photographer.Videography) completedFields++;
+  if (photographer.Photography) completedFields++;
+  if (photographer.consultationDetails?.duration) completedFields++;
+  if (photographer.consultationDetails?.PackageTypes?.length) completedFields++;
+  if (photographer.consultationDetails?.proposalsToClients !== undefined) completedFields++;
+  if (photographer.consultationDetails?.freeInitialConsultation !== undefined) completedFields++;
+  if (photographer.consultationDetails?.bookingDeposit !== undefined) completedFields++;
+  if (photographer.consultationDetails?.availableForDestinationEvents !== undefined) completedFields++;
+  if (photographer.consultationDetails?.AdvanceSetup !== undefined) completedFields++;
+  if (photographer.consultationDetails?.postProductionServices !== undefined) completedFields++;
+  if (photographer.additionalDetails?.photos?.length) completedFields++;
+  if (photographer.additionalDetails?.videos?.length) completedFields++;
+  if (photographer.additionalDetails?.clientTestimonials) completedFields++;
+  if (photographer.additionalDetails?.website) completedFields++;
+  if (photographer.policies?.cancellationPolicy) completedFields++;
+  if (photographer.policies?.termsAndConditions) completedFields++;
+
+  return Math.round((completedFields / totalFields) * 100); // Return percentage
+};
+
 const createPhotographer = async (req, res) => {
   try {
-    // Check if the photographer already exists based on name and vendor ID
     const alreadyExists = await Photographer.findOne({
       name: req.body.name,
       venId: req.body.venId,
@@ -22,8 +49,6 @@ const createPhotographer = async (req, res) => {
     if (alreadyExists) {
       return res.status(400).json({ message: "Photographer already exists" });
     }
-
-    // Process file uploads if available
 
     const photosUrls = getFileUrls(req.files, "photos");
     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
@@ -38,13 +63,13 @@ const createPhotographer = async (req, res) => {
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
 
-    // Create a new photographer with provided data
     const newPhotographer = new Photographer({
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
         eventSize: req.body.eventSize,
         eventTypes: req.body.eventTypes,
+        profileCompletion: 0, // Placeholder, will be updated later
       },
       Videography: req.body.Videography,
       Photography: req.body.Photography,
@@ -75,7 +100,10 @@ const createPhotographer = async (req, res) => {
       },
     });
 
-    // Save the photographer to the database
+    // Calculate profile completion
+    const profileCompletion = calculateProfileCompletion(newPhotographer);
+    newPhotographer.basicDetails.profileCompletion = profileCompletion; // Add profile completion under basicDetails
+
     const saved = await newPhotographer.save();
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
@@ -88,14 +116,16 @@ const createPhotographer = async (req, res) => {
       serId: saved.id,
     });
     await vendor.save();
-    // console.log(newPhotographer);
-    res.status(201).json({ message: "Photographer created successfully" });
+
+    res.status(201).json({
+      message: "Photographer created successfully",
+      profileCompletion,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-// Fetch all photographers
 const getAllPav = async (req, res) => {
   try {
     const pav = await Photographer.find();

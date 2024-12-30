@@ -1,7 +1,6 @@
 import { Venue } from "../../models/venue.js";
 
 const getFileUrls = (files, fieldName) => {
-  // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
     return Array.isArray(fileArray)
@@ -9,6 +8,46 @@ const getFileUrls = (files, fieldName) => {
       : [fileArray.location];
   }
   return [];
+};
+
+const calculateProfileCompletion = (venue) => {
+  const totalFields = 26; // Total number of fields considered for profile completion
+  let completedFields = 0;
+
+  // Check and count completed fields
+  const fields = [
+    venue.basicDetails.managerName,
+    venue.basicDetails.name,
+    venue.basicDetails.capacity,
+    venue.basicDetails.address,
+    venue.basicDetails.operatingHours,
+    venue.basicDetails.description,
+    venue.featureDetails.venueTypes,
+    venue.featureDetails.decorServices,
+    venue.featureDetails.catererServices,
+    venue.featureDetails.restrictionsPolicies,
+    venue.featureDetails.speacialFeatures,
+    venue.featureDetails.audioVisualEquipment,
+    venue.featureDetails.accessibilityFeatures,
+    venue.featureDetails.facilities,
+    venue.additionalDetails.photos,
+    venue.additionalDetails.videos,
+    venue.additionalDetails.instagramURL,
+    venue.additionalDetails.websiteURL,
+    venue.additionalDetails.awards,
+    venue.additionalDetails.clientTestimonials,
+    venue.additionalDetails.advanceBookingPeriod,
+    venue.additionalDetails.priceStartingFrom,
+    venue.policies.termsConditions,
+    venue.policies.cancellationPolicy,
+    venue.policies.insurancePolicy,
+  ];
+
+  fields.forEach((field) => {
+    if (field && field.length) completedFields += 1;
+  });
+
+  return Math.round((completedFields / totalFields) * 100);
 };
 
 const createVenue = async (req, res) => {
@@ -76,6 +115,10 @@ const createVenue = async (req, res) => {
       },
     });
 
+    // Calculate profile completion percentage
+    const profileCompletion = calculateProfileCompletion(newVenue);
+    newVenue.profileCompletion = profileCompletion;
+
     const savedVenue = await newVenue.save();
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
@@ -88,7 +131,7 @@ const createVenue = async (req, res) => {
       serId: savedVenue.id,
     });
     await vendor.save();
-    console.log(savedVenue);
+
     res.status(201).json(savedVenue);
   } catch (error) {
     res.status(400).json({ error: error.message });
