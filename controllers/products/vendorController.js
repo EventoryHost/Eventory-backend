@@ -47,7 +47,7 @@ export const getVenue = async (req, res) => {
     console.error("Error fetching venue:", error);
     res.status(500).json({ message: "Server error" });
   }
-}
+};
 
 export default {
   getVendorByIdAndCategory,

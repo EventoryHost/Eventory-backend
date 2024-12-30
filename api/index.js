@@ -66,9 +66,10 @@ app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
-app.use("/api/service",serviceRouter);
-app.use("/api/venue", venueRouter);app.use("/api", featuredVendorsRoutes);
-app.use("/api/customer", customerRoutes)
+app.use("/api/service", serviceRouter);
+app.use("/api/venue", venueRouter);
+app.use("/api", featuredVendorsRoutes);
+app.use("/api/customer", customerRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
