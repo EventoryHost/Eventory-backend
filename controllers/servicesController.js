@@ -10,26 +10,26 @@ const getService = async (req, res) => {
   try {
     let vendorData;
 
-        // Fetch data based on vendor type
-        switch (vendortype) {
-            case "Caterer":
-                vendorData = await Caterer.findOne({ id: vendorid });
-                break;
-            case "Decorator":
-                vendorData = await Decorator.findOne({ id: vendorid });
-                break;
-            case "Venue Provider":
-                vendorData = await Venue.findOne({ id: vendorid });
-                break;
-            case "Prop Rental":
-                vendorData = await propRental.findOne({ id: vendorid });
-                break;
-            case "Photographers & Videographers":
-                vendorData = await Photographer.findOne({ id: vendorid });
-                break;
-            default:
-                return res.status(400).json({ error: "Invalid vendor type" });
-        }
+    // Fetch data based on vendor type
+    switch (vendortype) {
+      case "Caterer":
+        vendorData = await Caterer.findOne({ id: vendorid });
+        break;
+      case "Decorator":
+        vendorData = await Decorator.findOne({ id: vendorid });
+        break;
+      case "Venue Provider":
+        vendorData = await Venue.findOne({ id: vendorid });
+        break;
+      case "Prop Rental":
+        vendorData = await propRental.findOne({ id: vendorid });
+        break;
+      case "Photographers & Videographers":
+        vendorData = await Photographer.findOne({ id: vendorid });
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid vendor type" });
+    }
 
     // Check if vendor data exists
     if (!vendorData) {

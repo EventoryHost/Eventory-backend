@@ -225,7 +225,7 @@ const verifyLoginOtp = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
-      }
+      },
     );
 
     res.status(200).json({ message: "Login Success", token, user });
@@ -271,7 +271,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
-      }
+      },
     );
 
     res.status(200).json({ message: "Login Success", token, user });
@@ -335,11 +335,11 @@ const googleCallback = async (req, res) => {
     const sessionToken = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     res.redirect(
-      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -393,7 +393,7 @@ const updateProfilePic = async (req, res) => {
     const updatedVendor = await User.findOneAndUpdate(
       { id: vendorId }, // Query by the custom ID field
       { profilePic: req.file.location }, // Store the path of the uploaded file
-      { new: true } // Return the updated document
+      { new: true }, // Return the updated document
     );
 
     if (!updatedVendor) {

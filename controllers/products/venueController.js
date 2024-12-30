@@ -132,16 +132,16 @@ export const getVenueVideos = async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const addReviews = async (req, res) => {
   try {
     const { id, name, rating, feedback, photos } = req.body;
-    const venue = await Venue.findOne({id: id});
+    const venue = await Venue.findOne({ id: id });
     if (!venue) {
       return res.status(404).json({ message: "Venue not found" });
     }
-    if(!venue.reviews){
+    if (!venue.reviews) {
       venue.reviews = [];
     }
 
@@ -149,17 +149,16 @@ export const addReviews = async (req, res) => {
       rating,
       name,
       feedback,
-      photos
+      photos,
     });
 
     await venue.save();
 
     res.status(200).json(venue);
-
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const getVenueReviews = async (req, res) => {
   try {
@@ -169,11 +168,9 @@ export const getVenueReviews = async (req, res) => {
       return res.status(404).json({ message: "Venue not found" });
     }
     res.status(200).json(venue.reviews);
-  }
-  catch(error) {
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
-
+};
 
 export default { createVenue, getAllVenues };
