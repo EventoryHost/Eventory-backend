@@ -59,6 +59,14 @@ const catererSchema = new Schema({
   venId: { type: String, required: true },
   vendorType: { type: String, default: "caterer" },
   schedule: [eventSchema],
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+    },
+  ],
 });
 
 const Caterer = model("Caterer", catererSchema);

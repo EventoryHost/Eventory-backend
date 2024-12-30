@@ -108,6 +108,14 @@ const photographerSchema = Schema({
       type: [String],
     },
   },
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+    },
+  ],
 
   //page-5
 });

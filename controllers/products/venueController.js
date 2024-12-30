@@ -1,5 +1,6 @@
 import { Venue } from "../../models/venue.js";
 import { Vendor as User } from "../../models/users.js";
+import { Caterer } from "../../models/caterer.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -132,34 +133,52 @@ export const getVenueVideos = async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const addReviews = async (req, res) => {
   try {
-    const { id, name, rating, feedback, photos } = req.body;
-    const venue = await Venue.findOne({id: id});
-    if (!venue) {
-      return res.status(404).json({ message: "Venue not found" });
+    const { id, name, rating, feedback, photos, type } = req.body;
+    if (!id || !name || !rating || !feedback || !type) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
-    if(!venue.reviews){
-      venue.reviews = [];
+    if (type === "venue") {
+      const venue = await Venue.findOne({ id: id });
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+      if (!venue.reviews) {
+        venue.reviews = [];
+      }
+      venue.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+      });
+      await venue.save();
+      res.status(200).json(venue);
     }
-
-    venue.reviews.push({
-      rating,
-      name,
-      feedback,
-      photos
-    });
-
-    await venue.save();
-
-    res.status(200).json(venue);
-
+    else if(type === "caterer"){
+      const caterer = await Caterer.findOne({ id: id });
+      if(!caterer){
+        return res.status(404).json({ message: "Caterer not found" });
+      }
+      if(!caterer.reviews){
+        caterer.reviews = [];
+      }
+      caterer.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+      });
+      await caterer.save();
+      res.status(200).json(caterer);
+    }
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const getVenueReviews = async (req, res) => {
   try {
@@ -169,11 +188,9 @@ export const getVenueReviews = async (req, res) => {
       return res.status(404).json({ message: "Venue not found" });
     }
     res.status(200).json(venue.reviews);
-  }
-  catch(error) {
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
-
+};
 
 export default { createVenue, getAllVenues };

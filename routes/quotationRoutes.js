@@ -1,5 +1,6 @@
 import express from "express";
 import quotation from "../models/quotation.js";
+import { Customer } from "../models/customer.js";
 
 const router = express.Router();
 
@@ -16,16 +17,41 @@ router.post("/", async (req, res) => {
       user_name: req.body.user_name,
       email: req.body.email,
       mobile: req.body.mobile,
-      event: req.body.event_name,
+      event: req.body.event,
       location: req.body.location,
-      date: req.body.date,
+      start_date: req.body.start_date,
+      end_date: req.body.end_date,
       time: req.body.time,
       budget: req.body.budget,
       number_of_guest: req.body.number_of_guest,
       requirements: req.body.requirements,
+      event_type: req.body.event_type,
     });
 
+    const customer = await Customer.findOne({ id: req.body.user_id });
+
+    if (!customer) {
+      return res.status(404).json({
+        message: "Customer not found",
+      });
+    }
+
+    
+
     const savedQuotation = await newQuotation.save();
+
+
+    if(!customer.bookings){
+      customer.bookings = [];
+    }
+
+    customer.bookings.push({
+      serviceId: req.body.service_id,
+      bookingId: savedQuotation._id,
+    });
+
+    await customer.save();
+
     res.status(201).json({
       message: "Quotation created successfully!",
       data: savedQuotation,

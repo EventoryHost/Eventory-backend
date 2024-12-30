@@ -22,6 +22,14 @@ const makeupArtistBaseSchema = {
   onSiteAvailability: { type: Boolean },
   specialization: { type: [String] },
   portfolio: [String],
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+    },
+  ],
 };
 
 const createMakeupArtistSchema = (artistType) => {

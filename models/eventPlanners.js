@@ -69,6 +69,14 @@ const eventPlannerSchema = new Schema({
   specializations: { type: String },
   description: { type: String },
   VendorType: { type: String, default: "eventPlanner" },
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+    },
+  ],
 });
 
 const EventPlanner = model("EventPlanner", eventPlannerSchema);

@@ -52,6 +52,14 @@ const decoratorSchema = Schema({
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
   schedule: [eventSchema],
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+    },
+  ],
 
   // themeProposels: { type: Boolean, default: false },
   // proposalRevisions: { type: Boolean, default: false },
