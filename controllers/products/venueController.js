@@ -1,6 +1,9 @@
 import { Venue } from "../../models/venue.js";
 import { Vendor as User } from "../../models/users.js";
 import { Caterer } from "../../models/caterer.js";
+import { Decorator } from "../../models/decoraters.js";
+import Photographer from "../../models/photographers.js";
+import PropRental from "../../models/props.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -134,7 +137,7 @@ export const getVenueVideos = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-};
+
 
 export const addReviews = async (req, res) => {
   try {
@@ -175,6 +178,57 @@ export const addReviews = async (req, res) => {
       });
       await caterer.save();
       res.status(200).json(caterer);
+    }
+    else if(type === "decorator"){
+      const decorator = await Decorator.findOne({ id: id });
+      if(!decorator){
+        return res.status(404).json({ message: "Decorator not found" });
+      }
+      if(!decorator.reviews){
+        decorator.reviews = [];
+      }
+      decorator.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+      });
+      await decorator.save();
+      res.status(200).json(decorator);
+    }
+    else if(type === "photographer"){
+      const photographer = await Photographer.findOne({ id: id });
+      if(!photographer){
+        return res.status(404).json({ message: "Photographer not found" });
+      }
+      if(!photographer.reviews){
+        photographer.reviews = [];
+      }
+      photographer.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+      });
+      await photographer.save();
+      res.status(200).json(photographer);
+    }
+    else if(type === "propRental"){
+      const prop = PropRental.findOne({ id: id });
+      if(!prop){
+        return res.status(404).json({ message: "Prop Rental not found" });
+      }
+      if(!prop.reviews){
+        prop.reviews = [];
+      }
+      prop.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+      });
+      await prop.save();
+      res.status(200).json(prop);
     }
   } catch (error) {
     res.status(400).json({ message: error.message });
