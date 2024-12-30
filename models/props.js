@@ -98,6 +98,6 @@ const propRentalSchema = new Schema({
   },
 });
 
-const PropRental = model("PropRental", propRentalSchema);
+const PropRental = model("PropRental", propRentalSchema, "proprentals");
 
 export default PropRental;

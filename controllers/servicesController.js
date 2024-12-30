@@ -18,10 +18,10 @@ const getService = async (req, res) => {
             case "Decorator":
                 vendorData = await Decorator.findOne({ id: vendorid });
                 break;
-            case "Venue provider":
+            case "Venue Provider":
                 vendorData = await Venue.findOne({ id: vendorid });
                 break;
-            case "Prop rentals":
+            case "Prop Rental":
                 vendorData = await propRental.findOne({ id: vendorid });
                 break;
             case "Photographers & Videographers":
