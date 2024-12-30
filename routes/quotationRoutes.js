@@ -1,49 +1,31 @@
 import express from "express";
-import venueQuotation from "../models/venueQuotation.js";
-import { Customer } from "../models/customer.js";
+import quotation from "../models/quotation.js";
 
 const router = express.Router();
 
-router.post("/addQuotation", async (req, res) => {
+// Create a new quotation
+router.post("/", async (req, res) => {
   try {
-    const user = await Customer.findOne({ id: req.body.user_id });
-    if (!user) {
-      return res.status(404).json({
-        message: `User with id: ${req.body.user_id} not found`,
-      });
-    }
-
-    const newQuotation = new venueQuotation({
-      event_name: req.body.event_name,
+    const newQuotation = new quotation({
+      // Meta Data
       user_id: req.body.user_id,
-      full_name: req.body.full_name,
-      number_of_guest: req.body.number_of_guest,
-      email: req.body.email,
-      mobile: req.body.mobile,
-      event_type: req.body.event_type,
-      time: req.body.time,
-      start_date: req.body.start_date,
-      end_date: req.body.end_date,
-      budget: req.body.budget,
-      requirements: req.body.requirements,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
+
+      // Data
+      user_name: req.body.user_name,
+      email: req.body.email,
+      mobile: req.body.mobile,
+      event: req.body.event_name,
+      location: req.body.location,
+      date: req.body.date,
+      time: req.body.time,
+      budget: req.body.budget,
+      number_of_guest: req.body.number_of_guest,
+      requirements: req.body.requirements,
     });
 
     const savedQuotation = await newQuotation.save();
-
-    const booking = {
-      serviceId: req.body.service_id,
-      bookingId: savedQuotation._id,
-    };
-
-    if (!user.bookings) {
-      user.bookings = [];
-    }
-    user.bookings.push(booking);
-
-    await user.save();
-
     res.status(201).json({
       message: "Quotation created successfully!",
       data: savedQuotation,
@@ -56,6 +38,7 @@ router.post("/addQuotation", async (req, res) => {
   }
 });
 
+// Get quotations by vendor id
 router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;
@@ -66,7 +49,7 @@ router.get("/", async (req, res) => {
       });
     }
 
-    const quotations = await venueQuotation.find({ vendor_id });
+    const quotations = await quotation.find({ vendor_id });
 
     if (quotations.length === 0) {
       return res.status(404).json({

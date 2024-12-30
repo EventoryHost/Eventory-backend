@@ -5,10 +5,10 @@ import propRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
 
 const getService = async (req, res) => {
-    const { vendortype, vendorid } = req.params;
+  const { vendortype, vendorid } = req.params;
 
-    try {
-        let vendorData;
+  try {
+    let vendorData;
 
         // Fetch data based on vendor type
         switch (vendortype) {
@@ -31,18 +31,20 @@ const getService = async (req, res) => {
                 return res.status(400).json({ error: "Invalid vendor type" });
         }
 
-        // Check if vendor data exists
-        if (!vendorData) {
-            return res.status(404).json({ error: "Vendor not found" });
-        }
-
-        // Send vendor data as response
-        return res.status(200).json(vendorData);
-    } catch (error) {
-        // Handle errors
-        console.error(error);
-        return res.status(500).json({ error: "An error occurred: " + error.message });
+    // Check if vendor data exists
+    if (!vendorData) {
+      return res.status(404).json({ error: "Vendor not found" });
     }
+
+    // Send vendor data as response
+    return res.status(200).json(vendorData);
+  } catch (error) {
+    // Handle errors
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred: " + error.message });
+  }
 };
 
 export { getService };
