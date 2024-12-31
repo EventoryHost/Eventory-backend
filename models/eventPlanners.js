@@ -75,6 +75,7 @@ const eventPlannerSchema = new Schema({
       name: { type: String, required: true },
       feedback: { type: String, required: true },
       photos: { type: [String] },
+      date: { type: String, required: true },
     },
   ],
 });

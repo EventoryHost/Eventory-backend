@@ -11,6 +11,9 @@ const vendorModels = {
   "venue-provider": Venue,
   "prop-rental": propRental,
   pav: Photographer,
+  venue: Venue,
+  photographer: Photographer,
+  propRental: propRental,
 };
 
 // Function to get a vendor by ID and category

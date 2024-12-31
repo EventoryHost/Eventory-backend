@@ -141,8 +141,8 @@ export const getVenueVideos = async (req, res) => {
 
 export const addReviews = async (req, res) => {
   try {
-    const { id, name, rating, feedback, photos, type } = req.body;
-    if (!id || !name || !rating || !feedback || !type) {
+    const { date, feedback, id, name, photos, rating, type } = req.body;
+    if (!id || !name || !rating || !feedback || !type  || !Date) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     if (type === "venue") {
@@ -158,6 +158,7 @@ export const addReviews = async (req, res) => {
         name,
         feedback,
         photos,
+        date,
       });
       await venue.save();
       res.status(200).json(venue);
@@ -175,6 +176,7 @@ export const addReviews = async (req, res) => {
         name,
         feedback,
         photos,
+        date,
       });
       await caterer.save();
       res.status(200).json(caterer);
@@ -192,6 +194,7 @@ export const addReviews = async (req, res) => {
         name,
         feedback,
         photos,
+        date,
       });
       await decorator.save();
       res.status(200).json(decorator);
@@ -209,12 +212,13 @@ export const addReviews = async (req, res) => {
         name,
         feedback,
         photos,
+        date,
       });
       await photographer.save();
       res.status(200).json(photographer);
     }
     else if(type === "propRental"){
-      const prop = PropRental.findOne({ id: id });
+      const prop = await PropRental.findOne({ id: id });
       if(!prop){
         return res.status(404).json({ message: "Prop Rental not found" });
       }
@@ -226,6 +230,7 @@ export const addReviews = async (req, res) => {
         name,
         feedback,
         photos,
+        date,
       });
       await prop.save();
       res.status(200).json(prop);

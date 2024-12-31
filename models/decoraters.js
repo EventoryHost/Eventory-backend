@@ -58,6 +58,7 @@ const decoratorSchema = Schema({
       name: { type: String, required: true },
       feedback: { type: String, required: true },
       photos: { type: [String] },
+date: {type: Date, required: true}
     },
   ],
 
