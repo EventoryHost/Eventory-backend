@@ -36,12 +36,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    
-
     const savedQuotation = await newQuotation.save();
 
-
-    if(!customer.bookings){
+    if (!customer.bookings) {
       customer.bookings = [];
     }
 
