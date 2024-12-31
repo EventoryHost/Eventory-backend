@@ -141,7 +141,7 @@ export const getVenueVideos = async (req, res) => {
 export const addReviews = async (req, res) => {
   try {
     const { date, feedback, id, name, photos, rating, type } = req.body;
-    if (!id || !name || !rating || !feedback || !type  || !Date) {
+    if (!id || !name || !rating || !feedback || !type || !Date) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     if (type === "venue") {
@@ -212,10 +212,9 @@ export const addReviews = async (req, res) => {
       });
       await photographer.save();
       res.status(200).json(photographer);
-    }
-    else if(type === "propRental"){
+    } else if (type === "propRental") {
       const prop = await PropRental.findOne({ id: id });
-      if(!prop){
+      if (!prop) {
         return res.status(404).json({ message: "Prop Rental not found" });
       }
       if (!prop.reviews) {
