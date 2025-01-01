@@ -26,5 +26,5 @@ const manageBookingSchema = new Schema({
 });
 
 const ManageBooking = model("ManageBookings", manageBookingSchema);
-
+ 
 export { ManageBooking, manageBookingSchema };
