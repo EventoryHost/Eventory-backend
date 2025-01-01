@@ -6,6 +6,7 @@ const Schema = _Schema;
 const catererSchema = new Schema({
   type: { type: String, default: "caterer" },
   basicDetails: {
+    profileCompletion: { type: Number, default: 0 },
     name: { type: String, required: true },
     managerName: { type: String, required: true },
     capacity: { type: String, required: true },
