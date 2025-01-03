@@ -47,4 +47,102 @@ const getService = async (req, res) => {
   }
 };
 
+
+export const addReviews = async (req, res) => {
+  try {
+    const { date, feedback, id, name, photos, rating, type } = req.body;
+    if (!id || !name || !rating || !feedback || !type || !Date) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    if (type === "venue") {
+      const venue = await Venue.findOne({ id: id });
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+      if (!venue.reviews) {
+        venue.reviews = [];
+      }
+      venue.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await venue.save();
+      res.status(200).json(venue);
+    } else if (type === "caterer") {
+      const caterer = await Caterer.findOne({ id: id });
+      if (!caterer) {
+        return res.status(404).json({ message: "Caterer not found" });
+      }
+      if (!caterer.reviews) {
+        caterer.reviews = [];
+      }
+      caterer.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await caterer.save();
+      res.status(200).json(caterer);
+    } else if (type === "decorator") {
+      const decorator = await Decorator.findOne({ id: id });
+      if (!decorator) {
+        return res.status(404).json({ message: "Decorator not found" });
+      }
+      if (!decorator.reviews) {
+        decorator.reviews = [];
+      }
+      decorator.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await decorator.save();
+      res.status(200).json(decorator);
+    } else if (type === "photographer") {
+      const photographer = await Photographer.findOne({ id: id });
+      if (!photographer) {
+        return res.status(404).json({ message: "Photographer not found" });
+      }
+      if (!photographer.reviews) {
+        photographer.reviews = [];
+      }
+      photographer.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await photographer.save();
+      res.status(200).json(photographer);
+    } else if (type === "propRental") {
+      const prop = await PropRental.findOne({ id: id });
+      if (!prop) {
+        return res.status(404).json({ message: "Prop Rental not found" });
+      }
+      if (!prop.reviews) {
+        prop.reviews = [];
+      }
+      prop.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await prop.save();
+      res.status(200).json(prop);
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export { getService };

@@ -42,6 +42,12 @@ router.post("/", async (req, res) => {
       customer.bookings = [];
     }
 
+    if(customer.bookings.find(booking => booking.serviceId === req.body.service_id)) {
+      return res.status(400).json({
+        message: "Quotation already created for this service",
+      });
+    }
+
     customer.bookings.push({
       serviceId: req.body.service_id,
       bookingId: savedQuotation._id,

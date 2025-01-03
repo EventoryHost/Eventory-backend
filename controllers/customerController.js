@@ -106,3 +106,20 @@ export const removeFavourite = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+
+export const getCustomerByMobile = async (req, res) => {
+  try {
+    const phone = req.params.phone; 
+
+    const customer = await Customer.findOne({ phone: phone });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    res.status(200).json({customer});
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};

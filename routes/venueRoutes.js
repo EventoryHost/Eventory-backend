@@ -10,7 +10,6 @@ const router = express.Router();
 
 router.get("/venue", getVenueImages);
 router.get("/allVenues", getAllVenues);
-router.post("/review", addReviews);
 router.get("/review", getVenueReviews);
 
 export default router;
