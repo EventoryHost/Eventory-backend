@@ -2,7 +2,7 @@ import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
-const manageBookingSchema = new Schema({
+const BookingSchema = new Schema({
   bookingid: { type: String, default: generateUniqueId("#"), required: true },
   venId: { type: String, required: true },
   serviceId: { type: String, required: true },
@@ -25,6 +25,6 @@ const manageBookingSchema = new Schema({
   capacity: { type: String, required: true },
 });
 
-const ManageBooking = model("ManageBookings", manageBookingSchema);
+const Booking = model("Bookings", BookingSchema);
  
-export { ManageBooking, manageBookingSchema };
+export { Booking, BookingSchema };

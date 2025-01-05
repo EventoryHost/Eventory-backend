@@ -16,7 +16,7 @@ import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
-import manageBookingRoutes from "../routes/manageBookingRoutes.js";
+import BookingRoutes from "../routes/BookingRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -63,7 +63,7 @@ app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
 // app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
-app.use('/api/manageBookings', manageBookingRoutes);
+app.use('/api/Bookings', BookingRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");

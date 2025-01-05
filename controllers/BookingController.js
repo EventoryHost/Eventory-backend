@@ -1,6 +1,6 @@
-import { ManageBooking } from '../models/manageBooking.js';
+import { Booking } from '../models/Booking.js';
 
-export const createManageBooking = async (req, res) => {
+export const createBooking = async (req, res) => {
     const {
       venId,
       serviceId,
@@ -20,7 +20,7 @@ export const createManageBooking = async (req, res) => {
     } = req.body;
   
     try {
-      const newBooking = new ManageBooking({
+      const newBooking = new Booking({
         venId,
         serviceId,
         type,
@@ -54,7 +54,7 @@ export const createManageBooking = async (req, res) => {
   };
   
 
-export const getManageBooking = async (req, res) => {
+export const getBooking = async (req, res) => {
   try {
     const { serId, venId } = req.query;
     console.log("Received service ID:", serId);
@@ -67,7 +67,7 @@ export const getManageBooking = async (req, res) => {
       return res.status(400).json({ message: "Please provide vendor ID" });
     }
 
-    const booking = await ManageBooking.find({ venId: venId, serviceId: serId });
+    const booking = await Booking.find({ venId: venId, serviceId: serId });
 
     if (!booking || booking.length === 0) {
       return res.status(404).json({ message: "Booking not found." });
@@ -79,7 +79,7 @@ export const getManageBooking = async (req, res) => {
   }
 };
 
-export const fetchManageBooking = async (req, res) => {
+export const fetchBooking = async (req, res) => {
   try {
     const { serId } = req.query;
 
@@ -87,7 +87,7 @@ export const fetchManageBooking = async (req, res) => {
       return res.status(400).json({ message: "Please provide service ID" });
     }
 
-    const booking = await ManageBooking.find({ serviceId: serId });
+    const booking = await Booking.find({ serviceId: serId });
 
     if (!booking || booking.length === 0) {
       return res.status(404).json({ message: "Booking not found." });
@@ -99,12 +99,12 @@ export const fetchManageBooking = async (req, res) => {
   }
 };
 
-export const updateManageBooking = async (req, res) => {
+export const updateBooking = async (req, res) => {
   const { bookingId } = req.params; // Retrieve the booking ID from the URL parameters
   const updateData = req.body; // Expecting the updated data from the request body
 
   try {
-    const updatedBooking = await ManageBooking.findByIdAndUpdate(bookingId, updateData, { new: true });
+    const updatedBooking = await Booking.findByIdAndUpdate(bookingId, updateData, { new: true });
 
     if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -119,11 +119,11 @@ export const updateManageBooking = async (req, res) => {
   }
 };
 
-export const deleteManageBooking = async (req, res) => {
+export const deleteBooking = async (req, res) => {
   const { bookingId } = req.params; // Retrieve the booking ID from the URL parameters
 
   try {
-    const deletedBooking = await ManageBooking.findByIdAndDelete(bookingId);
+    const deletedBooking = await Booking.findByIdAndDelete(bookingId);
 
     if (!deletedBooking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -135,9 +135,9 @@ export const deleteManageBooking = async (req, res) => {
   }
 };
 
-export const getAllManageBookings = async (req, res) => {
+export const getAllBookings = async (req, res) => {
     try {
-      const bookings = await ManageBooking.find();
+      const bookings = await Booking.find();
       res.status(200).json(bookings);
     } catch (error) {
       res.status(500).json({ message: "Error retrieving bookings", error: error.message });
