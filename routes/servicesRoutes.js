@@ -3,6 +3,6 @@ import { addReviews, getService } from "../controllers/servicesController.js";
 const serviceRouter = Router();
 
 serviceRouter.get("/getServices/:vendortype/:vendorid", getService);
-router.post("/review", addReviews);
+serviceRouter.post("/review", addReviews);
 
 export default serviceRouter;
