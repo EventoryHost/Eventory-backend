@@ -6,7 +6,7 @@ import {
   deleteBooking,
   createBooking, 
   getAllBookings
-} from "../controllers/BookingController.js";
+} from "../controllers/bookingController.js";
 
 const router = express.Router();
 

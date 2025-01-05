@@ -16,7 +16,7 @@ import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
-import BookingRoutes from "../routes/BookingRoutes.js";
+import BookingRoutes from "../routes/bookingRoutes.js";
 
 const app = express();
 const port = 4000;
