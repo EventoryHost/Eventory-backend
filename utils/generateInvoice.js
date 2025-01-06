@@ -104,9 +104,16 @@ async function generateInvoice(customer, paymentDetails) {
   }
 }
 
-export async function sendInvoiceWithDiscount(customer, paymentDetails, discount) {
+export async function sendInvoiceWithDiscount(
+  customer,
+  paymentDetails,
+  discount,
+) {
   try {
-    const templatePath = path.resolve("templates", "invoiceWithDiscountTemplate.html");
+    const templatePath = path.resolve(
+      "templates",
+      "invoiceWithDiscountTemplate.html",
+    );
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
@@ -146,11 +153,11 @@ export async function sendInvoiceWithDiscount(customer, paymentDetails, discount
     html = html.replace("{{customerName}}", customer.name);
     html = html.replace(
       "{{customerBusinessName}}",
-      customer.businessDetails.businessName
+      customer.businessDetails.businessName,
     );
     html = html.replace(
       "{{customerAddress}}",
-      customer.businessDetails.businessAddress
+      customer.businessDetails.businessAddress,
     );
     html = html.replace("{{amount}}", final_amt);
     html = html.replace("{{gstin}}", customer.businessDetails.gstin);
@@ -184,7 +191,7 @@ export async function sendInvoiceWithDiscount(customer, paymentDetails, discount
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
-      `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`
+      `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
     console.log("Invoice uploaded to S3:", invoiceUrl);
     const vendor = await Vendor.findOne({ id: customer.id });

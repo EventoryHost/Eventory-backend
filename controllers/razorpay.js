@@ -71,7 +71,7 @@ const verifyPayment = async (req, res) => {
         amount: paymentDetails.amount / 100,
         method: paymentDetails.method,
         created_at: new Date(
-          paymentDetails.created_at * 1000
+          paymentDetails.created_at * 1000,
         ).toLocaleDateString(),
         id: paymentDetails.id,
       };
@@ -103,7 +103,11 @@ async function generateInvoiceWithDiscount(req, res) {
     };
 
     const vendor = await Vendor.findOne({ id: ven_id });
-    const file = await sendInvoiceWithDiscount(vendor, formattedDetails, discount);
+    const file = await sendInvoiceWithDiscount(
+      vendor,
+      formattedDetails,
+      discount,
+    );
     if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
     sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
 
