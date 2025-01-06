@@ -106,12 +106,14 @@ async function generateInvoice(customer, paymentDetails) {
 
 export async function sendInvoiceWithDiscount(customer, paymentDetails, discount) {
   try {
-    const templatePath = path.resolve("templates", "invoiceTemplate.html");
+    const templatePath = path.resolve("templates", "invoiceWithDiscountTemplate.html");
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
-    const subtotal = paymentDetails.amount * 0.82;
-    const tax = paymentDetails.amount * 0.18;
+    const final_amt = +paymentDetails.amount - +discount;
+    const initial_total = paymentDetails.amount * 0.82;
+    const subtotal = final_amt * 0.82;
+    const tax = final_amt * 0.18;
     let taxSection = "";
     console.log("Customer:", customer.businessDetails);
     if (customer.businessDetails.pinCode.toString().startsWith("1")) {
@@ -121,7 +123,7 @@ export async function sendInvoiceWithDiscount(customer, paymentDetails, discount
       taxSection = `<p>Subtotal: ₹ ${subtotal.toFixed(2)}</p>
         <p>CGST (9%): ₹ ${cgst.toFixed(2)}</p>
         <p>SGST (9%): ₹ ${sgst.toFixed(2)}</p>
-        <h3>Total: ₹ ${paymentDetails.amount}</h3>
+        <h3>Total: ₹ ${final_amt}</h3>
 
       `;
     } else {
@@ -150,9 +152,10 @@ export async function sendInvoiceWithDiscount(customer, paymentDetails, discount
       "{{customerAddress}}",
       customer.businessDetails.businessAddress
     );
-    html = html.replace("{{amount}}", paymentDetails.amount);
+    html = html.replace("{{amount}}", final_amt);
     html = html.replace("{{gstin}}", customer.businessDetails.gstin);
-    html = html.replaceAll("{{subtotal}}", subtotal.toFixed(2));
+    html = html.replaceAll("{{subtotal}}", initial_total.toFixed(2));
+    html = html.replace("{{discount}}", (discount * 0.82).toFixed(2));
     html = html.replace("{{taxSection}}", taxSection);
     html = html.replace("{{vendorId}}", customer.id);
     // Launch Puppeteer and create PDF

@@ -103,7 +103,7 @@ async function generateInvoiceWithDiscount(req, res) {
     };
 
     const vendor = await Vendor.findOne({ id: ven_id });
-    const file = await generateInvoice(vendor, formattedDetails);
+    const file = await sendInvoiceWithDiscount(vendor, formattedDetails, discount);
     if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
     sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
 
