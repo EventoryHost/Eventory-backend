@@ -16,12 +16,19 @@ const getFileUrls = (files, fieldName) => {
 const checkCompletion = (section) => {
   if (!section) return false;
 
-  const requiredFields = Object.keys(section).filter(
-    (key) => section[key] !== undefined && section[key] !== null && section[key] !== ""
-  );
+  // Check that all required fields are filled, including non-empty arrays
+  const requiredFields = Object.keys(section).filter((key) => {
+    // Ensure that the array is not empty and that the field is not null or undefined
+    if (Array.isArray(section[key])) {
+      return section[key].length > 0;  // Check that the array is not empty
+    }
+    return section[key] !== undefined && section[key] !== null && section[key] !== "";
+  });
 
+  // Return true if all required fields are filled
   return requiredFields.length === Object.keys(section).length;
 };
+
 
 // Function to update the section completion status
 const updateSectionCompletion = async (propId) => {

@@ -165,12 +165,26 @@ const getFileUrls = (files, fieldName) => {
 const checkCompletion = (section) => {
   if (!section) return false;
 
-  const requiredFields = Object.keys(section).filter(
-    (key) => section[key] !== undefined && section[key] !== null && section[key] !== ""
-  );
+  const requiredFields = Object.keys(section).filter((key) => {
+    const value = section[key];
 
+    // If the field is an array, check that it's not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;  // Ensure the array is not empty
+    }
+    // If the field is an object, check its keys too (recursive check)
+    if (typeof value === 'object' && value !== null) {
+      return checkCompletion(value);  // Recurse for nested objects
+    }
+    // For other types, check that it's not null, undefined, or an empty string
+    return value !== undefined && value !== null && value !== "";
+  });
+
+  // Return true if all required fields are filled
   return requiredFields.length === Object.keys(section).length;
 };
+
+
 
 const updateSectionCompletion = async (venId) => {
   try {
