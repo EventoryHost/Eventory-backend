@@ -13,6 +13,44 @@ const getFileUrls = (files, fieldName) => {
   }
   return [];
 };
+const checkCompletion = (section) => {
+  // Example: For each section, check if all required fields are filled
+  if (!section) return false;
+
+  const requiredFields = Object.keys(section).filter(
+    (key) => section[key] !== undefined && section[key] !== null && section[key] !== ""
+  );
+
+  return requiredFields.length === Object.keys(section).length;
+};
+
+// Function to update the section completion status
+const updateSectionCompletion = async (venId) => {
+  try {
+    const caterer = await Caterer.findOne({
+      id: venId,
+    });
+
+    // Ensure caterer exists before accessing its fields
+    if (!caterer) {
+      throw new Error("Caterer not found");
+    }
+
+    // Ensure each section exists before checking completion
+    caterer.basicDetails.completed = checkCompletion(caterer.basicDetails || {});
+    caterer.menuDetails.completed = checkCompletion(caterer.menuDetails || {});
+    caterer.eventDetails.completed = checkCompletion(caterer.eventDetails || {});
+    caterer.staffAndEquipmentDetails.completed = checkCompletion(caterer.staffAndEquipmentDetails || {});
+    caterer.additionalDetails.completed = checkCompletion(caterer.additionalDetails || {});
+    caterer.policies.completed = checkCompletion(caterer.policies || {});
+
+    await caterer.save();
+  } catch (error) {
+    console.error("Error in update section:", error);
+    throw error;
+  }
+};
+
 
 const createCaterer = async (req, res) => {
   try {
@@ -55,6 +93,8 @@ const createCaterer = async (req, res) => {
       ? foodSafetyCertificatesUrls
       : req.body.food_safety_certificates || [];
 
+      
+
     // Create new caterer
     const newCaterer = new Caterer({
       basicDetails: {
@@ -88,7 +128,6 @@ const createCaterer = async (req, res) => {
       },
       additionalDetails: {
         priceStartingFrom: req.body.priceStartingFrom,
-
         minimum_order_requirements: req.body.minimum_order_requirements,
         advance_booking_period: req.body.advance_booking_period,
         photos: Array.isArray(photos) ? photos : [photos],
@@ -101,9 +140,7 @@ const createCaterer = async (req, res) => {
       },
       policies: {
         cancellation_policy: cancellationPolicyFileUrl,
-
         terms_and_conditions: termsAndConditionsFileUrl,
-
         client_testimonials: clientTestimonialsUrls,
       },
       // deposit_required: req.body.deposit_required,
@@ -161,7 +198,10 @@ const createCaterer = async (req, res) => {
     newCaterer.basicDetails.profileCompletion = profileCompletion;
 
     const savedCaterer = await newCaterer.save();
-
+    
+    // Update section completion and profile completion
+    await updateSectionCompletion(savedCaterer.id);
+    
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Caterer.findByIdAndDelete(savedCaterer.id);
