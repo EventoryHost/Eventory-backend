@@ -14,7 +14,7 @@ const getFileUrls = (files, fieldName) => {
 const calculateProfileCompletion = (basicDetails) => {
   const fields = ["managerName", "description", "eventSize"];
   const filledFields = fields.filter(
-    (field) => basicDetails[field] && basicDetails[field].trim() !== ""
+    (field) => basicDetails[field] && basicDetails[field].trim() !== "",
   );
   return Math.round((filledFields.length / fields.length) * 100);
 };
@@ -45,8 +45,8 @@ const createProp = async (req, res) => {
     const itemCatalogueUrl = itemCatalogueFile
       ? itemCatalogueFile.location
       : req.body.itemCatalogue === "true"
-      ? "true"
-      : "false";
+        ? "true"
+        : "false";
 
     const photosUrls = getFileUrls(req.files, "photos");
     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
