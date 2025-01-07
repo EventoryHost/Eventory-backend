@@ -12,57 +12,38 @@ export const eventSchema = new Schema({
 
 const venueSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
+  venId: { type: String, required: true },
+  vendorType: { type: String, default: "venue" },
+  schedule: [eventSchema],
 
   basicDetails: {
-    name: {
-      type: String,
-      required: true,
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    name: { type: String, required: true },
     managerName: { type: String, required: true },
     capacity: { type: String, required: true },
     operatingHours: {
-      openingTime: {
-        type: String,
-      },
-      closingTime: {
-        type: String,
-      },
+      openingTime: { type: String },
+      closingTime: { type: String },
     },
     address: { type: String, required: true },
-    description: {
-      type: String,
-    },
+    description: { type: String },
     profileCompletion: { type: Number, default: 0 },
   },
 
   featureDetails: {
-    catererServices: {
-      type: Boolean,
-      required: true,
-    },
-
-    decorServices: {
-      type: Boolean,
-      required: true,
-    },
-
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    catererServices: { type: Boolean, required: true },
+    decorServices: { type: Boolean, required: true },
     venueTypes: { type: [String], required: true },
-    audioVisualEquipment: {
-      type: [String],
-    },
-    accessibilityFeatures: {
-      type: [String],
-      required: true,
-    },
+    audioVisualEquipment: { type: [String] },
+    accessibilityFeatures: { type: [String], required: true },
     restrictionsPolicies: { type: [String], required: true },
-    speacialFeatures: { type: [String] },
-    facilities: {
-      type: [String],
-      required: true,
-    },
+    specialFeatures: { type: [String] },
+    facilities: { type: [String], required: true },
   },
 
   additionalDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     photos: { type: [String], required: true },
     videos: { type: [String], required: true },
     awards: { type: String },
@@ -72,23 +53,15 @@ const venueSchema = new Schema({
     advanceBookingPeriod: { type: String },
     priceStartingFrom: { type: String, required: true },
   },
+
   policies: {
-    termsConditions: {
-      type: [String],
-    },
-    cancellationPolicy: {
-      type: [String],
-    },
-    insurancePolicy: {
-      type: [String],
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    termsConditions: { type: [String] },
+    cancellationPolicy: { type: [String] },
+    insurancePolicy: { type: [String] },
   },
-  venId: { type: String, required: true },
-
-  vendorType: { type: String, default: "venue" },
-
-  schedule: [eventSchema],
 });
+
 
 const Venue = model("Venue", venueSchema);
 
