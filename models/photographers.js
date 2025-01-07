@@ -5,6 +5,7 @@ const Schema = _Schema;
 
 const photographerSchema = Schema({
   basicDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     name: {
       type: String,
       required: true,
@@ -27,8 +28,9 @@ const photographerSchema = Schema({
   vendorType: { type: String, default: "photographer" },
   schedule: [eventSchema],
 
-  //page 2
+  // Page 2
   Videography: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     equipmentAvailable: {
       type: [String],
     },
@@ -43,6 +45,7 @@ const photographerSchema = Schema({
     },
   },
   Photography: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     equipmentAvailable: {
       type: [String],
     },
@@ -57,12 +60,12 @@ const photographerSchema = Schema({
     },
   },
   consultationDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     duration: { type: String },
     PackageTypes: {
       type: String,
       default: "Both",
     },
-
     proposalsToClients: {
       type: Boolean,
       default: false,
@@ -89,6 +92,7 @@ const photographerSchema = Schema({
     },
   },
   additionalDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     photos: { type: [String], required: true },
     videos: { type: [String], required: true },
     clientTestimonials: { type: String },
@@ -101,6 +105,7 @@ const photographerSchema = Schema({
     // WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
   },
   policies: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     cancellationPolicy: {
       type: [String],
     },
@@ -109,7 +114,7 @@ const photographerSchema = Schema({
     },
   },
 
-  //page-5
+  // Page-5
 });
 
 const Photographer = model("Photographer", photographerSchema);

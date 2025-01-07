@@ -13,6 +13,37 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+const checkCompletion = (section) => {
+  if (!section) return false;
+
+  const requiredFields = Object.keys(section).filter(
+    (key) => section[key] !== undefined && section[key] !== null && section[key] !== ""
+  );
+
+  return requiredFields.length === Object.keys(section).length;
+};
+
+const updateSectionCompletion = async (id) => {
+  try {
+    const decorator = await Decorator.findOne({ id });
+
+    if (!decorator) {
+      throw new Error("Decorator not found");
+    }
+
+    decorator.basicDetails.completed = checkCompletion(decorator.basicDetails || {});
+    decorator.themesOffered.completed = checkCompletion(decorator.themesOffered || {});
+    decorator.themesElement.completed = checkCompletion(decorator.themesElement || {});
+    decorator.additionalDetails.completed = checkCompletion(decorator.additionalDetails || {});
+    decorator.policies.completed = checkCompletion(decorator.policies || {});
+
+    await decorator.save();
+  } catch (error) {
+    console.error("Error in update section completion:", error);
+    throw error;
+  }
+};
+
 const createDecorator = async (req, res) => {
   try {
     const alreadyExists = await Decorator.findOne({
@@ -133,6 +164,7 @@ const createDecorator = async (req, res) => {
     });
 
     const savedDecorator = await newDecorator.save();
+
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Decorator.findByIdAndDelete(savedDecorator.id);
@@ -144,6 +176,8 @@ const createDecorator = async (req, res) => {
       serId: savedDecorator.id,
     });
     await vendor.save();
+    // Update section completion and profile completion
+    await updateSectionCompletion(savedDecorator.id);
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);
