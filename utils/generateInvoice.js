@@ -109,6 +109,7 @@ export async function sendInvoiceWithDiscount(
   paymentDetails,
   discount,
 ) {
+  const final_amt = +paymentDetails.amount - +discount;
   try {
     const templatePath = path.resolve(
       "templates",
@@ -117,7 +118,6 @@ export async function sendInvoiceWithDiscount(
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
-    const final_amt = +paymentDetails.amount - +discount;
     const initial_total = paymentDetails.amount * 0.82;
     const subtotal = final_amt * 0.82;
     const tax = final_amt * 0.18;
@@ -140,7 +140,7 @@ export async function sendInvoiceWithDiscount(
       <p>Subtotal: ₹ ${subtotal.toFixed(2)}</p>
 
       <p>IGST (18%): ₹ ${tax.toFixed(2)}</p>
-      <h3>Total: ₹ ${paymentDetails.amount}</h3>
+      <h3>Total: ₹ ${final_amt}</h3>
 
       `;
     }
