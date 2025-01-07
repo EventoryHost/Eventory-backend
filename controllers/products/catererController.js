@@ -14,15 +14,21 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 const checkCompletion = (section) => {
-  // Example: For each section, check if all required fields are filled
-  if (!section) return false;
+  if (!section || typeof section !== "object") return false; // Validate input
 
-  const requiredFields = Object.keys(section).filter(
-    (key) => section[key] !== undefined && section[key] !== null && section[key] !== ""
-  );
+  return Object.keys(section).every((key) => {
+    const value = section[key];
 
-  return requiredFields.length === Object.keys(section).length;
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
 };
+
 
 // Function to update the section completion status
 const updateSectionCompletion = async (venId) => {

@@ -51,14 +51,21 @@ const calculateProfileCompletion = (photographer) => {
 
 // Helper function to check if a section is complete
 const checkCompletion = (section) => {
-  if (!section) return false;
+  if (!section || typeof section !== "object") return false; // Validate input
 
-  const requiredFields = Object.keys(section).filter(
-    (key) => section[key] !== undefined && section[key] !== null && section[key] !== ""
-  );
+  return Object.keys(section).every((key) => {
+    const value = section[key];
 
-  return requiredFields.length === Object.keys(section).length;
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
 };
+
 
 // Update section completion for a photographer
 const updateSectionCompletion = async (venId) => {
