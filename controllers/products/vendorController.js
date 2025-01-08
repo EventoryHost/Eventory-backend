@@ -11,6 +11,9 @@ const vendorModels = {
   "venue-provider": Venue,
   "prop-rental": propRental,
   pav: Photographer,
+  venue: Venue,
+  photographer: Photographer,
+  propRental: propRental,
 };
 
 // Function to get a vendor by ID and category
@@ -35,6 +38,16 @@ const getVendorByIdAndCategory = async (req, res) => {
     res.json(foundVendor);
   } catch (error) {
     console.error("Error fetching vendor:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getVenue = async (req, res) => {
+  try {
+    const venue = await Venue.find();
+    res.json(venue);
+  } catch (error) {
+    console.error("Error fetching venue:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

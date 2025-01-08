@@ -87,6 +87,16 @@ const venueSchema = new Schema({
 
   vendorType: { type: String, default: "venue" },
 
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
+
   schedule: [eventSchema],
 });
 
