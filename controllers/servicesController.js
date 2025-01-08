@@ -47,23 +47,22 @@ const getService = async (req, res) => {
   }
 };
 
-
 export const addReviews = async (req, res) => {
   try {
     const { date, feedback, id, name, photos, rating, type } = req.body;
-    if(!feedback && rating == 0){
+    if (!feedback && rating == 0) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     if (!id || !Date) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-    if(!rating){
+    if (!rating) {
       return res.status(400).json({ message: "Rating is required" });
     }
-    if(!name){
+    if (!name) {
       return res.status(400).json({ message: "Name is required" });
     }
-    if(!feedback){
+    if (!feedback) {
       return res.status(400).json({ message: "Feedback is required" });
     }
 

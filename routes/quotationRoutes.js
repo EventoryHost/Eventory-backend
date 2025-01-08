@@ -43,7 +43,11 @@ router.post("/", async (req, res) => {
       customer.bookings = [];
     }
 
-    if(customer.bookings.find(booking => booking.serviceId === req.body.service_id)) {
+    if (
+      customer.bookings.find(
+        (booking) => booking.serviceId === req.body.service_id,
+      )
+    ) {
       return res.status(400).json({
         message: "Quotation already created for this service",
       });
@@ -55,7 +59,6 @@ router.post("/", async (req, res) => {
     });
 
     await customer.save();
-
 
     res.status(201).json({
       message: "Quotation created successfully!",

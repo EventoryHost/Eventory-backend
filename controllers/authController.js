@@ -245,7 +245,6 @@ const login = async (req, res) => {
   }
 };
 
-
 const CustomerLogin = async (req, res) => {
   const { mobile } = req.body;
   const params = {
@@ -522,5 +521,5 @@ export default {
   updateProfilePic,
   verifyCustomerLoginOtp,
   CustomerSignUp,
-  CustomerLogin
+  CustomerLogin,
 };
