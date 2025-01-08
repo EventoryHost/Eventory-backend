@@ -51,9 +51,22 @@ const getService = async (req, res) => {
 export const addReviews = async (req, res) => {
   try {
     const { date, feedback, id, name, photos, rating, type } = req.body;
-    if (!id || !name || !rating || !feedback || !type || !Date) {
+    if(!feedback && rating == 0){
       return res.status(400).json({ message: "Missing required fields" });
     }
+    if (!id || !Date) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    if(!rating){
+      return res.status(400).json({ message: "Rating is required" });
+    }
+    if(!name){
+      return res.status(400).json({ message: "Name is required" });
+    }
+    if(!feedback){
+      return res.status(400).json({ message: "Feedback is required" });
+    }
+
     if (type === "venue") {
       const venue = await Venue.findOne({ id: id });
       if (!venue) {
@@ -123,7 +136,7 @@ export const addReviews = async (req, res) => {
       await photographer.save();
       res.status(200).json(photographer);
     } else if (type === "propRental") {
-      const prop = await PropRental.findOne({ id: id });
+      const prop = await propRental.findOne({ id: id });
       if (!prop) {
         return res.status(404).json({ message: "Prop Rental not found" });
       }

@@ -164,6 +164,59 @@ const signUp = async (req, res) => {
     }
   }
 };
+const CustomerSignUp = async (req, res) => {
+  const { mobile } = req.body;
+
+  const params = {
+    ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
+    UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
+
+    Username: `+91${mobile}`,
+    Password: "123456",
+    UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
+  };
+
+  try {
+    var user = await CustomerExists(`+91${mobile}`);
+
+    if (user !== null) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    user = await isNewCustomer(mobile);
+
+    if (user) {
+      const deleteCommand = new AdminDeleteUserCommand({
+        UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
+        Username: `+91${mobile}`,
+      });
+      await cognito.send(deleteCommand);
+    }
+    const command = new SignUpCommand(params);
+    await cognito.send(command);
+
+    const signUpParams = {
+      AuthFlow: "CUSTOM_AUTH",
+      ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
+      UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
+      Username: `+91${mobile}`,
+
+      AuthParameters: {
+        USERNAME: `+91${mobile}`,
+      },
+    };
+
+    const signUpCommand = new AdminInitiateAuthCommand(signUpParams);
+    const data = await cognito.send(signUpCommand);
+    return res.status(200).json({ message: "OTP sent", data });
+  } catch (error) {
+    if (error.name === "UserNotFoundException") {
+      console.log("New User");
+    } else {
+      res.status(400).json({ error: error.message });
+    }
+  }
+};
 
 const login = async (req, res) => {
   const { mobile } = req.body;
@@ -180,6 +233,34 @@ const login = async (req, res) => {
 
   try {
     const user = await userExists(`+91${mobile}`);
+    if (user) {
+      const command = new AdminInitiateAuthCommand(params);
+      const data = await cognito.send(command);
+      return res.status(200).json({ message: "OTP sent", data });
+    }
+    return res.status(404).json({ message: "User does not exist" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+
+const CustomerLogin = async (req, res) => {
+  const { mobile } = req.body;
+  const params = {
+    AuthFlow: "CUSTOM_AUTH",
+    ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
+    UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
+    Username: `+91${mobile}`,
+
+    AuthParameters: {
+      USERNAME: `+91${mobile}`,
+    },
+  };
+
+  try {
+    const user = await CustomerExists(`+91${mobile}`);
     if (user) {
       const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
@@ -240,8 +321,8 @@ const verifyCustomerLoginOtp = async (req, res) => {
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
-    ClientId: process.env.COGNITO_APP_CLIENT_ID,
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
+    UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
     Username: `+91${mobile}`,
     Password: "123456",
     ChallengeResponses: {
@@ -353,6 +434,13 @@ const userExists = async (credential) => {
   return user;
 };
 
+const CustomerExists = async (credential) => {
+  const user = await Customer.findOne({
+    $or: [{ email: credential }, { mobile: credential }],
+  });
+  return user;
+};
+
 const addBusinessDetails = async (req, res) => {
   const { id, details } = req.body;
 
@@ -372,7 +460,22 @@ const addBusinessDetails = async (req, res) => {
 const isNewUser = async (mobile) => {
   try {
     const getUserCommand = new AdminGetUserCommand({
-      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
+      Username: `+91${mobile}`,
+    });
+    var user = await cognito.send(getUserCommand);
+    return true;
+  } catch (error) {
+    if (error.name === "UserNotFoundException") {
+      return false;
+    }
+    return error;
+  }
+};
+const isNewCustomer = async (mobile) => {
+  try {
+    const getUserCommand = new AdminGetUserCommand({
+      UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
       Username: `+91${mobile}`,
     });
     var user = await cognito.send(getUserCommand);
@@ -418,4 +521,6 @@ export default {
   getVendor,
   updateProfilePic,
   verifyCustomerLoginOtp,
+  CustomerSignUp,
+  CustomerLogin
 };
