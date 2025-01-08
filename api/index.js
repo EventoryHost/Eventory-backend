@@ -14,9 +14,12 @@ import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
 import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
-import venueQuotationRoutes from "../routes/venueQuotationRoutes.js";
+import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
+import serviceRouter from "../routes/servicesRoutes.js";
+import venueRouter from "../routes/venueRoutes.js";
 import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
+import customerRoutes from "../routes/customerRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -60,10 +63,13 @@ app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
-app.use("/api/quotations", venueQuotationRoutes);
+app.use("/api/quotations", quotationRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
+app.use("/api/service", serviceRouter);
+app.use("/api/venue", venueRouter);
 app.use("/api", featuredVendorsRoutes);
+app.use("/api/customer", customerRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");

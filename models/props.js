@@ -10,6 +10,7 @@ const pricingSchema = new Schema({
 });
 
 const propRentalSchema = new Schema({
+  type: { type: String, default: "propRental" },
   basicDetails: {
     managerName: {
       type: String,
@@ -23,6 +24,7 @@ const propRentalSchema = new Schema({
       type: String,
       required: true,
     },
+    profileCompletion: { type: Number, default: 0 },
   },
   serviceDetails: {
     itemCatalogue: {
@@ -47,7 +49,7 @@ const propRentalSchema = new Schema({
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
   },
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  id: { type: String, default: generateUniqueId("prop"), required: true },
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "propRental" },
@@ -95,8 +97,17 @@ const propRentalSchema = new Schema({
       type: [String],
     },
   },
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
-const PropRental = model("PropRental", propRentalSchema);
+const PropRental = model("PropRental", propRentalSchema, "proprentals");
 
 export default PropRental;

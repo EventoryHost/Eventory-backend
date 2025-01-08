@@ -11,8 +11,8 @@ export const eventSchema = new Schema({
 });
 
 const venueSchema = new Schema({
-  id: { type: String, default: generateUniqueId("ser"), required: true },
-
+  id: { type: String, default: generateUniqueId("veu"), required: true },
+  type: { type: String, default: "venue" },
   basicDetails: {
     name: {
       type: String,
@@ -32,6 +32,7 @@ const venueSchema = new Schema({
     description: {
       type: String,
     },
+    profileCompletion: { type: Number, default: 0 },
   },
 
   featureDetails: {
@@ -85,6 +86,16 @@ const venueSchema = new Schema({
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "venue" },
+
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 
   schedule: [eventSchema],
 });

@@ -4,6 +4,7 @@ const Schema = _Schema;
 
 const giftSchema = new Schema({
   id: { type: String, default: generateUniqueId("ser"), required: true },
+  profileCompletion: { type: Number, default: 0 },
   venId: { type: String, required: true },
   description: { type: String, required: true },
   vendorName: {

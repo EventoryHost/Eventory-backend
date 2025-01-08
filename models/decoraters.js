@@ -4,7 +4,9 @@ import generateUniqueId from "../utils/generateId.js";
 import { eventSchema } from "./venue.js";
 
 const decoratorSchema = Schema({
+  type: { type: String, default: "decorator" },
   basicDetails: {
+    profileCompletion: { type: Number, default: 0 },
     name: { type: String, required: true },
     eventSize: { type: String, required: true },
     description: { type: String, required: true },
@@ -47,10 +49,19 @@ const decoratorSchema = Schema({
     cancellationPolicy: { type: String },
     termsAndConditions: { type: String },
   },
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  id: { type: String, default: generateUniqueId("dec"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
   schedule: [eventSchema],
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: Date, required: true },
+    },
+  ],
 
   // themeProposels: { type: Boolean, default: false },
   // proposalRevisions: { type: Boolean, default: false },
