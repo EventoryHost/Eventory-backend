@@ -21,6 +21,7 @@ router.post("/", async (req, res) => {
       location: req.body.location,
       start_date: req.body.start_date,
       end_date: req.body.end_date,
+
       time: req.body.time,
       budget: req.body.budget,
       number_of_guest: req.body.number_of_guest,
@@ -54,6 +55,7 @@ router.post("/", async (req, res) => {
     });
 
     await customer.save();
+
 
     res.status(201).json({
       message: "Quotation created successfully!",

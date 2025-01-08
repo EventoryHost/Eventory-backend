@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon api/index.js",
+    "format": "npx prettier --write . --end-of-line crlf --log-level silent",
     "start": "node api/index.js"
   },
   "keywords": [],

@@ -23,6 +23,7 @@ const quotationSchema = new mongoose.Schema(
     event: { type: String, required: true },
     start_date: { type: Date, required: true },
     end_date: { type: Date, required: true },
+
     time: { type: String, required: true },
     budget: { type: String, required: true },
     number_of_guest: { type: String, required: true },
