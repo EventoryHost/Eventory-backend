@@ -16,6 +16,7 @@ import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
+import vendorEditRoutes from "../routes/vendorEditRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -52,6 +53,7 @@ app.options("/api/business-details/:userId", (req, res) => {
 app.use("/", router);
 app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
 app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
+app.use("/api" , vendorEditRoutes); // Route to update vendor details
 app.use("/api/products", productRoutes);
 app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
