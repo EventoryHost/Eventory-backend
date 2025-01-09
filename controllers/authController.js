@@ -459,7 +459,7 @@ const addBusinessDetails = async (req, res) => {
 const isNewUser = async (mobile) => {
   try {
     const getUserCommand = new AdminGetUserCommand({
-      UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
+      UserPoolId: process.env.COGNITO_USER_POOL_ID,
       Username: `+91${mobile}`,
     });
     var user = await cognito.send(getUserCommand);
