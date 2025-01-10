@@ -2,9 +2,9 @@ import express from "express";
 import { Vendor } from "../models/users.js"
 import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decoraters.js";
-import Photographer  from "../models/photographers.js";
-import  PropRental  from "../models/props.js";
-import  { Venue }  from "../models/venue.js";
+import Photographer from "../models/photographers.js";
+import PropRental from "../models/props.js";
+import { Venue } from "../models/venue.js";
 
 const router = express.Router();
 
@@ -103,5 +103,77 @@ router.post("/updateService/:serviceId", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
+
+// API endpoint to update service details
+const updateServiceDetails = async (req, res) => {
+    const { serId } = req.params; // Service ID from the URL
+    const updateData = req.body; // Details to be updated
+
+    try {
+        // Step 1: Find the vendor's service type
+        const vendor = await Vendor.findOne({ "serviceIds.serId": serId });
+        if (!vendor) {
+            return res.status(404).json({ error: "Vendor or service not found" });
+        }
+
+        const service = vendor.serviceIds.find((service) => service.serId === serId);
+        const { serType } = service; // e.g., 'caterer' or 'decorator'
+
+        let updatedService;
+
+        // Step 2: Update the respective service based on service type
+        switch (serType) {
+            case "caterer":
+                updatedService = await Caterer.findOneAndUpdate(
+                    { id: serId },
+                    { $set: updateData },
+                    { new: true } // Return the updated document
+                );
+                break;
+            case "decorator":
+                updatedService = await Decorator.findOneAndUpdate(
+                    { id: serId },
+                    { $set: updateData },
+                    { new: true }
+                );
+                break;
+            case "photographer":
+                updatedService = await Photographer.findOneAndUpdate(
+                    { id: serId },
+                    { $set: updateData },
+                    { new: true }
+                );
+                break;
+            case "venue-provider":
+                updatedService = await Venue.findOneAndUpdate(
+                    { id: serId },
+                    { $set: updateData },
+                    { new: true }
+                );
+                break;
+            case "prop-rental":
+                updatedService = await PropRental.findOneAndUpdate(
+                    { id: serId },
+                    { $set: updateData },
+                    { new: true }
+                );
+                break;
+            default:
+                return res.status(400).json({ error: "Unsupported service type" });
+        }
+
+        if (!updatedService) {
+            return res.status(404).json({ error: "Service not found for update" });
+        }
+
+        return res.status(200).json({ message: "Details updated successfully", updatedService });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// Define the route to update service details
+router.put('/updateService/:serId', updateServiceDetails);
 
 export default router;
