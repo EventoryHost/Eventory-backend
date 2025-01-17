@@ -13,6 +13,56 @@ const getFileUrls = (files, fieldName) => {
   }
   return [];
 };
+const checkCompletion = (section) => {
+  if (!section || typeof section !== "object") return false; // Validate input
+
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
+};
+
+// Function to update the section completion status
+const updateSectionCompletion = async (venId) => {
+  try {
+    const caterer = await Caterer.findOne({
+      id: venId,
+    });
+
+    // Ensure caterer exists before accessing its fields
+    if (!caterer) {
+      throw new Error("Caterer not found");
+    }
+
+    // Ensure each section exists before checking completion
+    caterer.basicDetails.completed = checkCompletion(
+      caterer.basicDetails || {},
+    );
+    caterer.menuDetails.completed = checkCompletion(caterer.menuDetails || {});
+    caterer.eventDetails.completed = checkCompletion(
+      caterer.eventDetails || {},
+    );
+    caterer.staffAndEquipmentDetails.completed = checkCompletion(
+      caterer.staffAndEquipmentDetails || {},
+    );
+    caterer.additionalDetails.completed = checkCompletion(
+      caterer.additionalDetails || {},
+    );
+    caterer.policies.completed = checkCompletion(caterer.policies || {});
+
+    await caterer.save();
+  } catch (error) {
+    console.error("Error in update section:", error);
+    throw error;
+  }
+};
 
 const createCaterer = async (req, res) => {
   try {
@@ -88,7 +138,6 @@ const createCaterer = async (req, res) => {
       },
       additionalDetails: {
         priceStartingFrom: req.body.priceStartingFrom,
-
         minimum_order_requirements: req.body.minimum_order_requirements,
         advance_booking_period: req.body.advance_booking_period,
         photos: Array.isArray(photos) ? photos : [photos],
@@ -101,9 +150,7 @@ const createCaterer = async (req, res) => {
       },
       policies: {
         cancellation_policy: cancellationPolicyFileUrl,
-
         terms_and_conditions: termsAndConditionsFileUrl,
-
         client_testimonials: clientTestimonialsUrls,
       },
       // deposit_required: req.body.deposit_required,
@@ -161,6 +208,9 @@ const createCaterer = async (req, res) => {
     newCaterer.basicDetails.profileCompletion = profileCompletion;
 
     const savedCaterer = await newCaterer.save();
+
+    // Update section completion and profile completion
+    await updateSectionCompletion(savedCaterer.id);
 
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {

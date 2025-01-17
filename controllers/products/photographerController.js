@@ -49,6 +49,53 @@ const calculateProfileCompletion = (photographer) => {
   return Math.round((completedFields / totalFields) * 100); // Return percentage
 };
 
+// Helper function to check if a section is complete
+const checkCompletion = (section) => {
+  if (!section || typeof section !== "object") return false; // Validate input
+
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
+};
+
+// Update section completion for a photographer
+const updateSectionCompletion = async (venId) => {
+  try {
+    const photographer = await Photographer.findOne({ venId });
+
+    if (!photographer) {
+      throw new Error("Photographer not found");
+    }
+
+    // Update completion status for each section
+    photographer.basicDetails.completed = checkCompletion(
+      photographer.basicDetails || {},
+    );
+    photographer.consultationDetails.completed = checkCompletion(
+      photographer.consultationDetails || {},
+    );
+    photographer.additionalDetails.completed = checkCompletion(
+      photographer.additionalDetails || {},
+    );
+    photographer.policies.completed = checkCompletion(
+      photographer.policies || {},
+    );
+
+    await photographer.save();
+  } catch (error) {
+    console.error("Error in updateSectionCompletion:", error);
+    throw error;
+  }
+};
+
 const createPhotographer = async (req, res) => {
   try {
     const alreadyExists = await Photographer.findOne({
@@ -125,6 +172,9 @@ const createPhotographer = async (req, res) => {
       serId: saved.id,
     });
     await vendor.save();
+
+    // Call to update section completion
+    await updateSectionCompletion(req.body.venId);
 
     res.status(201).json({
       message: "Photographer created successfully",
