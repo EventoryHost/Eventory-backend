@@ -151,6 +151,11 @@
 
 
 import { Venue } from "../../models/venue.js";
+import { Vendor as User } from "../../models/users.js";
+import { Caterer } from "../../models/caterer.js";
+import { Decorator } from "../../models/decoraters.js";
+import Photographer from "../../models/photographers.js";
+import PropRental from "../../models/props.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -277,12 +282,151 @@ const createVenue = async (req, res) => {
   }
 };
 
-const getAllVenues = async (req, res) => {
+export const getAllVenues = async (req, res) => {
   try {
     const venues = await Venue.find();
     res.status(200).json(venues);
   } catch (e) {
     res.status(400).json({ message: e.message });
+  }
+};
+
+export const getVenueImages = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const venue = await Venue.findOne({ id: id }).lean();
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    return res.status(200).json(venue);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getVenueVideos = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const venue = await Venue.findOne({ venId: id }).lean();
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+
+    const videos = venue.videos || [];
+    return res.status(200).json(videos);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const addReviews = async (req, res) => {
+  try {
+    const { date, feedback, id, name, photos, rating, type } = req.body;
+    if (!id || !name || !rating || !feedback || !type || !Date) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    if (type === "venue") {
+      const venue = await Venue.findOne({ id: id });
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+      if (!venue.reviews) {
+        venue.reviews = [];
+      }
+      venue.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await venue.save();
+      res.status(200).json(venue);
+    } else if (type === "caterer") {
+      const caterer = await Caterer.findOne({ id: id });
+      if (!caterer) {
+        return res.status(404).json({ message: "Caterer not found" });
+      }
+      if (!caterer.reviews) {
+        caterer.reviews = [];
+      }
+      caterer.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await caterer.save();
+      res.status(200).json(caterer);
+    } else if (type === "decorator") {
+      const decorator = await Decorator.findOne({ id: id });
+      if (!decorator) {
+        return res.status(404).json({ message: "Decorator not found" });
+      }
+      if (!decorator.reviews) {
+        decorator.reviews = [];
+      }
+      decorator.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await decorator.save();
+      res.status(200).json(decorator);
+    } else if (type === "photographer") {
+      const photographer = await Photographer.findOne({ id: id });
+      if (!photographer) {
+        return res.status(404).json({ message: "Photographer not found" });
+      }
+      if (!photographer.reviews) {
+        photographer.reviews = [];
+      }
+      photographer.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await photographer.save();
+      res.status(200).json(photographer);
+    } else if (type === "propRental") {
+      const prop = await PropRental.findOne({ id: id });
+      if (!prop) {
+        return res.status(404).json({ message: "Prop Rental not found" });
+      }
+      if (!prop.reviews) {
+        prop.reviews = [];
+      }
+      prop.reviews.push({
+        rating,
+        name,
+        feedback,
+        photos,
+        date,
+      });
+      await prop.save();
+      res.status(200).json(prop);
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getVenueReviews = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const venue = await Venue.findOne({ id: id });
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    res.status(200).json(venue.reviews);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };
 

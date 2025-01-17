@@ -1,8 +1,11 @@
 import Razorpay from "razorpay";
-import generateInvoice from "../utils/generateInvoice.js";
+import generateInvoice, {
+  sendInvoiceWithDiscount,
+} from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
 import { Vendor } from "../models/users.js";
 import { sendEmailInvoice } from "./sesController.js";
+import { generatePaymentId } from "../utils/generateId.js";
 
 dotenv.config();
 import crypto from "crypto";
@@ -30,7 +33,15 @@ const createOrder = async (req, res) => {
     });
     return res.json(order);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    if (
+      error.statusCode === 400 &&
+      error.error.code === "BAD_REQUEST_ERROR" &&
+      error.error.description ===
+        "Order amount less than minimum amount allowed"
+    ) {
+      return res.status(405).json({ error: error.error.description });
+    }
+    return res.status(500).json({ error: error });
   }
 };
 
@@ -66,13 +77,8 @@ const verifyPayment = async (req, res) => {
       };
       const vendor = await Vendor.findOne({ id: ven_id });
       const file = await generateInvoice(vendor, formattedDetails);
-      if (vendor.email)
-        await sendEmailInvoice(vendor.email, file.pdf, file.fileName);
-      await sendInvoiceToWhatsApp(
-        file.url,
-        vendor.mobile,
-        formattedDetails.amount,
-      );
+      if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
+      sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
 
       return res.json({ message: "Payment verified" });
     } else {
@@ -84,7 +90,35 @@ const verifyPayment = async (req, res) => {
   }
 };
 
+async function generateInvoiceWithDiscount(req, res) {
+  try {
+    const { ven_id, amount, discount } = req.body;
+    const payment_id = generatePaymentId();
+
+    const formattedDetails = {
+      invoiceNumber: payment_id,
+      invoiceDate: new Date().toLocaleDateString(),
+      amount: amount,
+      method: "None",
+    };
+
+    const vendor = await Vendor.findOne({ id: ven_id });
+    const file = await sendInvoiceWithDiscount(
+      vendor,
+      formattedDetails,
+      discount,
+    );
+    if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
+    sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
+
+    return res.json({ message: "Invoice sent" });
+  } catch (error) {
+    return res.status(400).json({ error: "Error sending invoice" });
+  }
+}
+
 export default {
   createOrder,
   verifyPayment,
+  generateInvoiceWithDiscount,
 };
