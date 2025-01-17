@@ -149,7 +149,6 @@
 
 // export default { createVenue, getAllVenues };
 
-
 import { Venue } from "../../models/venue.js";
 import { Vendor as User } from "../../models/users.js";
 import { Caterer } from "../../models/caterer.js";
@@ -175,11 +174,11 @@ const checkCompletion = (section) => {
 
     // If the field is an array, check that it's not empty
     if (Array.isArray(value)) {
-      return value.length > 0;  // Ensure the array is not empty
+      return value.length > 0; // Ensure the array is not empty
     }
     // If the field is an object, check its keys too (recursive check)
-    if (typeof value === 'object' && value !== null) {
-      return checkCompletion(value);  // Recurse for nested objects
+    if (typeof value === "object" && value !== null) {
+      return checkCompletion(value); // Recurse for nested objects
     }
     // For other types, check that it's not null, undefined, or an empty string
     return value !== undefined && value !== null && value !== "";
@@ -188,8 +187,6 @@ const checkCompletion = (section) => {
   // Return true if all required fields are filled
   return requiredFields.length === Object.keys(section).length;
 };
-
-
 
 const updateSectionCompletion = async (venId) => {
   try {
@@ -202,8 +199,12 @@ const updateSectionCompletion = async (venId) => {
     }
 
     venue.basicDetails.completed = checkCompletion(venue.basicDetails || {});
-    venue.featureDetails.completed = checkCompletion(venue.featureDetails || {});
-    venue.additionalDetails.completed = checkCompletion(venue.additionalDetails || {});
+    venue.featureDetails.completed = checkCompletion(
+      venue.featureDetails || {},
+    );
+    venue.additionalDetails.completed = checkCompletion(
+      venue.additionalDetails || {},
+    );
     venue.policies.completed = checkCompletion(venue.policies || {});
 
     await venue.save();
@@ -226,7 +227,8 @@ const createVenue = async (req, res) => {
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "termsConditions")[0] || req.body.termsConditions;
     const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] || req.body.cancellationPolicy;
+      getFileUrls(req.files, "cancellationPolicy")[0] ||
+      req.body.cancellationPolicy;
 
     const photosUrls = getFileUrls(req.files, "photos");
     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];

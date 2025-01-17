@@ -29,7 +29,6 @@ const checkCompletion = (section) => {
   });
 };
 
-
 // Function to update the section completion status
 const updateSectionCompletion = async (venId) => {
   try {
@@ -43,11 +42,19 @@ const updateSectionCompletion = async (venId) => {
     }
 
     // Ensure each section exists before checking completion
-    caterer.basicDetails.completed = checkCompletion(caterer.basicDetails || {});
+    caterer.basicDetails.completed = checkCompletion(
+      caterer.basicDetails || {},
+    );
     caterer.menuDetails.completed = checkCompletion(caterer.menuDetails || {});
-    caterer.eventDetails.completed = checkCompletion(caterer.eventDetails || {});
-    caterer.staffAndEquipmentDetails.completed = checkCompletion(caterer.staffAndEquipmentDetails || {});
-    caterer.additionalDetails.completed = checkCompletion(caterer.additionalDetails || {});
+    caterer.eventDetails.completed = checkCompletion(
+      caterer.eventDetails || {},
+    );
+    caterer.staffAndEquipmentDetails.completed = checkCompletion(
+      caterer.staffAndEquipmentDetails || {},
+    );
+    caterer.additionalDetails.completed = checkCompletion(
+      caterer.additionalDetails || {},
+    );
     caterer.policies.completed = checkCompletion(caterer.policies || {});
 
     await caterer.save();
@@ -56,7 +63,6 @@ const updateSectionCompletion = async (venId) => {
     throw error;
   }
 };
-
 
 const createCaterer = async (req, res) => {
   try {
@@ -98,8 +104,6 @@ const createCaterer = async (req, res) => {
     const foodSafetyCertificates = foodSafetyCertificatesUrls.length
       ? foodSafetyCertificatesUrls
       : req.body.food_safety_certificates || [];
-
-      
 
     // Create new caterer
     const newCaterer = new Caterer({
@@ -204,10 +208,10 @@ const createCaterer = async (req, res) => {
     newCaterer.basicDetails.profileCompletion = profileCompletion;
 
     const savedCaterer = await newCaterer.save();
-    
+
     // Update section completion and profile completion
     await updateSectionCompletion(savedCaterer.id);
-    
+
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Caterer.findByIdAndDelete(savedCaterer.id);

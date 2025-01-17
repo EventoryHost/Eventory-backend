@@ -83,7 +83,6 @@ const propRentalSchema = new Schema({
   ],
 });
 
-
 const PropRental = model("PropRental", propRentalSchema);
 
 export default PropRental;

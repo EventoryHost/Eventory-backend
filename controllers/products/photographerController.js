@@ -66,7 +66,6 @@ const checkCompletion = (section) => {
   });
 };
 
-
 // Update section completion for a photographer
 const updateSectionCompletion = async (venId) => {
   try {
@@ -77,10 +76,18 @@ const updateSectionCompletion = async (venId) => {
     }
 
     // Update completion status for each section
-    photographer.basicDetails.completed = checkCompletion(photographer.basicDetails || {});
-    photographer.consultationDetails.completed = checkCompletion(photographer.consultationDetails || {});
-    photographer.additionalDetails.completed = checkCompletion(photographer.additionalDetails || {});
-    photographer.policies.completed = checkCompletion(photographer.policies || {});
+    photographer.basicDetails.completed = checkCompletion(
+      photographer.basicDetails || {},
+    );
+    photographer.consultationDetails.completed = checkCompletion(
+      photographer.consultationDetails || {},
+    );
+    photographer.additionalDetails.completed = checkCompletion(
+      photographer.additionalDetails || {},
+    );
+    photographer.policies.completed = checkCompletion(
+      photographer.policies || {},
+    );
 
     await photographer.save();
   } catch (error) {
@@ -88,7 +95,6 @@ const updateSectionCompletion = async (venId) => {
     throw error;
   }
 };
-
 
 const createPhotographer = async (req, res) => {
   try {

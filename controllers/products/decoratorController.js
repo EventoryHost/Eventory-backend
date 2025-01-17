@@ -29,7 +29,6 @@ const checkCompletion = (section) => {
   });
 };
 
-
 const updateSectionCompletion = async (id) => {
   try {
     const decorator = await Decorator.findOne({ id });
@@ -38,10 +37,18 @@ const updateSectionCompletion = async (id) => {
       throw new Error("Decorator not found");
     }
 
-    decorator.basicDetails.completed = checkCompletion(decorator.basicDetails || {});
-    decorator.themesOffered.completed = checkCompletion(decorator.themesOffered || {});
-    decorator.themesElement.completed = checkCompletion(decorator.themesElement || {});
-    decorator.additionalDetails.completed = checkCompletion(decorator.additionalDetails || {});
+    decorator.basicDetails.completed = checkCompletion(
+      decorator.basicDetails || {},
+    );
+    decorator.themesOffered.completed = checkCompletion(
+      decorator.themesOffered || {},
+    );
+    decorator.themesElement.completed = checkCompletion(
+      decorator.themesElement || {},
+    );
+    decorator.additionalDetails.completed = checkCompletion(
+      decorator.additionalDetails || {},
+    );
     decorator.policies.completed = checkCompletion(decorator.policies || {});
 
     await decorator.save();
