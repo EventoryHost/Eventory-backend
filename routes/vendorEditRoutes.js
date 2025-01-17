@@ -137,7 +137,7 @@ const updateServiceDetails = async (req, res) => {
                     { new: true }
                 );
                 break;
-            case "photographer":
+            case "pav":
                 updatedService = await Photographer.findOneAndUpdate(
                     { id: serId },
                     { $set: updateData },
