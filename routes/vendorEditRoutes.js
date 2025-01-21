@@ -72,38 +72,25 @@ router.post("/updateService/:serviceId", async (req, res) => {
         let serviceDoc;
         switch (service.serType) {
             case "caterer":
-                serviceDoc = await Caterer.findOne({
-                    id: service.serId,
-                    venId: vendor.id,
-                });
+                serviceDoc = await Caterer.findOne({ id: service.serId, venId: vendor.id });
                 break;
             case "decorator":
-                serviceDoc = await Decorator.findOne({
-                    id: service.serId,
-                    venId: vendor.id,
-                });
+                serviceDoc = await Decorator.findOne({ id: service.serId, venId: vendor.id });
                 break;
-            case "pav":
-                serviceDoc = await Photographer.findOne({
-                    id: service.serId,
-                    venId: vendor.id,
-                });
+                case "pav": 
+            case "photographer": // Replace 'pav' with 'photographer'
+                serviceDoc = await Photographer.findOne({ id: service.serId, venId: vendor.id });
                 break;
             case "venue-provider":
-                serviceDoc = await Venue.findOne({
-                    id: service.serId,
-                    venId: vendor.id,
-                });
+                serviceDoc = await Venue.findOne({ id: service.serId, venId: vendor.id });
                 break;
             case "prop-rental":
-                serviceDoc = await PropRental.findOne({
-                    id: service.serId,
-                    venId: vendor.id,
-                });
+                serviceDoc = await PropRental.findOne({ id: service.serId, venId: vendor.id });
                 break;
             default:
                 return res.status(400).json({ message: "Invalid service type" });
         }
+        
 
         if (!serviceDoc) {
             return res
@@ -162,7 +149,8 @@ const updateServiceDetails = async (req, res) => {
                     { new: true },
                 );
                 break;
-            case "pav":
+                case "pav":
+            case "photographer":
                 updatedService = await Photographer.findOneAndUpdate(
                     { id: serId },
                     { $set: updateData },
@@ -262,7 +250,7 @@ const serviceFields = {
         "policies.cancellationPolicy",
         "policies.termsAndConditions",
     ],
-    photographer: [
+    pav: [
         "basicDetails.name",
         "basicDetails.description",
         "basicDetails.eventSize",
