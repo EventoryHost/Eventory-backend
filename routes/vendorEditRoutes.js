@@ -404,9 +404,11 @@ const checkVerification = (service, serType) => {
     console.log(`Checking verification for ${serType} service...`);
     let allFieldsValid = true;
 
+    let fieldsToCheck;
+
     switch (serType) {
         case "caterer":
-            const fieldsToCheck = [
+            fieldsToCheck = [
                 { path: "basicDetails.name", label: "Service Name" },
                 { path: "basicDetails.managerName", label: "Manager Name" },
                 { path: "basicDetails.capacity", label: "Guest Capacity" },
@@ -432,6 +434,69 @@ const checkVerification = (service, serType) => {
                 { path: "policies.cancellation_policy", label: "Cancellation Policy" },
                 { path: "policies.terms_and_conditions", label: "Terms & Condition" }
             ];
+            break;
+        case "decorator":
+            fieldsToCheck = [
+                { path: "basicDetails.name", label: "Service Name" },
+                { path: "basicDetails.eventSize", label: "Location (City)" },
+                { path: "basicDetails.description", label: "Description" },
+                { path: "basicDetails.eventTypes.types", label: "Types of Events" },
+                { path: "basicDetails.eventTypes.corporate", label: "Corporate Events" },
+                { path: "basicDetails.eventTypes.cultural", label: "Cultural Events" },
+                { path: "themesOffered", label: "Themes Available" },
+                { path: "themesOffered.colorSchemeAssistance", label: "Assistance with Creating Color Schemes" },
+                { path: "themesOffered.venueAdaptability", label: "Adapt Themes to Different Venue Sizes" },
+                { path: "themesOffered.themeCustomization", label: "Customization of Themes" },
+                { path: "themesElement.themeElements", label: "Theme Elements" },
+                { path: "themesElement.themePhotos", label: "Theme Photos" },
+                { path: "themesElement.themeVideos", label: "Videos" },
+                { path: "additionalDetails.priceStartingFrom", label: "Price Starting From" },
+                { path: "additionalDetails.advanceBookingPeriod", label: "Advance Booking Period" },
+                { path: "additionalDetails.themeProposels", label: "A Written Theme Proposal After Consultation" },
+                { path: "additionalDetails.proposalRevisions", label: "Revisions to the Initial Theme Proposal" },
+                { path: "additionalDetails.photos", label: "Photos" },
+                { path: "policies.termsAndConditions", label: "Terms & Conditions" },
+                { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+            ];
+            break 
+            case "pav":
+                fieldsToCheck = [
+                    // Basic Details
+                    { path: "basicDetails.name", label: "Service Name" },
+                    { path: "basicDetails.eventSize", label: "Location (City)" },
+                    { path: "basicDetails.description", label: "Description" },
+                    { path: "basicDetails.eventTypes", label: "Types of Events" },
+                    { path: "additionalDetails.priceStartingFrom", label: "Price Starting From" },
+                    
+                    // Photography Section
+                    { path: "Photography.typesOfStyles", label: "Photography: Types of Styles" },
+                    { path: "Photography.equipmentAvailable", label: "Photography: Equipment Available" },
+                    { path: "Photography.addonsOrUpgradeAvailable", label: "Photography: Add-ons or Upgrades Available" },
+                    { path: "Photography.finalDeliveryMethods", label: "Photography: Final Delivery Methods" },
+                    
+                    // Videography Section
+                    { path: "Videography.typesOfStyles", label: "Videography: Types of Styles" },
+                    { path: "Videography.equipmentAvailable", label: "Videography: Equipment Available" },
+                    { path: "Videography.addonsOrUpgradeAvailable", label: "Videography: Add-ons or Upgrades Available" },
+                    { path: "Videography.finalDeliveryMethods", label: "Videography: Final Delivery Methods" },
+                    
+                    // Consultation Details
+                    { path: "consultationDetails.freeInitialConsultation", label: "Free Initial Consultation" },
+                    { path: "consultationDetails.bookingDeposit", label: "Booking Deposit for Your Service" },
+                    { path: "consultationDetails.proposalsToClients", label: "Design Proposal" },
+                    { path: "consultationDetails.postProductionServices", label: "Post-production Services" },
+                    { path: "consultationDetails.availableForDestinationEvents", label: "Available for Destination Events (Out of Town)" },
+                    { path: "consultationDetails.AdvanceSetup", label: "Advance Booking Period" },
+                    
+                    // Policies
+                    { path: "policies.termsAndConditions", label: "Terms & Conditions" },
+                    { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+                    
+                    // Additional Details
+                    { path: "additionalDetails.photos", label: "Photos" },
+                    { path: "additionalDetails.videos", label: "Videos" },
+                ];         
+
 
             fieldsToCheck.forEach(({ path, label }) => {
                 const fieldPath = path.split(".");
