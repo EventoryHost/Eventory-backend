@@ -6,6 +6,7 @@ const Schema = _Schema;
 
 const catererSchema = new Schema({
   type: { type: String, default: "caterer" },
+  isVerified: { type: Boolean, default: false },
   basicDetails: {
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false }, // Flag for section completion

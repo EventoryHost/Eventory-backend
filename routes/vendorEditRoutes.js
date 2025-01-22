@@ -191,6 +191,10 @@ const updateServiceDetails = async (req, res) => {
             return res.status(404).json({ error: "Service not found for update" });
         }
 
+        const isVerified = checkVerification(updatedService, serType);
+
+        await updatedService.updateOne({ isVerified });
+
         // Step 3: Calculate profile completion percentage
         const profileCompletion = calculateProfileCompletion(updatedService, serType);
 
@@ -376,7 +380,7 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
             if (currentValue[key] !== undefined && currentValue[key] !== null) {
                 currentValue = currentValue[key];
             } else {
-                console.log(`Field ${field} XXXXXXX`);
+                // console.log(`Field ${field} XXXXXXX`);
                 return; // Field is not filled, exit early
             }
         }
@@ -384,9 +388,9 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
         // Check if the final value is filled (non-empty string or non-null)
         if (currentValue?.toString().trim()) {
             filledFields += 1;
-            console.log(`Field ${field} OK`);
+            // console.log(`Field ${field} OK`);
         } else {
-            console.log(`Field ${field} XXXXXXX`);
+            // console.log(`Field ${field} XXXXXXX`);
         }
     });
 
@@ -394,6 +398,72 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
     console.log(`Profile completion: ${completionPercentage}%`);
     return Math.round(completionPercentage); // Return an integer percentage
 };
+
+// Helper function to check verification criteria
+const checkVerification = (service, serType) => {
+    console.log(`Checking verification for ${serType} service...`);
+    let allFieldsValid = true;
+
+    switch (serType) {
+        case "caterer":
+            const fieldsToCheck = [
+                { path: "basicDetails.name", label: "Service Name" },
+                { path: "basicDetails.managerName", label: "Manager Name" },
+                { path: "basicDetails.capacity", label: "Guest Capacity" },
+                { path: "basicDetails.description", label: "Description" },
+                { path: "basicDetails.cuisine_specialities", label: "Cuisine Specialties" },
+                { path: "basicDetails.regional_specialities", label: "Regional Specialties" },
+                { path: "basicDetails.service_style_offered", label: "Service Style" },
+                { path: "menuDetails.menu", label: "Menu" },
+                { path: "menuDetails.vegOrNonVeg", label: "Veg Only" },
+                { path: "menuDetails.pre_set_menus", label: "Add manually" },
+                { path: "menuDetails.customizable", label: "Customizable Menu" },
+                { path: "eventDetails.event_types_catered", label: "Event Type" },
+                { path: "eventDetails.additional_services", label: "Additional Service" },
+                { path: "staffAndEquipmentDetails.staff_provided", label: "Staff Provided" },
+                { path: "additionalDetails.minimum_order_requirements", label: "Minimum Order Requirement" },
+                { path: "additionalDetails.advance_booking_period", label: "Advance Booking Period" },
+                { path: "additionalDetails.photos", label: "Photos" },
+                { path: "additionalDetails.videos", label: "Videos" },
+                { path: "additionalDetails.tasting_sessions", label: "Tasting Sessions" },
+                { path: "additionalDetails.business_licenses", label: "Business License" },
+                { path: "additionalDetails.food_safety_certificates", label: "Food Safety Certificate" },
+                { path: "additionalDetails.priceStartingFrom", label: "Price Starting From" },
+                { path: "policies.cancellation_policy", label: "Cancellation Policy" },
+                { path: "policies.terms_and_conditions", label: "Terms & Condition" }
+            ];
+
+            fieldsToCheck.forEach(({ path, label }) => {
+                const fieldPath = path.split(".");
+                let currentValue = service;
+
+                for (let key of fieldPath) {
+                    if (currentValue[key] !== undefined && currentValue[key] !== null) {
+                        currentValue = currentValue[key];
+                    } else {
+                        console.log(`Field "${label}" (${path}) XXXXXXX`);
+                        allFieldsValid = false;
+                        return; // Field is not valid, exit early
+                    }
+                }
+
+                if (currentValue?.toString().trim()) {
+                    console.log(`Field "${label}" (${path}) OK`);
+                } else {
+                    console.log(`Field "${label}" (${path}) XXXXXXX`);
+                    allFieldsValid = false;
+                }
+            });
+
+            return allFieldsValid;
+
+        // Add criteria for other service types as needed
+        default:
+            console.log(`Unknown service type: ${serType}`);
+            return false;
+    }
+};
+
 
 
 
