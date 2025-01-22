@@ -266,7 +266,7 @@ const serviceFields = {
         "policies.cancellationPolicy",
         "policies.termsAndConditions",
     ],
-    photographer: [
+    pav: [
         "basicDetails.name",
         "basicDetails.description",
         "basicDetails.eventSize",
@@ -396,7 +396,7 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
 
     const completionPercentage = (filledFields / requiredFields.length) * 100;
     console.log(`Profile completion: ${completionPercentage}%`);
-    return Math.round(completionPercentage); // Return an integer percentage
+    return Math.round(completionPercentage); 
 };
 
 // Helper function to check verification criteria
