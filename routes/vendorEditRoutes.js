@@ -1,3 +1,4 @@
+//  routes/vendorEditRoutes.js
 import express from "express";
 import { Vendor } from "../models/users.js";
 import { Caterer } from "../models/caterer.js";
@@ -5,6 +6,10 @@ import { Decorator } from "../models/decoraters.js";
 import Photographer from "../models/photographers.js";
 import PropRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
+
+import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
+import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
+import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
 
 const router = express.Router();
 
@@ -152,8 +157,10 @@ const updateServiceDetails = async (req, res) => {
                 updatedService = await Caterer.findOneAndUpdate(
                     { id: serId },
                     { $set: updateData },
-                    { new: true }, // Return the updated document
+                    { new: true },
                 );
+                // Call the caterer completion check
+                await checkCatererProfileCompletion(serId);
                 break;
             case "decorator":
                 updatedService = await Decorator.findOneAndUpdate(
@@ -161,6 +168,8 @@ const updateServiceDetails = async (req, res) => {
                     { $set: updateData },
                     { new: true },
                 );
+                // Call the decorator completion check
+                await checkDecoratorProfileCompletion(serId);
                 break;
             case "pav":
                 updatedService = await Photographer.findOneAndUpdate(
@@ -168,6 +177,8 @@ const updateServiceDetails = async (req, res) => {
                     { $set: updateData },
                     { new: true },
                 );
+                 // Call the photographer completion check
+                 await checkPhotographerProfileCompletion(serId);
                 break;
             case "venue-provider":
                 updatedService = await Venue.findOneAndUpdate(
