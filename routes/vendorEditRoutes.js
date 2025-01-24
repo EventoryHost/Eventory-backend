@@ -1,3 +1,4 @@
+//  routes/vendorEditRoutes.js
 import express from "express";
 import { Vendor } from "../models/users.js";
 import { Caterer } from "../models/caterer.js";
@@ -5,6 +6,10 @@ import { Decorator } from "../models/decoraters.js";
 import Photographer from "../models/photographers.js";
 import PropRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
+
+import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
+import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
+import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
 
 const router = express.Router();
 
@@ -139,8 +144,10 @@ const updateServiceDetails = async (req, res) => {
                 updatedService = await Caterer.findOneAndUpdate(
                     { id: serId },
                     { $set: updateData },
-                    { new: true }, // Return the updated document
+                    { new: true },
                 );
+                // Call the caterer completion check
+                await checkCatererProfileCompletion(serId);
                 break;
             case "decorator":
                 updatedService = await Decorator.findOneAndUpdate(
@@ -148,6 +155,8 @@ const updateServiceDetails = async (req, res) => {
                     { $set: updateData },
                     { new: true },
                 );
+                // Call the decorator completion check
+                await checkDecoratorProfileCompletion(serId);
                 break;
                 case "pav":
             case "photographer":
@@ -156,6 +165,8 @@ const updateServiceDetails = async (req, res) => {
                     { $set: updateData },
                     { new: true },
                 );
+                 // Call the photographer completion check
+                 await checkPhotographerProfileCompletion(serId);
                 break;
             case "venue-provider":
                 updatedService = await Venue.findOneAndUpdate(
@@ -178,6 +189,10 @@ const updateServiceDetails = async (req, res) => {
         if (!updatedService) {
             return res.status(404).json({ error: "Service not found for update" });
         }
+
+        const isVerified = checkVerification(updatedService, serType);
+
+        await updatedService.updateOne({ isVerified });
 
         // Step 3: Calculate profile completion percentage
         const profileCompletion = calculateProfileCompletion(updatedService, serType);
@@ -364,7 +379,7 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
             if (currentValue[key] !== undefined && currentValue[key] !== null) {
                 currentValue = currentValue[key];
             } else {
-                console.log(`Field ${field} XXXXXXX`);
+                // console.log(`Field ${field} XXXXXXX`);
                 return; // Field is not filled, exit early
             }
         }
@@ -372,16 +387,147 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
         // Check if the final value is filled (non-empty string or non-null)
         if (currentValue?.toString().trim()) {
             filledFields += 1;
-            console.log(`Field ${field} OK`);
+            // console.log(`Field ${field} OK`);
         } else {
-            console.log(`Field ${field} XXXXXXX`);
+            // console.log(`Field ${field} XXXXXXX`);
         }
     });
 
     const completionPercentage = (filledFields / requiredFields.length) * 100;
     console.log(`Profile completion: ${completionPercentage}%`);
-    return Math.round(completionPercentage); // Return an integer percentage
+    return Math.round(completionPercentage); 
 };
+
+// Helper function to check verification criteria
+const checkVerification = (service, serType) => {
+    console.log(`Checking verification for ${serType} service...`);
+    let allFieldsValid = true;
+
+    let fieldsToCheck;
+
+    switch (serType) {
+        case "caterer":
+            fieldsToCheck = [
+                { path: "basicDetails.name", label: "Service Name" },
+                { path: "basicDetails.managerName", label: "Manager Name" },
+                { path: "basicDetails.capacity", label: "Guest Capacity" },
+                { path: "basicDetails.description", label: "Description" },
+                { path: "basicDetails.cuisine_specialities", label: "Cuisine Specialties" },
+                { path: "basicDetails.regional_specialities", label: "Regional Specialties" },
+                { path: "basicDetails.service_style_offered", label: "Service Style" },
+                { path: "menuDetails.menu", label: "Menu" },
+                { path: "menuDetails.vegOrNonVeg", label: "Veg Only" },
+                { path: "menuDetails.pre_set_menus", label: "Add manually" },
+                { path: "menuDetails.customizable", label: "Customizable Menu" },
+                { path: "eventDetails.event_types_catered", label: "Event Type" },
+                { path: "eventDetails.additional_services", label: "Additional Service" },
+                { path: "staffAndEquipmentDetails.staff_provided", label: "Staff Provided" },
+                { path: "additionalDetails.minimum_order_requirements", label: "Minimum Order Requirement" },
+                { path: "additionalDetails.advance_booking_period", label: "Advance Booking Period" },
+                { path: "additionalDetails.photos", label: "Photos" },
+                { path: "additionalDetails.videos", label: "Videos" },
+                { path: "additionalDetails.tasting_sessions", label: "Tasting Sessions" },
+                { path: "additionalDetails.business_licenses", label: "Business License" },
+                { path: "additionalDetails.food_safety_certificates", label: "Food Safety Certificate" },
+                { path: "additionalDetails.priceStartingFrom", label: "Price Starting From" },
+                { path: "policies.cancellation_policy", label: "Cancellation Policy" },
+                { path: "policies.terms_and_conditions", label: "Terms & Condition" }
+            ];
+            break;
+        case "decorator":
+            fieldsToCheck = [
+                { path: "basicDetails.name", label: "Service Name" },
+                { path: "basicDetails.eventSize", label: "Location (City)" },
+                { path: "basicDetails.description", label: "Description" },
+                { path: "basicDetails.eventTypes.types", label: "Types of Events" },
+                { path: "basicDetails.eventTypes.corporate", label: "Corporate Events" },
+                { path: "basicDetails.eventTypes.cultural", label: "Cultural Events" },
+                { path: "themesOffered", label: "Themes Available" },
+                { path: "themesOffered.colorSchemeAssistance", label: "Assistance with Creating Color Schemes" },
+                { path: "themesOffered.venueAdaptability", label: "Adapt Themes to Different Venue Sizes" },
+                { path: "themesOffered.themeCustomization", label: "Customization of Themes" },
+                { path: "themesElement.themeElements", label: "Theme Elements" },
+                { path: "themesElement.themePhotos", label: "Theme Photos" },
+                { path: "themesElement.themeVideos", label: "Videos" },
+                { path: "additionalDetails.priceStartingFrom", label: "Price Starting From" },
+                { path: "additionalDetails.advanceBookingPeriod", label: "Advance Booking Period" },
+                { path: "additionalDetails.themeProposels", label: "A Written Theme Proposal After Consultation" },
+                { path: "additionalDetails.proposalRevisions", label: "Revisions to the Initial Theme Proposal" },
+                { path: "additionalDetails.photos", label: "Photos" },
+                { path: "policies.termsAndConditions", label: "Terms & Conditions" },
+                { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+            ];
+            break 
+            case "pav":
+                fieldsToCheck = [
+                    // Basic Details
+                    { path: "basicDetails.name", label: "Service Name" },
+                    { path: "basicDetails.eventSize", label: "Location (City)" },
+                    { path: "basicDetails.description", label: "Description" },
+                    { path: "basicDetails.eventTypes", label: "Types of Events" },
+                    { path: "additionalDetails.priceStartingFrom", label: "Price Starting From" },
+                    
+                    // Photography Section
+                    { path: "Photography.typesOfStyles", label: "Photography: Types of Styles" },
+                    { path: "Photography.equipmentAvailable", label: "Photography: Equipment Available" },
+                    { path: "Photography.addonsOrUpgradeAvailable", label: "Photography: Add-ons or Upgrades Available" },
+                    { path: "Photography.finalDeliveryMethods", label: "Photography: Final Delivery Methods" },
+                    
+                    // Videography Section
+                    { path: "Videography.typesOfStyles", label: "Videography: Types of Styles" },
+                    { path: "Videography.equipmentAvailable", label: "Videography: Equipment Available" },
+                    { path: "Videography.addonsOrUpgradeAvailable", label: "Videography: Add-ons or Upgrades Available" },
+                    { path: "Videography.finalDeliveryMethods", label: "Videography: Final Delivery Methods" },
+                    
+                    // Consultation Details
+                    { path: "consultationDetails.freeInitialConsultation", label: "Free Initial Consultation" },
+                    { path: "consultationDetails.bookingDeposit", label: "Booking Deposit for Your Service" },
+                    { path: "consultationDetails.proposalsToClients", label: "Design Proposal" },
+                    { path: "consultationDetails.postProductionServices", label: "Post-production Services" },
+                    { path: "consultationDetails.availableForDestinationEvents", label: "Available for Destination Events (Out of Town)" },
+                    { path: "consultationDetails.AdvanceSetup", label: "Advance Booking Period" },
+                    
+                    // Policies
+                    { path: "policies.termsAndConditions", label: "Terms & Conditions" },
+                    { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+                    
+                    // Additional Details
+                    { path: "additionalDetails.photos", label: "Photos" },
+                    { path: "additionalDetails.videos", label: "Videos" },
+                ];         
+
+
+            fieldsToCheck.forEach(({ path, label }) => {
+                const fieldPath = path.split(".");
+                let currentValue = service;
+
+                for (let key of fieldPath) {
+                    if (currentValue[key] !== undefined && currentValue[key] !== null) {
+                        currentValue = currentValue[key];
+                    } else {
+                        console.log(`Field "${label}" (${path}) XXXXXXX`);
+                        allFieldsValid = false;
+                        return; // Field is not valid, exit early
+                    }
+                }
+
+                if (currentValue?.toString().trim()) {
+                    console.log(`Field "${label}" (${path}) OK`);
+                } else {
+                    console.log(`Field "${label}" (${path}) XXXXXXX`);
+                    allFieldsValid = false;
+                }
+            });
+
+            return allFieldsValid;
+
+        // Add criteria for other service types as needed
+        default:
+            console.log(`Unknown service type: ${serType}`);
+            return false;
+    }
+};
+
 
 
 

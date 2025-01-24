@@ -5,6 +5,7 @@ const Schema = _Schema;
 
 const photographerSchema = Schema({
   type: { type: String, default: "pav" },
+  isVerified: { type: Boolean, default: false },
   basicDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     name: {
