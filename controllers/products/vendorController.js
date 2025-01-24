@@ -56,52 +56,63 @@ export const getVenue = async (req, res) => {
 
 
 // Function to add bank details to a specific vendor
-// Function to add bank details to a specific vendor
 const getBankDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params; // Custom vendor ID from URL
-    const vendor = await Vendor.findOne({ id: vendorId });  // Use custom 'id' field for querying
+    const { vendorId } = req.params;
+    const vendor = await Vendor.findOne({ id: vendorId });
 
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    res.status(200).json(vendor.bankDetails); // Send bank details if found
+    res.status(200).json(vendor.bankDetails); // Return all bank details
   } catch (error) {
     console.error("Error fetching bank details:", error);
     res.status(500).json({ message: "Error fetching bank details", error: error.message });
   }
 };
 
+
 const addBankDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params; // Custom vendor ID from URL
-    const { bankName, accountName, accountNo, ifscCode } = req.body; // Bank details from request body
+    const { vendorId } = req.params;
+    const { bankName, accountName, accountNo, ifscCode } = req.body;
 
-    // Validate the bank details
+    // Validate input fields
     if (!bankName || !accountName || !accountNo || !ifscCode) {
       return res.status(400).json({ message: "All bank details fields are required" });
     }
 
-    const vendor = await Vendor.findOne({ id: vendorId });  // Use custom 'id' field for querying
+    // Find the vendor by ID
+    const vendor = await Vendor.findOne({ id: vendorId });
 
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    // Update the bank details for the vendor
-    vendor.bankDetails = { bankName, accountName, accountNo, ifscCode };
-    await vendor.save(); // Save the vendor with updated bank details
+    // Ensure bankDetails is initialized
+    if (!vendor.bankDetails) {
+      vendor.bankDetails = [];
+    }
+
+    // Add the new bank details
+    const newBankDetails = { bankName, accountName, accountNo, ifscCode };
+    vendor.bankDetails.push(newBankDetails);
+
+    // Save the updated vendor
+    await vendor.save();
 
     res.status(200).json({
-      message: "Bank details added/updated successfully",
-      vendor,
+      message: "Bank details added successfully",
+      bankDetails: vendor.bankDetails,
     });
   } catch (error) {
     console.error("Error adding bank details:", error);
     res.status(500).json({ message: "Error adding bank details", error: error.message });
   }
 };
+
+
 
 const deleteBankDetails = async (req, res) => {
   try {
