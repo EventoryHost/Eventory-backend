@@ -2,7 +2,7 @@ import Photographer from '../../models/photographers.js';
 
 export const checkPhotographerProfileCompletion = async (photographerId) => {
   try {
-    const photographer = await Photographer.findById(photographerId);
+    const photographer = await Photographer.findOne({ id: photographerId });
 
     if (!photographer) {
       throw new Error('Photographer not found');
@@ -16,7 +16,11 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       photographer.basicDetails.eventTypes.length > 0
     );
 
-    await Photographer.findByIdAndUpdate(photographerId, {
+    // Log the result of the basic details check
+    console.log(`Basic details check: ------- ${basicDetailsComplete}`);
+
+    // Update completed flag for basic details
+    await Photographer.findOneAndUpdate({ id: photographerId }, {
       "basicDetails.completed": basicDetailsComplete,
     });
 
@@ -28,7 +32,11 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       photographer.Videography.finalDeliveryMethods.length > 0
     );
 
-    await Photographer.findByIdAndUpdate(photographerId, {
+    // Log the result of the videography check
+    console.log(`Videography check: ------- ${videographyComplete}`);
+
+    // Update completed flag for videography
+    await Photographer.findOneAndUpdate({ id: photographerId }, {
       "Videography.completed": videographyComplete,
     });
 
@@ -40,7 +48,11 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       photographer.Photography.finalDeliveryMethods.length > 0
     );
 
-    await Photographer.findByIdAndUpdate(photographerId, {
+    // Log the result of the photography check
+    console.log(`Photography check: ------- ${photographyComplete}`);
+
+    // Update completed flag for photography
+    await Photographer.findOneAndUpdate({ id: photographerId }, {
       "Photography.completed": photographyComplete,
     });
 
@@ -56,7 +68,11 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       photographer.consultationDetails.postProductionServices
     );
 
-    await Photographer.findByIdAndUpdate(photographerId, {
+    // Log the result of the consultation check
+    console.log(`Consultation details check: ------- ${consultationComplete}`);
+
+    // Update completed flag for consultation details
+    await Photographer.findOneAndUpdate({ id: photographerId }, {
       "consultationDetails.completed": consultationComplete,
     });
 
@@ -64,20 +80,40 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
     const additionalDetailsComplete = (
       photographer.additionalDetails.photos.length > 0 &&
       photographer.additionalDetails.videos.length > 0 &&
-      photographer.additionalDetails.priceStartingFrom
+      photographer.additionalDetails.clientTestimonials != null &&
+      photographer.additionalDetails.awards != null &&
+      photographer.additionalDetails.website != null &&
+      photographer.additionalDetails.instagram != null &&
+      photographer.additionalDetails.priceStartingFrom != null
     );
 
-    await Photographer.findByIdAndUpdate(photographerId, {
+    // Log the result of the additional details check
+    console.log(`Additional details check: ------- ${additionalDetailsComplete}`);
+
+    // Update completed flag for additional details
+    await Photographer.findOneAndUpdate({ id: photographerId }, {
       "additionalDetails.completed": additionalDetailsComplete,
     });
 
-    // Check if policies are complete
-    const policiesComplete = (
-      photographer.policies.cancellationPolicy.length > 0 &&
-      photographer.policies.termsAndConditions.length > 0
+    // Check if policies are complete (cancellation and terms only)
+    const cancellationComplete = (
+      typeof photographer.policies.cancellationPolicy === 'string' &&
+      photographer.policies.cancellationPolicy.trim() !== ''
     );
 
-    await Photographer.findByIdAndUpdate(photographerId, {
+    const termsComplete = (
+      typeof photographer.policies.termsAndConditions === 'string' &&
+      photographer.policies.termsAndConditions.trim() !== ''
+    );
+
+    // Log the result of the policies check
+    console.log(`Policies check: ------- ${cancellationComplete && termsComplete}`);
+
+    // Policies are considered complete if both cancellation and terms are filled
+    const policiesComplete = cancellationComplete && termsComplete;
+
+    // Update completed flag for policies
+    await Photographer.findOneAndUpdate({ id: photographerId }, {
       "policies.completed": policiesComplete,
     });
 

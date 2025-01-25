@@ -106,16 +106,13 @@ export const checkCatererProfileCompletion = async (catererId) => {
         }
         console.log(`Cancellation Policy Complete: ${cancellationComplete}`);
 
-        // If any of the fields are filled, mark policies as completed
-        if (termsComplete || testimonialsComplete || cancellationComplete) {
+        // If all of the fields are filled, mark policies as completed
+        if (termsComplete && testimonialsComplete && cancellationComplete) {
             await Caterer.findOneAndUpdate(
                 { id: catererId },
                 { "policies.completed": true }
             );
         }
-
-
-
 
         console.log(`Profile completion check completed for caterer with ID: ${catererId}`);
         return true;
