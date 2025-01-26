@@ -53,8 +53,6 @@ export const getVenue = async (req, res) => {
   }
 };
 
-
-
 // Function to add bank details to a specific vendor
 const getBankDetails = async (req, res) => {
   try {
@@ -68,10 +66,11 @@ const getBankDetails = async (req, res) => {
     res.status(200).json(vendor.bankDetails); // Return all bank details
   } catch (error) {
     console.error("Error fetching bank details:", error);
-    res.status(500).json({ message: "Error fetching bank details", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching bank details", error: error.message });
   }
 };
-
 
 const addBankDetails = async (req, res) => {
   try {
@@ -80,7 +79,9 @@ const addBankDetails = async (req, res) => {
 
     // Validate input fields
     if (!bankName || !accountName || !accountNo || !ifscCode) {
-      return res.status(400).json({ message: "All bank details fields are required" });
+      return res
+        .status(400)
+        .json({ message: "All bank details fields are required" });
     }
 
     // Find the vendor by ID
@@ -108,16 +109,16 @@ const addBankDetails = async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding bank details:", error);
-    res.status(500).json({ message: "Error adding bank details", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error adding bank details", error: error.message });
   }
 };
-
-
 
 const deleteBankDetails = async (req, res) => {
   try {
     const { vendorId } = req.params; // Extract vendorId from the URL parameters
-    
+
     // Find the vendor by vendorId
     const vendor = await Vendor.findOne({ id: vendorId });
 
@@ -129,16 +130,19 @@ const deleteBankDetails = async (req, res) => {
     if (vendor.bankDetails) {
       vendor.bankDetails = null; // Remove bank details
       await vendor.save(); // Save the updated vendor document
-      return res.status(200).json({ message: "Bank details deleted successfully" });
+      return res
+        .status(200)
+        .json({ message: "Bank details deleted successfully" });
     } else {
       return res.status(400).json({ message: "No bank details to delete" });
     }
   } catch (error) {
     console.error("Error deleting bank details:", error);
-    res.status(500).json({ message: "Error deleting bank details", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting bank details", error: error.message });
   }
 };
-
 
 export default {
   getVendorByIdAndCategory,

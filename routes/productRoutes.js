@@ -31,9 +31,12 @@ router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 router.post("/vendor/:vendorId/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
 router.get("/vendor/:vendorId/bank-details", vendorController.getBankDetails);
 // In your backend routes file (e.g., routes.js or similar)
-router.delete("/vendor/:vendorId/delete-bank-details", vendorController.deleteBankDetails);
+router.delete(
+  "/vendor/:vendorId/delete-bank-details",
+  vendorController.deleteBankDetails,
+);
 
- // Delete bank details via POST
+// Delete bank details via POST
 
 // Add vendor creation routes (for other types of vendors)
 router.post(

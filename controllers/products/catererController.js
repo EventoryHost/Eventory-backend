@@ -167,11 +167,10 @@ const createCaterer = async (req, res) => {
       req.body.service_style_offered,
       req.body.vegOrNonVeg,
       // Check if menu file is provided or if all relevant fields (appetizers, beverages, main_course) are provided
-      (menuFileUrl.length > 0 || (
-        req.body.appetizers?.length > 0 &&
-        req.body.beverages?.length > 0 &&
-        req.body.main_course?.length > 0
-      )),
+      menuFileUrl.length > 0 ||
+        (req.body.appetizers?.length > 0 &&
+          req.body.beverages?.length > 0 &&
+          req.body.main_course?.length > 0),
       req.body.special_dietary_options?.length > 0, // Ensure there are dietary options
       req.body.pre_set_menus?.length > 0, // Ensure pre-set menus exist
       req.body.customizable === "true", // Ensure customizable option is properly set
@@ -191,10 +190,9 @@ const createCaterer = async (req, res) => {
       termsAndConditionsFileUrl, // Ensure terms and conditions file is uploaded
       clientTestimonialsUrls, // Ensure client testimonials are uploaded
     ];
-    
-    
+
     const completedFields = fieldsToCheck.filter((field) => field).length;
-    const profileCompletion = 
+    const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     // Calculate profile completion
@@ -248,9 +246,6 @@ const createCaterer = async (req, res) => {
     // // Now set profileCompletion for the new caterer
     // newCaterer.basicDetails.profileCompletion = profileCompletion;
 
-
- 
-    
     const savedCaterer = await newCaterer.save();
 
     // Update section completion and profile completion
