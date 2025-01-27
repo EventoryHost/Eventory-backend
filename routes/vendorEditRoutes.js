@@ -321,10 +321,10 @@ const serviceFields = {
     "basicDetails.name",
     "basicDetails.managerName",
     "basicDetails.capacity",
-    "basicDetails.operatingHours.openingTime",
-    "basicDetails.operatingHours.closingTime",
-    "basicDetails.address",
-    "basicDetails.description",
+    // "basicDetails.operatingHours.openingTime",
+    // "basicDetails.operatingHours.closingTime",
+    // "basicDetails.address",
+    // "basicDetails.description",
 
     // Feature Details
     "featureDetails.catererServices",
@@ -594,12 +594,12 @@ const checkVerification = (service, serType) => {
       fieldsToCheck = [
         // Basic Details
         { path: "basicDetails.name", label: "Service Name" },
-        { path: "basicDetails.address", label: "Location (City)" },
+        // { path: "basicDetails.address", label: "Location (City)" },
         { path: "basicDetails.capacity", label: "Guest Capacity" },
         {
           path: "additionalDetails.priceStartingFrom",label: "Price Starting From",
         },
-        { path: "basicDetails.description", label: "Description" },
+        // { path: "basicDetails.description", label: "Description" },
 
         // Feature Details
         { path: "featureDetails.venueTypes", label: "Types of Venues" },
@@ -623,7 +623,7 @@ const checkVerification = (service, serType) => {
         {
           path: "additionalDetails.advanceBookingPeriod",label: "Advance Booking Period",
         },
-        { path: "basicDetails.address", label: "Venue Address" },
+        // { path: "basicDetails.address", label: "Venue Address" },
 
         // Policies
         { path: "policies.termsConditions", label: "Terms & Conditions" },
@@ -649,9 +649,9 @@ const checkVerification = (service, serType) => {
         }
 
         if (currentValue?.toString().trim()) {
-          console.log(`Field "${label}" (${path}) OK`);
+          // console.log(`Field "${label}" (${path}) OK`);
         } else {
-          console.log(`Field "${label}" (${path}) XXXXXXX`);
+          // console.log(`Field "${label}" (${path}) XXXXXXX`);
           allFieldsValid = false;
         }
       });
