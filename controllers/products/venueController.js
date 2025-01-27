@@ -277,6 +277,19 @@ const createVenue = async (req, res) => {
 
     await updateSectionCompletion(savedVenue.id);
 
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Caterer.findByIdAndDelete(savedCaterer.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "venue-provider",
+      serId: savedVenue.id,
+    });
+
+    await vendor.save();
+
     res.status(201).json(savedVenue);
   } catch (error) {
     console.error(error);
