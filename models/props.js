@@ -12,30 +12,22 @@ const pricingSchema = new Schema({
 const propRentalSchema = new Schema({
   type: { type: String, default: "propRental" },
   basicDetails: {
-    managerName: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    eventSize: {
-      type: String,
-      required: true,
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    profileCompletion: { type: Number, default: 0 },
+    managerName: { type: String, required: true },
+    description: { type: String, required: true },
+    eventSize: { type: String, required: true },
   },
   serviceDetails: {
-    itemCatalogue: {
-      type: String,
-      required: true,
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    itemCatalogue: { type: String, required: true },
     customization: { type: Boolean, required: true },
     maintenance: { type: String, required: true },
     services: { type: String, required: true },
     serviceProvided: { type: [String], required: true },
   },
   additionalDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     photos: { type: [String], required: true },
     videos: { type: [String], required: true },
     awardsAndRecognize: { type: String, required: false },
@@ -45,6 +37,7 @@ const propRentalSchema = new Schema({
     priceStartingFrom: { type: String, required: true },
   },
   policies: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
   },
@@ -55,47 +48,30 @@ const propRentalSchema = new Schema({
   schedule: [eventSchema],
 
   furnitureAndDecor: {
-    listUrl: {
-      type: [String],
-    },
-    typeOfEvents: {
-      type: [String],
-    },
-    furniture: {
-      type: [String],
-    },
-    decor: {
-      type: [String],
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    listUrl: { type: [String] },
+    typeOfEvents: { type: [String] },
+    furniture: { type: [String] },
+    decor: { type: [String] },
   },
   tentAndCanopy: {
-    listUrl: {
-      type: [String],
-    },
-    typeOfEvents: {
-      type: [String],
-    },
-    items: {
-      type: [String],
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    listUrl: { type: [String] },
+    typeOfEvents: { type: [String] },
+    items: { type: [String] },
   },
   audioVisual: {
-    listUrl: {
-      type: [String],
-    },
-    typeOfEvents: {
-      type: [String],
-    },
-    audioEquipment: {
-      type: [String],
-    },
-    visualEquipment: {
-      type: [String],
-    },
-    lightEquipment: {
-      type: [String],
-    },
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    listUrl: { type: [String] },
+    typeOfEvents: { type: [String] },
+    audioEquipment: { type: [String] },
+    visualEquipment: { type: [String] },
+    lightEquipment: { type: [String] },
   },
+  id: { type: String, default: generateUniqueId("ser"), required: true },
+  venId: { type: String, required: true },
+  vendorType: { type: String, default: "propRental" },
+  schedule: [eventSchema],
   reviews: [
     {
       rating: { type: Number, required: true },
@@ -107,6 +83,6 @@ const propRentalSchema = new Schema({
   ],
 });
 
-const PropRental = model("PropRental", propRentalSchema, "proprentals");
+const PropRental = model("PropRental", propRentalSchema);
 
 export default PropRental;

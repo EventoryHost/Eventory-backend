@@ -2,8 +2,8 @@ import PropRental from "../../models/props.js";
 import propRental from "../../models/props.js";
 import { Vendor as User } from "../../models/users.js";
 
+// Helper function to handle multiple files
 const getFileUrls = (files, fieldName) => {
-  // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
     return Array.isArray(fileArray)
@@ -13,16 +13,65 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// Function to check section completion
+const checkCompletion = (section) => {
+  if (!section) return false;
+
+  // Check that all required fields are filled, including non-empty arrays
+  const requiredFields = Object.keys(section).filter((key) => {
+    // Ensure that the array is not empty and that the field is not null or undefined
+    if (Array.isArray(section[key])) {
+      return section[key].length > 0; // Check that the array is not empty
+    }
+    return (
+      section[key] !== undefined && section[key] !== null && section[key] !== ""
+    );
+  });
+
+  // Return true if all required fields are filled
+  return requiredFields.length === Object.keys(section).length;
+};
+
+// Function to update the section completion status
+const updateSectionCompletion = async (propId) => {
+  try {
+    const prop = await propRental.findOne({ id: propId });
+
+    if (!prop) {
+      throw new Error("Prop rental not found");
+    }
+
+    // Ensure each section exists before checking completion
+    prop.basicDetails.completed = checkCompletion(prop.basicDetails || {});
+    prop.serviceDetails.completed = checkCompletion(prop.serviceDetails || {});
+    prop.additionalDetails.completed = checkCompletion(
+      prop.additionalDetails || {},
+    );
+    prop.furnitureAndDecor.completed = checkCompletion(
+      prop.furnitureAndDecor || {},
+    );
+    prop.tentAndCanopy.completed = checkCompletion(prop.tentAndCanopy || {});
+    prop.audioVisual.completed = checkCompletion(prop.audioVisual || {});
+    prop.policies.completed = checkCompletion(prop.policies || {});
+
+    await prop.save();
+  } catch (error) {
+    console.error("Error in update section:", error);
+    throw error;
+  }
+};
+
+// Profile completion calculation
+const calculateProfileCompletion = (basicDetails) => {
+  const fields = ["managerName", "description", "eventSize"];
+  const filledFields = fields.filter(
+    (field) => basicDetails[field] && basicDetails[field].trim() !== "",
+  );
+  return Math.round((filledFields.length / fields.length) * 100);
+};
+
 const createProp = async (req, res) => {
   try {
-    // const alreadyExists = await propRental.findOne({
-    //   name: req.body.name,
-    //   venId: req.body.venId,
-    // });
-    // if (alreadyExists) {
-    //   return res.status(400).json({ message: "Prop Rental already exists" });
-    // }
-
     const furnitureAndDecorListUrl =
       getFileUrls(req.files, "furnitureAndDecorListUrl")[0] ||
       req.body.furnitureAndDecorList;
@@ -38,6 +87,7 @@ const createProp = async (req, res) => {
     const termsAndConditionsUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
+
     const cancellationPolicyUrl =
       getFileUrls(req.files, "cancellationPolicy")[0] ||
       req.body.cancellationPolicy;
@@ -55,11 +105,18 @@ const createProp = async (req, res) => {
     const videosUrls = getFileUrls(req.files, "videos");
     const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
 
+    const basicDetails = {
+      managerName: req.body.managerName,
+      description: req.body.descriptionOfWork,
+      eventSize: req.body.eventSize,
+    };
+
+    const profileCompletion = calculateProfileCompletion(basicDetails);
+
     const newProp = new propRental({
       basicDetails: {
-        managerName: req.body.managerName,
-        description: req.body.descriptionOfWork,
-        eventSize: req.body.eventSize,
+        ...basicDetails,
+        profileCompletion,
       },
       serviceDetails: {
         itemCatalogue: itemCatalogueUrl,
@@ -78,7 +135,6 @@ const createProp = async (req, res) => {
         priceStartingFrom: req.body.priceStartingFrom,
       },
       ...req.body,
-
       furnitureAndDecor: {
         listUrl: furnitureAndDecorListUrl,
         ...req.body.furnitureAndDecor,
@@ -109,7 +165,10 @@ const createProp = async (req, res) => {
       serId: savedProp.id,
     });
     await vendor.save();
-    // console.log(newProp);
+
+    // Update section completion for prop rental
+    await updateSectionCompletion(savedProp.id);
+
     res.status(201).json(savedProp);
   } catch (error) {
     res.status(400).json({ error: error.message });

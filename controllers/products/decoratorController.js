@@ -13,6 +13,51 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+const checkCompletion = (section) => {
+  if (!section || typeof section !== "object") return false; // Validate input
+
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
+};
+
+const updateSectionCompletion = async (id) => {
+  try {
+    const decorator = await Decorator.findOne({ id });
+
+    if (!decorator) {
+      throw new Error("Decorator not found");
+    }
+
+    decorator.basicDetails.completed = checkCompletion(
+      decorator.basicDetails || {},
+    );
+    decorator.themesOffered.completed = checkCompletion(
+      decorator.themesOffered || {},
+    );
+    decorator.themesElement.completed = checkCompletion(
+      decorator.themesElement || {},
+    );
+    decorator.additionalDetails.completed = checkCompletion(
+      decorator.additionalDetails || {},
+    );
+    decorator.policies.completed = checkCompletion(decorator.policies || {});
+
+    await decorator.save();
+  } catch (error) {
+    console.error("Error in update section completion:", error);
+    throw error;
+  }
+};
+
 const createDecorator = async (req, res) => {
   try {
     const alreadyExists = await Decorator.findOne({
@@ -58,6 +103,34 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
+
+    // Calculate profile completion
+    const fieldsToCheck = [
+      req.body.name,
+      req.body.description,
+      req.body.eventSize,
+      req.body.duration,
+      req.body.themesOffered?.length > 0, // Check if at least one theme is offered
+      req.body.customDesignProcess,
+      req.body.themeElements?.length > 0, // Check if at least one theme element exists
+      req.body.clientTestimonials,
+      req.body.websiteurl,
+      req.body.intstagramurl,
+      req.body.advanceBookingPeriod,
+      req.body.priceStartingFrom,
+      req.body.themeProposels,
+      req.body.proposalRevisions,
+      cancellationPolicyFileUrl,
+      termsAndConditionsFileUrl,
+      themePhotosUrls.length > 0, // At least one photo
+      themeVideosUrls.length > 0, // At least one video
+      photosUrls.length > 0, // At least one additional photo
+      videosUrls.length > 0, // At least one additional video
+    ];
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profileCompletion =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
@@ -65,6 +138,7 @@ const createDecorator = async (req, res) => {
         eventSize: req.body.eventSize,
         eventTypes,
         duration: req.body.duration,
+        profileCompletion,
       },
       themesOffered: {
         themesOffered: req.body.themesOffered,
@@ -93,7 +167,6 @@ const createDecorator = async (req, res) => {
         advanceBookingPeriod: req.body.advanceBookingPeriod,
         priceStartingFrom: req.body.priceStartingFrom,
         themeProposels: req.body.themeProposels,
-
         proposalRevisions: req.body.proposalRevisions,
       },
       policies: {
@@ -105,6 +178,7 @@ const createDecorator = async (req, res) => {
     });
 
     const savedDecorator = await newDecorator.save();
+
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Decorator.findByIdAndDelete(savedDecorator.id);
@@ -116,6 +190,8 @@ const createDecorator = async (req, res) => {
       serId: savedDecorator.id,
     });
     await vendor.save();
+    // Update section completion and profile completion
+    await updateSectionCompletion(savedDecorator.id);
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);

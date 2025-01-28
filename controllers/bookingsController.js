@@ -40,6 +40,29 @@ export const getBooking = async (req, res) => {
   }
 };
 
+export const fetchBooking = async (req, res) => {
+  try {
+    const { serId } = req.query;
+
+    console.log("Received service ID:", serId);
+
+    if (!serId) {
+      return res.status(400).json({ message: "Please provide service ID" });
+    }
+
+    const booking = await Booking.find({ serviceId: serId });
+    console.log("Queried booking:", booking);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    res.status(200).json(booking);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const updateSchedule = async (req, res) => {
   const { serid } = req.query; // Retrieve the service id from the query parameters
   const { bookingId, calendarEvent, vendorType } = req.body; // Expecting a bookingId and calendarEvent from the request body
