@@ -37,8 +37,21 @@ const createGift = async (req, res) => {
 
 const getAllGift = async (req, res) => {
   try {
-    const gift = await Gift.find();
-    res.status(200).json(gift);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const gifts = await Gift.find().skip(skip).limit(itemsPerPage);
+
+    const totalgifts = await Gift.countDocuments();
+
+    res.status(200).json({
+      data: gifts,
+      currentPage: page,
+      totalPages: Math.ceil(totalgifts / itemsPerPage),
+      totalItems: totalgifts,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

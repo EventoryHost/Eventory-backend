@@ -102,8 +102,21 @@ const createVenue = async (req, res) => {
 
 export const getAllVenues = async (req, res) => {
   try {
-    const venue = await Venue.find();
-    res.status(200).json(venue);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const venues = await Venue.find().skip(skip).limit(itemsPerPage);
+
+    const totalvenues = await Venue.countDocuments();
+
+    res.status(200).json({
+      data: venues,
+      currentPage: page,
+      totalPages: Math.ceil(totalvenues / itemsPerPage),
+      totalItems: totalvenues,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

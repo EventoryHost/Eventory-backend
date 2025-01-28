@@ -33,10 +33,21 @@ const createMakeupArtist = async (req, res) => {
 
 const getAllMakeupArtist = async (req, res) => {
   try {
-    const MakeupArtist = createMakeupArtistSchema(req.body.type);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
 
-    const makeup = await MakeupArtist.find();
-    res.status(200).json(makeup);
+    const skip = (page - 1) * itemsPerPage;
+
+    const caterers = await MakeupArtist.find().skip(skip).limit(itemsPerPage);
+
+    const totalCaterers = await MakeupArtist.countDocuments();
+
+    res.status(200).json({
+      data: caterers,
+      currentPage: page,
+      totalPages: Math.ceil(totalCaterers / itemsPerPage),
+      totalItems: totalCaterers,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

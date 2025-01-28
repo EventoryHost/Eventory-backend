@@ -1,3 +1,4 @@
+import PropRental from "../../models/props.js";
 import propRental from "../../models/props.js";
 import { Vendor as User } from "../../models/users.js";
 
@@ -117,8 +118,21 @@ const createProp = async (req, res) => {
 
 const getAllProp = async (req, res) => {
   try {
-    const prop = await propRental.find();
-    res.status(200).json(prop);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const caterers = await PropRental.find().skip(skip).limit(itemsPerPage);
+
+    const totalCaterers = await PropRental.countDocuments();
+
+    res.status(200).json({
+      data: caterers,
+      currentPage: page,
+      totalPages: Math.ceil(totalCaterers / itemsPerPage),
+      totalItems: totalCaterers,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
