@@ -31,7 +31,7 @@ const quotationSchema = new mongoose.Schema(
     location: { type: String, required: false },
     event_type: { type: [String], required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 quotationSchema.plugin(AutoIncrement, { inc_field: "quoteNumber" });

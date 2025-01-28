@@ -45,7 +45,7 @@ router.post("/", async (req, res) => {
 
     if (
       customer.bookings.find(
-        (booking) => booking.serviceId === req.body.service_id
+        (booking) => booking.serviceId === req.body.service_id,
       )
     ) {
       return res.status(400).json({
@@ -107,7 +107,7 @@ router.patch("/", async (req, res) => {
   try {
     await Quotation.updateOne(
       { _id: req.body._id },
-      { $set: { status: req.body.status } }
+      { $set: { status: req.body.status } },
     );
     res.status(200).json({
       message: "Quotation updated successfully!",
