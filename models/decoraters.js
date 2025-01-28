@@ -5,6 +5,7 @@ import { eventSchema } from "./venue.js";
 
 const decoratorSchema = Schema({
   type: { type: String, default: "decorator" },
+  isVerified: { type: Boolean, default: false },
   basicDetails: {
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false }, // Flag for section completion
