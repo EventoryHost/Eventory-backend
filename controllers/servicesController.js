@@ -248,19 +248,19 @@ export const handleSearch = async (req, res) => {
     const regex = new RegExp(`^${query}`, "i");
     const [venues, caterers, decorators, propRentals, pav] = await Promise.all([
       Venue.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id"
+        "basicDetails.name vendorType id",
       ),
       Caterer.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id"
+        "basicDetails.name vendorType id",
       ),
       Decorator.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id"
+        "basicDetails.name vendorType id",
       ),
-      propRental.find({ "basicDetails.name": regex }).select(
-        "basicDetails.managerName vendorType id"
-      ),
+      propRental
+        .find({ "basicDetails.name": regex })
+        .select("basicDetails.managerName vendorType id"),
       Photographer.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id"
+        "basicDetails.name vendorType id",
       ),
     ]);
 
@@ -273,7 +273,7 @@ export const handleSearch = async (req, res) => {
     ];
 
     const filteredResults = results.filter(
-      (group) => group.services.length > 0
+      (group) => group.services.length > 0,
     );
 
     res.json({ results: filteredResults });

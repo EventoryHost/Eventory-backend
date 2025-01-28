@@ -11,8 +11,6 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
-
-
 // const calculateProfileCompletion = (photographer) => {
 //   const totalFields = 20; // Update with the total number of fields to evaluate
 //   let completedFields = 0;
@@ -167,7 +165,8 @@ const createPhotographer = async (req, res) => {
     ];
 
     const completedFields = fieldsToCheck.filter((field) => !!field).length;
-    const profileCompletion = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+    const profileCompletion =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     // Debug profile completion calculation
     console.log("Fields to Check:", fieldsToCheck);
@@ -239,8 +238,6 @@ const createPhotographer = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
-
-
 
 const getAllPav = async (req, res) => {
   try {
