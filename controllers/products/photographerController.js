@@ -11,42 +11,91 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
-const calculateProfileCompletion = (photographer) => {
-  const totalFields = 20; // Update with the total number of fields to evaluate
-  let completedFields = 0;
 
-  // Increment completedFields for each field that has a value
-  if (photographer.basicDetails?.name) completedFields++;
-  if (photographer.basicDetails?.description) completedFields++;
-  if (photographer.basicDetails?.eventSize) completedFields++;
-  if (photographer.basicDetails?.eventTypes?.length) completedFields++;
-  if (photographer.Videography) completedFields++;
-  if (photographer.Photography) completedFields++;
-  if (photographer.consultationDetails?.duration) completedFields++;
-  if (photographer.consultationDetails?.PackageTypes?.length) completedFields++;
-  if (photographer.consultationDetails?.proposalsToClients !== undefined)
-    completedFields++;
-  if (photographer.consultationDetails?.freeInitialConsultation !== undefined)
-    completedFields++;
-  if (photographer.consultationDetails?.bookingDeposit !== undefined)
-    completedFields++;
-  if (
-    photographer.consultationDetails?.availableForDestinationEvents !==
-    undefined
-  )
-    completedFields++;
-  if (photographer.consultationDetails?.AdvanceSetup !== undefined)
-    completedFields++;
-  if (photographer.consultationDetails?.postProductionServices !== undefined)
-    completedFields++;
-  if (photographer.additionalDetails?.photos?.length) completedFields++;
-  if (photographer.additionalDetails?.videos?.length) completedFields++;
-  if (photographer.additionalDetails?.clientTestimonials) completedFields++;
-  if (photographer.additionalDetails?.website) completedFields++;
-  if (photographer.policies?.cancellationPolicy) completedFields++;
-  if (photographer.policies?.termsAndConditions) completedFields++;
 
-  return Math.round((completedFields / totalFields) * 100); // Return percentage
+// const calculateProfileCompletion = (photographer) => {
+//   const totalFields = 20; // Update with the total number of fields to evaluate
+//   let completedFields = 0;
+
+//   // Increment completedFields for each field that has a value
+//   if (photographer.basicDetails?.name) completedFields++;
+//   if (photographer.basicDetails?.description) completedFields++;
+//   if (photographer.basicDetails?.eventSize) completedFields++;
+//   if (photographer.basicDetails?.eventTypes?.length) completedFields++;
+//   if (photographer.Videography) completedFields++;
+//   if (photographer.Photography) completedFields++;
+//   if (photographer.consultationDetails?.duration) completedFields++;
+//   if (photographer.consultationDetails?.PackageTypes?.length) completedFields++;
+//   if (photographer.consultationDetails?.proposalsToClients !== undefined)
+//     completedFields++;
+//   if (photographer.consultationDetails?.freeInitialConsultation !== undefined)
+//     completedFields++;
+//   if (photographer.consultationDetails?.bookingDeposit !== undefined)
+//     completedFields++;
+//   if (
+//     photographer.consultationDetails?.availableForDestinationEvents !==
+//     undefined
+//   )
+//     completedFields++;
+//   if (photographer.consultationDetails?.AdvanceSetup !== undefined)
+//     completedFields++;
+//   if (photographer.consultationDetails?.postProductionServices !== undefined)
+//     completedFields++;
+//   if (photographer.additionalDetails?.photos?.length) completedFields++;
+//   if (photographer.additionalDetails?.videos?.length) completedFields++;
+//   if (photographer.additionalDetails?.clientTestimonials) completedFields++;
+//   if (photographer.additionalDetails?.website) completedFields++;
+//   if (photographer.policies?.cancellationPolicy) completedFields++;
+//   if (photographer.policies?.termsAndConditions) completedFields++;
+
+//   return Math.round((completedFields / totalFields) * 100); // Return percentage
+// };
+
+// Helper function to check if a section is complete
+const checkCompletion = (section) => {
+  if (!section || typeof section !== "object") return false; // Validate input
+
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
+};
+
+// Update section completion for a photographer
+const updateSectionCompletion = async (venId) => {
+  try {
+    const photographer = await Photographer.findOne({ venId });
+
+    if (!photographer) {
+      throw new Error("Photographer not found");
+    }
+
+    // Update completion status for each section
+    photographer.basicDetails.completed = checkCompletion(
+      photographer.basicDetails || {},
+    );
+    photographer.consultationDetails.completed = checkCompletion(
+      photographer.consultationDetails || {},
+    );
+    photographer.additionalDetails.completed = checkCompletion(
+      photographer.additionalDetails || {},
+    );
+    photographer.policies.completed = checkCompletion(
+      photographer.policies || {},
+    );
+
+    await photographer.save();
+  } catch (error) {
+    console.error("Error in updateSectionCompletion:", error);
+    throw error;
+  }
 };
 
 const createPhotographer = async (req, res) => {
@@ -71,6 +120,59 @@ const createPhotographer = async (req, res) => {
     const termsAndConditionsFileUrl =
       getFileUrls(req.files, "termsAndConditions")[0] ||
       req.body.termsAndConditions;
+
+    // Log fields to debug
+    console.log("Incoming fields:", {
+      name: req.body.name,
+      description: req.body.description,
+      eventSize: req.body.eventSize,
+      eventTypes: req.body.eventTypes,
+      Videography: req.body.Videography,
+      Photography: req.body.Photography,
+      duration: req.body.duration,
+      PackageTypes: req.body.PackageTypes,
+      proposalsToClients: req.body.proposalsToClients,
+      freeInitialConsultation: req.body.freeInitialConsultation,
+      bookingDeposit: req.body.bookingDeposit,
+      availablefordestinationevents: req.body.availablefordestinationevents,
+      Advancesetup: req.body.Advancesetup,
+      postproductionservices: req.body.postproductionservices,
+      photosUrl,
+      videosUrl,
+      cancellationPolicyFileUrl,
+      termsAndConditionsFileUrl,
+    });
+
+    const fieldsToCheck = [
+      req.body.name,
+      req.body.description,
+      req.body.eventSize,
+      req.body.eventTypes?.length > 0, // Ensure eventTypes is not empty
+      req.body.Videography,
+      req.body.Photography,
+      req.body.duration,
+      req.body.PackageTypes?.length > 0, // Ensure PackageTypes is not empty
+      req.body.proposalsToClients, // Ensure proposalsToClients is defined
+      req.body.freeInitialConsultation, // Ensure freeInitialConsultation is defined
+      req.body.bookingDeposit, // Ensure bookingDeposit is defined
+      req.body.availablefordestinationevents, // Ensure availableForDestinationEvents is defined
+      req.body.Advancesetup, // Ensure AdvanceSetup is defined
+      req.body.postproductionservices, // Ensure postProductionServices is defined
+      photosUrl.length > 0, // Ensure there are photos
+      videosUrl.length > 0, // Ensure there are videos
+      req.body.clientTestimonials,
+      req.body.website,
+      cancellationPolicyFileUrl, // Ensure cancellationPolicy is uploaded
+      termsAndConditionsFileUrl, // Ensure termsAndConditions file is uploaded
+    ];
+
+    const completedFields = fieldsToCheck.filter((field) => !!field).length;
+    const profileCompletion = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+    // Debug profile completion calculation
+    console.log("Fields to Check:", fieldsToCheck);
+    console.log("Completed Fields:", completedFields);
+    console.log("Profile Completion:", profileCompletion);
 
     const newPhotographer = new Photographer({
       basicDetails: {
@@ -109,9 +211,8 @@ const createPhotographer = async (req, res) => {
       },
     });
 
-    // Calculate profile completion
-    const profileCompletion = calculateProfileCompletion(newPhotographer);
-    newPhotographer.basicDetails.profileCompletion = profileCompletion; // Add profile completion under basicDetails
+    // Update profile completion under basicDetails
+    newPhotographer.basicDetails.profileCompletion = profileCompletion;
 
     const saved = await newPhotographer.save();
     const vendor = await User.findOne({ id: req.body.venId });
@@ -126,14 +227,20 @@ const createPhotographer = async (req, res) => {
     });
     await vendor.save();
 
+    // Call to update section completion
+    await updateSectionCompletion(req.body.venId);
+
     res.status(201).json({
       message: "Photographer created successfully",
       profileCompletion,
     });
   } catch (error) {
+    console.error("Error creating photographer:", error);
     res.status(400).json({ error: error.message });
   }
 };
+
+
 
 const getAllPav = async (req, res) => {
   try {

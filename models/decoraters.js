@@ -4,8 +4,11 @@ import generateUniqueId from "../utils/generateId.js";
 import { eventSchema } from "./venue.js";
 
 const decoratorSchema = Schema({
+  type: { type: String, default: "decorator" },
+  isVerified: { type: Boolean, default: false },
   basicDetails: {
     profileCompletion: { type: Number, default: 0 },
+    completed: { type: Boolean, default: false }, // Flag for section completion
     name: { type: String, required: true },
     eventSize: { type: String, required: true },
     description: { type: String, required: true },
@@ -19,6 +22,7 @@ const decoratorSchema = Schema({
     },
   },
   themesOffered: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     themesOffered: { type: [String], required: true },
     propSelection: { type: Boolean },
     customDesignProcess: { type: String },
@@ -27,11 +31,13 @@ const decoratorSchema = Schema({
     venueAdaptability: { type: Boolean },
   },
   themesElement: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     themeElements: { type: [String], required: true },
     themePhotos: { type: [String], required: true },
     themeVideos: { type: [String], required: true },
   },
   additionalDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     photos: { type: [String], required: true },
     videos: { type: [String], required: true },
     clientTestimonials: { type: String },
@@ -41,23 +47,26 @@ const decoratorSchema = Schema({
     advanceBookingPeriod: { type: String, required: true },
     priceStartingFrom: { type: String, required: true },
     themeProposels: { type: Boolean },
-
     proposalRevisions: { type: Boolean },
   },
   policies: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     cancellationPolicy: { type: String },
     termsAndConditions: { type: String },
   },
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  id: { type: String, default: generateUniqueId("dec"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
   schedule: [eventSchema],
-
-  // themeProposels: { type: Boolean, default: false },
-  // proposalRevisions: { type: Boolean, default: false },
-  // consultationProcess: { type: String },
-
-  // onlineRatings: { type: [String] },
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: Date, required: true },
+    },
+  ],
 });
 
 const Decorator = model("Decorator", decoratorSchema);

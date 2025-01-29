@@ -1,6 +1,7 @@
 import propRental from "../../models/props.js";
 import { Vendor as User } from "../../models/users.js";
 
+// Helper function to handle multiple files
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
   if (fileArray) {
@@ -11,6 +12,55 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// Function to check section completion
+const checkCompletion = (section) => {
+  if (!section) return false;
+
+  // Check that all required fields are filled, including non-empty arrays
+  const requiredFields = Object.keys(section).filter((key) => {
+    // Ensure that the array is not empty and that the field is not null or undefined
+    if (Array.isArray(section[key])) {
+      return section[key].length > 0; // Check that the array is not empty
+    }
+    return (
+      section[key] !== undefined && section[key] !== null && section[key] !== ""
+    );
+  });
+
+  // Return true if all required fields are filled
+  return requiredFields.length === Object.keys(section).length;
+};
+
+// Function to update the section completion status
+const updateSectionCompletion = async (propId) => {
+  try {
+    const prop = await propRental.findOne({ id: propId });
+
+    if (!prop) {
+      throw new Error("Prop rental not found");
+    }
+
+    // Ensure each section exists before checking completion
+    prop.basicDetails.completed = checkCompletion(prop.basicDetails || {});
+    prop.serviceDetails.completed = checkCompletion(prop.serviceDetails || {});
+    prop.additionalDetails.completed = checkCompletion(
+      prop.additionalDetails || {},
+    );
+    prop.furnitureAndDecor.completed = checkCompletion(
+      prop.furnitureAndDecor || {},
+    );
+    prop.tentAndCanopy.completed = checkCompletion(prop.tentAndCanopy || {});
+    prop.audioVisual.completed = checkCompletion(prop.audioVisual || {});
+    prop.policies.completed = checkCompletion(prop.policies || {});
+
+    await prop.save();
+  } catch (error) {
+    console.error("Error in update section:", error);
+    throw error;
+  }
+};
+
+// Profile completion calculation
 const calculateProfileCompletion = (basicDetails) => {
   const fields = ["managerName", "description", "eventSize"];
   const filledFields = fields.filter(
@@ -114,6 +164,9 @@ const createProp = async (req, res) => {
       serId: savedProp.id,
     });
     await vendor.save();
+
+    // Update section completion for prop rental
+    await updateSectionCompletion(savedProp.id);
 
     res.status(201).json(savedProp);
   } catch (error) {
