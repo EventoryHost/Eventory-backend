@@ -18,8 +18,6 @@ const router = express.Router();
 router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
-  const { serviceId } = req.params;
-  const updateData = req.body;
 
   try {
     // Find the vendor containing the specific serviceId
@@ -84,8 +82,6 @@ router.put("/update-service/:serviceId", async (req, res) => {
 router.post("/updateService/:serviceId", async (req, res) => {
   const { serviceId } = req.params; // Get serviceId from the URL parameter
   const { newDescription, newCompanyName } = req.body; // Get other data from the request body
-  const { serviceId } = req.params; // Get serviceId from the URL parameter
-  const { newDescription, newCompanyName } = req.body; // Get other data from the request body
 
   try {
     // Fetch the vendor document by serviceId
@@ -113,43 +109,7 @@ router.post("/updateService/:serviceId", async (req, res) => {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    // Dynamically select the service model based on the serviceType
-    let serviceDoc;
-    switch (service.serType) {
-      case "caterer":
-        serviceDoc = await Caterer.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "decorator":
-        serviceDoc = await Decorator.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "pav":
-      case "photographer": // Replace 'pav' with 'photographer'
-        serviceDoc = await Photographer.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "venue-provider":
-        serviceDoc = await Venue.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "prop-rental":
-        serviceDoc = await PropRental.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid service type" });
-    }
+    
     // Dynamically select the service model based on the serviceType
     let serviceDoc;
     switch (service.serType) {
@@ -231,8 +191,6 @@ router.post("/updateService/:serviceId", async (req, res) => {
 const updateServiceDetails = async (req, res) => {
   const { serId } = req.params; // Service ID from the URL
   const updateData = req.body; // Details to be updated
-  const { serId } = req.params; // Service ID from the URL
-  const updateData = req.body; // Details to be updated
 
   try {
     // Step 1: Find the vendor's service type
@@ -252,7 +210,6 @@ const updateServiceDetails = async (req, res) => {
     );
     const { serType } = service; // e.g., 'caterer' or 'decorator'
 
-    let updatedService;
     let updatedService;
 
     // Step 2: Update the respective service based on service type
@@ -310,7 +267,6 @@ const updateServiceDetails = async (req, res) => {
       return res.status(404).json({ error: "Service not found for update" });
     }
 
-    const isVerified = checkVerification(updatedService, serType);
     const isVerified = checkVerification(updatedService, serType);
 
     await updatedService.updateOne({ isVerified });
