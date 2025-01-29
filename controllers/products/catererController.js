@@ -193,7 +193,6 @@ const createCaterer = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-    
     const savedCaterer = await newCaterer.save();
 
     // Update section completion and profile completion

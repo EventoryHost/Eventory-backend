@@ -15,8 +15,8 @@ export const checkVenueProfileCompletion = async (venueId) => {
       venue.basicDetails.capacity != null &&
       venue.basicDetails.operatingHours.openingTime != null &&
       venue.basicDetails.operatingHours.closingTime != null;
-      // venue.basicDetails.address != null &&
-      // venue.basicDetails.description != null
+    // venue.basicDetails.address != null &&
+    // venue.basicDetails.description != null
 
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
@@ -24,7 +24,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
       { id: venueId },
       {
         "basicDetails.completed": basicDetailsComplete,
-      }
+      },
     );
 
     // Check if feature details are complete
@@ -44,7 +44,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
       { id: venueId },
       {
         "featureDetails.completed": featureDetailsComplete,
-      }
+      },
     );
 
     // Check if additional details are complete
@@ -59,14 +59,14 @@ export const checkVenueProfileCompletion = async (venueId) => {
       venue.additionalDetails.priceStartingFrom != null;
 
     console.log(
-      `Additional details check: ------- ${additionalDetailsComplete}`
+      `Additional details check: ------- ${additionalDetailsComplete}`,
     );
 
     await Venue.findOneAndUpdate(
       { id: venueId },
       {
         "additionalDetails.completed": additionalDetailsComplete,
-      }
+      },
     );
 
     // Check if policies are complete
@@ -89,14 +89,13 @@ export const checkVenueProfileCompletion = async (venueId) => {
       cancellationComplete && termsComplete && insuranceComplete;
 
     console.log(`Policies check: ${policiesComplete}`);
-    
 
     // Update the policies completion status in the database
     await Venue.findOneAndUpdate(
       { id: venueId },
       {
         "policies.completed": policiesComplete,
-      }
+      },
     );
 
     return true;

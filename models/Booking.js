@@ -26,5 +26,5 @@ const BookingSchema = new Schema({
 });
 
 const Booking = model("Bookings", BookingSchema);
- 
+
 export { Booking, BookingSchema };

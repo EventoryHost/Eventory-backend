@@ -307,8 +307,14 @@ const createVenue = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-      console.log("profileCompletion came out to be in venue ------", profileCompletion);
-      console.log("completedFields came out to be in venue ------", completedFields);
+    console.log(
+      "profileCompletion came out to be in venue ------",
+      profileCompletion,
+    );
+    console.log(
+      "completedFields came out to be in venue ------",
+      completedFields,
+    );
 
     newVenue.basicDetails.profileCompletion = profileCompletion;
 
@@ -336,7 +342,6 @@ const createVenue = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
-
 
 export const getAllVenues = async (req, res) => {
   try {

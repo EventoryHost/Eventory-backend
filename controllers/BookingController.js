@@ -1,7 +1,26 @@
-import { Booking } from '../models/booking.js';
+import { Booking } from "../models/booking.js";
 
 export const createBooking = async (req, res) => {
-    const {
+  const {
+    venId,
+    serviceId,
+    type,
+    location,
+    startDate,
+    endDate,
+    details,
+    guest,
+    amount,
+    managerName,
+    customerName,
+    description,
+    paymentDetails,
+    paymentStatus,
+    capacity,
+  } = req.body;
+
+  try {
+    const newBooking = new Booking({
       venId,
       serviceId,
       type,
@@ -17,42 +36,22 @@ export const createBooking = async (req, res) => {
       paymentDetails,
       paymentStatus,
       capacity,
-    } = req.body;
-  
-    try {
-      const newBooking = new Booking({
-        venId,
-        serviceId,
-        type,
-        location,
-        startDate,
-        endDate,
-        details,
-        guest,
-        amount,
-        managerName,
-        customerName,
-        description,
-        paymentDetails,
-        paymentStatus,
-        capacity,
-      });
-  
-      const savedBooking = await newBooking.save();
-  
-      res.status(201).json({
-        message: "Booking created successfully",
-        booking: savedBooking,
-      });
-    } catch (error) {
-        console.error("Error creating booking:", error);
-      res.status(500).json({
-        message: "An error occurred while creating the booking",
-        error: error.message,
-      });
-    }
-  };
-  
+    });
+
+    const savedBooking = await newBooking.save();
+
+    res.status(201).json({
+      message: "Booking created successfully",
+      booking: savedBooking,
+    });
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    res.status(500).json({
+      message: "An error occurred while creating the booking",
+      error: error.message,
+    });
+  }
+};
 
 export const getBooking = async (req, res) => {
   try {
@@ -104,7 +103,11 @@ export const updateBooking = async (req, res) => {
   const updateData = req.body; // Expecting the updated data from the request body
 
   try {
-    const updatedBooking = await Booking.findByIdAndUpdate(bookingId, updateData, { new: true });
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      updateData,
+      { new: true },
+    );
 
     if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -115,7 +118,9 @@ export const updateBooking = async (req, res) => {
       booking: updatedBooking,
     });
   } catch (error) {
-    res.status(500).json({ message: "An error occurred", error: error.message });
+    res
+      .status(500)
+      .json({ message: "An error occurred", error: error.message });
   }
 };
 
@@ -131,16 +136,19 @@ export const deleteBooking = async (req, res) => {
 
     res.status(200).json({ message: "Booking deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "An error occurred", error: error.message });
+    res
+      .status(500)
+      .json({ message: "An error occurred", error: error.message });
   }
 };
 
 export const getAllBookings = async (req, res) => {
-    try {
-      const bookings = await Booking.find();
-      res.status(200).json(bookings);
-    } catch (error) {
-      res.status(500).json({ message: "Error retrieving bookings", error: error.message });
-    }
-  };
-  
+  try {
+    const bookings = await Booking.find();
+    res.status(200).json(bookings);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error retrieving bookings", error: error.message });
+  }
+};
