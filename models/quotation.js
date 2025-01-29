@@ -36,5 +36,5 @@ const quotationSchema = new mongoose.Schema(
 
 quotationSchema.plugin(AutoIncrement, { inc_field: "quoteNumber" });
 
-const qutoation = mongoose.model("quotation", quotationSchema);
-export default qutoation;
+const Quotation = mongoose.model("quotation", quotationSchema);
+export { Quotation };

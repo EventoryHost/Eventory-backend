@@ -18,7 +18,12 @@ const router = express.Router();
 router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
+  const { serviceId } = req.params;
+  const updateData = req.body;
 
+  try {
+    // Find the vendor containing the specific serviceId
+    const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
   try {
     // Find the vendor containing the specific serviceId
     const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
@@ -26,7 +31,14 @@ router.put("/update-service/:serviceId", async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ message: "Service not found" });
     }
+    if (!vendor) {
+      return res.status(404).json({ message: "Service not found" });
+    }
 
+    // Update vendor-level fields if provided in the request body
+    if (updateData.name) vendor.name = updateData.name;
+    if (updateData.mobile) vendor.mobile = updateData.mobile;
+    if (updateData.email) vendor.email = updateData.email;
     // Update vendor-level fields if provided in the request body
     if (updateData.name) vendor.name = updateData.name;
     if (updateData.mobile) vendor.mobile = updateData.mobile;
@@ -39,10 +51,26 @@ router.put("/update-service/:serviceId", async (req, res) => {
       }
       return service;
     });
+    // Update the relevant service in the serviceIds array
+    vendor.serviceIds = vendor.serviceIds.map((service) => {
+      if (service.serId === serviceId) {
+        return { ...service, ...updateData }; // Merge with new data
+      }
+      return service;
+    });
 
     // Save the updated document
     await vendor.save();
+    // Save the updated document
+    await vendor.save();
 
+    res
+      .status(200)
+      .json({ message: "Service and vendor updated successfully", vendor });
+  } catch (error) {
+    console.error("Error updating service:", error);
+    res.status(500).json({ message: "Internal Server Error", error });
+  }
     res
       .status(200)
       .json({ message: "Service and vendor updated successfully", vendor });
@@ -56,11 +84,19 @@ router.put("/update-service/:serviceId", async (req, res) => {
 router.post("/updateService/:serviceId", async (req, res) => {
   const { serviceId } = req.params; // Get serviceId from the URL parameter
   const { newDescription, newCompanyName } = req.body; // Get other data from the request body
+  const { serviceId } = req.params; // Get serviceId from the URL parameter
+  const { newDescription, newCompanyName } = req.body; // Get other data from the request body
 
   try {
     // Fetch the vendor document by serviceId
     const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
+  try {
+    // Fetch the vendor document by serviceId
+    const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
 
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
@@ -73,7 +109,47 @@ router.post("/updateService/:serviceId", async (req, res) => {
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
 
+    // Dynamically select the service model based on the serviceType
+    let serviceDoc;
+    switch (service.serType) {
+      case "caterer":
+        serviceDoc = await Caterer.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "decorator":
+        serviceDoc = await Decorator.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "pav":
+      case "photographer": // Replace 'pav' with 'photographer'
+        serviceDoc = await Photographer.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "venue-provider":
+        serviceDoc = await Venue.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "prop-rental":
+        serviceDoc = await PropRental.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid service type" });
+    }
     // Dynamically select the service model based on the serviceType
     let serviceDoc;
     switch (service.serType) {
@@ -117,14 +193,31 @@ router.post("/updateService/:serviceId", async (req, res) => {
         .status(404)
         .json({ message: `${service.serType} service not found` });
     }
+    if (!serviceDoc) {
+      return res
+        .status(404)
+        .json({ message: `${service.serType} service not found` });
+    }
 
+    // Update the service document (e.g., description and company name)
+    serviceDoc.basicDetails.description = newDescription;
+    serviceDoc.basicDetails.name = newCompanyName;
     // Update the service document (e.g., description and company name)
     serviceDoc.basicDetails.description = newDescription;
     serviceDoc.basicDetails.name = newCompanyName;
 
     // Save the updated document
     await serviceDoc.save();
+    // Save the updated document
+    await serviceDoc.save();
 
+    return res
+      .status(200)
+      .json({ message: "Service updated successfully", data: serviceDoc });
+  } catch (error) {
+    console.error("Error updating service:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
     return res
       .status(200)
       .json({ message: "Service updated successfully", data: serviceDoc });
@@ -138,7 +231,15 @@ router.post("/updateService/:serviceId", async (req, res) => {
 const updateServiceDetails = async (req, res) => {
   const { serId } = req.params; // Service ID from the URL
   const updateData = req.body; // Details to be updated
+  const { serId } = req.params; // Service ID from the URL
+  const updateData = req.body; // Details to be updated
 
+  try {
+    // Step 1: Find the vendor's service type
+    const vendor = await Vendor.findOne({ "serviceIds.serId": serId });
+    if (!vendor) {
+      return res.status(404).json({ error: "Vendor or service not found" });
+    }
   try {
     // Step 1: Find the vendor's service type
     const vendor = await Vendor.findOne({ "serviceIds.serId": serId });
@@ -151,6 +252,7 @@ const updateServiceDetails = async (req, res) => {
     );
     const { serType } = service; // e.g., 'caterer' or 'decorator'
 
+    let updatedService;
     let updatedService;
 
     // Step 2: Update the respective service based on service type
@@ -204,9 +306,14 @@ const updateServiceDetails = async (req, res) => {
     if (!updatedService) {
       return res.status(404).json({ error: "Service not found for update" });
     }
+    if (!updatedService) {
+      return res.status(404).json({ error: "Service not found for update" });
+    }
 
     const isVerified = checkVerification(updatedService, serType);
+    const isVerified = checkVerification(updatedService, serType);
 
+    await updatedService.updateOne({ isVerified });
     await updatedService.updateOne({ isVerified });
 
     // Step 3: Calculate profile completion percentage
@@ -219,7 +326,18 @@ const updateServiceDetails = async (req, res) => {
     await updatedService.updateOne({
       "basicDetails.profileCompletion": profileCompletion,
     });
+    // Step 4: Update the profileCompletion field directly in the service
+    await updatedService.updateOne({
+      "basicDetails.profileCompletion": profileCompletion,
+    });
 
+    return res
+      .status(200)
+      .json({ message: "Details updated successfully", updatedService });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
     return res
       .status(200)
       .json({ message: "Details updated successfully", updatedService });

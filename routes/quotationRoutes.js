@@ -1,5 +1,5 @@
 import express from "express";
-import quotation from "../models/quotation.js";
+import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 // Create a new quotation
 router.post("/", async (req, res) => {
   try {
-    const newQuotation = new quotation({
+    const newQuotation = new Quotation({
       // Meta Data
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
@@ -83,7 +83,7 @@ router.get("/", async (req, res) => {
       });
     }
 
-    const quotations = await quotation.find({ vendor_id });
+    const quotations = await Quotation.find({ vendor_id });
 
     if (quotations.length === 0) {
       return res.status(404).json({
@@ -98,6 +98,24 @@ router.get("/", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error retrieving quotations",
+      error: error.message,
+    });
+  }
+});
+
+router.patch("/", async (req, res) => {
+  try {
+    await Quotation.updateOne(
+      { _id: req.body._id },
+      { $set: { status: req.body.status } },
+    );
+    res.status(200).json({
+      message: "Quotation updated successfully!",
+      data: req.body.status,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating quotation",
       error: error.message,
     });
   }
