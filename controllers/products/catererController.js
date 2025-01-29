@@ -2,9 +2,7 @@ import { Caterer } from "../../models/caterer.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
 
-// Function to handle multiple files
 const getFileUrls = (files, fieldName) => {
-  // Handle cases where there might be a single file instead of an array of files
   const fileArray = files[fieldName];
   if (fileArray) {
     return Array.isArray(fileArray)
@@ -272,8 +270,21 @@ const createCaterer = async (req, res) => {
 
 const getAllCaterers = async (req, res) => {
   try {
-    const caterers = await Caterer.find();
-    res.status(200).json(caterers);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const caterers = await Caterer.find().skip(skip).limit(itemsPerPage);
+
+    const totalCaterers = await Caterer.countDocuments();
+
+    res.status(200).json({
+      data: caterers,
+      currentPage: page,
+      totalPages: Math.ceil(totalCaterers / itemsPerPage),
+      totalItems: totalCaterers,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

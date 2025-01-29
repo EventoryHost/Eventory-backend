@@ -11,6 +11,7 @@ import giftController from "../controllers/products/giftController.js";
 import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers/products/photographerController.js";
 import vendorController from "../controllers/products/vendorController.js";
+import { getAllServices } from "../controllers/servicesController.js";
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.get("/makeup", makeupController.getAllMakeupArtist);
 router.get("/pav", photographerController.getAllPav);
 router.get("/prop-rental", propController.getAllProp);
 router.get("/venue", venueController.getAllVenues);
+router.get("/service", getAllServices);
 
 // Adding vendor-specific routes
 router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);

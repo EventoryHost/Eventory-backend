@@ -241,8 +241,21 @@ const createPhotographer = async (req, res) => {
 
 const getAllPav = async (req, res) => {
   try {
-    const pav = await Photographer.find();
-    res.status(200).json(pav);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const pav = await Photographer.find().skip(skip).limit(itemsPerPage);
+
+    const totalpav = await Photographer.countDocuments();
+
+    res.status(200).json({
+      data: pav,
+      currentPage: page,
+      totalPages: Math.ceil(totalpav / itemsPerPage),
+      totalItems: totalpav,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
