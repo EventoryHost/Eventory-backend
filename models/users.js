@@ -1,6 +1,8 @@
 import { mongoose, Schema as _Schema } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
 import { businessSchema } from "./businessDetails.js";
+import { bankDetailsSchema } from "./bankDetails.js"; // Import the BankDetails schema
+
 const Schema = _Schema;
 
 const vendorSchema = new Schema({
@@ -9,6 +11,7 @@ const vendorSchema = new Schema({
   mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
+  bankDetails: { type: [bankDetailsSchema], default: [] }, // Embed bank details in the vendor schema
   profilePic: { type: String },
   invoices: { type: [String], default: [] },
   serviceIds: [
