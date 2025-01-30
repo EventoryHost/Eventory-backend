@@ -26,6 +26,8 @@ const venueSchema = new Schema({
       closingTime: { type: String },
     },
     address: { type: String, required: true },
+    latitude: { type: Number, default: 0 },
+    longitude: { type: Number, default: 0 },
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
   },
@@ -61,7 +63,6 @@ const venueSchema = new Schema({
     insurancePolicy: { type: [String] },
   },
 });
-
 
 const Venue = model("Venue", venueSchema);
 
