@@ -7,7 +7,6 @@ import authRoutes from "../routes/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes/aboutEmailRoutes.js";
 import chalk from "chalk";
-// import bookingRoutes from "../routes/bookingRoutes.js";
 import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
@@ -70,7 +69,6 @@ app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
-// app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
 app.use("/api/Bookings", BookingRoutes);
 
