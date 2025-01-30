@@ -10,6 +10,7 @@ import { Venue } from "../models/venue.js";
 import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
 import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
+import { checkVenueProfileCompletion } from "../utils/completionUtils/venueCompletionUtils.js";
 
 const router = express.Router();
 
@@ -21,27 +22,53 @@ router.put("/update-service/:serviceId", async (req, res) => {
   try {
     // Find the vendor containing the specific serviceId
     const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
+    try {
+      // Find the vendor containing the specific serviceId
+      const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
 
-    if (!vendor) {
-      return res.status(404).json({ message: "Service not found" });
-    }
-
-    // Update vendor-level fields if provided in the request body
-    if (updateData.name) vendor.name = updateData.name;
-    if (updateData.mobile) vendor.mobile = updateData.mobile;
-    if (updateData.email) vendor.email = updateData.email;
-
-    // Update the relevant service in the serviceIds array
-    vendor.serviceIds = vendor.serviceIds.map((service) => {
-      if (service.serId === serviceId) {
-        return { ...service, ...updateData }; // Merge with new data
+      if (!vendor) {
+        return res.status(404).json({ message: "Service not found" });
       }
-      return service;
-    });
+      if (!vendor) {
+        return res.status(404).json({ message: "Service not found" });
+      }
 
-    // Save the updated document
-    await vendor.save();
+      // Update vendor-level fields if provided in the request body
+      if (updateData.name) vendor.name = updateData.name;
+      if (updateData.mobile) vendor.mobile = updateData.mobile;
+      if (updateData.email) vendor.email = updateData.email;
+      // Update vendor-level fields if provided in the request body
+      if (updateData.name) vendor.name = updateData.name;
+      if (updateData.mobile) vendor.mobile = updateData.mobile;
+      if (updateData.email) vendor.email = updateData.email;
 
+      // Update the relevant service in the serviceIds array
+      vendor.serviceIds = vendor.serviceIds.map((service) => {
+        if (service.serId === serviceId) {
+          return { ...service, ...updateData }; // Merge with new data
+        }
+        return service;
+      });
+      // Update the relevant service in the serviceIds array
+      vendor.serviceIds = vendor.serviceIds.map((service) => {
+        if (service.serId === serviceId) {
+          return { ...service, ...updateData }; // Merge with new data
+        }
+        return service;
+      });
+
+      // Save the updated document
+      await vendor.save();
+      // Save the updated document
+      await vendor.save();
+
+      res
+        .status(200)
+        .json({ message: "Service and vendor updated successfully", vendor });
+    } catch (error) {
+      console.error("Error updating service:", error);
+      res.status(500).json({ message: "Internal Server Error", error });
+    }
     res
       .status(200)
       .json({ message: "Service and vendor updated successfully", vendor });
@@ -59,71 +86,97 @@ router.post("/updateService/:serviceId", async (req, res) => {
   try {
     // Fetch the vendor document by serviceId
     const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
+    try {
+      // Fetch the vendor document by serviceId
+      const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
 
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
 
-    // Find the service details based on the serviceId
-    const service = vendor.serviceIds.find(
-      (service) => service.serId === serviceId,
-    );
+      // Find the service details based on the serviceId
+      const service = vendor.serviceIds.find(
+        (service) => service.serId === serviceId,
+      );
 
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
-    }
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
 
-    // Dynamically select the service model based on the serviceType
-    let serviceDoc;
-    switch (service.serType) {
-      case "caterer":
-        serviceDoc = await Caterer.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "decorator":
-        serviceDoc = await Decorator.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "pav":
-      case "photographer": // Replace 'pav' with 'photographer'
-        serviceDoc = await Photographer.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "venue-provider":
-        serviceDoc = await Venue.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "prop-rental":
-        serviceDoc = await PropRental.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid service type" });
-    }
+      // Dynamically select the service model based on the serviceType
+      let serviceDoc;
+      switch (service.serType) {
+        case "caterer":
+          serviceDoc = await Caterer.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
+        case "decorator":
+          serviceDoc = await Decorator.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
+        case "pav":
+        case "photographer": // Replace 'pav' with 'photographer'
+          serviceDoc = await Photographer.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
+        case "venue-provider":
+          serviceDoc = await Venue.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
+        case "prop-rental":
+          serviceDoc = await PropRental.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid service type" });
+      }
 
-    if (!serviceDoc) {
+      if (!serviceDoc) {
+        return res
+          .status(404)
+          .json({ message: `${service.serType} service not found` });
+      }
+      if (!serviceDoc) {
+        return res
+          .status(404)
+          .json({ message: `${service.serType} service not found` });
+      }
+
+      // Update the service document (e.g., description and company name)
+      serviceDoc.basicDetails.description = newDescription;
+      serviceDoc.basicDetails.name = newCompanyName;
+      // Update the service document (e.g., description and company name)
+      serviceDoc.basicDetails.description = newDescription;
+      serviceDoc.basicDetails.name = newCompanyName;
+
+      // Save the updated document
+      await serviceDoc.save();
+      // Save the updated document
+      await serviceDoc.save();
+
       return res
-        .status(404)
-        .json({ message: `${service.serType} service not found` });
+        .status(200)
+        .json({ message: "Service updated successfully", data: serviceDoc });
+    } catch (error) {
+      console.error("Error updating service:", error);
+      return res.status(500).json({ message: "Server error" });
     }
-
-    // Update the service document (e.g., description and company name)
-    serviceDoc.basicDetails.description = newDescription;
-    serviceDoc.basicDetails.name = newCompanyName;
-
-    // Save the updated document
-    await serviceDoc.save();
-
     return res
       .status(200)
       .json({ message: "Service updated successfully", data: serviceDoc });
@@ -144,81 +197,102 @@ const updateServiceDetails = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
+    try {
+      // Step 1: Find the vendor's service type
+      const vendor = await Vendor.findOne({ "serviceIds.serId": serId });
+      if (!vendor) {
+        return res.status(404).json({ error: "Vendor or service not found" });
+      }
 
-    const service = vendor.serviceIds.find(
-      (service) => service.serId === serId,
-    );
-    const { serType } = service; // e.g., 'caterer' or 'decorator'
+      const service = vendor.serviceIds.find(
+        (service) => service.serId === serId,
+      );
+      const { serType } = service; // e.g., 'caterer' or 'decorator'
 
-    let updatedService;
+      let updatedService;
 
-    // Step 2: Update the respective service based on service type
-    switch (serType) {
-      case "caterer":
-        updatedService = await Caterer.findOneAndUpdate(
-          { id: serId },
-          { $set: updateData },
-          { new: true },
-        );
-        // Call the caterer completion check
-        await checkCatererProfileCompletion(serId);
-        break;
-      case "decorator":
-        updatedService = await Decorator.findOneAndUpdate(
-          { id: serId },
-          { $set: updateData },
-          { new: true },
-        );
-        // Call the decorator completion check
-        await checkDecoratorProfileCompletion(serId);
-        break;
-      case "pav":
-      case "photographer":
-        updatedService = await Photographer.findOneAndUpdate(
-          { id: serId },
-          { $set: updateData },
-          { new: true },
-        );
-        // Call the photographer completion check
-        await checkPhotographerProfileCompletion(serId);
-        break;
-      case "venue-provider":
-        updatedService = await Venue.findOneAndUpdate(
-          { id: serId },
-          { $set: updateData },
-          { new: true },
-        );
-        break;
-      case "prop-rental":
-        updatedService = await PropRental.findOneAndUpdate(
-          { id: serId },
-          { $set: updateData },
-          { new: true },
-        );
-        break;
-      default:
-        return res.status(400).json({ error: "Unsupported service type" });
+      // Step 2: Update the respective service based on service type
+      switch (serType) {
+        case "caterer":
+          updatedService = await Caterer.findOneAndUpdate(
+            { id: serId },
+            { $set: updateData },
+            { new: true },
+          );
+          // Call the caterer completion check
+          await checkCatererProfileCompletion(serId);
+          break;
+        case "decorator":
+          updatedService = await Decorator.findOneAndUpdate(
+            { id: serId },
+            { $set: updateData },
+            { new: true },
+          );
+          // Call the decorator completion check
+          await checkDecoratorProfileCompletion(serId);
+          break;
+        case "pav":
+          updatedService = await Photographer.findOneAndUpdate(
+            { id: serId },
+            { $set: updateData },
+            { new: true },
+          );
+          // Call the photographer completion check
+          await checkPhotographerProfileCompletion(serId);
+          break;
+        case "venue-provider":
+          updatedService = await Venue.findOneAndUpdate(
+            { id: serId },
+            { $set: updateData },
+            { new: true },
+          );
+          await checkVenueProfileCompletion(serId);
+          break;
+        case "prop-rental":
+          updatedService = await PropRental.findOneAndUpdate(
+            { id: serId },
+            { $set: updateData },
+            { new: true },
+          );
+          break;
+        default:
+          return res.status(400).json({ error: "Unsupported service type" });
+      }
+
+      if (!updatedService) {
+        return res.status(404).json({ error: "Service not found for update" });
+      }
+      if (!updatedService) {
+        return res.status(404).json({ error: "Service not found for update" });
+      }
+
+      const isVerified = checkVerification(updatedService, serType);
+
+      await updatedService.updateOne({ isVerified });
+      await updatedService.updateOne({ isVerified });
+
+      // Step 3: Calculate profile completion percentage
+      const profileCompletion = calculateProfileCompletion(
+        updatedService,
+        serType,
+      );
+
+      // Step 4: Update the profileCompletion field directly in the service
+      await updatedService.updateOne({
+        "basicDetails.profileCompletion": profileCompletion,
+      });
+      // Step 4: Update the profileCompletion field directly in the service
+      await updatedService.updateOne({
+        "basicDetails.profileCompletion": profileCompletion,
+      });
+
+      return res
+        .status(200)
+        .json({ message: "Details updated successfully", updatedService });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    if (!updatedService) {
-      return res.status(404).json({ error: "Service not found for update" });
-    }
-
-    const isVerified = checkVerification(updatedService, serType);
-
-    await updatedService.updateOne({ isVerified });
-
-    // Step 3: Calculate profile completion percentage
-    const profileCompletion = calculateProfileCompletion(
-      updatedService,
-      serType,
-    );
-
-    // Step 4: Update the profileCompletion field directly in the service
-    await updatedService.updateOne({
-      "basicDetails.profileCompletion": profileCompletion,
-    });
-
     return res
       .status(200)
       .json({ message: "Details updated successfully", updatedService });
@@ -316,13 +390,16 @@ const serviceFields = {
     "policies.termsAndConditions",
   ],
   "venue-provider": [
+    // Basic Details
     "basicDetails.name",
     "basicDetails.managerName",
     "basicDetails.capacity",
-    "basicDetails.operatingHours.openingTime",
-    "basicDetails.operatingHours.closingTime",
-    "basicDetails.address",
-    "basicDetails.description",
+    // "basicDetails.operatingHours.openingTime",
+    // "basicDetails.operatingHours.closingTime",
+    // "basicDetails.address",
+    // "basicDetails.description",
+
+    // Feature Details
     "featureDetails.catererServices",
     "featureDetails.decorServices",
     "featureDetails.venueTypes",
@@ -331,6 +408,8 @@ const serviceFields = {
     "featureDetails.restrictionsPolicies",
     "featureDetails.specialFeatures",
     "featureDetails.facilities",
+
+    // Additional Details
     "additionalDetails.photos",
     "additionalDetails.videos",
     "additionalDetails.awards",
@@ -339,40 +418,11 @@ const serviceFields = {
     "additionalDetails.websiteURL",
     "additionalDetails.advanceBookingPeriod",
     "additionalDetails.priceStartingFrom",
+
+    // Policies
     "policies.termsConditions",
     "policies.cancellationPolicy",
     "policies.insurancePolicy",
-  ],
-  "prop-rental": [
-    "basicDetails.managerName",
-    "basicDetails.description",
-    "basicDetails.eventSize",
-    "serviceDetails.itemCatalogue",
-    "serviceDetails.customization",
-    "serviceDetails.maintenance",
-    "serviceDetails.services",
-    "serviceDetails.serviceProvided",
-    "additionalDetails.photos",
-    "additionalDetails.videos",
-    "additionalDetails.awardsAndRecognize",
-    "additionalDetails.clientTestimonial",
-    "additionalDetails.instaUrl",
-    "additionalDetails.websiteUrl",
-    "additionalDetails.priceStartingFrom",
-    "policies.cancellationPolicy",
-    "policies.termsAndConditions",
-    "furnitureAndDecor.listUrl",
-    "furnitureAndDecor.typeOfEvents",
-    "furnitureAndDecor.furniture",
-    "furnitureAndDecor.decor",
-    "tentAndCanopy.listUrl",
-    "tentAndCanopy.typeOfEvents",
-    "tentAndCanopy.items",
-    "audioVisual.listUrl",
-    "audioVisual.typeOfEvents",
-    "audioVisual.audioEquipment",
-    "audioVisual.visualEquipment",
-    "audioVisual.lightEquipment",
   ],
 };
 
@@ -612,6 +662,55 @@ const checkVerification = (service, serType) => {
         { path: "additionalDetails.photos", label: "Photos" },
         { path: "additionalDetails.videos", label: "Videos" },
       ];
+    case "venue-provider":
+      fieldsToCheck = [
+        // Basic Details
+        { path: "basicDetails.name", label: "Service Name" },
+        // { path: "basicDetails.address", label: "Location (City)" },
+        { path: "basicDetails.capacity", label: "Guest Capacity" },
+        {
+          path: "additionalDetails.priceStartingFrom",
+          label: "Price Starting From",
+        },
+        // { path: "basicDetails.description", label: "Description" },
+
+        // Feature Details
+        { path: "featureDetails.venueTypes", label: "Types of Venues" },
+        {
+          path: "featureDetails.accessibilityFeatures",
+          label: "Accessibility Features",
+        },
+        {
+          path: "featureDetails.restrictionsPolicies",
+          label: "Restrictions at Venue",
+        },
+        { path: "featureDetails.facilities", label: "Facilities at Venue" },
+
+        // Services
+        {
+          path: "featureDetails.catererServices",
+          label: "In-House Catering Service",
+        },
+        {
+          path: "featureDetails.decorServices",
+          label: "In-House Decoration Service",
+        },
+
+        // Additional Details
+        {
+          path: "additionalDetails.advanceBookingPeriod",
+          label: "Advance Booking Period",
+        },
+        // { path: "basicDetails.address", label: "Venue Address" },
+
+        // Policies
+        { path: "policies.termsConditions", label: "Terms & Conditions" },
+        { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+
+        // Media
+        { path: "additionalDetails.photos", label: "Photos" },
+        { path: "additionalDetails.videos", label: "Videos" },
+      ];
 
       fieldsToCheck.forEach(({ path, label }) => {
         const fieldPath = path.split(".");
@@ -628,9 +727,9 @@ const checkVerification = (service, serType) => {
         }
 
         if (currentValue?.toString().trim()) {
-          console.log(`Field "${label}" (${path}) OK`);
+          // console.log(`Field "${label}" (${path}) OK`);
         } else {
-          console.log(`Field "${label}" (${path}) XXXXXXX`);
+          // console.log(`Field "${label}" (${path}) XXXXXXX`);
           allFieldsValid = false;
         }
       });
