@@ -204,7 +204,6 @@ const updateServiceDetails = async (req, res) => {
         return res.status(404).json({ error: "Vendor or service not found" });
       }
 
-
       const service = vendor.serviceIds.find(
         (service) => service.serId === serId,
       );
@@ -277,7 +276,6 @@ const updateServiceDetails = async (req, res) => {
         updatedService,
         serType,
       );
-
 
       // Step 4: Update the profileCompletion field directly in the service
       await updatedService.updateOne({
