@@ -10,6 +10,7 @@ const pricingSchema = new Schema({
 });
 
 const propRentalSchema = new Schema({
+  type: { type: String, default: "propRental" },
   basicDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     profileCompletion: { type: Number, default: 0 },
@@ -40,6 +41,12 @@ const propRentalSchema = new Schema({
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
   },
+  id: { type: String, default: generateUniqueId("prop"), required: true },
+  venId: { type: String, required: true },
+
+  vendorType: { type: String, default: "propRental" },
+  schedule: [eventSchema],
+
   furnitureAndDecor: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     listUrl: { type: [String] },
@@ -65,8 +72,16 @@ const propRentalSchema = new Schema({
   venId: { type: String, required: true },
   vendorType: { type: String, default: "propRental" },
   schedule: [eventSchema],
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
-
 
 const PropRental = model("PropRental", propRentalSchema);
 

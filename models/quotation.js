@@ -21,17 +21,20 @@ const quotationSchema = new mongoose.Schema(
     email: { type: String, required: true },
     mobile: { type: String, required: true },
     event: { type: String, required: true },
-    date: { type: String, required: true },
+    start_date: { type: Date, required: true },
+    end_date: { type: Date, required: true },
+
     time: { type: String, required: true },
     budget: { type: String, required: true },
     number_of_guest: { type: String, required: true },
     requirements: { type: String, required: true },
     location: { type: String, required: false },
+    event_type: { type: [String], required: true },
   },
   { timestamps: true },
 );
 
 quotationSchema.plugin(AutoIncrement, { inc_field: "quoteNumber" });
 
-const qutoation = mongoose.model("quotation", quotationSchema);
-export default qutoation;
+const Quotation = mongoose.model("quotation", quotationSchema);
+export { Quotation };

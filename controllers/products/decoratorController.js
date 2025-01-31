@@ -29,7 +29,6 @@ const checkCompletion = (section) => {
   });
 };
 
-
 const updateSectionCompletion = async (id) => {
   try {
     const decorator = await Decorator.findOne({ id });
@@ -38,10 +37,18 @@ const updateSectionCompletion = async (id) => {
       throw new Error("Decorator not found");
     }
 
-    decorator.basicDetails.completed = checkCompletion(decorator.basicDetails || {});
-    decorator.themesOffered.completed = checkCompletion(decorator.themesOffered || {});
-    decorator.themesElement.completed = checkCompletion(decorator.themesElement || {});
-    decorator.additionalDetails.completed = checkCompletion(decorator.additionalDetails || {});
+    decorator.basicDetails.completed = checkCompletion(
+      decorator.basicDetails || {},
+    );
+    decorator.themesOffered.completed = checkCompletion(
+      decorator.themesOffered || {},
+    );
+    decorator.themesElement.completed = checkCompletion(
+      decorator.themesElement || {},
+    );
+    decorator.additionalDetails.completed = checkCompletion(
+      decorator.additionalDetails || {},
+    );
     decorator.policies.completed = checkCompletion(decorator.policies || {});
 
     await decorator.save();
@@ -194,8 +201,21 @@ const createDecorator = async (req, res) => {
 
 const getAllDecorators = async (req, res) => {
   try {
-    const decorators = await Decorator.find();
-    res.status(200).json(decorators);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const decorators = await Decorator.find().skip(skip).limit(itemsPerPage);
+
+    const totaldecorators = await Decorator.countDocuments();
+
+    res.status(200).json({
+      data: decorators,
+      currentPage: page,
+      totalPages: Math.ceil(totaldecorators / itemsPerPage),
+      totalItems: totaldecorators,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

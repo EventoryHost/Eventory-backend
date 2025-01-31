@@ -1,3 +1,4 @@
+import invitations from "../../models/invitations.js";
 import Invitation from "../../models/invitations.js";
 
 const getFileUrls = (files, fieldName) => {
@@ -43,8 +44,21 @@ const createInvitation = async (req, res) => {
 };
 const getAllInvitation = async (req, res) => {
   try {
-    const invitation = await Invitation.Invitation.find();
-    res.status(200).json(invitation);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const caterers = await invitations.find().skip(skip).limit(itemsPerPage);
+
+    const totalCaterers = await invitations.countDocuments();
+
+    res.status(200).json({
+      data: caterers,
+      currentPage: page,
+      totalPages: Math.ceil(totalCaterers / itemsPerPage),
+      totalItems: totalCaterers,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

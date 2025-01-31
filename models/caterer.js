@@ -5,6 +5,8 @@ import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const catererSchema = new Schema({
+  type: { type: String, default: "caterer" },
+  isVerified: { type: Boolean, default: false },
   basicDetails: {
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false }, // Flag for section completion
@@ -54,10 +56,19 @@ const catererSchema = new Schema({
     terms_and_conditions: { type: String },
     client_testimonials: { type: String },
   },
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  id: { type: String, default: generateUniqueId("cat"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "caterer" },
   schedule: [eventSchema],
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 const Caterer = model("Caterer", catererSchema);

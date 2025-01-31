@@ -1,3 +1,4 @@
+import PropRental from "../../models/props.js";
 import propRental from "../../models/props.js";
 import { Vendor as User } from "../../models/users.js";
 
@@ -20,15 +21,16 @@ const checkCompletion = (section) => {
   const requiredFields = Object.keys(section).filter((key) => {
     // Ensure that the array is not empty and that the field is not null or undefined
     if (Array.isArray(section[key])) {
-      return section[key].length > 0;  // Check that the array is not empty
+      return section[key].length > 0; // Check that the array is not empty
     }
-    return section[key] !== undefined && section[key] !== null && section[key] !== "";
+    return (
+      section[key] !== undefined && section[key] !== null && section[key] !== ""
+    );
   });
 
   // Return true if all required fields are filled
   return requiredFields.length === Object.keys(section).length;
 };
-
 
 // Function to update the section completion status
 const updateSectionCompletion = async (propId) => {
@@ -42,8 +44,12 @@ const updateSectionCompletion = async (propId) => {
     // Ensure each section exists before checking completion
     prop.basicDetails.completed = checkCompletion(prop.basicDetails || {});
     prop.serviceDetails.completed = checkCompletion(prop.serviceDetails || {});
-    prop.additionalDetails.completed = checkCompletion(prop.additionalDetails || {});
-    prop.furnitureAndDecor.completed = checkCompletion(prop.furnitureAndDecor || {});
+    prop.additionalDetails.completed = checkCompletion(
+      prop.additionalDetails || {},
+    );
+    prop.furnitureAndDecor.completed = checkCompletion(
+      prop.furnitureAndDecor || {},
+    );
     prop.tentAndCanopy.completed = checkCompletion(prop.tentAndCanopy || {});
     prop.audioVisual.completed = checkCompletion(prop.audioVisual || {});
     prop.policies.completed = checkCompletion(prop.policies || {});
@@ -171,8 +177,21 @@ const createProp = async (req, res) => {
 
 const getAllProp = async (req, res) => {
   try {
-    const prop = await propRental.find();
-    res.status(200).json(prop);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const caterers = await PropRental.find().skip(skip).limit(itemsPerPage);
+
+    const totalCaterers = await PropRental.countDocuments();
+
+    res.status(200).json({
+      data: caterers,
+      currentPage: page,
+      totalPages: Math.ceil(totalCaterers / itemsPerPage),
+      totalItems: totalCaterers,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

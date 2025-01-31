@@ -13,4 +13,20 @@ const generateUniqueId = (type) => {
   return `${type}${year}${month}${day}${hours}${minutes}${seconds}${miliseconds}`;
 };
 
+export function generatePaymentId() {
+  const upperDigits = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const allChars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  const randomChars = (length, chars) => {
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  return "pay_" + randomChars(6, upperDigits) + randomChars(8, allChars);
+}
+
 export default generateUniqueId;

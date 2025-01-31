@@ -7,7 +7,7 @@ import authRoutes from "../routes/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes/aboutEmailRoutes.js";
 import chalk from "chalk";
-import bookingRoutes from "../routes/bookingRoutes.js";
+// import bookingRoutes from "../routes/bookingRoutes.js";
 import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
@@ -16,6 +16,12 @@ import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
+import BookingRoutes from "../routes/bookingRoutes.js";
+import vendorEditRoutes from "../routes/vendorEditRoutes.js";
+import serviceRouter from "../routes/servicesRoutes.js";
+import venueRouter from "../routes/venueRoutes.js";
+import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
+import customerRoutes from "../routes/customerRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -52,6 +58,7 @@ app.options("/api/business-details/:userId", (req, res) => {
 app.use("/", router);
 app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
 app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
+app.use("/api", vendorEditRoutes); // Route to update vendor details
 app.use("/api/products", productRoutes);
 app.use("/api/payment", razorpayRoutes);
 app.use("/auth", authRoutes);
@@ -60,8 +67,14 @@ app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
-app.use("/api/bookings", bookingRoutes);
+// app.use("/api/bookings", bookingRoutes);
 app.use("/api/verfication", verificationRoutes);
+app.use("/api/Bookings", BookingRoutes);
+
+app.use("/api/service", serviceRouter);
+app.use("/api/venue", venueRouter);
+app.use("/api", featuredVendorsRoutes);
+app.use("/api/customer", customerRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
