@@ -231,10 +231,10 @@ const createVenue = async (req, res) => {
       req.body.cancellationPolicy;
 
     const photosUrls = getFileUrls(req.files, "photos");
-    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
 
     const videosUrls = getFileUrls(req.files, "videos");
-    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
 
     const newVenue = new Venue({
       basicDetails: {
@@ -244,6 +244,7 @@ const createVenue = async (req, res) => {
         address: req.body.address,
         operatingHours: req.body.operatingHours,
         description: req.body.description,
+        profileCompletion: 0, // Initial placeholder
       },
       venId: req.body.venId,
       featureDetails: {
@@ -257,8 +258,8 @@ const createVenue = async (req, res) => {
         facilities: req.body.facilities,
       },
       additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        photos: Array.isArray(photos) ? photos : [photos],
+        videos: Array.isArray(videos) ? videos : [videos],
         instagramURL: req.body.instagramURL,
         websiteURL: req.body.websiteURL,
         awards: req.body.awards,
@@ -273,9 +274,67 @@ const createVenue = async (req, res) => {
       },
     });
 
+    // Fields to check for profile completion
+    const fieldsToCheck = [
+      req.body.name,
+      req.body.managerName,
+      req.body.capacity,
+      req.body.address,
+      req.body.operatingHours,
+      req.body.description,
+      req.body.venueTypes?.length > 0,
+      req.body.decorServices?.length > 0,
+      req.body.catererServices?.length > 0,
+      req.body.restrictionsPolicies?.length > 0,
+      req.body.specialFeatures?.length > 0,
+      req.body.audioVisualEquipment?.length > 0,
+      req.body.accessibilityFeatures?.length > 0,
+      req.body.facilities?.length > 0,
+      photos.length > 0,
+      videos.length > 0,
+      req.body.instagramURL,
+      req.body.websiteURL,
+      req.body.awards?.length > 0,
+      req.body.clientTestimonials,
+      req.body.advanceBookingPeriod,
+      req.body.priceStartingFrom,
+      termsAndConditionsFileUrl,
+      cancellationPolicyFileUrl,
+      req.body.insurancePolicy,
+    ];
+
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profileCompletion =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+    console.log(
+      "profileCompletion came out to be in venue ------",
+      profileCompletion,
+    );
+    console.log(
+      "completedFields came out to be in venue ------",
+      completedFields,
+    );
+
+    newVenue.basicDetails.profileCompletion = profileCompletion;
+
     const savedVenue = await newVenue.save();
 
+    // Update section completion
     await updateSectionCompletion(savedVenue.id);
+
+    const vendor = await User.findOne({ id: req.body.venId });
+    if (!vendor) {
+      await Venue.findByIdAndDelete(savedVenue.id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    vendor.serviceIds.push({
+      serType: "venue-provider",
+      serId: savedVenue.id,
+    });
+
+    await vendor.save();
 
     res.status(201).json(savedVenue);
   } catch (error) {
@@ -286,8 +345,21 @@ const createVenue = async (req, res) => {
 
 export const getAllVenues = async (req, res) => {
   try {
-    const venues = await Venue.find();
-    res.status(200).json(venues);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const venues = await Venue.find().skip(skip).limit(itemsPerPage);
+
+    const totalvenues = await Venue.countDocuments();
+
+    res.status(200).json({
+      data: venues,
+      currentPage: page,
+      totalPages: Math.ceil(totalvenues / itemsPerPage),
+      totalItems: totalvenues,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
