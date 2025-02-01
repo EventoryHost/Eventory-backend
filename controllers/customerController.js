@@ -1,4 +1,5 @@
 import { Customer } from "../models/customer.js";
+import jwt from "jsonwebtoken";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -16,9 +17,26 @@ export const addCustomer = async (req, res) => {
 
 export const getCustomer = async (req, res) => {
   try {
-    const { phone } = req.body;
-    const customer = await Customer.findOne({ phone: phone });
-    res.status(200).json(customer);
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized: No token provided" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
+    const phone = decoded.mobile; 
+
+    if (!phone) {
+      return res.status(400).json({ message: "Invalid token: Phone number missing" });
+    }
+
+    const customer = await Customer.findOne({ phone });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    res.status(200).json({ customer });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -125,12 +143,21 @@ export const getCustomerByMobile = async (req, res) => {
 
 export const updateCustomer = async (req, res) => {
   try {
-    const { phone, ...updates } = req.body;
-   
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
     
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const phone = decoded.mobile; 
+
+    if (!phone) return res.status(403).json({ message: "Invalid token" });
+
+    
+    const { phone: phoneFromBody, ...updates } = req.body; 
+
     const customer = await Customer.findOneAndUpdate(
-      { phone: phone }, 
-      { $set: updates }, 
+      { phone },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 
