@@ -50,8 +50,21 @@ const createEventPlanner = async (req, res) => {
 
 const getAllEventPlanner = async (req, res) => {
   try {
-    const event = await EventPlanner.find();
-    res.status(200).json(event);
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 9;
+
+    const skip = (page - 1) * itemsPerPage;
+
+    const planners = await EventPlanner.find().skip(skip).limit(itemsPerPage);
+
+    const totalplanners = await EventPlanner.countDocuments();
+
+    res.status(200).json({
+      data: planners,
+      currentPage: page,
+      totalPages: Math.ceil(totalplanners / itemsPerPage),
+      totalItems: totalplanners,
+    });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
