@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(
   "/send-contact-email",
   bodyParser.json(),
-  bodyParser.urlencoded({ extended: true })
+  bodyParser.urlencoded({ extended: true }),
 );
 
 router.post("/send-contact-email", async (req, res) => {
