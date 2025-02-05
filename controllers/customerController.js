@@ -24,13 +24,13 @@ export const getCustomer = async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET); 
-    const phone = decoded.mobile; 
+    const mobile = decoded.mobile; 
 
-    if (!phone) {
+    if (!mobile) {
       return res.status(400).json({ message: "Invalid token: Phone number missing" });
     }
 
-    const customer = await Customer.findOne({ phone });
+    const customer = await Customer.findOne({ mobile });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -127,9 +127,10 @@ export const removeFavourite = async (req, res) => {
 
 export const getCustomerByMobile = async (req, res) => {
   try {
-    const phone = req.params.phone;
+    const mobile = req.params.mobile;
+    
 
-    const customer = await Customer.findOne({ phone: phone });
+    const customer = await Customer.findOne({ mobile: mobile });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -148,15 +149,16 @@ export const updateCustomer = async (req, res) => {
 
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const phone = decoded.mobile; 
+    const mobile = decoded.mobile; 
 
-    if (!phone) return res.status(403).json({ message: "Invalid token" });
+    if (!mobile) return res.status(403).json({ message: "Invalid token" });
 
-    
-    const { phone: phoneFromBody, ...updates } = req.body; 
+   
+    const { mobile: mobileFromBody, ...updates } = req.body; 
+    if(!mobileFromBody) return res.status(400).json({ message: "Phone number missing" });
 
     const customer = await Customer.findOneAndUpdate(
-      { phone },
+      { mobile:mobileFromBody },
       { $set: updates },
       { new: true, runValidators: true }
     );
