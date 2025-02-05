@@ -73,37 +73,67 @@ const createCaterer = async (req, res) => {
     }
 
     const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellation_policy")[0] ||
-      req.body.cancellation_policy;
+      req.body.cancellation_policy || "";
     const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "terms_and_conditions")[0] ||
-      req.body.terms_and_conditions;
+      req.body.terms_and_conditions || "";
 
     // Handle file URLs (for both single and multiple files)
 
-    const menuFileUrl = getFileUrls(req.files, "menu");
-    const menu = menuFileUrl.length ? menuFileUrl : req.body.menu || [];
+    const menu = req.body.menu || [];
 
-    const photosUrls = getFileUrls(req.files, "photos");
-    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photos = req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos");
-    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videos = req.body.videos || [];
 
     const clientTestimonialsUrls =
-      getFileUrls(req.files, "client_testimonials")[0] ||
-      req.body.client_testimonials;
+      req.body.client_testimonials || "";
 
     // Handle food safety certificates (multiple or single)
-    const foodSafetyCertificatesUrls = getFileUrls(
-      req.files,
-      "food_safety_certificates",
-    );
-    const foodSafetyCertificates = foodSafetyCertificatesUrls.length
-      ? foodSafetyCertificatesUrls
-      : req.body.food_safety_certificates || [];
+
+    const foodSafetyCertificates =
+      req.body.food_safety_certificates || [];
 
     // Create new caterer
+
+
+    const fieldsToCheck = [
+      req.body.name,
+      req.body.managerName,
+      req.body.capacity,
+      req.body.description,
+      req.body.cuisine_specialities?.length > 0, // Ensure there's at least one cuisine specialty
+      req.body.regional_specialities?.length > 0, // Ensure there's at least one regional specialty
+      req.body.service_style_offered,
+      req.body.vegOrNonVeg,
+      // Check if menu file is provided or if all relevant fields (appetizers, beverages, main_course) are provided
+      menu.length > 0 ||
+      (req.body.appetizers?.length > 0 &&
+        req.body.beverages?.length > 0 &&
+        req.body.main_course?.length > 0),
+      req.body.special_dietary_options?.length > 0, // Ensure there are dietary options
+      req.body.pre_set_menus?.length > 0, // Ensure pre-set menus exist
+      req.body.customizable === "true", // Ensure customizable option is properly set
+      req.body.additional_services?.length > 0, // Ensure additional services are listed
+      req.body.event_types_catered?.length > 0, // Ensure event types catered to are specified
+      req.body.equipment_provided?.length > 0, // Ensure equipment is provided
+      req.body.staff_provided?.length > 0, // Ensure staff is provided
+      req.body.priceStartingFrom,
+      req.body.minimum_order_requirements,
+      req.body.advance_booking_period,
+      req.body.tasting_sessions === "true", // Check if tasting sessions are offered
+      req.body.business_licenses === "true", // Check if business licenses are valid
+      foodSafetyCertificates.length > 0, // Ensure at least one food safety certificate
+      photos.length > 0, // At least one photo
+      videos.length > 0, // At least one video
+      cancellationPolicyFileUrl, // Ensure cancellation policy is uploaded
+      termsAndConditionsFileUrl, // Ensure terms and conditions file is uploaded
+      clientTestimonialsUrls, // Ensure client testimonials are uploaded
+    ];
+
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profileCompletion =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
     const newCaterer = new Caterer({
       basicDetails: {
         managerName: req.body.managerName,
@@ -154,44 +184,6 @@ const createCaterer = async (req, res) => {
       },
       // deposit_required: req.body.deposit_required,
     });
-
-    const fieldsToCheck = [
-      req.body.name,
-      req.body.managerName,
-      req.body.capacity,
-      req.body.description,
-      req.body.cuisine_specialities?.length > 0, // Ensure there's at least one cuisine specialty
-      req.body.regional_specialities?.length > 0, // Ensure there's at least one regional specialty
-      req.body.service_style_offered,
-      req.body.vegOrNonVeg,
-      // Check if menu file is provided or if all relevant fields (appetizers, beverages, main_course) are provided
-      menuFileUrl.length > 0 ||
-        (req.body.appetizers?.length > 0 &&
-          req.body.beverages?.length > 0 &&
-          req.body.main_course?.length > 0),
-      req.body.special_dietary_options?.length > 0, // Ensure there are dietary options
-      req.body.pre_set_menus?.length > 0, // Ensure pre-set menus exist
-      req.body.customizable === "true", // Ensure customizable option is properly set
-      req.body.additional_services?.length > 0, // Ensure additional services are listed
-      req.body.event_types_catered?.length > 0, // Ensure event types catered to are specified
-      req.body.equipment_provided?.length > 0, // Ensure equipment is provided
-      req.body.staff_provided?.length > 0, // Ensure staff is provided
-      req.body.priceStartingFrom,
-      req.body.minimum_order_requirements,
-      req.body.advance_booking_period,
-      req.body.tasting_sessions === "true", // Check if tasting sessions are offered
-      req.body.business_licenses === "true", // Check if business licenses are valid
-      foodSafetyCertificates.length > 0, // Ensure at least one food safety certificate
-      photosUrls.length > 0, // At least one photo
-      videosUrls.length > 0, // At least one video
-      cancellationPolicyFileUrl, // Ensure cancellation policy is uploaded
-      termsAndConditionsFileUrl, // Ensure terms and conditions file is uploaded
-      clientTestimonialsUrls, // Ensure client testimonials are uploaded
-    ];
-
-    const completedFields = fieldsToCheck.filter((field) => field).length;
-    const profileCompletion =
-      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     const savedCaterer = await newCaterer.save();
 
