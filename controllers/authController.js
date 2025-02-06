@@ -247,7 +247,7 @@ const login = async (req, res) => {
 
 const CustomerLogin = async (req, res) => {
   const { mobile } = req.body;
- 
+
   const params = {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
@@ -258,10 +258,10 @@ const CustomerLogin = async (req, res) => {
       USERNAME: `+91${mobile}`,
     },
   };
- 
+
   try {
     const user = await CustomerExists(`+91${mobile}`);
-   
+
     if (user) {
       const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
@@ -318,7 +318,6 @@ const verifyLoginOtp = async (req, res) => {
 };
 
 const verifyCustomerLoginOtp = async (req, res) => {
-  
   const { mobile, code, session, name } = req.body;
  
  
@@ -446,11 +445,11 @@ const userExists = async (credential) => {
 };
 
 const CustomerExists = async (credential) => {
-  console.log(credential)
+  console.log(credential);
   const user = await Customer.findOne({
     $or: [{ email: credential }, { mobile: credential }],
   });
-  console.log(user)
+  console.log(user);
   return user;
 };
 
