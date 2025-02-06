@@ -320,7 +320,7 @@ const verifyLoginOtp = async (req, res) => {
 const verifyCustomerLoginOtp = async (req, res) => {
   
   const { mobile, code, session, name } = req.body;
-  console.log("Session received:", session);
+ 
  
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -336,20 +336,26 @@ const verifyCustomerLoginOtp = async (req, res) => {
   };
 
   try {
-    console.log("Sending OTP verification request to Cognito:", params);
+   
     const command = new AdminRespondToAuthChallengeCommand(params);
     var data = await cognito.send(command);
-    console.log("Cognito Response:", data);
+   
     let user = await Customer.findOne({ mobile: `+91${mobile}` });
     if (!user) {
       try {
         const customer = new Customer({ name, mobile: `+91${mobile}` });
         await customer.save();
-        return res.status(200).json(customer);
+        const token = jwt.sign(
+          { id: customer.id, mobile: customer.mobile, name: customer.name },
+          process.env.JWT_SECRET,
+          { expiresIn: "24h" }
+        );
+        return res.status(200).json({ message: "Login Success", token, user: customer });
       } catch (error) {
         return res.status(400).json({ message: error.message });
       }
     }
+   
 
     const token = jwt.sign(
       { id: user.id, mobile: user.mobile, name: user.name },
@@ -358,6 +364,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
         expiresIn: "24h",
       },
     );
+    
 
     res.status(200).json({ message: "Login Success", token, user });
   } catch (error) {
