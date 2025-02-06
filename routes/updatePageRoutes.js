@@ -4,6 +4,7 @@ import { DecoratorModel } from "../models/reduxStores/decorator.js";
 import PAVModel from "../models/reduxStores/pav.js";
 import VenueModel from "../models/reduxStores/venue-provider.js";
 import PropRentalModel from "../models/reduxStores/prop-rental.js";
+import MakeupArtistModel from "../models/reduxStores/makeUpArtist.js";
 
 const router = express.Router();
 
@@ -20,6 +21,8 @@ const getModelByFlowType = (flowType) => {
       return VenueModel;
     case "prop-rental":
       return PropRentalModel;
+    case "makeupArtist":
+      return MakeupArtistModel;
     default:
       return null;
   }

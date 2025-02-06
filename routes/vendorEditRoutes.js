@@ -6,6 +6,7 @@ import { Decorator } from "../models/decoraters.js";
 import Photographer from "../models/photographers.js";
 import PropRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
+import MakeupArtist from "../models/makeupArtists.js";
 
 import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
@@ -19,9 +20,7 @@ router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
 
-  try {
-    // Find the vendor containing the specific serviceId
-    const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
+  
     try {
       // Find the vendor containing the specific serviceId
       const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
@@ -29,9 +28,6 @@ router.put("/update-service/:serviceId", async (req, res) => {
       if (!vendor) {
         return res.status(404).json({ message: "Service not found" });
       }
-      if (!vendor) {
-        return res.status(404).json({ message: "Service not found" });
-      }
 
       // Update vendor-level fields if provided in the request body
       if (updateData.name) vendor.name = updateData.name;
@@ -59,19 +55,10 @@ router.put("/update-service/:serviceId", async (req, res) => {
 
       // Save the updated document
       await vendor.save();
-      // Save the updated document
-      await vendor.save();
 
-      res
-        .status(200)
-        .json({ message: "Service and vendor updated successfully", vendor });
-    } catch (error) {
-      console.error("Error updating service:", error);
-      res.status(500).json({ message: "Internal Server Error", error });
-    }
-    res
-      .status(200)
-      .json({ message: "Service and vendor updated successfully", vendor });
+      // Send the response once
+    res.status(200).json({ message: "Service and vendor updated successfully", vendor });
+
   } catch (error) {
     console.error("Error updating service:", error);
     res.status(500).json({ message: "Internal Server Error", error });
@@ -143,6 +130,12 @@ router.post("/updateService/:serviceId", async (req, res) => {
             venId: vendor.id,
           });
           break;
+        case "makeupArtist":
+          serviceDoc = await MakeupArtist.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
         default:
           return res.status(400).json({ message: "Invalid service type" });
       }
@@ -188,8 +181,8 @@ router.post("/updateService/:serviceId", async (req, res) => {
 
 // API endpoint to update service details
 const updateServiceDetails = async (req, res) => {
-  const { serId } = req.params; // Service ID from the URL
-  const updateData = req.body; // Details to be updated
+  const { serId } = req.params;
+  const updateData = req.body;
 
   try {
     // Step 1: Find the vendor's service type
@@ -197,110 +190,88 @@ const updateServiceDetails = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
-    try {
-      // Step 1: Find the vendor's service type
-      const vendor = await Vendor.findOne({ "serviceIds.serId": serId });
-      if (!vendor) {
-        return res.status(404).json({ error: "Vendor or service not found" });
-      }
 
-      const service = vendor.serviceIds.find(
-        (service) => service.serId === serId,
-      );
-      const { serType } = service; // e.g., 'caterer' or 'decorator'
-
-      let updatedService;
-
-      // Step 2: Update the respective service based on service type
-      switch (serType) {
-        case "caterer":
-          updatedService = await Caterer.findOneAndUpdate(
-            { id: serId },
-            { $set: updateData },
-            { new: true },
-          );
-          // Call the caterer completion check
-          await checkCatererProfileCompletion(serId);
-          break;
-        case "decorator":
-          updatedService = await Decorator.findOneAndUpdate(
-            { id: serId },
-            { $set: updateData },
-            { new: true },
-          );
-          // Call the decorator completion check
-          await checkDecoratorProfileCompletion(serId);
-          break;
-        case "pav":
-          updatedService = await Photographer.findOneAndUpdate(
-            { id: serId },
-            { $set: updateData },
-            { new: true },
-          );
-          // Call the photographer completion check
-          await checkPhotographerProfileCompletion(serId);
-          break;
-        case "venue-provider":
-          updatedService = await Venue.findOneAndUpdate(
-            { id: serId },
-            { $set: updateData },
-            { new: true },
-          );
-          await checkVenueProfileCompletion(serId);
-          break;
-        case "prop-rental":
-          updatedService = await PropRental.findOneAndUpdate(
-            { id: serId },
-            { $set: updateData },
-            { new: true },
-          );
-          break;
-        default:
-          return res.status(400).json({ error: "Unsupported service type" });
-      }
-
-      if (!updatedService) {
-        return res.status(404).json({ error: "Service not found for update" });
-      }
-      if (!updatedService) {
-        return res.status(404).json({ error: "Service not found for update" });
-      }
-
-      const isVerified = checkVerification(updatedService, serType);
-
-      await updatedService.updateOne({ isVerified });
-      await updatedService.updateOne({ isVerified });
-
-      // Step 3: Calculate profile completion percentage
-      const profileCompletion = calculateProfileCompletion(
-        updatedService,
-        serType,
-      );
-
-      // Step 4: Update the profileCompletion field directly in the service
-      await updatedService.updateOne({
-        "basicDetails.profileCompletion": profileCompletion,
-      });
-      // Step 4: Update the profileCompletion field directly in the service
-      await updatedService.updateOne({
-        "basicDetails.profileCompletion": profileCompletion,
-      });
-
-      return res
-        .status(200)
-        .json({ message: "Details updated successfully", updatedService });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Internal server error" });
+    const service = vendor.serviceIds.find((service) => service.serId === serId);
+    if (!service) {
+      return res.status(404).json({ error: "Service not found" });
     }
-    return res
-      .status(200)
-      .json({ message: "Details updated successfully", updatedService });
+
+    const { serType } = service;
+    let updatedService;
+
+    // Step 2: Update the respective service based on service type
+    switch (serType) {
+      case "caterer":
+        updatedService = await Caterer.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        await checkCatererProfileCompletion(serId);
+        break;
+      case "decorator":
+        updatedService = await Decorator.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        await checkDecoratorProfileCompletion(serId);
+        break;
+      case "pav":
+        updatedService = await Photographer.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        await checkPhotographerProfileCompletion(serId);
+        break;
+      case "venue-provider":
+        updatedService = await Venue.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        await checkVenueProfileCompletion(serId);
+        break;
+      case "prop-rental":
+        updatedService = await PropRental.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        break;
+      case "makeupArtist":
+        updatedService = await MakeupArtist.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        break;
+      default:
+        return res.status(400).json({ error: "Unsupported service type" });
+    }
+
+    if (!updatedService) {
+      return res.status(404).json({ error: "Service not found for update" });
+    }
+
+    const isVerified = checkVerification(updatedService, serType);
+    await updatedService.updateOne({ isVerified });
+
+    // Step 3: Calculate and update profile completion percentage
+    const profileCompletion = calculateProfileCompletion(updatedService, serType);
+    await updatedService.updateOne({
+      "basicDetails.profileCompletion": profileCompletion,
+    });
+
+    return res.status(200).json({ message: "Details updated successfully", updatedService });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 const serviceFields = {
   caterer: [

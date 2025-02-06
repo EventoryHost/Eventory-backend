@@ -1,4 +1,6 @@
 import MakeupArtist from "../../models/makeupArtists.js";
+import { Vendor as User } from "../../models/users.js";
+
 
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
@@ -42,7 +44,7 @@ const createMakeupArtist = async (req, res) => {
 
     const alreadyExists = await MakeupArtist.findOne({
       name: req.body.artistName,
-      id: req.body.venId,
+      id: req.body.id,
     });
 
     if (alreadyExists) {
@@ -77,8 +79,25 @@ const createMakeupArtist = async (req, res) => {
       },
       venId: req.body.venId,
     });
-
     const savedMakeupArtist = await newMakeupArtist.save();
+
+    // ✅ Find the vendor
+    const vendor = await User.findOne({ id: req.body.venId });
+    // if (!vendor) {
+    //   await MakeupArtist.findOne({ id: savedMakeupArtist.id });
+    //   return res.status(404).json({ message: "Vendor not found" });
+    // }
+
+    console.log(`The vendor found is ${vendor}`); // 🛠️ Log the vendor
+
+    // ✅ Add the `serId` with the correct `serType`
+    vendor.serviceIds.push({
+      serType: "makeupArtist",  // Correct service type
+      serId: savedMakeupArtist.id,
+    });
+
+    await vendor.save();
+
     res.status(201).json(savedMakeupArtist);
 
   } catch (error) {

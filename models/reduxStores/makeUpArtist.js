@@ -1,53 +1,35 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 
-const makeupArtistBaseSchema = {
-  userId: { type: String, required: true }, // ID of the user creating this entry
-  pageNumber: { type: Number, default: 1 },
-  type: {
-    type: String,
-    enum: ["individual", "group", "company"], // Defining artist type
-    required: true,
-  },
-  description: { type: String }, // Short description of services or expertise
-  venueType: { type: String, default: "makeupArtist" }, // Type of venue
-  types_of_artists: { type: [String], required: true }, // Types of artists in the team, like hair, makeup, etc.
+import generateUniqueId from "../../utils/generateId.js";
 
-  // Package rates for hourly, deals, and workers
-  packageRates: {
-    hourly: [{ name: String, min: String, max: String }], // Hourly package rates
-    deals: [{ name: String, min: String, max: String }], // Deal-based package rates
-    workers: [{ name: String, min: String, max: String }], // Worker-based package rates
-  },
+const makeupArtistSchema = Schema({
+  pageNumber : { type: Number, default: 1 },
+  type: { type: String, default: "makeupArtist" },
+  isVerified: { type: Boolean, default: false },
+  profileCompletion: { type: Number, default: 0 },
+  completed: { type: Boolean, default: false }, // Flag for section completion
+  artistName: { type: String, required: true },
+  eventSize: { type: String, required: true },
+  artistDescription: { type: String, required: true },
+  eventTypes: { type: [String], required: true },
+  typesOfMakeupArtists: { type: [String], required: true },
+  onsiteMakeup: { type: Boolean, required: true },
+  customization: { type: Boolean, required: true },
+  serviceTypes: { type: [String], required: true },
+  photos: { type: [String], required: true },
+  videos: { type: [String], required: true },
+  socialMedia: { type: String },
+  websiteUrl: { type: String },
+  priceStarts: { type: String },
+  termsAndConditions: { type: [String] },
+  cancellationPolicy: { type: [String] },
+  certificateOrAwards: { type: [String] },
+  clientTestimonials: { type: [String] },
+  id: { type: String, default: generateUniqueId("mak"), required: true },
+  venId: { type: String, required: true },
+  vendorType: { type: String, default: "makeupArtist" },
+});
 
-  advancePayment: { type: String }, // Advance payment requirements
-  onSiteAvailability: { type: Boolean }, // Whether on-site services are offered
-  specialization: { type: [String] }, // List of specializations (e.g., bridal makeup, etc.)
-  portfolio: { type: [String] }, // Array of portfolio image URLs
-};
-
-// Factory function to create the schema based on artist type
-const createMakeupArtistSchema = (artistType) => {
-  let specificFields = {};
-
-  // Add specific fields if artist is a group or company
-  if (artistType === "group" || artistType === "company") {
-    specificFields = {
-      numberOfMembers: { type: Number }, // For groups or companies, number of members in the team
-    };
-  }
-
-  // Combine the base schema with specific fields
-  const makeupArtistSchema = new Schema(
-    {
-      ...makeupArtistBaseSchema,
-      ...specificFields,
-    },
-    { timestamps: true },
-  ); // Adds createdAt and updatedAt fields
-
-  // Create and return the model
-  return model("ReduxMakeupArtist", makeupArtistSchema);
-};
-
-export default createMakeupArtistSchema;
+const MakeupArtistModel = model("ReduxMakeupArtist", makeupArtistSchema);
+export default MakeupArtistModel;
