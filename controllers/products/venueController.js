@@ -225,16 +225,13 @@ const createVenue = async (req, res) => {
     }
 
     const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "termsConditions")[0] || req.body.termsConditions;
+      req.body.termsConditions || [];
     const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] ||
-      req.body.cancellationPolicy;
+      req.body.cancellationPolicy || [];
 
-    const photosUrls = getFileUrls(req.files, "photos");
-    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photos = req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos");
-    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videos = req.body.videos || [];
 
     const newVenue = new Venue({
       basicDetails: {
