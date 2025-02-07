@@ -106,9 +106,9 @@ const createPhotographer = async (req, res) => {
       return res.status(400).json({ message: "Photographer already exists" });
     }
 
-    const photosUrl =req.body.photos || [];
+    const photosUrl = req.body.photos || [];
 
-    const videosUrl =req.body.videos || [];
+    const videosUrl = req.body.videos || [];
 
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const termsAndConditionsFileUrl = req.body.termsAndConditions || [];

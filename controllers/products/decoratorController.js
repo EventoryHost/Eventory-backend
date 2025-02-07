@@ -68,18 +68,13 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-    const insuranceFileUrl =
-      req.body.insurance || [];
-    const privacyPolicyFileUrl =
-      req.body.privacyPolicy || [];
+    const insuranceFileUrl = req.body.insurance || [];
+    const privacyPolicyFileUrl = req.body.privacyPolicy || [];
 
-    const cancellationPolicyFileUrl =
-      req.body.cancellationPolicy || "";
-    const termsAndConditionsFileUrl =
-      req.body.termsAndConditions || "";
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || "";
+    const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
-    const themePhotosUrl =
-      req.body.themephotos || [];
+    const themePhotosUrl = req.body.themephotos || [];
 
     const themeVideosUrl = req.body.themevideos || [];
 

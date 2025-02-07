@@ -72,10 +72,8 @@ const createCaterer = async (req, res) => {
       return res.status(400).json({ message: "Caterer already exists" });
     }
 
-    const cancellationPolicyFileUrl =
-      req.body.cancellation_policy || "";
-    const termsAndConditionsFileUrl =
-      req.body.terms_and_conditions || "";
+    const cancellationPolicyFileUrl = req.body.cancellation_policy || "";
+    const termsAndConditionsFileUrl = req.body.terms_and_conditions || "";
 
     // Handle file URLs (for both single and multiple files)
 
@@ -85,16 +83,13 @@ const createCaterer = async (req, res) => {
 
     const videos = req.body.videos || [];
 
-    const clientTestimonialsUrls =
-      req.body.client_testimonials || "";
+    const clientTestimonialsUrls = req.body.client_testimonials || "";
 
     // Handle food safety certificates (multiple or single)
 
-    const foodSafetyCertificates =
-      req.body.food_safety_certificates || [];
+    const foodSafetyCertificates = req.body.food_safety_certificates || [];
 
     // Create new caterer
-
 
     const fieldsToCheck = [
       req.body.name,
@@ -107,9 +102,9 @@ const createCaterer = async (req, res) => {
       req.body.vegOrNonVeg,
       // Check if menu file is provided or if all relevant fields (appetizers, beverages, main_course) are provided
       menu.length > 0 ||
-      (req.body.appetizers?.length > 0 &&
-        req.body.beverages?.length > 0 &&
-        req.body.main_course?.length > 0),
+        (req.body.appetizers?.length > 0 &&
+          req.body.beverages?.length > 0 &&
+          req.body.main_course?.length > 0),
       req.body.special_dietary_options?.length > 0, // Ensure there are dietary options
       req.body.pre_set_menus?.length > 0, // Ensure pre-set menus exist
       req.body.customizable === "true", // Ensure customizable option is properly set
