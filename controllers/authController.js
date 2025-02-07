@@ -335,10 +335,10 @@ const verifyCustomerLoginOtp = async (req, res) => {
     const command = new AdminRespondToAuthChallengeCommand(params);
     var data = await cognito.send(command);
 
-    let user = await Customer.findOne({ phone: `+91${mobile}` });
+    let user = await Customer.findOne({ mobile: `+91${mobile}` });
     if (!user) {
       try {
-        const customer = new Customer({ name, phone: `+91${mobile}` });
+        const customer = new Customer({ name, mobile: `+91${mobile}` });
         await customer.save();
         return res.status(200).json(customer);
       } catch (error) {
@@ -347,7 +347,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, mobile: user.phone, name: user.name },
+      { id: user.id, mobile: user.mobile, name: user.name },
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",

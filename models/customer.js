@@ -10,7 +10,7 @@ const CustomerSchema = new Schema({
     unique: true,
   },
   name: { type: String, required: true },
-  phone: { type: String, required: true },
+  mobile: { type: String, required: true },
   bookings: [
     {
       serviceId: { type: String, required: true },
