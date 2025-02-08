@@ -11,26 +11,9 @@ const createMakeupArtist = async (req, res) => {
     console.log("Received Data:", req.body); // 🛠️ Log full request body
 
     const requiredFields = [
-      "artistName",
-      "artistDescription",
-      "eventSize",
-      "eventTypes",
-      "typesOfMakeupArtists",
-
-      "onsiteMakeup",
-      "customization",
-      "serviceTypes",
-
-      "photos",
-      "videos",
-      // "socialMedia",
-      // "websiteUrl",
-      "priceStarts",
-
-      // "termsAndConditions",
-      // "cancellationPolicy",
-      // "certificateOrAwards",
-      // "clientTestimonials",
+      "artistName", "artistDescription", "eventSize", "eventTypes", "typesOfMakeupArtists",
+      "onsiteMakeup", "customization", "serviceTypes",
+      "photos", "videos", "priceStarts",
       "venId"
     ];
 
@@ -56,22 +39,22 @@ const createMakeupArtist = async (req, res) => {
         artistName: req.body.artistName,
         artistDescription: req.body.artistDescription,
         eventSize: req.body.eventSize,
-        eventTypes: req.body.eventTypes ? req.body.eventTypes.split(",") : [],
-        typesOfMakeupArtists: req.body.typesOfMakeupArtists ? req.body.typesOfMakeupArtists.split(",") : [],
+        eventTypes: req.body.eventTypes.split(","),
+        typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
       },
-      servicesOffered: {
+      serviceDetails: {
         onsiteMakeup: req.body.onsiteMakeup === "Yes",
         customization: req.body.customization === "Yes",
-        serviceTypes: req.body.serviceTypes ? req.body.serviceTypes.split(",") : [],
+        serviceTypes: req.body.serviceTypes.split(","),
       },
-      portfolio: {
-        photos: req.body.photos || [],
-        videos: req.body.videos || [],
-        socialMedia: req.body.socialMedia,
+      additionalDetails: {
+        photos: req.body.photos,
+        videos: req.body.videos,
+        socialMedia: req.body.socialMedia.split(","),
         websiteUrl: req.body.websiteUrl,
         priceStarts: req.body.priceStarts,
       },
-      additionalDetails: {
+      policies: {
         termsAndConditions: req.body.termsAndConditions ? req.body.termsAndConditions.split(",") : [],
         cancellationPolicy: req.body.cancellationPolicy ? req.body.cancellationPolicy.split(",") : [],
         certificateOrAwards: req.body.certificateOrAwards ? req.body.certificateOrAwards.split(",") : [],
@@ -79,6 +62,7 @@ const createMakeupArtist = async (req, res) => {
       },
       venId: req.body.venId,
     });
+
     const savedMakeupArtist = await newMakeupArtist.save();
 
     // ✅ Find the vendor

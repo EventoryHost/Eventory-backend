@@ -16,23 +16,23 @@ const makeupArtistSchema = Schema({
     typesOfMakeupArtists: { type: [String], required: true },
   },
 
-  servicesOffered: {
+  serviceDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     onsiteMakeup: { type: Boolean, required: true },
     customization: { type: Boolean, required: true },
-    serviceTypes: { type: [String], required: true },
+    serviceTypes:  { type: [String], required: true },
   },
-
-  portfolio: {
-    completed: { type: Boolean, default: false }, // Flag for section completion
-    photos: { type: [String], required: true },
-    videos: { type: [String], required: true },
-    socialMedia: { type: String },
-    websiteUrl: { type: String },
-    priceStarts: { type: String },
-  },
-
+   
   additionalDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    photos: { type: [String], required: true },  
+    videos: { type: [String], required: true },
+    socialMedia : { type: [String], },
+    websiteUrl : { type: String, },
+    priceStarts : { type: Number, required: true },     
+  },
+  
+  policies: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     termsAndConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
