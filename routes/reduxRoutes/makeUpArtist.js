@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import  MakeupArtistModel  from "../../models/reduxStores/makeUpArtist.js"; 
+import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
 
 // POST or PUT route to save or update makeup artist details
 router.post("/", async (req, res) => {
@@ -14,7 +14,9 @@ router.post("/", async (req, res) => {
 
   if (!data || Object.keys(data).length === 0) {
     console.log("Error: Makeup artist details are required.");
-    return res.status(400).json({ message: "Makeup artist details are required." });
+    return res
+      .status(400)
+      .json({ message: "Makeup artist details are required." });
   }
 
   try {
@@ -35,7 +37,9 @@ router.post("/", async (req, res) => {
         data: updatedDetails,
       });
     } else {
-      console.log("No existing details found. Creating new makeup artist details.");
+      console.log(
+        "No existing details found. Creating new makeup artist details.",
+      );
       const newMakeupArtistDetails = new MakeupArtistModel({
         id,
         ...data,

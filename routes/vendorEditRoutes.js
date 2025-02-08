@@ -87,7 +87,7 @@ router.post("/updateService/:serviceId", async (req, res) => {
 
       // Find the service details based on the serviceId
       const service = vendor.serviceIds.find(
-        (service) => service.serId === serviceId
+        (service) => service.serId === serviceId,
       );
 
       if (!service) {
@@ -193,7 +193,7 @@ const updateServiceDetails = async (req, res) => {
     }
 
     const service = vendor.serviceIds.find(
-      (service) => service.serId === serId
+      (service) => service.serId === serId,
     );
     if (!service) {
       return res.status(404).json({ error: "Service not found" });
@@ -208,7 +208,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Caterer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkCatererProfileCompletion(serId);
         break;
@@ -216,7 +216,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Decorator.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkDecoratorProfileCompletion(serId);
         break;
@@ -224,7 +224,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Photographer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkPhotographerProfileCompletion(serId);
         break;
@@ -232,7 +232,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Venue.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkVenueProfileCompletion(serId);
         break;
@@ -240,14 +240,14 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await PropRental.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         break;
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkMakeupArtistProfileCompletion(serId);
         break;
@@ -265,7 +265,7 @@ const updateServiceDetails = async (req, res) => {
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
       updatedService,
-      serType
+      serType,
     );
     await updatedService.updateOne({
       "basicDetails.profileCompletion": profileCompletion,
@@ -352,7 +352,7 @@ const serviceFields = {
     "additionalDetails.socialMedia",
     "additionalDetails.websiteUrl",
     "additionalDetails.priceStarts",
-    
+
     "policies.termsAndConditions",
     "policies.cancellationPolicy",
     "policies.certificateOrAwards",
