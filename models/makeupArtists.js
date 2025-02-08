@@ -27,7 +27,7 @@ const makeupArtistSchema = Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     photos: { type: [String], required: true },  
     videos: { type: [String], required: true },
-    socialMedia : { type: [String], },
+    socialMedia : { type: String, },
     websiteUrl : { type: String, },
     priceStarts : { type: Number, required: true },     
   },
