@@ -3,7 +3,7 @@ import { Decorator } from "../../models/decoraters.js";
 import { Venue } from "../../models/venue.js";
 import propRental from "../../models/props.js";
 import Photographer from "../../models/photographers.js";
-import { Vendor } from "../../models/users.js"; 
+import { Vendor } from "../../models/users.js";
 import MakeupArtist from "../../models/makeupArtists.js";
 
 // A mapping object to dynamically select the model based on the category

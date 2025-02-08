@@ -1,7 +1,6 @@
 import MakeupArtist from "../../models/makeupArtists.js";
 import { Vendor as User } from "../../models/users.js";
 
-
 const getFileUrls = (files, fieldName) => {
   return files[fieldName] ? files[fieldName].map((file) => file.location) : [];
 };
@@ -11,18 +10,30 @@ const createMakeupArtist = async (req, res) => {
     console.log("Received Data:", req.body); // 🛠️ Log full request body
 
     const requiredFields = [
-      "artistName", "artistDescription", "eventSize", "eventTypes", "typesOfMakeupArtists",
-      "onsiteMakeup", "customization", "serviceTypes",
-      "photos", "videos", "priceStarts",
-      "venId"
+      "artistName",
+      "artistDescription",
+      "eventSize",
+      "eventTypes",
+      "typesOfMakeupArtists",
+      "onsiteMakeup",
+      "customization",
+      "serviceTypes",
+      "photos",
+      "videos",
+      "priceStarts",
+      "venId",
     ];
 
     // ✅ Find missing fields dynamically
-    const missingFields = requiredFields.filter(field => !req.body[field]);
+    const missingFields = requiredFields.filter((field) => !req.body[field]);
 
     if (missingFields.length > 0) {
       console.log("Missing Fields:", missingFields); // 🛠️ Log missing fields
-      return res.status(400).json({ error: `Missing required fields: ${missingFields.join(", ")}` });
+      return res
+        .status(400)
+        .json({
+          error: `Missing required fields: ${missingFields.join(", ")}`,
+        });
     }
 
     const alreadyExists = await MakeupArtist.findOne({
@@ -55,10 +66,18 @@ const createMakeupArtist = async (req, res) => {
         priceStarts: req.body.priceStarts,
       },
       policies: {
-        termsAndConditions: req.body.termsAndConditions ? req.body.termsAndConditions.split(",") : [],
-        cancellationPolicy: req.body.cancellationPolicy ? req.body.cancellationPolicy.split(",") : [],
-        certificateOrAwards: req.body.certificateOrAwards ? req.body.certificateOrAwards.split(",") : [],
-        clientTestimonials: req.body.clientTestimonials ? req.body.clientTestimonials.split(",") : [],
+        termsAndConditions: req.body.termsAndConditions
+          ? req.body.termsAndConditions.split(",")
+          : [],
+        cancellationPolicy: req.body.cancellationPolicy
+          ? req.body.cancellationPolicy.split(",")
+          : [],
+        certificateOrAwards: req.body.certificateOrAwards
+          ? req.body.certificateOrAwards.split(",")
+          : [],
+        clientTestimonials: req.body.clientTestimonials
+          ? req.body.clientTestimonials.split(",")
+          : [],
       },
       venId: req.body.venId,
     });
@@ -76,20 +95,18 @@ const createMakeupArtist = async (req, res) => {
 
     // ✅ Add the `serId` with the correct `serType`
     vendor.serviceIds.push({
-      serType: "makeupArtist",  // Correct service type
+      serType: "makeupArtist", // Correct service type
       serId: savedMakeupArtist.id,
     });
 
     await vendor.save();
 
     res.status(201).json(savedMakeupArtist);
-
   } catch (error) {
     console.error("Error:", error); // 🛠️ Log error details
     res.status(400).json({ error: error.message });
   }
 };
-
 
 const getAllMakeupArtist = async (req, res) => {
   try {

@@ -20,45 +20,45 @@ router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
 
-  
-    try {
-      // Find the vendor containing the specific serviceId
-      const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
+  try {
+    // Find the vendor containing the specific serviceId
+    const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
 
-      if (!vendor) {
-        return res.status(404).json({ message: "Service not found" });
+    if (!vendor) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    // Update vendor-level fields if provided in the request body
+    if (updateData.name) vendor.name = updateData.name;
+    if (updateData.mobile) vendor.mobile = updateData.mobile;
+    if (updateData.email) vendor.email = updateData.email;
+    // Update vendor-level fields if provided in the request body
+    if (updateData.name) vendor.name = updateData.name;
+    if (updateData.mobile) vendor.mobile = updateData.mobile;
+    if (updateData.email) vendor.email = updateData.email;
+
+    // Update the relevant service in the serviceIds array
+    vendor.serviceIds = vendor.serviceIds.map((service) => {
+      if (service.serId === serviceId) {
+        return { ...service, ...updateData }; // Merge with new data
       }
+      return service;
+    });
+    // Update the relevant service in the serviceIds array
+    vendor.serviceIds = vendor.serviceIds.map((service) => {
+      if (service.serId === serviceId) {
+        return { ...service, ...updateData }; // Merge with new data
+      }
+      return service;
+    });
 
-      // Update vendor-level fields if provided in the request body
-      if (updateData.name) vendor.name = updateData.name;
-      if (updateData.mobile) vendor.mobile = updateData.mobile;
-      if (updateData.email) vendor.email = updateData.email;
-      // Update vendor-level fields if provided in the request body
-      if (updateData.name) vendor.name = updateData.name;
-      if (updateData.mobile) vendor.mobile = updateData.mobile;
-      if (updateData.email) vendor.email = updateData.email;
+    // Save the updated document
+    await vendor.save();
 
-      // Update the relevant service in the serviceIds array
-      vendor.serviceIds = vendor.serviceIds.map((service) => {
-        if (service.serId === serviceId) {
-          return { ...service, ...updateData }; // Merge with new data
-        }
-        return service;
-      });
-      // Update the relevant service in the serviceIds array
-      vendor.serviceIds = vendor.serviceIds.map((service) => {
-        if (service.serId === serviceId) {
-          return { ...service, ...updateData }; // Merge with new data
-        }
-        return service;
-      });
-
-      // Save the updated document
-      await vendor.save();
-
-      // Send the response once
-    res.status(200).json({ message: "Service and vendor updated successfully", vendor });
-
+    // Send the response once
+    res
+      .status(200)
+      .json({ message: "Service and vendor updated successfully", vendor });
   } catch (error) {
     console.error("Error updating service:", error);
     res.status(500).json({ message: "Internal Server Error", error });
@@ -191,7 +191,9 @@ const updateServiceDetails = async (req, res) => {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
 
-    const service = vendor.serviceIds.find((service) => service.serId === serId);
+    const service = vendor.serviceIds.find(
+      (service) => service.serId === serId,
+    );
     if (!service) {
       return res.status(404).json({ error: "Service not found" });
     }
@@ -205,7 +207,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Caterer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkCatererProfileCompletion(serId);
         break;
@@ -213,7 +215,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Decorator.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkDecoratorProfileCompletion(serId);
         break;
@@ -221,7 +223,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Photographer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkPhotographerProfileCompletion(serId);
         break;
@@ -229,7 +231,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Venue.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkVenueProfileCompletion(serId);
         break;
@@ -237,14 +239,14 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await PropRental.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         break;
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         break;
       default:
@@ -259,19 +261,22 @@ const updateServiceDetails = async (req, res) => {
     await updatedService.updateOne({ isVerified });
 
     // Step 3: Calculate and update profile completion percentage
-    const profileCompletion = calculateProfileCompletion(updatedService, serType);
+    const profileCompletion = calculateProfileCompletion(
+      updatedService,
+      serType,
+    );
     await updatedService.updateOne({
       "basicDetails.profileCompletion": profileCompletion,
     });
 
-    return res.status(200).json({ message: "Details updated successfully", updatedService });
-
+    return res
+      .status(200)
+      .json({ message: "Details updated successfully", updatedService });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 const serviceFields = {
   caterer: [

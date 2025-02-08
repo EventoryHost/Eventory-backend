@@ -11,7 +11,7 @@ const makeupArtistSchema = Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     artistName: { type: String, required: true },
     eventSize: { type: String, required: true },
-    artistDescription: { type: String  , required: true },
+    artistDescription: { type: String, required: true },
     eventTypes: { type: [String], required: true },
     typesOfMakeupArtists: { type: [String], required: true },
   },
@@ -20,18 +20,18 @@ const makeupArtistSchema = Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     onsiteMakeup: { type: Boolean, required: true },
     customization: { type: Boolean, required: true },
-    serviceTypes:  { type: [String], required: true },
+    serviceTypes: { type: [String], required: true },
   },
-   
+
   additionalDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    photos: { type: [String], required: true },  
+    photos: { type: [String], required: true },
     videos: { type: [String], required: true },
-    socialMedia : { type: [String], },
-    websiteUrl : { type: String, },
-    priceStarts : { type: Number, required: true },     
+    socialMedia: { type: [String] },
+    websiteUrl: { type: String },
+    priceStarts: { type: Number, required: true },
   },
-  
+
   policies: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     termsAndConditions: { type: [String] },
