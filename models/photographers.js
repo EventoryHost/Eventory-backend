@@ -125,7 +125,28 @@ const photographerSchema = Schema({
     },
   ],
 
+  filters: {
+    price: { type: Number },
+  },
+
   // Page-5
+});
+
+// Middleware to compute filters.price
+photographerSchema.pre("save", function (next) {
+  if (this.additionalDetails?.priceStartingFrom) {
+    this.filters.price = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
+  }
+  next();
+});
+
+photographerSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate();
+  if (update.additionalDetails?.priceStartingFrom) {
+    update.filters = update.filters || {};
+    update.filters.price = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
+  }
+  next();
 });
 
 const Photographer = model("Photographer", photographerSchema);

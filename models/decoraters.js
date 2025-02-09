@@ -67,6 +67,31 @@ const decoratorSchema = Schema({
       date: { type: Date, required: true },
     },
   ],
+
+  // Added filter field for startingPrice
+  filters: {
+    startingPrice: { type: Number },
+  },
+});
+
+decoratorSchema.pre("save", function (next) {
+  if (this.additionalDetails?.priceStartingFrom) {
+    this.filters.startingPrice = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
+  }
+  next();
+});
+
+decoratorSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate();
+  this.options.runValidators = true; 
+
+  if (update.additionalDetails?.priceStartingFrom) {
+    update.filters = update.filters || {};
+    update.filters.startingPrice = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
+  }
+
+  this.setUpdate(update);
+  next();
 });
 
 const Decorator = model("Decorator", decoratorSchema);

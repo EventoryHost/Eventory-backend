@@ -56,6 +56,13 @@ const catererSchema = new Schema({
     terms_and_conditions: { type: String },
     client_testimonials: { type: String },
   },
+  filters: {
+    price: { type: Number }, // Computed from priceStartingFrom
+    guestCapacity: {
+      ll: { type: Number }, // Lower limit of guest capacity
+      ul: { type: Number }, // Upper limit of guest capacity
+    },
+  },
   id: { type: String, default: generateUniqueId("cat"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "caterer" },
@@ -69,6 +76,44 @@ const catererSchema = new Schema({
       date: { type: String, required: true },
     },
   ],
+});
+
+// Middleware to compute `filters` before saving
+catererSchema.pre("save", function (next) {
+  if (this.basicDetails.capacity) {
+    const match = this.basicDetails.capacity.match(/^(\d+)-(\d+)\s*persons$/);
+    if (match) {
+      this.filters.guestCapacity = {
+        ll: parseInt(match[1], 10),
+        ul: parseInt(match[2], 10),
+      };
+    }
+  }
+  if (this.additionalDetails.priceStartingFrom) {
+    this.filters.price = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
+  }
+  next();
+});
+
+// Middleware to compute `filters` before updating
+catererSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate();
+  if (update.basicDetails?.capacity) {
+    const match = update.basicDetails.capacity.match(/^(\d+)-(\d+)\s*persons$/);
+    if (match) {
+      update.filters = update.filters || {};
+      update.filters.guestCapacity = {
+        ll: parseInt(match[1], 10),
+        ul: parseInt(match[2], 10),
+      };
+    }
+  }
+  if (update.additionalDetails?.priceStartingFrom) {
+    update.filters = update.filters || {};
+    update.filters.price = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
+  }
+  this.setUpdate(update);
+  next();
 });
 
 const Caterer = model("Caterer", catererSchema);
