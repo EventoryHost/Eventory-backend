@@ -78,23 +78,28 @@ const venueSchema = new Schema({
     guestCapacity: {
       ll: { type: Number, default: 1 }, //lower limit
       ul: { type: Number, default: 100000 }, //upper limit
-    }
-  }
+    },
+  },
 });
 
 venueSchema.pre("save", function (next) {
   if (this.additionalDetails?.priceStartingFrom) {
-    this.filters.startingPrice = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
+    this.filters.startingPrice =
+      parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
   }
 
   //before saving the document compute the ll and ul and add it to the filter field
   if (this.basicDetails?.capacity) {
-    const capacityRange = this.basicDetails.capacity.match(/^(\d+)-(\d+)\s*persons$/);
+    const capacityRange = this.basicDetails.capacity.match(
+      /^(\d+)-(\d+)\s*persons$/,
+    );
     if (capacityRange) {
       this.filters.guestCapacity.ll = parseInt(capacityRange[1], 10);
       this.filters.guestCapacity.ul = parseInt(capacityRange[2], 10);
     } else {
-      return next(new Error("Invalid capacity format. Expected format: 'min-max'"));
+      return next(
+        new Error("Invalid capacity format. Expected format: 'min-max'"),
+      );
     }
   }
   next();
@@ -107,11 +112,14 @@ venueSchema.pre("findOneAndUpdate", function (next) {
   //after updating the doccument compute the price and add it to the filter field
   if (update.additionalDetails?.priceStartingFrom) {
     update.filters = update.filters || {};
-    update.filters.startingPrice = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
+    update.filters.startingPrice =
+      parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
   }
 
   if (update.basicDetails?.capacity) {
-    const capacityRange = update.basicDetails.capacity.match(/^(\d+)-(\d+)\s*persons$/);
+    const capacityRange = update.basicDetails.capacity.match(
+      /^(\d+)-(\d+)\s*persons$/,
+    );
     if (capacityRange) {
       update.filters = update.filters || {};
       update.filters.guestCapacity = {
@@ -119,7 +127,9 @@ venueSchema.pre("findOneAndUpdate", function (next) {
         ul: parseInt(capacityRange[2], 10),
       };
     } else {
-      return next(new Error("Invalid capacity format. Expected format: 'min-max'"));
+      return next(
+        new Error("Invalid capacity format. Expected format: 'min-max'"),
+      );
     }
   }
 

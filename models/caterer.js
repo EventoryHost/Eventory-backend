@@ -90,7 +90,8 @@ catererSchema.pre("save", function (next) {
     }
   }
   if (this.additionalDetails.priceStartingFrom) {
-    this.filters.price = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
+    this.filters.price =
+      parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
   }
   next();
 });
@@ -110,7 +111,8 @@ catererSchema.pre("findOneAndUpdate", function (next) {
   }
   if (update.additionalDetails?.priceStartingFrom) {
     update.filters = update.filters || {};
-    update.filters.price = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
+    update.filters.price =
+      parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
   }
   this.setUpdate(update);
   next();
