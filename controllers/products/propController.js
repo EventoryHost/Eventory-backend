@@ -72,20 +72,15 @@ const calculateProfileCompletion = (basicDetails) => {
 
 const createProp = async (req, res) => {
   try {
-    const furnitureAndDecorListUrl =
-      req.body.furnitureAndDecorList || [];
+    const furnitureAndDecorListUrl = req.body.furnitureAndDecorList || [];
 
-    const tentAndCanopyListUrl =
-      req.body.tentAndCanopyList || [];
+    const tentAndCanopyListUrl = req.body.tentAndCanopyList || [];
 
-    const audioVisualListUrl =
-      req.body.audioVisualList || [];
+    const audioVisualListUrl = req.body.audioVisualList || [];
 
-    const termsAndConditionsUrl =
-      req.body.termsAndConditions || [];
+    const termsAndConditionsUrl = req.body.termsAndConditions || [];
 
-    const cancellationPolicyUrl =
-      req.body.cancellationPolicy || [];
+    const cancellationPolicyUrl = req.body.cancellationPolicy || [];
 
     const itemCatalogueFile = req.files?.itemCatalogue?.[0];
     const itemCatalogueUrl = itemCatalogueFile
