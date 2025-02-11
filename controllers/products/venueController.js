@@ -224,10 +224,8 @@ const createVenue = async (req, res) => {
       return res.status(400).json({ message: "Venue already exists" });
     }
 
-    const termsAndConditionsFileUrl =
-      req.body.termsConditions || [];
-    const cancellationPolicyFileUrl =
-      req.body.cancellationPolicy || [];
+    const termsAndConditionsFileUrl = req.body.termsConditions || [];
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
 
     const photos = req.body.photos || [];
 
