@@ -7,6 +7,7 @@ import Photographer from "../models/photographers.js";
 import PropRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
+import DjArtist from "../models/djArtist.js";
 
 import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
@@ -135,6 +136,11 @@ router.post("/updateService/:serviceId", async (req, res) => {
             id: service.serId,
             venId: vendor.id,
           });
+        case "djArtist":
+          serviceDoc = await DjArtist.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
           break;
         default:
           return res.status(400).json({ message: "Invalid service type" });
@@ -246,6 +252,12 @@ const updateServiceDetails = async (req, res) => {
           { $set: updateData },
           { new: true }
         );
+      case "djArtist":
+          updatedService = await DjArtist.findOneAndUpdate(
+            { id: serId },
+            { $set: updateData },
+            { new: true }
+          );
         break;
       default:
         return res.status(400).json({ error: "Unsupported service type" });

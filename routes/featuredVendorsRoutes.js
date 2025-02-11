@@ -5,6 +5,7 @@ import { Venue } from "../models/venue.js";
 import PropRental from "../models/props.js";
 import Photographer from "../models/photographers.js";
 import MakeupArtist from "../models/makeupArtists.js";
+import DjArtist from "../models/djArtist.js";
 
 const router = Router();
 
@@ -72,6 +73,16 @@ async function getMakeupArtist(req, res) {
     const makeupArtist = await MakeupArtist.findOne({});
     console.log(makeupArtist);
     res.status(200).json(makeupArtist);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+}
+
+async function getDjArtist(req, res) {
+  try {
+    const djArtist = await DjArtist.findOne({});
+    console.log(djArtist);
+    res.status(200).json(djArtist);
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

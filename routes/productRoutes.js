@@ -7,6 +7,7 @@ import eventPlannerController from "../controllers/products/eventPlannerControll
 import transportController from "../controllers/products/transportController.js";
 import invitationController from "../controllers/products/invitationController.js";
 import makeupController from "../controllers/products/makeupController.js";
+import djController from "../controllers/products/djController.js";
 import giftController from "../controllers/products/giftController.js";
 import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers/products/photographerController.js";
@@ -21,6 +22,7 @@ router.get("/event-planner", eventPlannerController.getAllEventPlanner);
 router.get("/gift", giftController.getAllGift);
 router.get("/invitation", invitationController.getAllInvitation);
 router.get("/makeup", makeupController.getAllMakeupArtist);
+router.get("/dj", djController.getAllDjArtist);
 router.get("/pav", photographerController.getAllPav);
 router.get("/prop-rental", propController.getAllProp);
 router.get("/venue", venueController.getAllVenues);
@@ -115,6 +117,17 @@ router.post(
   "/add-makeup-artist",
   upload("Makeup Artists").fields([{ name: "portfolio", maxCount: 20 }]),
   makeupController.createMakeupArtist,
+);
+
+router.post(
+  "/add-dj-artist",
+  upload("Dj Artists").fields([
+    { name: "termsAndConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+  ]),
+  djController.createDjArtist,
 );
 
 router.post(
