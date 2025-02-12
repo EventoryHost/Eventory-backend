@@ -12,10 +12,11 @@ import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decora
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
 import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
 import { checkVenueProfileCompletion } from "../utils/completionUtils/venueCompletionUtils.js";
+import { checkMakeupArtistProfileCompletion } from "../utils/completionUtils/makeupCompletionUtils.js";
 
 const router = express.Router();
 
-// Update API for basic vendor details such as name, mobile, email
+// Update API for basic vendor details such as name, mobile, email ((Full name and number))
 router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
@@ -28,10 +29,6 @@ router.put("/update-service/:serviceId", async (req, res) => {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    // Update vendor-level fields if provided in the request body
-    if (updateData.name) vendor.name = updateData.name;
-    if (updateData.mobile) vendor.mobile = updateData.mobile;
-    if (updateData.email) vendor.email = updateData.email;
     // Update vendor-level fields if provided in the request body
     if (updateData.name) vendor.name = updateData.name;
     if (updateData.mobile) vendor.mobile = updateData.mobile;
@@ -65,7 +62,7 @@ router.put("/update-service/:serviceId", async (req, res) => {
   }
 });
 
-// API endpoint to update service details
+// API endpoint to update service details (company name and description)
 router.post("/updateService/:serviceId", async (req, res) => {
   const { serviceId } = req.params; // Get serviceId from the URL parameter
   const { newDescription, newCompanyName } = req.body; // Get other data from the request body
@@ -145,21 +142,11 @@ router.post("/updateService/:serviceId", async (req, res) => {
           .status(404)
           .json({ message: `${service.serType} service not found` });
       }
-      if (!serviceDoc) {
-        return res
-          .status(404)
-          .json({ message: `${service.serType} service not found` });
-      }
 
       // Update the service document (e.g., description and company name)
       serviceDoc.basicDetails.description = newDescription;
       serviceDoc.basicDetails.name = newCompanyName;
-      // Update the service document (e.g., description and company name)
-      serviceDoc.basicDetails.description = newDescription;
-      serviceDoc.basicDetails.name = newCompanyName;
 
-      // Save the updated document
-      await serviceDoc.save();
       // Save the updated document
       await serviceDoc.save();
 
@@ -170,9 +157,6 @@ router.post("/updateService/:serviceId", async (req, res) => {
       console.error("Error updating service:", error);
       return res.status(500).json({ message: "Server error" });
     }
-    return res
-      .status(200)
-      .json({ message: "Service updated successfully", data: serviceDoc });
   } catch (error) {
     console.error("Error updating service:", error);
     return res.status(500).json({ message: "Server error" });
@@ -248,6 +232,7 @@ const updateServiceDetails = async (req, res) => {
           { $set: updateData },
           { new: true },
         );
+        await checkMakeupArtistProfileCompletion(serId);
         break;
       default:
         return res.status(400).json({ error: "Unsupported service type" });
@@ -333,6 +318,28 @@ const serviceFields = {
     "additionalDetails.proposalRevisions",
     "policies.cancellationPolicy",
     "policies.termsAndConditions",
+  ],
+  makeupArtist: [
+    "basicDetails.artistName",
+    "basicDetails.eventSize",
+    "basicDetails.artistDescription",
+    "basicDetails.eventTypes",
+    "basicDetails.typesOfMakeupArtists",
+
+    "serviceDetails.onsiteMakeup",
+    "serviceDetails.customization",
+    "serviceDetails.serviceTypes",
+
+    "additionalDetails.photos",
+    "additionalDetails.videos",
+    "additionalDetails.socialMedia",
+    "additionalDetails.websiteUrl",
+    "additionalDetails.priceStarts",
+
+    "policies.termsAndConditions",
+    "policies.cancellationPolicy",
+    "policies.certificateOrAwards",
+    "policies.clientTestimonials",
   ],
   pav: [
     "basicDetails.name",
