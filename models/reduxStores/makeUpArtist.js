@@ -4,7 +4,7 @@ const Schema = _Schema;
 import generateUniqueId from "../../utils/generateId.js";
 
 const makeupArtistSchema = Schema({
-  pageNumber : { type: Number, default: 1 },
+  pageNumber: { type: Number, default: 1 },
   type: { type: String, default: "makeupArtist" },
   isVerified: { type: Boolean, default: false },
   profileCompletion: { type: Number, default: 0 },

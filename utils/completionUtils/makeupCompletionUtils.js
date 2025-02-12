@@ -19,7 +19,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { id: artistId },
-      { "basicDetails.completed": basicDetailsComplete }
+      { "basicDetails.completed": basicDetailsComplete },
     );
 
     // Check if service details are complete
@@ -31,7 +31,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     console.log(`Service details check: ----- ${serviceDetailsComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { id: artistId },
-      { "serviceDetails.completed": serviceDetailsComplete }
+      { "serviceDetails.completed": serviceDetailsComplete },
     );
 
     // Check if additional details are complete
@@ -45,7 +45,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     console.log(`Additional details check: ----- ${additionalDetailsComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { id: artistId },
-      { "additionalDetails.completed": additionalDetailsComplete }
+      { "additionalDetails.completed": additionalDetailsComplete },
     );
 
     // Check if policies are complete
@@ -58,7 +58,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     console.log(`Policies check: ----- ${policiesComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { id: artistId },
-      { "policies.completed": policiesComplete }
+      { "policies.completed": policiesComplete },
     );
 
     return true;
