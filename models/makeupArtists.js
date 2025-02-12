@@ -11,7 +11,7 @@ const makeupArtistSchema = Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     name: { type: String, required: true },
     eventSize: { type: String, required: true },
-    description: { type: String  , required: true },
+    description: { type: String, required: true },
     eventTypes: { type: [String], required: true },
     typesOfMakeupArtists: { type: [String], required: true },
   },

@@ -51,8 +51,8 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     // Check if policies are complete
     const policiesComplete =
       artist.policies.termsAndConditions.length > 0 &&
-      artist.policies.cancellationPolicy.length > 0 && 
-      artist.policies.clientTestimonials.length > 0 && 
+      artist.policies.cancellationPolicy.length > 0 &&
+      artist.policies.clientTestimonials.length > 0 &&
       artist.policies.certificateOrAwards > 0;
 
     console.log(`Policies check: ----- ${policiesComplete}`);
