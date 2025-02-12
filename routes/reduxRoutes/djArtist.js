@@ -34,10 +34,19 @@ router.post("/", async (req, res) => {
               });
         } else {
             console.log("Creating new DJ artist details for id:", id);
-            const newDetails = await DjArtistModel.create({ id, ...data });
-            return res.json(newDetails);
+            const newDjArtistDetails = new DjArtistModel({
+                id,
+                ...data,
+              });
+              await newDjArtistDetails.save();
+              console.log("New details saved:", newDjArtistDetails);
+              return res.status(201).json({
+                message: "Dj artist details saved successfully.",
+                data: newDjArtistDetails,
+              });
+            }
         }
-    } catch (error) {
+    catch (error) {
         console.error("Error saving/updating DJ artist details:", error);
         res.status(500).json({
             message: "Failed to save or update DJ artist details.",
@@ -58,7 +67,7 @@ router.get('/:id', async (req, res) => {
             console.log("No dj artist details found for id:", id);
             return res.status(404).json({ message: "DJ artist details not found." });
         }
-        console.log("Found dj artist details:", makeupArtistDetails);
+        console.log("Found dj artist details:", djArtistDetails);
         res.status(200).json(djArtistDetails);
         
     } catch (error) {
