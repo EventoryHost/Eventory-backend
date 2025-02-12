@@ -10,9 +10,9 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
 
     // Check if basic details are complete
     const basicDetailsComplete =
-      artist.basicDetails.artistName &&
+      artist.basicDetails.name &&
       artist.basicDetails.eventSize &&
-      artist.basicDetails.artistDescription &&
+      artist.basicDetails.description &&
       artist.basicDetails.eventTypes.length > 0 &&
       artist.basicDetails.typesOfMakeupArtists.length > 0;
 
@@ -38,6 +38,8 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     const additionalDetailsComplete =
       artist.additionalDetails.photos.length > 0 &&
       artist.additionalDetails.videos.length > 0 &&
+      artist.additionalDetails.websiteUrl != null &&
+      artist.additionalDetails.socialMedia != null &&
       artist.additionalDetails.priceStarts != null;
 
     console.log(`Additional details check: ----- ${additionalDetailsComplete}`);
@@ -49,7 +51,9 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     // Check if policies are complete
     const policiesComplete =
       artist.policies.termsAndConditions.length > 0 &&
-      artist.policies.cancellationPolicy.length > 0;
+      artist.policies.cancellationPolicy.length > 0 && 
+      artist.policies.clientTestimonials.length > 0 && 
+      artist.policies.certificateOrAwards > 0;
 
     console.log(`Policies check: ----- ${policiesComplete}`);
     await MakeupArtist.findOneAndUpdate(
