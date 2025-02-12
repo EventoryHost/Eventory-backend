@@ -28,6 +28,29 @@ const getFileUrls = (files, fieldName) => {
     });
   };
 
+  const updateSectionCompletion = async (id) => {
+    try {
+      const djArtist = await djArtist.findOne({ id });
+      if (!djArtist) throw new Error("Makeup artist not found");
+  
+      djArtist.basicDetails.completed = checkCompletion(
+        djArtist.basicDetails,
+      );
+      djArtist.serviceDetails.completed = checkCompletion(
+        djArtist.serviceDetails,
+      );
+      djArtist.additionalDetails.completed = checkCompletion(
+        djArtist.additionalDetails,
+      );
+      djArtist.policies.completed = checkCompletion(djArtist.policies);
+  
+      await djArtist.save();
+    } catch (error) {
+      console.error("Error in update section completion:", error);
+      throw error;
+    }
+  };
+
 const createDjArtist = async (req, res) => {
     try {
         console.log("Received Data:", req.body); // ��️ Log full request body
@@ -38,6 +61,32 @@ const createDjArtist = async (req, res) => {
         if (alreadyExists) {
             return res.status(400).json({ message: "DJ Artist already exists" });
         }
+
+        const photos = getFileUrls(req.files, "photos");
+        const videos = getFileUrls(req.files, "videos");
+
+        const fieldsToCheck = [
+          req.body.name,
+          req.body.contact,
+          req.body.description,
+          req.body.eventTypes?.length > 0,
+          req.body.musicGenres?.length > 0,
+          req.body.regionalSpecializations?.length > 0,
+          req.body.servicesOffered?.length > 0,
+          photos.length > 0,
+          videos.length > 0,
+          req.body.awards,
+          req.body.instagramUrl,
+          req.body.websiteUrl,
+          req.body.testimonials?.length > 0,
+          req.body.priceStarts,
+          req.body.termsAndConditions?.length > 0,
+          req.body.cancellationPolicy?.length > 0,];
+
+          const completedFields = fieldsToCheck.filter(Boolean).length;
+          const profileCompletion =
+          Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
         const newDjArtist = new DjArtist({
             basicDetails: {
                 name: req.body.name,
@@ -81,6 +130,9 @@ const createDjArtist = async (req, res) => {
       });
 
         await vendor.save();
+
+         // ✅ Update section completion
+    await updateSectionCompletion(savedMakeupArtist.id);
 
         res.status(201).json(savedDjArtist);
 
