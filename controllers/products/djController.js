@@ -132,7 +132,7 @@ const createDjArtist = async (req, res) => {
         await vendor.save();
 
          // ✅ Update section completion
-    await updateSectionCompletion(savedMakeupArtist.id);
+    await updateSectionCompletion(savedDjArtist.id);
 
         res.status(201).json(savedDjArtist);
 

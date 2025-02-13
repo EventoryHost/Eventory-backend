@@ -1,4 +1,4 @@
-import DjArtist from "../../models/djArtist";
+import DjArtist from "../../models/djArtist.js";
 
 export const checkDjArtistProfileCompletion = async (artistId) => { 
     
@@ -11,9 +11,9 @@ export const checkDjArtistProfileCompletion = async (artistId) => {
         
         // Check if basic details are complete
         const basicDetailsComplete =
-            artist.basicDetails.name &&
-            artist.basicDetails.contact &&
-            artist.basicDetails.description ;
+            artist.basicDetails.name != null &&
+            artist.basicDetails.contact != null  &&
+            artist.basicDetails.description != null;
 
         console.log(`Basic details check: ------- ${basicDetailsComplete}`);
         await DjArtist.findOneAndUpdate(

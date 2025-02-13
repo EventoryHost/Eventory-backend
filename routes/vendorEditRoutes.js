@@ -14,7 +14,7 @@ import { checkCatererProfileCompletion } from "../utils/completionUtils/catererC
 import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
 import { checkVenueProfileCompletion } from "../utils/completionUtils/venueCompletionUtils.js";
 import { checkMakeupArtistProfileCompletion } from "../utils/completionUtils/makeupCompletionUtils.js";
-// import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompletionUtils.js";
+import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompletionUtils.js";
 
 const router = express.Router();
 
@@ -85,7 +85,7 @@ router.post("/updateService/:serviceId", async (req, res) => {
 
       // Find the service details based on the serviceId
       const service = vendor.serviceIds.find(
-        (service) => service.serId === serviceId,
+        (service) => service.serId === serviceId
       );
 
       if (!service) {
@@ -135,12 +135,12 @@ router.post("/updateService/:serviceId", async (req, res) => {
             venId: vendor.id,
           });
           break;
-          case "djArtist":
-            serviceDoc = await DjArtist.findOne({
-              id: service.serId,
-              venId: vendor.id,
-            });
-            break;
+        case "djArtist":
+          serviceDoc = await DjArtist.findOne({
+            id: service.serId,
+            venId: vendor.id,
+          });
+          break;
         default:
           return res.status(400).json({ message: "Invalid service type" });
       }
@@ -184,7 +184,7 @@ const updateServiceDetails = async (req, res) => {
     }
 
     const service = vendor.serviceIds.find(
-      (service) => service.serId === serId,
+      (service) => service.serId === serId
     );
     if (!service) {
       return res.status(404).json({ error: "Service not found" });
@@ -199,7 +199,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Caterer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true },
+          { new: true }
         );
         await checkCatererProfileCompletion(serId);
         break;
@@ -207,7 +207,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Decorator.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true },
+          { new: true }
         );
         await checkDecoratorProfileCompletion(serId);
         break;
@@ -215,7 +215,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Photographer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true },
+          { new: true }
         );
         await checkPhotographerProfileCompletion(serId);
         break;
@@ -223,7 +223,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Venue.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true },
+          { new: true }
         );
         await checkVenueProfileCompletion(serId);
         break;
@@ -231,25 +231,25 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await PropRental.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true },
+          { new: true }
         );
         break;
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true },
+          { new: true }
         );
         await checkMakeupArtistProfileCompletion(serId);
         break;
-
-        case "djArtist":
-          updatedService = await DjArtist.findOneAndUpdate(
-            { id: serId },
-            { $set: updateData },
-            { new: true }
-          );
-          break;
+      case "djArtist":
+        updatedService = await DjArtist.findOneAndUpdate(
+          { id: serId },
+          { $set: updateData },
+          { new: true }
+        );
+        await checkDjArtistProfileCompletion(serId);
+        break;
       default:
         return res.status(400).json({ error: "Unsupported service type" });
     }
@@ -264,7 +264,7 @@ const updateServiceDetails = async (req, res) => {
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
       updatedService,
-      serType,
+      serType
     );
     await updatedService.updateOne({
       "basicDetails.profileCompletion": profileCompletion,
@@ -334,6 +334,24 @@ const serviceFields = {
     "additionalDetails.proposalRevisions",
     "policies.cancellationPolicy",
     "policies.termsAndConditions",
+  ],
+  djArtist: [
+    "basicDetails.name",
+    "basicDetails.contact",
+    "basicDetails.description",
+    "serviceDetails.eventTypes",
+    "serviceDetails.musicGenres",
+    "serviceDetails.regionalSpecializations",
+    "serviceDetails.servicesOffered",
+    "additionalDetails.photos",
+    "additionalDetails.videos",
+    "additionalDetails.awards",
+    "additionalDetails.instagramUrl",
+    "additionalDetails.websiteUrl",
+    "additionalDetails.testimonials",
+    "additionalDetails.priceStarts",
+    "policies.termsAndConditions",
+    "policies.cancellationPolicy",
   ],
   makeupArtist: [
     "basicDetails.artistName",
@@ -423,7 +441,6 @@ const serviceFields = {
     "policies.cancellationPolicy",
     "policies.insurancePolicy",
   ],
-
 };
 
 // Define the route to update service details
@@ -705,6 +722,33 @@ const checkVerification = (service, serType) => {
 
         // Policies
         { path: "policies.termsConditions", label: "Terms & Conditions" },
+        { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+
+        // Media
+        { path: "additionalDetails.photos", label: "Photos" },
+        { path: "additionalDetails.videos", label: "Videos" },
+      ];
+    case "makeup-artist":
+      fieldsToCheck = [
+        // Basic Details
+        { path: "basicDetails.name", label: "Service Name" },
+        // { path: "basicDetails.address", label: "Location (City)" }, (Location not in schema)
+        { path: "basicDetails.eventSize", label: "Guest Capacity" },
+        { path: "additionalDetails.priceStarts", label: "Price Starting From" },
+        { path: "basicDetails.description", label: "Description" },
+
+        // Feature Details
+        { path: "basicDetails.eventTypes", label: "Types of Events" },
+        {
+          path: "basicDetails.typesOfMakeupArtists",
+          label: "Types of Makeup Artist",
+        },
+        { path: "serviceDetails.serviceTypes", label: "Types of Services" },
+        { path: "serviceDetails.onsiteMakeup", label: "On-site Service" },
+        { path: "serviceDetails.customization", label: "Customization" },
+
+        // Policies
+        { path: "policies.termsAndConditions", label: "Terms & Conditions" },
         { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
 
         // Media
