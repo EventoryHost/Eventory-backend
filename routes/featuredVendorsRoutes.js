@@ -8,70 +8,137 @@ import MakeupArtist from "../models/makeupArtists.js";
 
 const router = Router();
 
-function getFeaturedVendors(req, res) {
-  const featuredVendors = {
-    name: "Krishna Vendors",
-    rating: "4.5",
-    price: "4000",
-    category: ["Wedding cakes", "Western suburbs"],
-    img: "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
-  };
+async function getFeaturedVendors(req, res) {
+  var featuredVendors = [];
+
+  // caterer
+  const caterer = await getCaterer();
+  featuredVendors.push({
+    name: caterer.basicDetails.name || "Krishna Vendors",
+    rating: caterer.reviews[0]?.rating || "4.5",
+    price: caterer.additionalDetails.priceStartingFrom || "4000",
+    category: ["Caterer"],
+    img:
+      caterer.additionalDetails.photos[0] ||
+      "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+  });
+
+  // decorator
+  const decorator = await getDecorator();
+  featuredVendors.push({
+    name: decorator.basicDetails.name || "Krishna Vendors",
+    rating: decorator.reviews[0]?.rating || "4.5",
+    price: decorator.additionalDetails.priceStartingFrom || "4000",
+    category: ["Decorator"],
+    img:
+      decorator.additionalDetails.photos[0] ||
+      "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+  });
+
+  // venue
+  const venue = await getVenue();
+  featuredVendors.push({
+    name: venue.basicDetails.name || "Krishna Vendors",
+    rating: venue.policies.reviews[0]?.rating || "4.5",
+    price: venue.additionalDetails.priceStartingFrom || "4000",
+    category: ["Venue"],
+    img:
+      venue.additionalDetails.photos[0] ||
+      "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+  });
+
+  // prop rentals
+  const prop_rental = await getPropRental();
+  featuredVendors.push({
+    name: prop_rental.basicDetails.managerName || "Krishna Vendors",
+    rating: prop_rental.reviews[0]?.rating || "4.5",
+    price: prop_rental.additionalDetails.priceStartingFrom || "4000",
+    category: ["Property Rental"],
+    img:
+      prop_rental.additionalDetails.photos[0] ||
+      "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+  });
+
+  // prop rentals
+  const pav = await getPav();
+  featuredVendors.push({
+    name: pav.basicDetails.managerName || "Krishna Vendors",
+    rating: pav.reviews[0]?.rating || "4.5",
+    price: pav.additionalDetails.priceStartingFrom || "4000",
+    category: ["Photography", "Videography"],
+    img:
+      pav.additionalDetails.photos[0] ||
+      "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+  });
+
+  // temporary duplicating prop rentals
+  // TODO: map to makeupArtist as below
+  featuredVendors.push(featuredVendors[featuredVendors.length - 1]);
+
+  // // makeup artist
+  // const makeupArtist = await getMakeupArtist();
+  // featuredVendors.push({
+  //   name: makeupArtist.basicDetails.managerName || "Krishna Vendors",
+  //   rating: makeupArtist.reviews[0]?.rating || "4.5",
+  //   price: makeupArtist.additionalDetails.priceStartingFrom || "4000",
+  //   category: ["Wedding cakes", "Western suburbs"],
+  //   img:
+  //     makeupArtist.additionalDetails.photos[0] ||
+  //     "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+  // });
+
   res.status(200).json(featuredVendors);
 }
 
-async function getCaterer(req, res) {
+async function getCaterer() {
   try {
     const caterer = await Caterer.findOne({});
-    res.status(200).json(caterer);
+    return caterer;
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 }
 
-async function getDecorator(req, res) {
+async function getDecorator() {
   try {
     const decorator = await Decorator.findOne({});
-    res.status(200).json(decorator);
+    return decorator;
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 }
 
-async function getVenue(req, res) {
+async function getVenue() {
   try {
     const venue = await Venue.findOne({});
-    console.log(venue);
-    res.status(200).json(venue);
+    return venue;
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 }
 
-async function getPropRental(req, res) {
+async function getPropRental() {
   try {
     const propRental = await PropRental.findOne({});
-    console.log(propRental);
-    res.status(200).json(propRental);
+    return propRental;
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 }
 
-async function getPav(req, res) {
+async function getPav() {
   try {
     const pav = await Photographer.findOne({});
-    console.log(pav);
-    res.status(200).json(pav);
+    return pav;
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
 }
 
-async function getMakeupArtist(req, res) {
+async function getMakeupArtist() {
   try {
     const makeupArtist = await MakeupArtist.findOne({});
-    console.log(makeupArtist);
-    res.status(200).json(makeupArtist);
+    return makeupArtist;
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
@@ -80,3 +147,12 @@ async function getMakeupArtist(req, res) {
 router.get("/featured-vendors", getFeaturedVendors);
 
 export default router;
+
+// Schema of featuredVendors
+// const featuredVendors = {
+//   name: "Krishna Vendors",
+//   rating: "4.5",
+//   price: "4000",
+//   category: ["Wedding cakes", "Western suburbs"],
+//   img: "https://eventory-web-prod.s3.ap-south-1.amazonaws.com/assets/landing_page/featured_images/card_01.png",
+// };
