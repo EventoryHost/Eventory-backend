@@ -16,8 +16,15 @@ import MakeupArtist from "../models/makeupArtists.js";
 async function getFeaturedVendors(req, res) {
   var featuredVendors = [];
 
+  const [caterer, decorator, venue, prop_rental, pav] = await Promise.all([
+    getCaterer(),
+    getDecorator(),
+    getVenue(),
+    getPropRental(),
+    getPav(),
+  ]);
+
   // caterer
-  const caterer = await getCaterer();
   featuredVendors.push({
     name: caterer.basicDetails.name || "Krishna Vendors",
     rating: caterer.reviews[0]?.rating || "4.5",
@@ -29,7 +36,6 @@ async function getFeaturedVendors(req, res) {
   });
 
   // decorator
-  const decorator = await getDecorator();
   featuredVendors.push({
     name: decorator.basicDetails.name || "Krishna Vendors",
     rating: decorator.reviews[0]?.rating || "4.5",
@@ -41,7 +47,6 @@ async function getFeaturedVendors(req, res) {
   });
 
   // venue
-  const venue = await getVenue();
   featuredVendors.push({
     name: venue.basicDetails.name || "Krishna Vendors",
     rating: venue.policies.reviews[0]?.rating || "4.5",
@@ -53,7 +58,6 @@ async function getFeaturedVendors(req, res) {
   });
 
   // prop rentals
-  const prop_rental = await getPropRental();
   featuredVendors.push({
     name: prop_rental.basicDetails.managerName || "Krishna Vendors",
     rating: prop_rental.reviews[0]?.rating || "4.5",
@@ -65,7 +69,6 @@ async function getFeaturedVendors(req, res) {
   });
 
   // prop rentals
-  const pav = await getPav();
   featuredVendors.push({
     name: pav.basicDetails.managerName || "Krishna Vendors",
     rating: pav.reviews[0]?.rating || "4.5",
