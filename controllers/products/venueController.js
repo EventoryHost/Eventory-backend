@@ -200,10 +200,10 @@ const updateSectionCompletion = async (venId) => {
 
     venue.basicDetails.completed = checkCompletion(venue.basicDetails || {});
     venue.featureDetails.completed = checkCompletion(
-      venue.featureDetails || {},
+      venue.featureDetails || {}
     );
     venue.additionalDetails.completed = checkCompletion(
-      venue.additionalDetails || {},
+      venue.additionalDetails || {}
     );
     venue.policies.completed = checkCompletion(venue.policies || {});
 
@@ -309,11 +309,11 @@ const createVenue = async (req, res) => {
 
     console.log(
       "profileCompletion came out to be in venue ------",
-      profileCompletion,
+      profileCompletion
     );
     console.log(
       "completedFields came out to be in venue ------",
-      completedFields,
+      completedFields
     );
 
     newVenue.basicDetails.profileCompletion = profileCompletion;
@@ -350,7 +350,7 @@ export const getAllVenues = async (req, res) => {
 
     const skip = (page - 1) * itemsPerPage;
 
-    const venues = await Venue.find().skip(skip).limit(itemsPerPage);
+    const venues = page == -1 ?   await Venue.find(): Venue.find().skip(skip).limit(itemsPerPage);
 
     const totalvenues = await Venue.countDocuments();
 

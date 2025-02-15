@@ -17,7 +17,10 @@ export const addCustomer = async (req, res) => {
 export const getCustomer = async (req, res) => {
   try {
     const { phone } = req.body;
-    const customer = await Customer.findOne({ phone: phone });
+    if (phone && !phone.startsWith("+91")) {
+      phone = "+91" + phone;
+    }
+    const customer = await Customer.findOne({ mobile: phone });
     res.status(200).json(customer);
   } catch (error) {
     res.status(400).json({ message: error.message });

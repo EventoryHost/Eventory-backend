@@ -53,7 +53,11 @@ export const getVendorLimit = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 9;
 
-  if (page <= 0 || limit <= 0) {
+  if(page == 0){
+    
+  }
+
+  if (page < 0 || limit <= 0) {
     return res
       .status(400)
       .json({ error: "Page and limit must be greater than 0" });
@@ -129,10 +133,10 @@ export const addReviews = async (req, res) => {
       if (!venue) {
         return res.status(404).json({ message: "Venue not found" });
       }
-      if (!venue.reviews) {
-        venue.reviews = [];
+      if (!venue.policies.reviews) {
+        venue.policies.reviews = [];
       }
-      venue.reviews.push({
+      venue.policies.reviews.push({
         rating,
         name,
         feedback,
@@ -163,10 +167,10 @@ export const addReviews = async (req, res) => {
       if (!decorator) {
         return res.status(404).json({ message: "Decorator not found" });
       }
-      if (!decorator.reviews) {
-        decorator.reviews = [];
+      if (!decorator.policies.reviews) {
+        decorator.policies.reviews = [];
       }
-      decorator.reviews.push({
+      decorator.policies.reviews.push({
         rating,
         name,
         feedback,
@@ -180,10 +184,10 @@ export const addReviews = async (req, res) => {
       if (!photographer) {
         return res.status(404).json({ message: "Photographer not found" });
       }
-      if (!photographer.reviews) {
-        photographer.reviews = [];
+      if (!photographer.policies.reviews) {
+        photographer.policies.reviews = [];
       }
-      photographer.reviews.push({
+      photographer.policies.reviews.push({
         rating,
         name,
         feedback,
@@ -197,10 +201,10 @@ export const addReviews = async (req, res) => {
       if (!prop) {
         return res.status(404).json({ message: "Prop Rental not found" });
       }
-      if (!prop.reviews) {
-        prop.reviews = [];
+      if (!prop.policies.reviews) {
+        prop.policies.reviews = [];
       }
-      prop.reviews.push({
+      prop.policies.reviews.push({
         rating,
         name,
         feedback,

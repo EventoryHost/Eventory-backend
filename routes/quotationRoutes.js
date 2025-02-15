@@ -15,9 +15,7 @@ router.post("/", async (req, res) => {
 
       // Data
       user_name: req.body.user_name,
-      email: req.body.email,
       mobile: req.body.mobile,
-      event: req.body.event,
       location: req.body.location,
       start_date: req.body.start_date,
       end_date: req.body.end_date,
