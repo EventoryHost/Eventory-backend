@@ -320,9 +320,9 @@ const serviceFields = {
     "policies.termsAndConditions",
   ],
   makeupArtist: [
-    "basicDetails.artistName",
+    "basicDetails.name",
     "basicDetails.eventSize",
-    "basicDetails.artistDescription",
+    "basicDetails.description",
     "basicDetails.eventTypes",
     "basicDetails.typesOfMakeupArtists",
 
@@ -430,7 +430,7 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
       if (currentValue[key] !== undefined && currentValue[key] !== null) {
         currentValue = currentValue[key];
       } else {
-        // console.log(`Field ${field} XXXXXXX`);
+        console.log(`Field ${field} XXXXXXX`);
         return; // Field is not filled, exit early
       }
     }
@@ -438,9 +438,9 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
     // Check if the final value is filled (non-empty string or non-null)
     if (currentValue?.toString().trim()) {
       filledFields += 1;
-      // console.log(`Field ${field} OK`);
+      console.log(`Field ${field} OK`);
     } else {
-      // console.log(`Field ${field} XXXXXXX`);
+      console.log(`Field ${field} XXXXXXX`);
     }
   });
 

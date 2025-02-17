@@ -61,8 +61,8 @@ const createMakeupArtist = async (req, res) => {
 
     // ✅ Define fields for completion check
     const fieldsToCheck = [
-      req.body.artistName,
-      req.body.artistDescription,
+      req.body.name,
+      req.body.description,
       req.body.eventSize,
       req.body.eventTypes?.length > 0,
       req.body.typesOfMakeupArtists?.length > 0,
@@ -85,8 +85,8 @@ const createMakeupArtist = async (req, res) => {
 
     const newMakeupArtist = new MakeupArtist({
       basicDetails: {
-        artistName: req.body.artistName,
-        artistDescription: req.body.artistDescription,
+        name: req.body.name,
+        description: req.body.description,
         eventSize: req.body.eventSize,
         eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),

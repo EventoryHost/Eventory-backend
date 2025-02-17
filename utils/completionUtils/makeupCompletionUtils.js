@@ -53,7 +53,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
       artist.policies.termsAndConditions.length > 0 &&
       artist.policies.cancellationPolicy.length > 0 &&
       artist.policies.clientTestimonials.length > 0 &&
-      artist.policies.certificateOrAwards > 0;
+      artist.policies.certificateOrAwards.length > 0;
 
     console.log(`Policies check: ----- ${policiesComplete}`);
     await MakeupArtist.findOneAndUpdate(
