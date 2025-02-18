@@ -98,8 +98,8 @@ const createMakeupArtist = async (req, res) => {
         serviceTypes: req.body.serviceTypes.split(","),
       },
       additionalDetails: {
-        photos,
-        videos,
+        photos: req.body.photos,
+        videos: req.body.videos,
         socialMedia: req.body.socialMedia,
         websiteUrl: req.body.websiteUrl,
         priceStarts: req.body.priceStarts,
