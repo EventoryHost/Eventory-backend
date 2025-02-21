@@ -27,6 +27,8 @@ const venueSchema = new Schema({
       closingTime: { type: String },
     },
     address: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
   },
