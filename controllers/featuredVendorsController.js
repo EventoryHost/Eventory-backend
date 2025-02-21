@@ -26,6 +26,8 @@ async function getFeaturedVendors(req, res) {
 
   // caterer
   featuredVendors.push({
+    id: caterer.id,
+    category_name: "Caterer",
     name: caterer.basicDetails.name || "Krishna Vendors",
     rating: caterer.reviews[0]?.rating || "4.5",
     price: caterer.additionalDetails.priceStartingFrom || "4000",
@@ -37,6 +39,8 @@ async function getFeaturedVendors(req, res) {
 
   // decorator
   featuredVendors.push({
+    id: decorator.id,
+    category_name: "Decorator",
     name: decorator.basicDetails.name || "Krishna Vendors",
     rating: decorator.reviews[0]?.rating || "4.5",
     price: decorator.additionalDetails.priceStartingFrom || "4000",
@@ -48,6 +52,8 @@ async function getFeaturedVendors(req, res) {
 
   // venue
   featuredVendors.push({
+    id: venue.id,
+    category_name: "Venue Provider",
     name: venue.basicDetails.name || "Krishna Vendors",
     rating: venue.policies.reviews[0]?.rating || "4.5",
     price: venue.additionalDetails.priceStartingFrom || "4000",
@@ -59,6 +65,8 @@ async function getFeaturedVendors(req, res) {
 
   // prop rentals
   featuredVendors.push({
+    id: prop_rental.id,
+    category_name: "Prop Rental",
     name: prop_rental.basicDetails.managerName || "Krishna Vendors",
     rating: prop_rental.reviews[0]?.rating || "4.5",
     price: prop_rental.additionalDetails.priceStartingFrom || "4000",
@@ -68,8 +76,10 @@ async function getFeaturedVendors(req, res) {
       "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
   });
 
-  // prop rentals
+  // photography and videography
   featuredVendors.push({
+    id: pav.id,
+    category_name: "Photographers & Videographers",
     name: pav.basicDetails.managerName || "Krishna Vendors",
     rating: pav.reviews[0]?.rating || "4.5",
     price: pav.additionalDetails.priceStartingFrom || "4000",
