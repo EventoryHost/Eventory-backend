@@ -53,8 +53,7 @@ export const getVendorLimit = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 9;
 
-  if(page == 0){
-    
+  if (page == 0) {
   }
 
   if (page < 0 || limit <= 0) {
