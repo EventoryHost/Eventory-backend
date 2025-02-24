@@ -340,6 +340,7 @@ const createVenue = async (req, res) => {
 
 export const getAllVenues = async (req, res) => {
   try {
+    console.log("hello")
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
 
@@ -348,10 +349,10 @@ export const getAllVenues = async (req, res) => {
     const venues =
       page == -1
         ? await Venue.find()
-        : Venue.find().skip(skip).limit(itemsPerPage);
+        :  await Venue.find().skip(skip).limit(itemsPerPage);
 
     const totalvenues = await Venue.countDocuments();
-
+    console.log("data is ",venues)
     res.status(200).json({
       data: venues,
       currentPage: page,
