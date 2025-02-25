@@ -74,6 +74,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;
+ 
 
     if (!vendor_id) {
       return res.status(400).json({

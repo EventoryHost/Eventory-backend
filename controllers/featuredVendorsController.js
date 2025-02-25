@@ -55,7 +55,7 @@ async function getFeaturedVendors(req, res) {
     id: venue.id,
     category_name: "Venue Provider",
     name: venue.basicDetails.name || "Krishna Vendors",
-    rating: venue.policies.reviews[0]?.rating || "4.5",
+    rating: venue.reviews[0]?.rating || "4.5",
     price: venue.additionalDetails.priceStartingFrom || "4000",
     category: ["Venue"],
     img:

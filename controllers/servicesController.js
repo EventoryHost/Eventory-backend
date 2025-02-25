@@ -132,17 +132,19 @@ export const addReviews = async (req, res) => {
       if (!venue) {
         return res.status(404).json({ message: "Venue not found" });
       }
-      if (!venue.policies.reviews) {
-        venue.policies.reviews = [];
+      if (!venue.reviews) {
+        venue.reviews = [];
       }
-      venue.policies.reviews.push({
+      venue.reviews.push({
         rating,
         name,
         feedback,
         photos,
         date,
       });
+    
       await venue.save();
+     
       res.status(200).json(venue);
     } else if (type === "caterer") {
       const caterer = await Caterer.findOne({ id: id });
@@ -160,16 +162,17 @@ export const addReviews = async (req, res) => {
         date,
       });
       await caterer.save();
+     
       res.status(200).json(caterer);
     } else if (type === "decorator") {
       const decorator = await Decorator.findOne({ id: id });
       if (!decorator) {
         return res.status(404).json({ message: "Decorator not found" });
       }
-      if (!decorator.policies.reviews) {
-        decorator.policies.reviews = [];
+      if (!decorator.reviews) {
+        decorator.reviews = [];
       }
-      decorator.policies.reviews.push({
+      decorator.reviews.push({
         rating,
         name,
         feedback,
@@ -183,10 +186,10 @@ export const addReviews = async (req, res) => {
       if (!photographer) {
         return res.status(404).json({ message: "Photographer not found" });
       }
-      if (!photographer.policies.reviews) {
-        photographer.policies.reviews = [];
+      if (!photographer.reviews) {
+        photographer.reviews = [];
       }
-      photographer.policies.reviews.push({
+      photographer.reviews.push({
         rating,
         name,
         feedback,
@@ -194,16 +197,17 @@ export const addReviews = async (req, res) => {
         date,
       });
       await photographer.save();
+     
       res.status(200).json(photographer);
     } else if (type === "propRental") {
       const prop = await propRental.findOne({ id: id });
       if (!prop) {
         return res.status(404).json({ message: "Prop Rental not found" });
       }
-      if (!prop.policies.reviews) {
+      if (!prop.reviews) {
         prop.policies.reviews = [];
       }
-      prop.policies.reviews.push({
+      prop.reviews.push({
         rating,
         name,
         feedback,
