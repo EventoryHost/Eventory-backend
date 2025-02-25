@@ -25,8 +25,8 @@ const propRentalSchema = new Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     itemCatalogue: { type: String, required: true },
     customization: { type: Boolean, required: true },
-    maintenance: { type: String, required: true },
-    services: { type: String, required: true },
+    maintenance: { type: String },
+    services: { type: String },
     serviceProvided: { type: [String], required: true },
   },
   additionalDetails: {

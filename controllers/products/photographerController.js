@@ -106,18 +106,12 @@ const createPhotographer = async (req, res) => {
       return res.status(400).json({ message: "Photographer already exists" });
     }
 
-    const photosUrls = getFileUrls(req.files, "photos");
-    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photosUrl = req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos");
-    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videosUrl = req.body.videos || [];
 
-    const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] ||
-      req.body.cancellationPolicy;
-    const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "termsAndConditions")[0] ||
-      req.body.termsAndConditions;
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
+    const termsAndConditionsFileUrl = req.body.termsAndConditions || [];
 
     // Log fields to debug
     console.log("Incoming fields:", {

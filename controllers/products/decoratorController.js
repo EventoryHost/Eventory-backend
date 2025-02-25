@@ -68,33 +68,19 @@ const createDecorator = async (req, res) => {
       return res.status(400).json({ message: "Decorator already exists" });
     }
 
-    const insuranceFileUrl =
-      getFileUrls(req.files, "insurance")[0] || req.body.insurance;
-    const privacyPolicyFileUrl =
-      getFileUrls(req.files, "privacyPolicy")[0] || req.body.privacyPolicy;
+    const insuranceFileUrl = req.body.insurance || [];
+    const privacyPolicyFileUrl = req.body.privacyPolicy || [];
 
-    const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] ||
-      req.body.cancellationPolicy;
-    const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "termsAndConditions")[0] ||
-      req.body.termsAndConditions;
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || "";
+    const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
-    const themePhotosUrls = getFileUrls(req.files, "themephotos");
-    const themePhotosUrl = themePhotosUrls.length
-      ? themePhotosUrls
-      : req.body.themephotos || [];
+    const themePhotosUrl = req.body.themephotos || [];
 
-    const themeVideosUrls = getFileUrls(req.files, "themevideos");
-    const themeVideosUrl = themeVideosUrls.length
-      ? themeVideosUrls
-      : req.body.themevideos || [];
+    const themeVideosUrl = req.body.themevideos || [];
 
-    const photosUrls = getFileUrls(req.files, "photos");
-    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photosUrl = req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos");
-    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videosUrl = req.body.videos || [];
 
     const eventTypes = {
       types: req.body.typesOfEvents || [],
@@ -122,10 +108,10 @@ const createDecorator = async (req, res) => {
       req.body.proposalRevisions,
       cancellationPolicyFileUrl,
       termsAndConditionsFileUrl,
-      themePhotosUrls.length > 0, // At least one photo
-      themeVideosUrls.length > 0, // At least one video
-      photosUrls.length > 0, // At least one additional photo
-      videosUrls.length > 0, // At least one additional video
+      themePhotosUrl.length > 0, // At least one photo
+      themeVideosUrl.length > 0, // At least one video
+      photosUrl.length > 0, // At least one additional photo
+      videosUrl.length > 0, // At least one additional video
     ];
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profileCompletion =
