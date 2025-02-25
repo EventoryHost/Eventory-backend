@@ -17,6 +17,9 @@ const propRentalSchema = new Schema({
     managerName: { type: String, required: true },
     description: { type: String, required: true },
     eventSize: { type: String, required: true },
+    address: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
   },
   serviceDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
