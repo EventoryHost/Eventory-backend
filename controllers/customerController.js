@@ -1,4 +1,5 @@
 import { Customer } from "../models/customer.js";
+import jwt from "jsonwebtoken";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -16,9 +17,30 @@ export const addCustomer = async (req, res) => {
 
 export const getCustomer = async (req, res) => {
   try {
-    const { phone } = req.body;
-    const customer = await Customer.findOne({ phone: phone });
-    res.status(200).json(customer);
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No token provided" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const mobile = decoded.mobile;
+
+    if (!mobile) {
+      return res
+        .status(400)
+        .json({ message: "Invalid token: Phone number missing" });
+    }
+
+    const customer = await Customer.findOne({ mobile });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    res.status(200).json({ customer });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -109,15 +131,44 @@ export const removeFavourite = async (req, res) => {
 
 export const getCustomerByMobile = async (req, res) => {
   try {
-    const phone = req.params.phone;
+    const mobile = req.params.mobile;
 
-    const customer = await Customer.findOne({ phone: phone });
+    const customer = await Customer.findOne({ mobile: mobile });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
     res.status(200).json({ customer });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const updateCustomer = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const mobile = decoded.mobile;
+
+    if (!mobile) return res.status(403).json({ message: "Invalid token" });
+
+    const { mobile: mobileFromBody, ...updates } = req.body;
+    if (!mobileFromBody)
+      return res.status(400).json({ message: "Phone number missing" });
+
+    const customer = await Customer.findOneAndUpdate(
+      { mobile: mobileFromBody },
+      { $set: updates },
+      { new: true, runValidators: true },
+    );
+
+    if (!customer)
+      return res.status(404).json({ message: "Customer not found" });
+
+    res.status(200).json(customer);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
