@@ -72,22 +72,28 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get quotations by vendor id
+// Get quotations by vendor_id or user_id
 router.get("/", async (req, res) => {
   try {
-    const { vendor_id } = req.query;
+    const { vendor_id, user_id } = req.query;
+    console.log(vendor_id, user_id);
 
-    if (!vendor_id) {
+    if (!vendor_id && !user_id) {
       return res.status(400).json({
-        message: "vendor_id is required",
+        message: "Either vendor_id or user_id is required",
       });
     }
 
-    const quotations = await Quotation.find({ vendor_id });
+    // Construct query dynamically
+    const query = {};
+    if (vendor_id) query.vendor_id = vendor_id;
+    if (user_id) query.user_id = user_id;
+
+    const quotations = await Quotation.find(query);
 
     if (quotations.length === 0) {
       return res.status(404).json({
-        message: `No quotations found for vendor_id: ${vendor_id}`,
+        message: `No quotations found for ${vendor_id ? "vendor_id: " + vendor_id : "user_id: " + user_id}`,
       });
     }
 
