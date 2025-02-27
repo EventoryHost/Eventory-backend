@@ -173,6 +173,9 @@ const createPhotographer = async (req, res) => {
         description: req.body.description,
         eventSize: req.body.eventSize,
         eventTypes: req.body.eventTypes,
+        address: req.body.address,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
         profileCompletion: 0, // Placeholder, will be updated later
       },
       Videography: req.body.Videography,

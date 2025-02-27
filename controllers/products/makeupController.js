@@ -90,6 +90,9 @@ const createMakeupArtist = async (req, res) => {
         eventSize: req.body.eventSize,
         eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
+        address: req.body.address,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
         profileCompletion,
       },
       serviceDetails: {

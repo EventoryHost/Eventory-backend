@@ -104,6 +104,9 @@ const createProp = async (req, res) => {
     const newProp = new propRental({
       basicDetails: {
         ...basicDetails,
+        address: req.body.address,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
         profileCompletion,
       },
       serviceDetails: {
