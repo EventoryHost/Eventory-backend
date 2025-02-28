@@ -7,7 +7,7 @@ import { Venue } from "../models/venue.js";
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
-
+  console.log(vendorid)
   try {
     let vendorData;
 
