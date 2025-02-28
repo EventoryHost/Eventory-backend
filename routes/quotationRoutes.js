@@ -12,7 +12,7 @@ router.post("/", async (req, res) => {
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
-
+       
       // Data
       user_name: req.body.user_name,
       email: req.body.email,
@@ -112,7 +112,7 @@ router.get("/", async (req, res) => {
 router.patch("/", async (req, res) => {
   try {
     await Quotation.updateOne(
-      { _id: req.body._id },
+      { id: req.body.id },
       { $set: { status: req.body.status } },
     );
     res.status(200).json({

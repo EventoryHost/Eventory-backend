@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import AutoIncrementFactory from "mongoose-sequence"; // Use AutoIncrementFactory for initialization
+import generateUniqueId from "../utils/generateId.js";
 
 const AutoIncrement = AutoIncrementFactory(mongoose);
 
@@ -9,6 +10,7 @@ const quotationSchema = new mongoose.Schema(
     user_id: { type: String, required: true },
     vendor_id: { type: String, required: true },
     service_id: { type: String, required: true },
+    id: { type: String, default: generateUniqueId("quo"), required: true },
     status: {
       type: String,
       enum: ["Pending", "Accepted", "Rejected", "In Progress"],
