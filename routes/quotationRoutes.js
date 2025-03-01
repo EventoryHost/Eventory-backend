@@ -76,9 +76,9 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { vendor_id, user_id } = req.query;
-    console.log(vendor_id, user_id);
+    // console.log(vendor_id, user_id);
 
-    if (!vendor_id || !user_id) {
+    if ( !user_id) {
       return res.status(400).json({
         message: "Either vendor_id or user_id is required",
       });
@@ -86,7 +86,7 @@ router.get("/", async (req, res) => {
 
     // Construct query dynamically
     const query = {};
-    if (vendor_id) query.vendor_id = vendor_id;
+    // if (vendor_id) query.vendor_id = vendor_id;
     if (user_id) query.user_id = user_id;
 
     const quotations = await Quotation.find(query);
