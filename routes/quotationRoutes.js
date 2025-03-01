@@ -78,7 +78,7 @@ router.get("/", async (req, res) => {
     const { vendor_id, user_id } = req.query;
     console.log(vendor_id, user_id);
 
-    if (!vendor_id && !user_id) {
+    if (!vendor_id || !user_id) {
       return res.status(400).json({
         message: "Either vendor_id or user_id is required",
       });
