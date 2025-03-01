@@ -16,12 +16,30 @@ const photographerSchema = Schema({
       type: String,
       required: true,
     },
-    eventSize: { type: String, required: true },
+    eventSize: {
+      ll: { type: Number, required: true }, // Lower limit
+      ul: { type: Number, required: true }, // Upper limit
+    },
     eventTypes: {
       type: [String],
       required: true,
     },
     profileCompletion: { type: Number, default: 0 },
+    location: {
+      lat: { type: Number }, // Latitude
+      lng: { type: Number }, // Longitude
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+          },
+          message: props => `${props.value} is not a valid 6-digit pincode!`
+        },
+        required: [true, 'Pincode is required'] // Ensures the pincode is required
+      },
+      googleMapsAddress: { type: String }, // Google Maps formatted address
+    },
   },
 
   id: { type: String, default: generateUniqueId("pav"), required: true },
@@ -43,7 +61,8 @@ const photographerSchema = Schema({
       type: [String],
     },
     finalDeliveryMethods: {
-      type: [String],
+      type: String,
+      enum: ["Digital Download", "USB Drive", "Physical Album", "Other"],
     },
   },
   Photography: {
@@ -58,14 +77,19 @@ const photographerSchema = Schema({
       type: [String],
     },
     finalDeliveryMethods: {
-      type: [String],
+      type: String,
+      enum: ["Digital Download", "USB Drive", "Physical Album", "Other"],
     },
   },
   consultationDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    duration: { type: String },
+    duration: {
+      type: String,
+      enum: ["30 mins", "1 hour", "2 hours", "Custom"],
+    },
     PackageTypes: {
       type: String,
+      enum: ["Basic", "Premium", "Both"],
       default: "Both",
     },
     proposalsToClients: {
@@ -101,10 +125,7 @@ const photographerSchema = Schema({
     awards: { type: String },
     website: { type: String },
     instagram: { type: String },
-    priceStartingFrom: { type: String, required: true },
-    // advanceBookingPeriod: { type: String, required: true },
-    // initialthemeProposels: { type: Boolean, default: false },
-    // WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
+    priceStartingFrom: { type: Number, required: true },
   },
   policies: {
     completed: { type: Boolean, default: false }, // Flag for section completion
@@ -115,40 +136,10 @@ const photographerSchema = Schema({
       type: [String],
     },
   },
-  reviews: [
-    {
-      rating: { type: Number, required: true },
-      name: { type: String, required: true },
-      feedback: { type: String, required: true },
-      photos: { type: [String] },
-      date: { type: String, required: true },
-    },
-  ],
 
-  filters: {
-    price: { type: Number },
-  },
-
-  // Page-5
-});
-
-// Middleware to compute filters.price
-photographerSchema.pre("save", function (next) {
-  if (this.additionalDetails?.priceStartingFrom) {
-    this.filters.price = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
-  }
-  next();
-});
-
-photographerSchema.pre("findOneAndUpdate", function (next) {
-  const update = this.getUpdate();
-  if (update.additionalDetails?.priceStartingFrom) {
-    update.filters = update.filters || {};
-    update.filters.price = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
-  }
-  next();
+  rating: { type: Number, default: 0 }, // Added rating field
 });
 
 const Photographer = model("Photographer", photographerSchema);
 
-export default Photographer;
+export default { Photographer, photographerSchema };

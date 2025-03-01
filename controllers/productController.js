@@ -7,6 +7,8 @@ import APIFeatures from "../utils/apiFeatures.js";
 const searchVenues = async (query) => {
    const filters = {};
 
+   console.log(query);
+
    //handle price range
    if (query.minPrice || query.maxPrice) {
       filters['filters.startingPrice'] = {};
@@ -48,12 +50,11 @@ const searchVenues = async (query) => {
 
 const searchDecorators = async (query) => {
    const filters = {};
-
-   // Handle price range
    if (query.minPrice || query.maxPrice) {
       filters['filters.priceStartingFrom'] = {};
-      if (query.minPrice) filters['filters.startingPrice'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['filters.startingPrice'].$lte = parseInt(query.maxPrice, 10);
+      if (query.minPrice) filters['filters.startingPrice'] = { $gte: parseInt(query.minPrice, 10) };
+      if (query.maxPrice) filters['filters.startingPrice'] = { $lte: parseInt(query.maxPrice, 10) };
+      console.log(filters);
    }
 
    // Handle themes offered

@@ -11,7 +11,7 @@ export const eventSchema = new Schema({
 });
 
 const venueSchema = new Schema({
-  id: { type: String, default: generateUniqueId("veu"), required: true },
+  id: { type: String, default: generateUniqueId("veu"), required: true, unique: true },
   type: { type: String, default: "venue" },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "venue" },
@@ -21,14 +21,38 @@ const venueSchema = new Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     name: { type: String, required: true },
     managerName: { type: String, required: true },
-    capacity: { type: String, required: true },
+    capacity: {
+      ll: { type: Number, required: true }, // Lower limit of capacity
+      ul: { type: Number, required: true }, // Upper limit of capacity
+    },
     operatingHours: {
-      openingTime: { type: String },
-      closingTime: { type: String },
+      openingTime: {
+        hour: { type: Number, required: true, min: 0, max: 23 }, // Hour (0-23)
+        minute: { type: Number, required: true, min: 0, max: 59 }, // Minute (0-59)
+      },
+      closingTime: {
+        hour: { type: Number, required: true, min: 0, max: 23 }, // Hour (0-23)
+        minute: { type: Number, required: true, min: 0, max: 59 }, // Minute (0-59)
+      },
     },
     address: { type: String, required: true },
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
+    location: {
+      lat: { type: Number }, // Latitude
+      lng: { type: Number }, // Longitude
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+          },
+          message: props => `${props.value} is not a valid 6-digit pincode!`
+        },
+        required: [true, 'Pincode is required'] // Ensures the pincode is required
+      },
+      googleMapsAddress: { type: String }, // Google Maps formatted address
+    },
   },
 
   featureDetails: {
@@ -51,8 +75,11 @@ const venueSchema = new Schema({
     clientTestimonials: { type: String },
     instagramURL: { type: String },
     websiteURL: { type: String },
-    advanceBookingPeriod: { type: String },
-    priceStartingFrom: { type: String, required: true },
+    advanceBookingPeriod: {
+      ll: { type: Number, required: true }, // Lower limit of advance booking period (e.g., days)
+      ul: { type: Number, required: true }, // Upper limit of advance booking period (e.g., days)
+    },
+    priceStartingFrom: { type: Number, required: true }, // Starting price as an integer
   },
 
   policies: {
@@ -60,71 +87,9 @@ const venueSchema = new Schema({
     termsConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
-
-    reviews: [
-      {
-        rating: { type: Number, required: true },
-        name: { type: String, required: true },
-        feedback: { type: String, required: true },
-        photos: { type: [String] },
-        date: { type: String, required: true },
-      },
-    ],
   },
 
-  //added a seperate field helpful while filtering
-  filters: {
-    startingPrice: { type: Number },
-    guestCapacity: {
-      ll: { type: Number, default: 1 }, //lower limit
-      ul: { type: Number, default: 100000 }, //upper limit
-    }
-  }
-});
-
-venueSchema.pre("save", function (next) {
-  if (this.additionalDetails?.priceStartingFrom) {
-    this.filters.startingPrice = parseInt(this.additionalDetails.priceStartingFrom, 10) || 0;
-  }
-
-  //before saving the document compute the ll and ul and add it to the filter field
-  if (this.basicDetails?.capacity) {
-    const capacityRange = this.basicDetails.capacity.match(/^(\d+)-(\d+)\s*persons$/);
-    if (capacityRange) {
-      this.filters.guestCapacity.ll = parseInt(capacityRange[1], 10);
-      this.filters.guestCapacity.ul = parseInt(capacityRange[2], 10);
-    } else {
-      return next(new Error("Invalid capacity format. Expected format: 'min-max'"));
-    }
-  }
-  next();
-});
-
-venueSchema.pre("findOneAndUpdate", function (next) {
-  const update = this.getUpdate();
-  this.options.runValidators = true; // Ensures validation runs on update
-
-  //after updating the doccument compute the price and add it to the filter field
-  if (update.additionalDetails?.priceStartingFrom) {
-    update.filters = update.filters || {};
-    update.filters.startingPrice = parseInt(update.additionalDetails.priceStartingFrom, 10) || 0;
-  }
-
-  if (update.basicDetails?.capacity) {
-    const capacityRange = update.basicDetails.capacity.match(/^(\d+)-(\d+)\s*persons$/);
-    if (capacityRange) {
-      update.filters = update.filters || {};
-      update.filters.guestCapacity = {
-        ll: parseInt(capacityRange[1], 10),
-        ul: parseInt(capacityRange[2], 10),
-      };
-    } else {
-      return next(new Error("Invalid capacity format. Expected format: 'min-max'"));
-    }
-  }
-
-  this.setUpdate(update);
-  next();
+  rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
 });
 
 const Venue = model("Venue", venueSchema);

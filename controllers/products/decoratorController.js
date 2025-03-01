@@ -75,11 +75,9 @@ const createDecorator = async (req, res) => {
     const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
     const themePhotosUrl = req.body.themephotos || [];
-
     const themeVideosUrl = req.body.themevideos || [];
 
     const photosUrl = req.body.photos || [];
-
     const videosUrl = req.body.videos || [];
 
     const eventTypes = {
@@ -94,7 +92,8 @@ const createDecorator = async (req, res) => {
     const fieldsToCheck = [
       req.body.name,
       req.body.description,
-      req.body.eventSize,
+      req.body.eventSize?.ul, // Check if eventSize.ul exists
+      req.body.eventSize?.ll, // Check if eventSize.ll exists
       req.body.duration,
       req.body.themesOffered?.length > 0, // Check if at least one theme is offered
       req.body.customDesignProcess,
@@ -121,10 +120,18 @@ const createDecorator = async (req, res) => {
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
-        eventSize: req.body.eventSize,
+        eventSize: {
+          ul: req.body.eventSize?.ul, // Upper limit
+          ll: req.body.eventSize?.ll, // Lower limit
+        },
         eventTypes,
         duration: req.body.duration,
         profileCompletion,
+        location: {
+          lat: req.body.location?.lat, // Latitude
+          lng: req.body.location?.lng, // Longitude
+          googleMapsAddress: req.body.location?.googleMapsAddress, // Google Maps address
+        },
       },
       themesOffered: {
         themesOffered: req.body.themesOffered,
@@ -151,7 +158,7 @@ const createDecorator = async (req, res) => {
         website: req.body.websiteurl,
         instagram: req.body.intstagramurl,
         advanceBookingPeriod: req.body.advanceBookingPeriod,
-        priceStartingFrom: req.body.priceStartingFrom,
+        priceStartingFrom: Number(req.body.priceStartingFrom), // Convert to number
         themeProposels: req.body.themeProposels,
         proposalRevisions: req.body.proposalRevisions,
       },
@@ -161,6 +168,7 @@ const createDecorator = async (req, res) => {
       },
       id: req.body.id,
       venId: req.body.venId,
+      rating: 0, // Default rating
     });
 
     const savedDecorator = await newDecorator.save();
@@ -176,6 +184,7 @@ const createDecorator = async (req, res) => {
       serId: savedDecorator.id,
     });
     await vendor.save();
+
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
     res.status(201).json(savedDecorator);

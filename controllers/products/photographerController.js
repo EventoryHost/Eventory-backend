@@ -107,9 +107,7 @@ const createPhotographer = async (req, res) => {
     }
 
     const photosUrl = req.body.photos || [];
-
     const videosUrl = req.body.videos || [];
-
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const termsAndConditionsFileUrl = req.body.termsAndConditions || [];
 
@@ -160,52 +158,79 @@ const createPhotographer = async (req, res) => {
 
     const completedFields = fieldsToCheck.filter((field) => !!field).length;
     const profileCompletion =
-      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+      Math.round((completedFields / fieldsToCheck.length)) * 100 || 0;
 
     // Debug profile completion calculation
     console.log("Fields to Check:", fieldsToCheck);
     console.log("Completed Fields:", completedFields);
     console.log("Profile Completion:", profileCompletion);
 
+    // Prepare eventSize object
+    const eventSize = {
+      ul: req.body.eventSize.ul, // Upper limit
+      ll: req.body.eventSize.ll, // Lower limit
+    };
+
+    // Prepare Videography and Photography finalDeliveryMethods
+    const Videography = {
+      ...req.body.Videography,
+      finalDeliveryMethods: req.body.Videography.finalDeliveryMethods, // Ensure enum value is passed
+    };
+
+    const Photography = {
+      ...req.body.Photography,
+      finalDeliveryMethods: req.body.Photography.finalDeliveryMethods, // Ensure enum value is passed
+    };
+
+    // Prepare consultationDetails
+    const consultationDetails = {
+      duration: req.body.duration, // Ensure enum value is passed
+      PackageTypes: req.body.PackageTypes, // Ensure enum value is passed
+      proposalsToClients: req.body.proposalsToClients === "true",
+      freeInitialConsultation: req.body.freeInitialConsultation === "true",
+      bookingDeposit: req.body.bookingDeposit === "true",
+      availableForDestinationEvents:
+        req.body.availablefordestinationevents === "true",
+      AdvanceSetup: req.body.Advancesetup === "true",
+      postProductionServices: req.body.postproductionservices === "true",
+    };
+
+    // Prepare additionalDetails
+    const additionalDetails = {
+      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+      clientTestimonials: req.body.clientTestimonials,
+      awards: req.body.awards,
+      website: req.body.website,
+      instagram: req.body.instagram,
+      priceStartingFrom: parseFloat(req.body.priceStartingFrom), // Convert to number
+    };
+
+    // Prepare policies
+    const policies = {
+      cancellationPolicy: cancellationPolicyFileUrl,
+      termsAndConditions: termsAndConditionsFileUrl,
+    };
+
+    // Create new Photographer document
     const newPhotographer = new Photographer({
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
-        eventSize: req.body.eventSize,
+        eventSize, // Updated to object
         eventTypes: req.body.eventTypes,
-        profileCompletion: 0, // Placeholder, will be updated later
+        profileCompletion, // Updated profile completion
+        location: req.body.location, // Added location field
       },
-      Videography: req.body.Videography,
-      Photography: req.body.Photography,
-      consultationDetails: {
-        duration: req.body.duration,
-        PackageTypes: req.body.PackageTypes,
-        proposalsToClients: req.body.proposalsToClients === "true",
-        freeInitialConsultation: req.body.freeInitialConsultation === "true",
-        bookingDeposit: req.body.bookingDeposit === "true",
-        availableForDestinationEvents:
-          req.body.availablefordestinationevents === "true",
-        AdvanceSetup: req.body.Advancesetup === "true",
-        postProductionServices: req.body.postproductionservices === "true",
-      },
-      additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-        clientTestimonials: req.body.clientTestimonials,
-        awards: req.body.awards,
-        website: req.body.website,
-        instagram: req.body.instagram,
-        priceStartingFrom: req.body.priceStartingFrom,
-      },
-      ...req.body,
-      policies: {
-        cancellationPolicy: cancellationPolicyFileUrl,
-        termsAndConditions: termsAndConditionsFileUrl,
-      },
+      Videography, // Updated with enum for finalDeliveryMethods
+      Photography, // Updated with enum for finalDeliveryMethods
+      consultationDetails, // Updated with enum for duration and PackageTypes
+      additionalDetails, // Updated with priceStartingFrom as number
+      policies, // Policies remain the same
+      venId: req.body.venId,
+      vendorType: "photographer",
+      rating: 0, // Added rating field
     });
-
-    // Update profile completion under basicDetails
-    newPhotographer.basicDetails.profileCompletion = profileCompletion;
 
     const saved = await newPhotographer.save();
     const vendor = await User.findOne({ id: req.body.venId });
