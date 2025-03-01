@@ -1,5 +1,7 @@
+import { Caterer } from "../models/caterer.js";
 import { Customer } from "../models/customer.js";
 import jwt from "jsonwebtoken";
+import { Venue } from "../models/venue.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -91,19 +93,55 @@ export const getFavoriteServices = async (req, res) => {
   try {
     const customerId = req.params.cusId;
     const customer = await Customer.findOne({ id: customerId });
+
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
+
     if (!customer.favoriteServices) {
       customer.favoriteServices = [];
     }
-    
-    res.status(200).json(customer.favoriteServices);
+
+    // Array to store vendor details
+    const favoriteVendors = [];
+
+    // Loop through each service ID in favoriteServices
+    for (const serviceId of customer.favoriteServices) {
+      // Extract the prefix (first 3 characters)
+      const prefix = serviceId.substring(0, 3);
+
+      // Determine the collection based on the prefix
+      let collection;
+      switch (prefix) {
+        case 'cat':
+          collection = Caterer;
+          break;
+        case 'veu':
+          collection = Venue;
+          break;
+        // Add more cases for other prefixes if needed
+        default:
+          console.warn(`Unknown prefix: ${prefix}`);
+          continue; // Skip this ID if the prefix is unknown
+      }
+
+      // Find the vendor in the appropriate collection
+      const vendor = await collection.findOne({ id: serviceId });
+
+      if (vendor) {
+        console.log(vendor)
+        favoriteVendors.push(vendor); // Push the full vendor details
+      } else {
+        console.warn(`Vendor not found for ID: ${serviceId}`);
+      }
+    }
+
+    // Return the list of favorite vendors with full details
+    res.status(200).json(favoriteVendors);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
-
 export const removeFavourite = async (req, res) => {
   try {
     const serviceId = req.params.serId;
