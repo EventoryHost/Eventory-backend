@@ -1,5 +1,8 @@
 import { Caterer } from "../models/caterer.js";
 import { Customer } from "../models/customer.js";
+import Photographer from "../models/photographers.js"
+import {Decorator} from "../models/decoraters.js"
+import PropRental from "../models/props.js"
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
 
@@ -107,30 +110,29 @@ export const getFavoriteServices = async (req, res) => {
 
     // Loop through each service ID in favoriteServices
     for (const serviceId of customer.favoriteServices) {
-      // Extract the prefix (first 3 characters)
-      const prefix = serviceId.substring(0, 3);
-
-      // Determine the collection based on the prefix
       let collection;
-      switch (prefix) {
-        case 'cat':
-          collection = Caterer;
-          break;
-        case 'veu':
-          collection = Venue;
-          break;
-        // Add more cases for other prefixes if needed
-        default:
-          console.warn(`Unknown prefix: ${prefix}`);
-          continue; // Skip this ID if the prefix is unknown
+
+      if (serviceId.startsWith("cat")) {
+        collection = Caterer;
+      } else if (serviceId.startsWith("veu")) {
+        collection = Venue;
+      } else if (serviceId.startsWith("pav")) {
+        collection = Photographer;
+      } else if (serviceId.startsWith("dec")) {
+        collection = Decorator;
+      } else if (serviceId.startsWith("prop")) {
+        collection = PropRental; // Fix: Properly check for 'prop' which has 4 characters
+      } else {
+        console.warn(`Unknown prefix: ${serviceId}`);
+        continue; // Skip if prefix is unknown
       }
 
       // Find the vendor in the appropriate collection
       const vendor = await collection.findOne({ id: serviceId });
 
       if (vendor) {
-        console.log(vendor)
-        favoriteVendors.push(vendor); // Push the full vendor details
+        console.log(vendor);
+        favoriteVendors.push(vendor);
       } else {
         console.warn(`Vendor not found for ID: ${serviceId}`);
       }
@@ -142,6 +144,7 @@ export const getFavoriteServices = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
 export const removeFavourite = async (req, res) => {
   try {
     const serviceId = req.params.serId;
