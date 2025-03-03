@@ -16,13 +16,15 @@ import MakeupArtist from "../models/makeupArtists.js";
 async function getFeaturedVendors(req, res) {
   var featuredVendors = [];
 
-  const [caterer, decorator, venue, prop_rental, pav] = await Promise.all([
-    getCaterer(),
-    getDecorator(),
-    getVenue(),
-    getPropRental(),
-    getPav(),
-  ]);
+  const [caterer, decorator, venue, prop_rental, pav, makeupArtist] =
+    await Promise.all([
+      getCaterer(),
+      getDecorator(),
+      getVenue(),
+      getPropRental(),
+      getPav(),
+      getMakeupArtist(),
+    ]);
 
   // caterer
   featuredVendors.push({
@@ -89,21 +91,18 @@ async function getFeaturedVendors(req, res) {
       "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
   });
 
-  // temporary duplicating prop rentals
-  // TODO: map to makeupArtist as below
-  featuredVendors.push(featuredVendors[featuredVendors.length - 1]);
-
-  // // makeup artist
-  // const makeupArtist = await getMakeupArtist();
-  // featuredVendors.push({
-  //   name: makeupArtist.basicDetails.managerName || "Krishna Vendors",
-  //   rating: makeupArtist.reviews[0]?.rating || "4.5",
-  //   price: makeupArtist.additionalDetails.priceStartingFrom || "4000",
-  //   category: ["Wedding cakes", "Western suburbs"],
-  //   img:
-  //     makeupArtist.additionalDetails.photos[0] ||
-  //     "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
-  // });
+  // makeup artist
+  featuredVendors.push({
+    id: makeupArtist.id,
+    category_name: "Makeup Artist",
+    name: makeupArtist.basicDetails.name || "Krishna Vendors",
+    rating: "4.7",
+    price: makeupArtist.additionalDetails.priceStarts || "4000",
+    category: ["Makeup Artist"],
+    img:
+      makeupArtist.additionalDetails.photos[0] ||
+      "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
+  });
 
   res.status(200).json(featuredVendors);
 }
@@ -113,7 +112,7 @@ async function getCaterer() {
     const caterer = await Caterer.findOne({});
     return caterer;
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    console.err(e);
   }
 }
 
@@ -122,7 +121,7 @@ async function getDecorator() {
     const decorator = await Decorator.findOne({});
     return decorator;
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    console.err(e);
   }
 }
 
@@ -131,7 +130,7 @@ async function getVenue() {
     const venue = await Venue.findOne({});
     return venue;
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    console.err(e);
   }
 }
 
@@ -140,7 +139,7 @@ async function getPropRental() {
     const propRental = await PropRental.findOne({});
     return propRental;
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    console.err(e);
   }
 }
 
@@ -149,7 +148,7 @@ async function getPav() {
     const pav = await Photographer.findOne({});
     return pav;
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    console.err(e);
   }
 }
 
@@ -158,7 +157,7 @@ async function getMakeupArtist() {
     const makeupArtist = await MakeupArtist.findOne({});
     return makeupArtist;
   } catch (e) {
-    res.status(400).json({ message: e.message });
+    console.err(e);
   }
 }
 
