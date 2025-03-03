@@ -97,7 +97,7 @@ export const getFavoriteServices = async (req, res) => {
     if (!customer.favoriteServices) {
       customer.favoriteServices = [];
     }
-    
+
     res.status(200).json(customer.favoriteServices);
   } catch (error) {
     res.status(400).json({ message: error.message });
