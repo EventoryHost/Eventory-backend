@@ -31,7 +31,7 @@ const catererSchema = new Schema({
           },
           message: props => `${props.value} is not a valid 6-digit pincode!`
         },
-        required: [true, 'Pincode is required'] // Ensures the pincode is required
+        // required: [true, 'Pincode is required'] // Ensures the pincode is required
       },
       googleMapsAddress: { type: String }, // Google Maps formatted address
     },
