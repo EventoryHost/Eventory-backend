@@ -10,7 +10,7 @@ const quotationSchema = new mongoose.Schema(
     user_id: { type: String, required: true },
     vendor_id: { type: String, required: true },
     service_id: { type: String, required: true },
-    id: { type: String, default: generateUniqueId("quo"), required: true },
+    id: { type: String, default: generateUniqueId("quo"), required: true,unique: true},
     status: {
       type: String,
       enum: ["Pending", "Accepted", "Rejected", "In Progress"],
