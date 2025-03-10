@@ -9,19 +9,20 @@ const getQuotations = async (req, res, next) => {
       const filter = {};
 
       if (minBudget && maxBudget) {
-         filter.budget = { $gte: minBudget, $lte: maxBudget }; 
+         filter.budget = { $gte: parseInt(minBudget, 10), $lte: parseInt(maxBudget, 10) };
       }
 
-      if (start_date && end_date) {
-         filter.start_date = { $gte: new Date(start_date) }; 
-         filter.end_date = { $lte: new Date(end_date) }; 
-      }
+      //Pass correct format from frontend
+      // if (start_date && end_date) {
+      //    filter.start_date = { $gte: new Date(start_date) };
+      //    filter.end_date = { $lte: new Date(end_date) };
+      // }
 
       if (minCapacity && maxCapacity) {
-         filter.number_of_guest = { $gte: minCapacity, $lte: maxCapacity }; 
+         filter.number_of_guest = { $gte: parseInt(minCapacity, 10), $lte: parseInt(maxCapacity, 10) };
       }
 
-      if (status) {  
+      if (status) {
          filter.status = status; // Filter by status
       }
 
@@ -34,13 +35,13 @@ const getQuotations = async (req, res, next) => {
       console.log("filter", filter);
 
       const features = new APIFeatures(Quotation.find(filter), req.query)
-         .sort() 
-         .limitFields() 
-         .paginate(); 
+         .sort()
+         .limitFields()
+         .paginate();
 
       const quotations = await features.query;
 
-      const limitValue = Number(req.query.limit) || 10; 
+      const limitValue = Number(req.query.limit) || 10;
       const totalPages = Math.ceil(totalDocuments / limitValue);
 
       // console.log("api", quotations);
@@ -48,9 +49,9 @@ const getQuotations = async (req, res, next) => {
       res.status(200).json({
          status: "success",
          results: quotations.length,
-         totalDocuments, 
-         totalPages, 
-         currentPage: Number(req.query.page) || 1, 
+         totalDocuments,
+         totalPages,
+         currentPage: Number(req.query.page) || 1,
          data: quotations,
       });
    } catch (err) {

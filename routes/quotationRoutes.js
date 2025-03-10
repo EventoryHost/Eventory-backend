@@ -8,6 +8,14 @@ const router = express.Router();
 // Create a new quotation
 router.post("/", async (req, res) => {
   try {
+
+    const parsedBudget = Number(budget);
+    const parsedNumberOfGuest = Number(number_of_guest);
+
+    // Validate budget and number_of_guest
+    if (isNaN(parsedBudget) || isNaN(parsedNumberOfGuest)) {
+      return res.status(400).json({ error: "Budget and Number of Guests must be valid numbers." });
+    }
     const newQuotation = new Quotation({
       // Meta Data
       user_id: req.body.user_id,
@@ -24,8 +32,8 @@ router.post("/", async (req, res) => {
       end_date: req.body.end_date,
 
       time: req.body.time,
-      budget: req.body.budget,
-      number_of_guest: req.body.number_of_guest,
+      budget: parsedBudget,
+      number_of_guest: parsedNumberOfGuest,
       requirements: req.body.requirements,
       event_type: req.body.event_type,
     });
