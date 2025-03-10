@@ -24,7 +24,7 @@ async function updateVendorRating(serviceId, vendorType) {
    ]);
 
    console.log(result);
-   
+
    const avgRating = result.length > 0 ? parseFloat(result[0].avgRating.toFixed(1)) : 0;
    await VendorModel.findOneAndUpdate({ id: serviceId }, { rating: avgRating });
 }
@@ -59,7 +59,7 @@ export const createReview = async (req, res) => {
 // Get all reviews for a specific vendor
 export const getReviewsByVendor = async (req, res) => {
    try {
-      const { serviceId } = req.params;
+      const serviceId = req.query.serviceId;
 
       const reviews = await Review.find({ serviceId });
       return res.status(200).json({ reviews });
