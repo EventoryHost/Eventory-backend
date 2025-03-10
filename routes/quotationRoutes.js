@@ -88,9 +88,9 @@ router.get("/", async (req, res) => {
     const query = {};
     // if (vendor_id) query.vendor_id = vendor_id;
     if (user_id) query.user_id = user_id;
-
+     console.log(query);
     const quotations = await Quotation.find(query);
-
+    
     if (quotations.length === 0) {
       return res.status(404).json({
         message: `No quotations found for ${vendor_id ? "vendor_id: " + vendor_id : "user_id: " + user_id}`,
