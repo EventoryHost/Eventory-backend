@@ -1,6 +1,7 @@
 import express from "express";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
+import { getQuotations } from "../controllers/quotationController.js";
 
 const router = express.Router();
 
@@ -126,5 +127,8 @@ router.patch("/", async (req, res) => {
     });
   }
 });
+
+
+router.route("/myquotations").get(getQuotations);
 
 export default router;
