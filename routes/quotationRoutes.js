@@ -12,7 +12,7 @@ router.post("/", async (req, res) => {
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
-       
+
       // Data
       user_name: req.body.user_name,
       email: req.body.email,
@@ -78,7 +78,7 @@ router.get("/", async (req, res) => {
     const { vendor_id, user_id } = req.query;
     // console.log(vendor_id, user_id);
 
-    if ( !user_id) {
+    if (!user_id) {
       return res.status(400).json({
         message: "Either vendor_id or user_id is required",
       });
