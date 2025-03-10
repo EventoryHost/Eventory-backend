@@ -4,7 +4,6 @@ import APIFeatures from "../utils/APIFeatures.js";
 const getQuotations = async (req, res, next) => {
    try {
       const { minBudget, maxBudget, start_date, end_date, minCapacity, maxCapacity, status, user_id, limit, page } = req.query;
-      console.log("q", req.query);
 
       const filter = {};
 
@@ -12,11 +11,11 @@ const getQuotations = async (req, res, next) => {
          filter.budget = { $gte: parseInt(minBudget, 10), $lte: parseInt(maxBudget, 10) };
       }
 
-      //Pass correct format from frontend
-      // if (start_date && end_date) {
-      //    filter.start_date = { $gte: new Date(start_date) };
-      //    filter.end_date = { $lte: new Date(end_date) };
-      // }
+      // Pass correct format from frontend
+      if (start_date && end_date) {
+         filter.start_date = { $gte: new Date(start_date) };
+         filter.end_date = { $lte: new Date(end_date) };
+      }
 
       if (minCapacity && maxCapacity) {
          filter.number_of_guest = { $gte: parseInt(minCapacity, 10), $lte: parseInt(maxCapacity, 10) };
@@ -31,8 +30,6 @@ const getQuotations = async (req, res, next) => {
       }
 
       const totalDocuments = await Quotation.countDocuments(filter);
-
-      console.log("filter", filter);
 
       const features = new APIFeatures(Quotation.find(filter), req.query)
          .sort()
