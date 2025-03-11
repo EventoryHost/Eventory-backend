@@ -28,6 +28,7 @@ const getQuotations = async (req, res, next) => {
       if (user_id) {
          filter.user_id = user_id; // Filter by user_id
       }
+      console.log("Ak",filter)
 
       const totalDocuments = await Quotation.countDocuments(filter);
 

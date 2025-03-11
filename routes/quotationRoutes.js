@@ -9,8 +9,8 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
 
-    const parsedBudget = Number(budget);
-    const parsedNumberOfGuest = Number(number_of_guest);
+    const parsedBudget = Number(req.body.budget);
+    const parsedNumberOfGuest = Number(req.body.number_of_guest);
 
     // Validate budget and number_of_guest
     if (isNaN(parsedBudget) || isNaN(parsedNumberOfGuest)) {
@@ -28,8 +28,8 @@ router.post("/", async (req, res) => {
       mobile: req.body.mobile,
       event: req.body.event,
       location: req.body.location,
-      start_date: req.body.start_date,
-      end_date: req.body.end_date,
+      start_date: new Date(req.body.start_date),
+      end_date: new Date(req.body.end_date),
 
       time: req.body.time,
       budget: parsedBudget,
