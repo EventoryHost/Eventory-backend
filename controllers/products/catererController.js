@@ -1,6 +1,7 @@
 import { Caterer } from "../../models/caterer.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -108,7 +109,7 @@ const createCaterer = async (req, res) => {
       req.body.advance_booking_period,
       req.body.tasting_sessions === "true",
       req.body.business_licenses === "true",
-      foodSafetyCertificates.length > 0, 
+      foodSafetyCertificates.length > 0,
       photos.length > 0,
       videos.length > 0,
       cancellationPolicyFileUrl,
@@ -124,10 +125,7 @@ const createCaterer = async (req, res) => {
     const newCaterer = new Caterer({
       basicDetails: {
         managerName: req.body.managerName,
-        capacity: {
-          ul: parseInt(req.body.capacity.ul, 10) || 0,
-          ll: parseInt(req.body.capacity.ll, 10) || 0,
-        },
+        capacity: parseRange(req.body.capacity),
         name: req.body.name,
         description: req.body.description,
         cuisine_specialities: req.body.cuisine_specialities,
@@ -157,10 +155,7 @@ const createCaterer = async (req, res) => {
       additionalDetails: {
         priceStartingFrom: parseInt(req.body.priceStartingFrom, 10) || 0,
         minimum_order_requirements: req.body.minimum_order_requirements,
-        advance_booking_period: {
-          ul: parseInt(req.body.advance_booking_period.ul, 10) || 0,
-          ll: parseInt(req.body.advance_booking_period.ll, 10) || 0,
-        },
+        advance_booking_period: parseRange(req.body.advance_booking_period),
         photos: Array.isArray(photos) ? photos : [photos],
         videos: Array.isArray(videos) ? videos : [videos],
         tasting_sessions: req.body.tasting_sessions === "true",

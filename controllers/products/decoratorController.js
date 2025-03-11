@@ -1,6 +1,7 @@
 import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
 import { Vendor as User } from "../../models/users.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -92,8 +93,7 @@ const createDecorator = async (req, res) => {
     const fieldsToCheck = [
       req.body.name,
       req.body.description,
-      req.body.eventSize?.ul, // Check if eventSize.ul exists
-      req.body.eventSize?.ll, // Check if eventSize.ll exists
+      req.body.eventSize, // Check if eventSize.ul exists
       req.body.duration,
       req.body.themesOffered?.length > 0, // Check if at least one theme is offered
       req.body.customDesignProcess,
@@ -120,10 +120,7 @@ const createDecorator = async (req, res) => {
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
-        eventSize: {
-          ul: req.body.eventSize?.ul, // Upper limit
-          ll: req.body.eventSize?.ll, // Lower limit
-        },
+        eventSize: parseRange(req.body.eventSize),
         eventTypes,
         duration: req.body.duration,
         profileCompletion,
