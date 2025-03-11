@@ -2,6 +2,7 @@ import express from "express";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
 import { getQuotations } from "../controllers/quotationController.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post("/", async (req, res) => {
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
-
+      id:generateUniqueId("quo"),
       // Data
       user_name: req.body.user_name,
       email: req.body.email,
@@ -45,9 +46,9 @@ router.post("/", async (req, res) => {
         message: "Customer not found",
       });
     }
-
+  
     const savedQuotation = await newQuotation.save();
-
+    
     if (!customer.bookings) {
       customer.bookings = [];
     }
