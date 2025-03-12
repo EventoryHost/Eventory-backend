@@ -51,10 +51,14 @@ const searchVenues = async (query) => {
 const searchDecorators = async (query) => {
    const filters = {};
    if (query.minPrice || query.maxPrice) {
-      filters['filters.priceStartingFrom'] = {};
-      if (query.minPrice) filters['filters.startingPrice'] = { $gte: parseInt(query.minPrice, 10) };
-      if (query.maxPrice) filters['filters.startingPrice'] = { $lte: parseInt(query.maxPrice, 10) };
-      console.log(filters);
+      filters['additionalDetails.priceStartingFrom'] = {};
+      if (query.minPrice) filters['additionalDetails.priceStartingFrom'] = { $gte: parseInt(query.minPrice, 10) };
+      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'] = { $lte: parseInt(query.maxPrice, 10) };
+   }
+
+   if (query.rating) {
+      filters['rating'] = {};
+      filters['rating'].$gte = parseInt(query.minPrice, 10);
    }
 
    // Handle themes offered
@@ -63,6 +67,8 @@ const searchDecorators = async (query) => {
       filters['themesOffered.themesOffered'] = { $in: query.themes };
    }
 
+   console.log("priyanshu", filters, "end");
+   
    let decoratorQuery = Decorator.find(filters);
 
    const apiFeatures = new APIFeatures(decoratorQuery, query).sort().limitFields().paginate();
@@ -114,7 +120,7 @@ const searchCaterers = async (query) => {
 
    let catererQuery = Caterer.find(filters);
 
-   console.log("priyanshu", filters, "end");
+   // console.log("priyanshu", filters, "end");
 
    const apiFeatures = new APIFeatures(catererQuery, query).sort().limitFields().paginate();
 
