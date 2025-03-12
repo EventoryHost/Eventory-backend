@@ -73,13 +73,19 @@ const searchDecorators = async (query) => {
 };
 
 const searchCaterers = async (query) => {
+   // console.log("start", query, "End");
    const filters = {};
 
    // Handle price range
    if (query.minPrice || query.maxPrice) {
-      filters['filters.price'] = {};
-      if (query.minPrice) filters['filters.price'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['filters.price'].$lte = parseInt(query.maxPrice, 10);
+      filters['additionalDetails.priceStartingFrom'] = {};
+      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
+      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
+   }
+
+   if (query.rating) {
+      filters['rating'] = {};
+      filters['rating'].$gte = parseInt(query.minPrice, 10);
    }
 
    // Handle guest capacity range
@@ -88,12 +94,12 @@ const searchCaterers = async (query) => {
       const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
 
       if (minCapacity !== null && maxCapacity !== null) {
-         filters['filters.guestCapacity.ll'] = { $lte: maxCapacity };
-         filters['filters.guestCapacity.ul'] = { $gte: minCapacity };
+         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
+         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
       } else if (minCapacity !== null) {
-         filters['filters.guestCapacity.ul'] = { $gte: minCapacity };
+         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
       } else if (maxCapacity !== null) {
-         filters['filters.guestCapacity.ll'] = { $lte: maxCapacity };
+         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
       }
    }
 
@@ -107,6 +113,8 @@ const searchCaterers = async (query) => {
    }
 
    let catererQuery = Caterer.find(filters);
+
+   console.log("priyanshu", filters, "end");
 
    const apiFeatures = new APIFeatures(catererQuery, query).sort().limitFields().paginate();
 
@@ -166,7 +174,7 @@ const searchProducts = async (req, res, next) => {
    try {
       const { type } = req.query;
       let results;
-   
+
       switch (type) {
          case "venues":
             results = await searchVenues(req.query);
@@ -183,6 +191,8 @@ const searchProducts = async (req, res, next) => {
          default:
             return res.status(400).json({ message: "Invalid Product type." });
       }
+
+      // console.log("finals: ", results);
 
       res.status(200).json({
          message: "Search results fetched successfully.",
