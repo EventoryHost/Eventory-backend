@@ -140,6 +140,7 @@ export const getFavoriteServices = async (req, res) => {
 
     // Return the list of favorite vendors with full details
     res.status(200).json(favoriteVendors);
+
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
