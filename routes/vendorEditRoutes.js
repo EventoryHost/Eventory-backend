@@ -1,4 +1,3 @@
-//  routes/vendorEditRoutes.js
 import express from "express";
 import { Vendor } from "../models/users.js";
 import { Caterer } from "../models/caterer.js";
@@ -7,7 +6,6 @@ import Photographer from "../models/photographers.js";
 import PropRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
-
 import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
 import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
