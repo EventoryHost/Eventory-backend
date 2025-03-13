@@ -12,6 +12,9 @@ const djArtistSchema = Schema({
         name: { type: String, required: true },
         contact: { type: String, required: true },
         description: { type: String, required: true},
+        address:{ type: String, required: true },
+        latitude: { type: Number},
+        longitude: { type: Number},    
     },
     serviceDetails:{
          eventTypes: { type: [String], required: true },

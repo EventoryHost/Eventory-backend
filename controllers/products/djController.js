@@ -30,7 +30,7 @@ const getFileUrls = (files, fieldName) => {
 
   const updateSectionCompletion = async (id) => {
     try {
-      const djArtist = await djArtist.findOne({ id });
+      const djArtist = await DjArtist.findOne({ id });
       if (!djArtist) throw new Error("Makeup artist not found");
   
       djArtist.basicDetails.completed = checkCompletion(
@@ -69,6 +69,9 @@ const createDjArtist = async (req, res) => {
           req.body.name,
           req.body.contact,
           req.body.description,
+          req.body.address,
+          req.body.latitude,
+          req.body.longitude,
           req.body.eventTypes?.length > 0,
           req.body.musicGenres?.length > 0,
           req.body.regionalSpecializations?.length > 0,
@@ -92,6 +95,9 @@ const createDjArtist = async (req, res) => {
                 name: req.body.name,
                 contact: req.body.contact,
                 description: req.body.description,
+                address: req.body.address,
+                latitude: req.body.latitude,
+                longitude: req.body.longitude,
             },
             serviceDetails: {
                 eventTypes: req.body.eventTypes ? req.body.eventTypes.split(",") : [],
