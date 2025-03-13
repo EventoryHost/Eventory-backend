@@ -1,5 +1,5 @@
 import { Quotation } from "../models/quotation.js";
-import APIFeatures from "../utils/APIFeatures.js";
+import APIFeatures from "../utils/apiFeatures.js";
 
 const getQuotations = async (req, res, next) => {
   try {
