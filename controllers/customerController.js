@@ -5,7 +5,7 @@ import { Decorator } from "../models/decoraters.js";
 import PropRental from "../models/props.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
-import jwt from "jsonwebtoken";
+
 
 export const addCustomer = async (req, res) => {
   try {
