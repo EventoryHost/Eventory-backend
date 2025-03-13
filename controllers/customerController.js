@@ -1,10 +1,11 @@
 import { Caterer } from "../models/caterer.js";
 import { Customer } from "../models/customer.js";
-import Photographer from "../models/photographers.js"
-import {Decorator} from "../models/decoraters.js"
-import PropRental from "../models/props.js"
+import Photographer from "../models/photographers.js";
+import { Decorator } from "../models/decoraters.js";
+import PropRental from "../models/props.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
+import jwt from "jsonwebtoken";
 
 export const addCustomer = async (req, res) => {
   try {
