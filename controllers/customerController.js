@@ -6,7 +6,6 @@ import PropRental from "../models/props.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
 
-
 export const addCustomer = async (req, res) => {
   try {
     const { name, phone } = req.body;
