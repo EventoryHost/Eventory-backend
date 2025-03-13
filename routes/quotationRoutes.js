@@ -9,13 +9,14 @@ const router = express.Router();
 // Create a new quotation
 router.post("/", async (req, res) => {
   try {
-
     const parsedBudget = Number(req.body.budget);
     const parsedNumberOfGuest = Number(req.body.number_of_guest);
 
     // Validate budget and number_of_guest
     if (isNaN(parsedBudget) || isNaN(parsedNumberOfGuest)) {
-      return res.status(400).json({ error: "Budget and Number of Guests must be valid numbers." });
+      return res
+        .status(400)
+        .json({ error: "Budget and Number of Guests must be valid numbers." });
     }
     const newQuotation = new Quotation({
       // Meta Data
@@ -23,7 +24,7 @@ router.post("/", async (req, res) => {
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
 
-      id:generateUniqueId("quo"),
+      id: generateUniqueId("quo"),
       // Data
       user_name: req.body.user_name,
       email: req.body.email,
@@ -47,9 +48,9 @@ router.post("/", async (req, res) => {
         message: "Customer not found",
       });
     }
-  
+
     const savedQuotation = await newQuotation.save();
-    
+
     if (!customer.bookings) {
       customer.bookings = [];
     }
@@ -99,9 +100,9 @@ router.get("/", async (req, res) => {
     const query = {};
     // if (vendor_id) query.vendor_id = vendor_id;
     if (user_id) query.user_id = user_id;
-     console.log(query);
+    console.log(query);
     const quotations = await Quotation.find(query);
-    
+
     if (quotations.length === 0) {
       return res.status(404).json({
         message: `No quotations found for ${vendor_id ? "vendor_id: " + vendor_id : "user_id: " + user_id}`,
@@ -137,7 +138,6 @@ router.patch("/", async (req, res) => {
     });
   }
 });
-
 
 router.route("/myquotations").get(getQuotations);
 
