@@ -7,13 +7,13 @@ import APIFeatures from "../utils/apiFeatures.js";
 const searchVenues = async (query) => {
    const filters = {};
 
-   console.log(query);
+   // console.log(query);
 
    //handle price range
    if (query.minPrice || query.maxPrice) {
-      filters['filters.startingPrice'] = {};
-      if (query.minPrice) filters['filters.startingPrice'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['filters.startingPrice'].$lte = parseInt(query.maxPrice, 10);
+      filters['additionalDetails.priceStartingFrom'] = {};
+      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
+      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
    }
 
    //handle guest capacity range
@@ -22,12 +22,12 @@ const searchVenues = async (query) => {
       const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
 
       if (minCapacity !== null && maxCapacity !== null) {
-         filters['filters.guestCapacity.ll'] = { $lte: maxCapacity };
-         filters['filters.guestCapacity.ul'] = { $gte: minCapacity };
+         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
+         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
       } else if (minCapacity !== null) {
-         filters['filters.guestCapacity.ll'] = { $lte: maxCapacity };
+         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
       } else if (maxCapacity !== null) {
-         filters['filters.guestCapacity.ul'] = { $gte: minCapacity };
+         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
       }
    }
 
@@ -37,7 +37,7 @@ const searchVenues = async (query) => {
       filters['featureDetails.venueTypes'] = { $in: query.venueTypes };
    }
 
-   // console.log(filters);
+   // console.log("priyanshu", filters, "end");
 
    let venueQuery = Venue.find(filters);
 
@@ -68,7 +68,7 @@ const searchDecorators = async (query) => {
    }
 
    console.log("priyanshu", filters, "end");
-   
+
    let decoratorQuery = Decorator.find(filters);
 
    const apiFeatures = new APIFeatures(decoratorQuery, query).sort().limitFields().paginate();
@@ -133,11 +133,11 @@ const searchPAV = async (query) => {
    const filters = {};
 
    // Handle price range
-   // if (query.minPrice || query.maxPrice) {
-   //    filters['filters.price'] = {};
-   //    if (query.minPrice) filters['filters.price'].$gte = parseInt(query.minPrice, 10);
-   //    if (query.maxPrice) filters['filters.price'].$lte = parseInt(query.maxPrice, 10);
-   // }
+   if (query.minPrice || query.maxPrice) {
+      filters['additionalDetails.priceStartingFrom'] = {};
+      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
+      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
+   }
 
    // Handle event types filtering
    if (query.eventTypes) {
@@ -166,6 +166,8 @@ const searchPAV = async (query) => {
          }
       }
    }
+
+   console.log("priyanshu", filters, "end");
 
    let photographerQuery = Photographer.find(filters);
 

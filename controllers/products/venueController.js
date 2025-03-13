@@ -155,6 +155,7 @@ import { Caterer } from "../../models/caterer.js";
 import { Decorator } from "../../models/decoraters.js";
 import Photographer from "../../models/photographers.js";
 import PropRental from "../../models/props.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -243,14 +244,14 @@ const createVenue = async (req, res) => {
         completed: false, // Will be updated based on completion
         name: req.body.name,
         managerName: req.body.managerName,
-        capacity: req.body.capacity,
+        capacity: parseRange(req.body.capacity),
         operatingHours: req.body.operatingHours,
         address: req.body.address,
         description: req.body.description,
         location: req.body.location,
         profileCompletion: 0, // Initial placeholder
       },
-      
+
       featureDetails: {
         completed: false, // Will be updated based on completion
         catererServices: req.body.catererServices,

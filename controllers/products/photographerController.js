@@ -1,5 +1,7 @@
+// import { Photographer } from "../../models/photographers.js";
 import Photographer from "../../models/photographers.js";
 import { Vendor as User } from "../../models/users.js";
+import parseRange from '../../utils/parseRange.js';
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -166,10 +168,7 @@ const createPhotographer = async (req, res) => {
     console.log("Profile Completion:", profileCompletion);
 
     // Prepare eventSize object
-    const eventSize = {
-      ul: req.body.eventSize.ul, // Upper limit
-      ll: req.body.eventSize.ll, // Lower limit
-    };
+    const eventSize = parseRange(req.body.eventSize);
 
     // Prepare Videography and Photography finalDeliveryMethods
     const Videography = {
