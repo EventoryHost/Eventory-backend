@@ -1,7 +1,7 @@
 // import { Photographer } from "../../models/photographers.js";
 import Photographer from "../../models/photographers.js";
 import { Vendor as User } from "../../models/users.js";
-import parseRange from '../../utils/parseRange.js';
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -160,7 +160,7 @@ const createPhotographer = async (req, res) => {
 
     const completedFields = fieldsToCheck.filter((field) => !!field).length;
     const profileCompletion =
-      Math.round((completedFields / fieldsToCheck.length)) * 100 || 0;
+      Math.round(completedFields / fieldsToCheck.length) * 100 || 0;
 
     // Debug profile completion calculation
     console.log("Fields to Check:", fieldsToCheck);

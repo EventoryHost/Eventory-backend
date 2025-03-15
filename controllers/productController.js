@@ -5,16 +5,24 @@ import Photographer from "../models/photographers.js";
 import APIFeatures from "../utils/apiFeatures.js";
 
 const searchVenues = async (query) => {
-   const filters = {};
+  const filters = {};
 
-   // console.log(query);
+  // console.log(query);
 
-   //handle price range
-   if (query.minPrice || query.maxPrice) {
-      filters['additionalDetails.priceStartingFrom'] = {};
-      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
-   }
+  //handle price range
+  if (query.minPrice || query.maxPrice) {
+    filters["additionalDetails.priceStartingFrom"] = {};
+    if (query.minPrice)
+      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+        query.minPrice,
+        10,
+      );
+    if (query.maxPrice)
+      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+        query.maxPrice,
+        10,
+      );
+  }
 
   //handle guest capacity range
   if (query.minCapacity || query.maxCapacity) {
@@ -25,15 +33,15 @@ const searchVenues = async (query) => {
       ? parseInt(query.maxCapacity, 10)
       : null;
 
-      if (minCapacity !== null && maxCapacity !== null) {
-         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
-         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
-      } else if (minCapacity !== null) {
-         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
-      } else if (maxCapacity !== null) {
-         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
-      }
-   }
+    if (minCapacity !== null && maxCapacity !== null) {
+      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
+    } else if (minCapacity !== null) {
+      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+    } else if (maxCapacity !== null) {
+      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
+    }
+  }
 
   //handle veneue types
   if (query.venueTypes) {
@@ -41,7 +49,7 @@ const searchVenues = async (query) => {
     filters["featureDetails.venueTypes"] = { $in: query.venueTypes };
   }
 
-   // console.log("priyanshu", filters, "end");
+  // console.log("priyanshu", filters, "end");
 
   let venueQuery = Venue.find(filters);
 
@@ -50,37 +58,44 @@ const searchVenues = async (query) => {
     .limitFields()
     .paginate();
 
-   const totalResults = await Decorator.countDocuments(filters); // Get total count
-   const page = query.page ? parseInt(query.page, 10) : 1;
-   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-   const totalPages = Math.ceil(totalResults / limit);
+  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const totalPages = Math.ceil(totalResults / limit);
 
+  const data = await apiFeatures.query;
 
-   const data = await apiFeatures.query;
-
-   return { data, totalResults, totalPages, currentPage: page };
+  return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchDecorators = async (query) => {
-   const filters = {};
-   if (query.minPrice || query.maxPrice) {
-      filters['additionalDetails.priceStartingFrom'] = {};
-      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
-   }
+  const filters = {};
+  if (query.minPrice || query.maxPrice) {
+    filters["additionalDetails.priceStartingFrom"] = {};
+    if (query.minPrice)
+      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+        query.minPrice,
+        10,
+      );
+    if (query.maxPrice)
+      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+        query.maxPrice,
+        10,
+      );
+  }
 
-   if (query.rating) {
-      filters['rating'] = {};
-      filters['rating'].$gte = parseInt(query.minPrice, 10);
-   }
+  if (query.rating) {
+    filters["rating"] = {};
+    filters["rating"].$gte = parseInt(query.minPrice, 10);
+  }
 
-   // Handle themes offered
-   if (query.themes) {
-      query.themes = query.themes ? query.themes.split(',') : [];
-      filters['themesOffered.themesOffered'] = { $in: query.themes };
-   }
+  // Handle themes offered
+  if (query.themes) {
+    query.themes = query.themes ? query.themes.split(",") : [];
+    filters["themesOffered.themesOffered"] = { $in: query.themes };
+  }
 
-   console.log("priyanshu", filters, "end");
+  console.log("priyanshu", filters, "end");
 
   let decoratorQuery = Decorator.find(filters);
 
@@ -89,32 +104,39 @@ const searchDecorators = async (query) => {
     .limitFields()
     .paginate();
 
-   const totalResults = await Decorator.countDocuments(filters); // Get total count
-   const page = query.page ? parseInt(query.page, 10) : 1;
-   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-   const totalPages = Math.ceil(totalResults / limit);
+  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const totalPages = Math.ceil(totalResults / limit);
 
+  const data = await apiFeatures.query;
 
-   const data = await apiFeatures.query;
-
-   return { data, totalResults, totalPages, currentPage: page };
+  return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchCaterers = async (query) => {
-   // console.log("start", query, "End");
-   const filters = {};
+  // console.log("start", query, "End");
+  const filters = {};
 
-   // Handle price range
-   if (query.minPrice || query.maxPrice) {
-      filters['additionalDetails.priceStartingFrom'] = {};
-      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
-   }
+  // Handle price range
+  if (query.minPrice || query.maxPrice) {
+    filters["additionalDetails.priceStartingFrom"] = {};
+    if (query.minPrice)
+      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+        query.minPrice,
+        10,
+      );
+    if (query.maxPrice)
+      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+        query.maxPrice,
+        10,
+      );
+  }
 
-   if (query.rating) {
-      filters['rating'] = {};
-      filters['rating'].$gte = parseInt(query.minPrice, 10);
-   }
+  if (query.rating) {
+    filters["rating"] = {};
+    filters["rating"].$gte = parseInt(query.minPrice, 10);
+  }
 
   // Handle guest capacity range
   if (query.minCapacity || query.maxCapacity) {
@@ -125,15 +147,15 @@ const searchCaterers = async (query) => {
       ? parseInt(query.maxCapacity, 10)
       : null;
 
-      if (minCapacity !== null && maxCapacity !== null) {
-         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
-         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
-      } else if (minCapacity !== null) {
-         filters['basicDetails.capacity.ul'] = { $gte: minCapacity };
-      } else if (maxCapacity !== null) {
-         filters['basicDetails.capacity.ll'] = { $lte: maxCapacity };
-      }
-   }
+    if (minCapacity !== null && maxCapacity !== null) {
+      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
+    } else if (minCapacity !== null) {
+      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
+    } else if (maxCapacity !== null) {
+      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+    }
+  }
 
   if (query.cuisineSpecialities) {
     const cuisineList = query.cuisineSpecialities
@@ -146,35 +168,42 @@ const searchCaterers = async (query) => {
     filters["menuDetails.vegOrNonVeg"] = query.vegOrNonVeg.toLowerCase();
   }
 
-   let catererQuery = Caterer.find(filters);
+  let catererQuery = Caterer.find(filters);
 
-   // console.log("priyanshu", filters, "end");
+  // console.log("priyanshu", filters, "end");
 
   const apiFeatures = new APIFeatures(catererQuery, query)
     .sort()
     .limitFields()
     .paginate();
 
-   const totalResults = await Decorator.countDocuments(filters); // Get total count
-   const page = query.page ? parseInt(query.page, 10) : 1;
-   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-   const totalPages = Math.ceil(totalResults / limit);
+  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const totalPages = Math.ceil(totalResults / limit);
 
+  const data = await apiFeatures.query;
 
-   const data = await apiFeatures.query;
-
-   return { data, totalResults, totalPages, currentPage: page };
+  return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchPAV = async (query) => {
   const filters = {};
 
-   // Handle price range
-   if (query.minPrice || query.maxPrice) {
-      filters['additionalDetails.priceStartingFrom'] = {};
-      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
-      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
-   }
+  // Handle price range
+  if (query.minPrice || query.maxPrice) {
+    filters["additionalDetails.priceStartingFrom"] = {};
+    if (query.minPrice)
+      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+        query.minPrice,
+        10,
+      );
+    if (query.maxPrice)
+      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+        query.maxPrice,
+        10,
+      );
+  }
 
   // Handle event types filtering
   if (query.eventTypes) {
@@ -182,29 +211,29 @@ const searchPAV = async (query) => {
     filters["basicDetails.eventTypes"] = { $in: eventList };
   }
 
-   // Handle services and styles filtering
-   if (query.services) {
-      const services = query.services.toLowerCase();
-      if (services === 'photography' || services === 'videography') {
-         const stylesField = `${services.charAt(0).toUpperCase() + services.slice(1)}.typesOfStyles`;
-         if (query.styles) {
-            const stylesList = query.styles.split(',').map(style => style.trim());
-            filters[stylesField] = { $in: stylesList };
-         }
-      } else if (services === 'both') {
-         const photoStylesField = 'Photography.typesOfStyles';
-         const videoStylesField = 'Videography.typesOfStyles';
-         if (query.styles) {
-            const stylesList = query.styles.split(',').map(style => style.trim());
-            filters.$or = [
-               { [photoStylesField]: { $in: stylesList } },
-               { [videoStylesField]: { $in: stylesList } }
-            ];
-         }
+  // Handle services and styles filtering
+  if (query.services) {
+    const services = query.services.toLowerCase();
+    if (services === "photography" || services === "videography") {
+      const stylesField = `${services.charAt(0).toUpperCase() + services.slice(1)}.typesOfStyles`;
+      if (query.styles) {
+        const stylesList = query.styles.split(",").map((style) => style.trim());
+        filters[stylesField] = { $in: stylesList };
       }
-   }
+    } else if (services === "both") {
+      const photoStylesField = "Photography.typesOfStyles";
+      const videoStylesField = "Videography.typesOfStyles";
+      if (query.styles) {
+        const stylesList = query.styles.split(",").map((style) => style.trim());
+        filters.$or = [
+          { [photoStylesField]: { $in: stylesList } },
+          { [videoStylesField]: { $in: stylesList } },
+        ];
+      }
+    }
+  }
 
-   console.log("priyanshu", filters, "end");
+  console.log("priyanshu", filters, "end");
 
   let photographerQuery = Photographer.find(filters);
 
@@ -213,55 +242,55 @@ const searchPAV = async (query) => {
     .limitFields()
     .paginate();
 
-   const totalResults = await Decorator.countDocuments(filters); // Get total count
-   const page = query.page ? parseInt(query.page, 10) : 1;
-   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-   const totalPages = totalResults / limit;
+  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const totalPages = totalResults / limit;
 
-   const data = await apiFeatures.query;
+  const data = await apiFeatures.query;
 
-   return { data, totalResults, totalPages, currentPage: page };
+  return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchProducts = async (req, res, next) => {
-   try {
-      const { type } = req.query;
-      let results;
+  try {
+    const { type } = req.query;
+    let results;
 
-      switch (type) {
-         case "venues":
-            results = await searchVenues(req.query);
-            break;
-         case "decorators":
-            results = await searchDecorators(req.query);
-            break;
-         case "caterers":
-            results = await searchCaterers(req.query);
-            break;
-         case "pav":
-            results = await searchPAV(req.query);
-            break;
-         default:
-            return res.status(400).json({ message: "Invalid Product type." });
-      }
+    switch (type) {
+      case "venues":
+        results = await searchVenues(req.query);
+        break;
+      case "decorators":
+        results = await searchDecorators(req.query);
+        break;
+      case "caterers":
+        results = await searchCaterers(req.query);
+        break;
+      case "pav":
+        results = await searchPAV(req.query);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid Product type." });
+    }
 
-      // console.log("finals: ", results);
-      const { data, totalResults, totalPages, currentPage } = results;
+    // console.log("finals: ", results);
+    const { data, totalResults, totalPages, currentPage } = results;
 
-      res.status(200).json({
-         message: "Search results fetched successfully.",
-         size: data.length,
-         totalResults,
-         totalPages: totalPages+1,
-         currentPage,
-         results: data
-      });
-   } catch (e) {
-      console.error(e);
-      res.status(500).json({
-         message: "Error fetching the results."
-      });
-   }
-}
+    res.status(200).json({
+      message: "Search results fetched successfully.",
+      size: data.length,
+      totalResults,
+      totalPages: totalPages + 1,
+      currentPage,
+      results: data,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      message: "Error fetching the results.",
+    });
+  }
+};
 
 export default searchProducts;

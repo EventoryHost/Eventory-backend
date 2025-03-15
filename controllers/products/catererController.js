@@ -94,9 +94,9 @@ const createCaterer = async (req, res) => {
       req.body.service_style_offered,
       req.body.vegOrNonVeg,
       menu.length > 0 ||
-      (req.body.appetizers?.length > 0 &&
-        req.body.beverages?.length > 0 &&
-        req.body.main_course?.length > 0),
+        (req.body.appetizers?.length > 0 &&
+          req.body.beverages?.length > 0 &&
+          req.body.main_course?.length > 0),
       req.body.special_dietary_options?.length > 0,
       req.body.pre_set_menus?.length > 0,
       req.body.customizable === "true",
@@ -170,7 +170,7 @@ const createCaterer = async (req, res) => {
       policies: {
         cancellation_policy: cancellationPolicyFileUrl,
         terms_and_conditions: termsAndConditionsFileUrl,
-        client_testimonials: clientTestimonialsUrl
+        client_testimonials: clientTestimonialsUrl,
       },
     });
 

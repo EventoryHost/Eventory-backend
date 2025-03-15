@@ -29,7 +29,7 @@ const catererSchema = new Schema({
           validator: function (v) {
             return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
           },
-          message: props => `${props.value} is not a valid 6-digit pincode!`
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
         },
         // required: [true, 'Pincode is required'] // Ensures the pincode is required
       },
@@ -39,7 +39,11 @@ const catererSchema = new Schema({
   menuDetails: {
     completed: { type: Boolean, default: false },
     menu: { type: [String], required: true },
-    vegOrNonVeg: { type: String, enum: ["veg", "nonVeg", "both"], required: true },
+    vegOrNonVeg: {
+      type: String,
+      enum: ["veg", "nonVeg", "both"],
+      required: true,
+    },
     appetizers: [String],
     main_course: [String],
     beverages: [String],
@@ -77,7 +81,12 @@ const catererSchema = new Schema({
     terms_and_conditions: { type: String },
     client_testimonials: { type: String },
   },
-  id: { type: String, default: generateUniqueId("cat"), required: true, unique: true },
+  id: {
+    type: String,
+    default: generateUniqueId("cat"),
+    required: true,
+    unique: true,
+  },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "caterer" },
   schedule: [eventSchema],

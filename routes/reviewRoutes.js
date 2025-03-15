@@ -1,9 +1,9 @@
 import express from "express";
 import {
-   createReview,
-   getReviewsByVendor,
-   updateReview,
-   deleteReview,
+  createReview,
+  getReviewsByVendor,
+  updateReview,
+  deleteReview,
 } from "../controllers/reviewController.js";
 
 const reviewRoutes = express.Router();

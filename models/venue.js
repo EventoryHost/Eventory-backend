@@ -11,7 +11,12 @@ export const eventSchema = new Schema({
 });
 
 const venueSchema = new Schema({
-  id: { type: String, default: generateUniqueId("veu"), required: true, unique: true },
+  id: {
+    type: String,
+    default: generateUniqueId("veu"),
+    required: true,
+    unique: true,
+  },
   type: { type: String, default: "venue" },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "venue" },
@@ -49,7 +54,7 @@ const venueSchema = new Schema({
           validator: function (v) {
             return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
           },
-          message: props => `${props.value} is not a valid 6-digit pincode!`
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
         },
         // required: [true, 'Pincode is required'] // Ensures the pincode is required
       },
@@ -89,8 +94,6 @@ const venueSchema = new Schema({
     termsConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
-
-   
   },
   reviews: [
     {

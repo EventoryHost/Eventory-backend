@@ -37,7 +37,7 @@ const photographerSchema = Schema({
           validator: function (v) {
             return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
           },
-          message: props => `${props.value} is not a valid 6-digit pincode!`
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
         },
         // required: [true, 'Pincode is required'] // Ensures the pincode is required
       },

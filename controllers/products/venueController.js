@@ -227,8 +227,10 @@ const createVenue = async (req, res) => {
     }
 
     // Extract file URLs from the request
-    const termsAndConditionsFileUrl = req.files?.termsConditions?.[0]?.path || [];
-    const cancellationPolicyFileUrl = req.files?.cancellationPolicy?.[0]?.path || [];
+    const termsAndConditionsFileUrl =
+      req.files?.termsConditions?.[0]?.path || [];
+    const cancellationPolicyFileUrl =
+      req.files?.cancellationPolicy?.[0]?.path || [];
     const insurancePolicyFileUrl = req.files?.insurancePolicy?.[0]?.path || [];
     const photos = req.files?.photos?.map((file) => file.path) || [];
     const videos = req.files?.videos?.map((file) => file.path) || [];
