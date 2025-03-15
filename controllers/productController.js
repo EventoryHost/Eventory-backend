@@ -43,17 +43,23 @@ const searchVenues = async (query) => {
 
    const apiFeatures = new APIFeatures(venueQuery, query).sort().limitFields().paginate();
 
-   const venues = await apiFeatures.query;
+   const totalResults = await Decorator.countDocuments(filters); // Get total count
+   const page = query.page ? parseInt(query.page, 10) : 1;
+   const limit = query.limit ? parseInt(query.limit, 10) : 9;
+   const totalPages = Math.ceil(totalResults / limit);
 
-   return venues;
+
+   const data = await apiFeatures.query;
+
+   return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchDecorators = async (query) => {
    const filters = {};
    if (query.minPrice || query.maxPrice) {
       filters['additionalDetails.priceStartingFrom'] = {};
-      if (query.minPrice) filters['additionalDetails.priceStartingFrom'] = { $gte: parseInt(query.minPrice, 10) };
-      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'] = { $lte: parseInt(query.maxPrice, 10) };
+      if (query.minPrice) filters['additionalDetails.priceStartingFrom'].$gte = parseInt(query.minPrice, 10);
+      if (query.maxPrice) filters['additionalDetails.priceStartingFrom'].$lte = parseInt(query.maxPrice, 10);
    }
 
    if (query.rating) {
@@ -73,9 +79,15 @@ const searchDecorators = async (query) => {
 
    const apiFeatures = new APIFeatures(decoratorQuery, query).sort().limitFields().paginate();
 
-   const decorators = await apiFeatures.query;
+   const totalResults = await Decorator.countDocuments(filters); // Get total count
+   const page = query.page ? parseInt(query.page, 10) : 1;
+   const limit = query.limit ? parseInt(query.limit, 10) : 9;
+   const totalPages = Math.ceil(totalResults / limit);
 
-   return decorators;
+
+   const data = await apiFeatures.query;
+
+   return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchCaterers = async (query) => {
@@ -124,9 +136,15 @@ const searchCaterers = async (query) => {
 
    const apiFeatures = new APIFeatures(catererQuery, query).sort().limitFields().paginate();
 
-   const caterers = await apiFeatures.query;
+   const totalResults = await Decorator.countDocuments(filters); // Get total count
+   const page = query.page ? parseInt(query.page, 10) : 1;
+   const limit = query.limit ? parseInt(query.limit, 10) : 9;
+   const totalPages = Math.ceil(totalResults / limit);
 
-   return caterers;
+
+   const data = await apiFeatures.query;
+
+   return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchPAV = async (query) => {
@@ -173,9 +191,14 @@ const searchPAV = async (query) => {
 
    const apiFeatures = new APIFeatures(photographerQuery, query).sort().limitFields().paginate();
 
-   const photographers = await apiFeatures.query;
+   const totalResults = await Decorator.countDocuments(filters); // Get total count
+   const page = query.page ? parseInt(query.page, 10) : 1;
+   const limit = query.limit ? parseInt(query.limit, 10) : 9;
+   const totalPages = totalResults / limit;
 
-   return photographers;
+   const data = await apiFeatures.query;
+
+   return { data, totalResults, totalPages, currentPage: page };
 };
 
 const searchProducts = async (req, res, next) => {
@@ -201,11 +224,15 @@ const searchProducts = async (req, res, next) => {
       }
 
       // console.log("finals: ", results);
+      const { data, totalResults, totalPages, currentPage } = results;
 
       res.status(200).json({
          message: "Search results fetched successfully.",
-         size: results.length,
-         results
+         size: data.length,
+         totalResults,
+         totalPages: totalPages+1,
+         currentPage,
+         results: data
       });
    } catch (e) {
       console.error(e);
