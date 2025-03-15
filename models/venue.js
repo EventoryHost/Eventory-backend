@@ -87,10 +87,20 @@ const venueSchema = new Schema({
     termsConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
-  },
 
-  rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
+   
+  },
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 const Venue = model("Venue", venueSchema);
+
 export { Venue, venueSchema };
