@@ -123,6 +123,9 @@ const createDecorator = async (req, res) => {
         eventSize: parseRange(req.body.eventSize),
         eventTypes,
         duration: req.body.duration,
+        address: req.body.address,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
         profileCompletion,
         location: {
           lat: req.body.location?.lat, // Latitude
