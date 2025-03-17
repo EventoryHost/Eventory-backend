@@ -169,6 +169,7 @@ const createPhotographer = async (req, res) => {
 
     // Prepare eventSize object
     const eventSize = parseRange(req.body.eventSize);
+    console.log("Parsed Event Size:", eventSize);
 
     // Prepare Videography and Photography finalDeliveryMethods
     const Videography = {
@@ -216,7 +217,7 @@ const createPhotographer = async (req, res) => {
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
-        eventSize, // Updated to object
+        eventSize:parseRange(req.body.eventSize), // Updated to object
         eventTypes: req.body.eventTypes,
         profileCompletion, // Updated profile completion
         location: req.body.location, // Added location field

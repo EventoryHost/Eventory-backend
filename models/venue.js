@@ -40,9 +40,9 @@ const venueSchema = new Schema({
         minute: { type: Number, required: true, min: 0, max: 59 }, // Minute (0-59)
       },
     },
-    address: { type: String, required: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    // address: { type: String, required: true },
+    // latitude: { type: Number, required: true },
+    // longitude: { type: Number, required: true },
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
     location: {

@@ -218,13 +218,14 @@ const updateSectionCompletion = async (venId) => {
 const createVenue = async (req, res) => {
   try {
     // Check if the venue already exists
-    const alreadyExists = await Venue.findOne({
-      "basicDetails.name": req.body.name,
-      venId: req.body.venId,
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Venue already exists" });
-    }
+    console.log(req.body)
+    // const alreadyExists = await Venue.findOne({
+    //   "basicDetails.name": req.body.name,
+    //   venId: req.body.venId,
+    // });
+    // if (alreadyExists) {
+    //   return res.status(400).json({ message: "Venue already exists" });
+    // }
 
     // Extract file URLs from the request
     const termsAndConditionsFileUrl =
@@ -235,7 +236,11 @@ const createVenue = async (req, res) => {
     const photos = req.files?.photos?.map((file) => file.path) || [];
     const videos = req.files?.videos?.map((file) => file.path) || [];
 
+    console.log("Hit3")
     // Create a new venue object
+    console.log(JSON.parse(req.body.operatingHours));
+    const operatingHours = JSON.parse(req.body.operatingHours);
+    console.log("Hit");
     const newVenue = new Venue({
       type: "venue",
       venId: req.body.venId,
@@ -247,10 +252,14 @@ const createVenue = async (req, res) => {
         name: req.body.name,
         managerName: req.body.managerName,
         capacity: parseRange(req.body.capacity),
-        operatingHours: req.body.operatingHours,
-        address: req.body.address,
+        operatingHours,
+        // address: req.body.address,
         description: req.body.description,
-        location: req.body.location,
+        location: {
+          lat: req.body.latitude,
+          lng: req.body.longitude,
+          googleMapsAddress:req.body.address
+        },
         profileCompletion: 0, // Initial placeholder
       },
 
@@ -274,7 +283,7 @@ const createVenue = async (req, res) => {
         clientTestimonials: req.body.clientTestimonials,
         instagramURL: req.body.instagramURL,
         websiteURL: req.body.websiteURL,
-        advanceBookingPeriod: req.body.advanceBookingPeriod,
+        advanceBookingPeriod: parseRange(req.body.advanceBookingPeriod),
         priceStartingFrom: req.body.priceStartingFrom,
       },
 
