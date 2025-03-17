@@ -217,7 +217,7 @@ const createPhotographer = async (req, res) => {
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
-        eventSize:parseRange(req.body.eventSize), // Updated to object
+        eventSize: parseRange(req.body.eventSize), // Updated to object
         eventTypes: req.body.eventTypes,
         profileCompletion, // Updated profile completion
         location: req.body.location, // Added location field

@@ -218,7 +218,7 @@ const updateSectionCompletion = async (venId) => {
 const createVenue = async (req, res) => {
   try {
     // Check if the venue already exists
-    console.log(req.body)
+    console.log(req.body);
     // const alreadyExists = await Venue.findOne({
     //   "basicDetails.name": req.body.name,
     //   venId: req.body.venId,
@@ -236,7 +236,7 @@ const createVenue = async (req, res) => {
     const photos = req.files?.photos?.map((file) => file.path) || [];
     const videos = req.files?.videos?.map((file) => file.path) || [];
 
-    console.log("Hit3")
+    console.log("Hit3");
     // Create a new venue object
     console.log(JSON.parse(req.body.operatingHours));
     const operatingHours = JSON.parse(req.body.operatingHours);
@@ -258,7 +258,7 @@ const createVenue = async (req, res) => {
         location: {
           lat: req.body.latitude,
           lng: req.body.longitude,
-          googleMapsAddress:req.body.address
+          googleMapsAddress: req.body.address,
         },
         profileCompletion: 0, // Initial placeholder
       },
