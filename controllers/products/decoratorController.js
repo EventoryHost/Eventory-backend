@@ -116,6 +116,7 @@ const createDecorator = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
+      console.log("decorator:",req.body);
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
@@ -128,9 +129,9 @@ const createDecorator = async (req, res) => {
         longitude: req.body.longitude,
         profileCompletion,
         location: {
-          lat: req.body.location?.lat, // Latitude
-          lng: req.body.location?.lng, // Longitude
-          googleMapsAddress: req.body.location?.googleMapsAddress, // Google Maps address
+          lat: req.body.latitude, // Latitude
+          lng: req.body.longitude, // Longitude
+          googleMapsAddress: req.body.address, // Google Maps address
         },
       },
       themesOffered: {
