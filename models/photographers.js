@@ -24,9 +24,9 @@ const photographerSchema = Schema({
       type: [String],
       required: true,
     },
-    address: { type: String, required: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    // address: { type: String, required: true },
+    // latitude: { type: Number, required: true },
+    // longitude: { type: Number, required: true },
     profileCompletion: { type: Number, default: 0 },
     location: {
       lat: { type: Number }, // Latitude
@@ -64,8 +64,8 @@ const photographerSchema = Schema({
       type: [String],
     },
     finalDeliveryMethods: {
-      type: String,
-      enum: ["Digital Download", "USB Drive", "Physical Album", "Other"],
+      type: [String],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   Photography: {
@@ -80,19 +80,24 @@ const photographerSchema = Schema({
       type: [String],
     },
     finalDeliveryMethods: {
-      type: String,
-      enum: ["Digital Download", "USB Drive", "Physical Album", "Other"],
+      type: [String],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   consultationDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     duration: {
       type: String,
-      enum: ["30 mins", "1 hour", "2 hours", "Custom"],
+      enum: [
+        "Less than 1 week",
+        "Less than 2 weeks",
+        "2-4 weeks",
+        "More than 4 weeks",
+      ],
     },
     PackageTypes: {
       type: String,
-      enum: ["Basic", "Premium", "Both"],
+      enum: ["Customize", "Standard", "Both"],
       default: "Both",
     },
     proposalsToClients: {
