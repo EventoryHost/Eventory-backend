@@ -272,6 +272,48 @@ const searchAllVendors = async (query) => {
         );
     }
 
+    if (query.minCapacity || query.maxCapacity) {
+      const minCapacity = query.minCapacity
+        ? parseInt(query.minCapacity, 10)
+        : null;
+      const maxCapacity = query.maxCapacity
+        ? parseInt(query.maxCapacity, 10)
+        : null;
+
+      if (minCapacity !== null && maxCapacity !== null) {
+        filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+        filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
+      } else if (minCapacity !== null) {
+        filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
+      } else if (maxCapacity !== null) {
+        filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+      }
+    }
+
+    // if (query.minCapacity || query.maxCapacity) {
+    //   const minCapacity = query.minCapacity
+    //     ? parseInt(query.minCapacity, 10)
+    //     : null;
+    //   const maxCapacity = query.maxCapacity
+    //     ? parseInt(query.maxCapacity, 10)
+    //     : null;
+
+    //   if (minCapacity !== null && maxCapacity !== null) {
+    //     filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
+    //     filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
+    //   } else if (minCapacity !== null) {
+    //     filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
+    //   } else if (maxCapacity !== null) {
+    //     filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
+    //   }
+    // }
+
+    if (query.eventTypes) {
+      query.venueTypes = query.venueTypes ? query.venueTypes.split(",") : [];
+      filters["featureDetails.venueTypes"] = { $in: query.venueTypes };
+    }
+
+
     const page = query.page ? parseInt(query.page, 10) : 1;
     const limit = query.limit ? parseInt(query.limit, 10) : 9;
     const skip = (page - 1) * limit;
@@ -318,11 +360,17 @@ const searchAllVendors = async (query) => {
         },
       },
 
-      { $sort: { _id: -1 } },
+      { $sort: { '_id': -1 } },
 
       { $skip: skip },
       { $limit: limit },
     ];
+
+    if (query.sort === "htl") {
+      pipeline.push({ $sort: { "additionalDetails.priceStartingFrom": -1 } }); // High to low
+    } else if (query.sort === "lth") {
+      pipeline.push({ $sort: { "additionalDetails.priceStartingFrom": 1 } }); // Low to high
+    }
 
     console.log(pipeline);
 
