@@ -3,6 +3,7 @@ import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
 import { getQuotations } from "../controllers/quotationController.js";
 import generateUniqueId from "../utils/generateId.js";
+import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
 
 const router = express.Router();
 
@@ -67,15 +68,25 @@ router.post("/", async (req, res) => {
 
     customer.bookings.push({
       serviceId: req.body.service_id,
-      bookingId: savedQuotation._id,
+      bookingId: savedQuotation.id,
     });
 
     await customer.save();
+
 
     res.status(201).json({
       message: "Quotation created successfully!",
       data: savedQuotation,
     });
+
+    setImmediate(() => {
+      sendConfirmationMessageToWhatsapp({
+        customer_mobile: customer.mobile,
+        customer_name: customer.name,
+        service_name: req.body.service_name,
+        id: newQuotation.id
+      });
+    })
   } catch (error) {
     res.status(500).json({
       message: "Error creating quotation",
