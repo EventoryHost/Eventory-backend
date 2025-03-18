@@ -62,8 +62,6 @@ const venueSchema = new Schema({
     termsConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
-
-   
   },
   reviews: [
     {
