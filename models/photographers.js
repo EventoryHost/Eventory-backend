@@ -21,6 +21,9 @@ const photographerSchema = Schema({
       type: [String],
       required: true,
     },
+    address: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
     profileCompletion: { type: Number, default: 0 },
   },
 

@@ -7,6 +7,7 @@ import {
   getFavoriteServices,
   removeFavourite,
   getCustomerByMobile,
+  updateCustomer,
 } from "../controllers/customerController.js";
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.get("/add-fav/:cusId/:serId", addFavourite);
 router.get("/get-fav/:cusId", getFavoriteServices);
 router.get("/remove-fav/:cusId/:serId", removeFavourite);
 router.get("/get-customer/:phone", getCustomerByMobile);
+router.put("/update-customer", updateCustomer);
 
 export default router;

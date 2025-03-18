@@ -11,10 +11,15 @@ const CustomerSchema = new Schema({
   },
   name: { type: String, required: true },
   mobile: { type: String, required: true },
-  bookings: [
+  email: { type: String, default: "" },
+  state: { type: String, default: "" },
+  city: { type: String, default: "" },
+  address: { type: String, default: "" },
+  pincode: { type: String, default: "" },
+  quotations: [
     {
       serviceId: { type: String, required: true },
-      bookingId: { type: String, required: true },
+      quotationId: { type: String, required: true },
     },
   ],
   favoriteServices: [{ type: String }],

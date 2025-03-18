@@ -239,6 +239,8 @@ const createVenue = async (req, res) => {
         address: req.body.address,
         operatingHours: req.body.operatingHours,
         description: req.body.description,
+        latitude: req.body.latitude, // Ensure latitude is included
+        longitude: req.body.longitude,
         profileCompletion: 0, // Initial placeholder
       },
       venId: req.body.venId,

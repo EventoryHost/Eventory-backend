@@ -124,6 +124,9 @@ const createDecorator = async (req, res) => {
         eventSize: req.body.eventSize,
         eventTypes,
         duration: req.body.duration,
+        address: req.body.address,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
         profileCompletion,
       },
       themesOffered: {

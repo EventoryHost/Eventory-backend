@@ -18,6 +18,8 @@ const venueSchema = new Schema({
     },
   },
   address: { type: String },
+  latitude: { type: Number },
+  longitude: { type: Number },
   venueDescription: {
     type: String,
   },
