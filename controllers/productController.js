@@ -263,12 +263,12 @@ const searchAllVendors = async (query) => {
       if (query.minPrice)
         filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
           query.minPrice,
-          10
+          10,
         );
       if (query.maxPrice)
         filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
           query.maxPrice,
-          10
+          10,
         );
     }
 
@@ -280,7 +280,9 @@ const searchAllVendors = async (query) => {
       { $match: filters },
       { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
-      { $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] } },
+      {
+        $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
+      },
       { $count: "total" }, // Get total count
     ];
 
@@ -292,7 +294,9 @@ const searchAllVendors = async (query) => {
       { $match: filters },
       { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
-      { $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] } },
+      {
+        $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
+      },
 
       {
         $set: {
@@ -339,8 +343,6 @@ const searchAllVendors = async (query) => {
     throw new Error("Error fetching vendors");
   }
 };
-
-
 
 const searchProducts = async (req, res, next) => {
   try {
