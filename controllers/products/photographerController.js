@@ -215,7 +215,7 @@ const createPhotographer = async (req, res) => {
     const basicDetails = {
       name: req.body.name,
       description: req.body.description,
-      eventSize:parseRange(req.body.eventSize), // Updated to object
+      eventSize: parseRange(req.body.eventSize), // Updated to object
       eventTypes: req.body.eventTypes,
       profileCompletion, // Updated profile completion
       location: {
@@ -223,7 +223,7 @@ const createPhotographer = async (req, res) => {
         lng: req.body.longitude, // Longitude
         googleMapsAddress: req.body.address, // Google Maps address
       }, // Added location field
-    }
+    };
 
     // Create new Photographer document
     const newPhotographer = new Photographer({

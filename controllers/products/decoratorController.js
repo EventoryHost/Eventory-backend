@@ -116,7 +116,7 @@ const createDecorator = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
-      console.log("decorator:",req.body);
+    console.log("decorator:", req.body);
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
