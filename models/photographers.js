@@ -65,10 +65,7 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
-      enum: [  "Google Drive Link",
-        "Physical Prints",
-        "Hardware",
-        "Others",],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   Photography: {
@@ -84,20 +81,19 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
-      enum: [  "Google Drive Link",
-        "Physical Prints",
-        "Hardware",
-        "Others",],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   consultationDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     duration: {
       type: String,
-      enum: [  "Less than 1 week",
+      enum: [
+        "Less than 1 week",
         "Less than 2 weeks",
         "2-4 weeks",
-        "More than 4 weeks",],
+        "More than 4 weeks",
+      ],
     },
     PackageTypes: {
       type: String,

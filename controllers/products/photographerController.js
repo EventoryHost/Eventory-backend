@@ -69,9 +69,9 @@ const checkCompletion = (section) => {
 };
 
 // Update section completion for a photographer
-const updateSectionCompletion = async (venId) => {
+const updateSectionCompletion = async (id) => {
   try {
-    const photographer = await Photographer.findOne({ venId });
+    const photographer = await Photographer.findOne({ id });
 
     if (!photographer) {
       throw new Error("Photographer not found");
@@ -168,8 +168,8 @@ const createPhotographer = async (req, res) => {
     console.log("Profile Completion:", profileCompletion);
 
     // Prepare eventSize object
-    const eventSize = parseRange(req.body.eventSize);
-    console.log("Parsed Event Size:", eventSize);
+    // const eventSizeCheck = parseRange(req.body.eventSize);
+    // console.log("Parsed Event Size:", eventSizeCheck);
 
     // Prepare Videography and Photography finalDeliveryMethods
     const Videography = {
@@ -212,16 +212,22 @@ const createPhotographer = async (req, res) => {
       termsAndConditions: termsAndConditionsFileUrl,
     };
 
+    const basicDetails = {
+      name: req.body.name,
+      description: req.body.description,
+      eventSize:parseRange(req.body.eventSize), // Updated to object
+      eventTypes: req.body.eventTypes,
+      profileCompletion, // Updated profile completion
+      location: {
+        lat: req.body.latitude, // Latitude
+        lng: req.body.longitude, // Longitude
+        googleMapsAddress: req.body.address, // Google Maps address
+      }, // Added location field
+    }
+
     // Create new Photographer document
     const newPhotographer = new Photographer({
-      basicDetails: {
-        name: req.body.name,
-        description: req.body.description,
-        eventSize:parseRange(req.body.eventSize), // Updated to object
-        eventTypes: req.body.eventTypes,
-        profileCompletion, // Updated profile completion
-        location: req.body.location, // Added location field
-      },
+      basicDetails,
       Videography, // Updated with enum for finalDeliveryMethods
       Photography, // Updated with enum for finalDeliveryMethods
       consultationDetails, // Updated with enum for duration and PackageTypes
@@ -231,6 +237,9 @@ const createPhotographer = async (req, res) => {
       vendorType: "photographer",
       rating: 0, // Added rating field
     });
+
+    // console.log(eventSizeCheck.ll);
+    // console.log(eventSizeCheck.ul);
 
     const saved = await newPhotographer.save();
     const vendor = await User.findOne({ id: req.body.venId });
@@ -246,7 +255,7 @@ const createPhotographer = async (req, res) => {
     await vendor.save();
 
     // Call to update section completion
-    await updateSectionCompletion(req.body.venId);
+    await updateSectionCompletion(newPhotographer.id);
 
     res.status(201).json({
       message: "Photographer created successfully",

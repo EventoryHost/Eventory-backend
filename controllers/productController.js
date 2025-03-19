@@ -252,12 +252,107 @@ const searchPAV = async (query) => {
   return { data, totalResults, totalPages, currentPage: page };
 };
 
+const searchAllVendors = async (query) => {
+  try {
+    const filters = {};
+    console.log(query);
+
+    // Handle price range filtering
+    if (query.minPrice || query.maxPrice) {
+      filters["additionalDetails.priceStartingFrom"] = {};
+      if (query.minPrice)
+        filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+          query.minPrice,
+          10,
+        );
+      if (query.maxPrice)
+        filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+          query.maxPrice,
+          10,
+        );
+    }
+
+    const page = query.page ? parseInt(query.page, 10) : 1;
+    const limit = query.limit ? parseInt(query.limit, 10) : 9;
+    const skip = (page - 1) * limit;
+
+    const countPipeline = [
+      { $match: filters },
+      { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
+      { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
+      {
+        $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
+      },
+      { $count: "total" }, // Get total count
+    ];
+
+    const countResult = await Venue.aggregate(countPipeline);
+    const totalResults = countResult.length > 0 ? countResult[0].total : 0;
+    const totalPages = Math.ceil(totalResults / limit);
+
+    const pipeline = [
+      { $match: filters },
+      { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
+      { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
+      {
+        $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
+      },
+
+      {
+        $set: {
+          vendorType: {
+            $cond: {
+              if: { $gt: [{ $type: "$capacity" }, "missing"] },
+              then: "Venue",
+              else: {
+                $cond: {
+                  if: { $gt: [{ $type: "$cuisineType" }, "missing"] },
+                  then: "Caterer",
+                  else: {
+                    $cond: {
+                      if: { $gt: [{ $type: "$decorType" }, "missing"] },
+                      then: "Decorator",
+                      else: "Photographer",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      { $sort: { _id: -1 } },
+
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    console.log(pipeline);
+
+    const result = await Venue.aggregate(pipeline);
+
+    return {
+      data: result || [],
+      totalResults,
+      totalPages,
+      currentPage: page,
+    };
+  } catch (error) {
+    console.error("Error fetching vendors:", error);
+    throw new Error("Error fetching vendors");
+  }
+};
+
 const searchProducts = async (req, res, next) => {
   try {
     const { type } = req.query;
     let results;
 
     switch (type) {
+      case "all":
+        results = await searchAllVendors(req.query);
+        break;
       case "venues":
         results = await searchVenues(req.query);
         break;
@@ -281,7 +376,7 @@ const searchProducts = async (req, res, next) => {
       message: "Search results fetched successfully.",
       size: data.length,
       totalResults,
-      totalPages: totalPages + 1,
+      totalPages: totalPages,
       currentPage,
       results: data,
     });
