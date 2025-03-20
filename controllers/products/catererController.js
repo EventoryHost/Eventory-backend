@@ -131,10 +131,15 @@ const createCaterer = async (req, res) => {
         cuisine_specialities: req.body.cuisine_specialities,
         regional_specialities: req.body.regional_specialities,
         service_style_offered: req.body.service_style_offered,
-        address: req.body.address,
-        latitude: req.body.latitude,
-        longitude: req.body.longitude,
+        // address: req.body.address,
+        // latitude: req.body.latitude,
+        // longitude: req.body.longitude,
         profileCompletion,
+        location: {
+          lat: req.body.latitude, // Latitude
+          lng: req.body.longitude, // Longitude
+          googleMapsAddress: req.body.address, // Google Maps address
+        },
       },
       venId: req.body.venId,
       menuDetails: {

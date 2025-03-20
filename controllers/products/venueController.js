@@ -326,6 +326,8 @@ const createVenue = async (req, res) => {
       insurancePolicyFileUrl,
     ];
 
+    console.log(req.body);
+
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
