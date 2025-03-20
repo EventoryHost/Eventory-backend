@@ -255,30 +255,20 @@ const searchPAV = async (query) => {
 const searchAllVendors = async (query) => {
   try {
     const filters = {};
-    console.log(query);
 
     // Handle price range filtering
     if (query.minPrice || query.maxPrice) {
       filters["additionalDetails.priceStartingFrom"] = {};
       if (query.minPrice)
-        filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
-          query.minPrice,
-          10
-        );
+        filters["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
       if (query.maxPrice)
-        filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
-          query.maxPrice,
-          10
-        );
+        filters["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
     }
 
+    // Handle capacity filtering
     if (query.minCapacity || query.maxCapacity) {
-      const minCapacity = query.minCapacity
-        ? parseInt(query.minCapacity, 10)
-        : null;
-      const maxCapacity = query.maxCapacity
-        ? parseInt(query.maxCapacity, 10)
-        : null;
+      const minCapacity = query.minCapacity ? parseInt(query.minCapacity, 10) : null;
+      const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
 
       if (minCapacity !== null && maxCapacity !== null) {
         filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
@@ -290,89 +280,62 @@ const searchAllVendors = async (query) => {
       }
     }
 
-    // if (query.minCapacity || query.maxCapacity) {
-    //   const minCapacity = query.minCapacity
-    //     ? parseInt(query.minCapacity, 10)
-    //     : null;
-    //   const maxCapacity = query.maxCapacity
-    //     ? parseInt(query.maxCapacity, 10)
-    //     : null;
-
-    //   if (minCapacity !== null && maxCapacity !== null) {
-    //     filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
-    //     filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
-    //   } else if (minCapacity !== null) {
-    //     filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
-    //   } else if (maxCapacity !== null) {
-    //     filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
-    //   }
-    // }
-
+    // Handle event types filtering
     if (query.eventTypes) {
-      query.venueTypes = query.venueTypes ? query.venueTypes.split(",") : [];
-      filters["featureDetails.venueTypes"] = { $in: query.venueTypes };
+      query.eventTypes = query.eventTypes.split(",");
+      filters["basicDetails.eventTypes"] = { $in: query.eventTypes };
     }
 
+    // Sorting logic
+    let sortStage = {};
+    if (query.sort === "lth") {
+      sortStage = { "additionalDetails.priceStartingFrom": 1 };
+    } else if (query.sort === "htl") {
+      sortStage = { "additionalDetails.priceStartingFrom": -1 };
+    }
 
+    // Pagination
     const page = query.page ? parseInt(query.page, 10) : 1;
     const limit = query.limit ? parseInt(query.limit, 10) : 9;
     const skip = (page - 1) * limit;
 
+    // Count total results
     const countPipeline = [
       { $match: filters },
       { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] } },
-      { $count: "total" }, // Get total count
+      { $count: "total" },
     ];
 
     const countResult = await Venue.aggregate(countPipeline);
     const totalResults = countResult.length > 0 ? countResult[0].total : 0;
     const totalPages = Math.ceil(totalResults / limit);
 
+    // Fetch filtered and paginated results
     const pipeline = [
       { $match: filters },
       { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] } },
-
+      { $sort: sortStage }, // Apply sorting
       {
         $set: {
           vendorType: {
-            $cond: {
-              if: { $gt: [{ $type: "$capacity" }, "missing"] },
-              then: "Venue",
-              else: {
-                $cond: {
-                  if: { $gt: [{ $type: "$cuisineType" }, "missing"] },
-                  then: "Caterer",
-                  else: {
-                    $cond: {
-                      if: { $gt: [{ $type: "$decorType" }, "missing"] },
-                      then: "Decorator",
-                      else: "Photographer",
-                    },
-                  },
-                },
-              },
+            $switch: {
+              branches: [
+                { case: { $gt: [{ $type: "$basicDetails.capacity" }, "missing"] }, then: "Venue" },
+                { case: { $gt: [{ $type: "$basicDetails.cuisineType" }, "missing"] }, then: "Caterer" },
+                { case: { $gt: [{ $type: "$basicDetails.decorType" }, "missing"] }, then: "Decorator" },
+              ],
+              default: "Photographer",
             },
           },
         },
       },
-
-      { $sort: { '_id': -1 } },
-
       { $skip: skip },
       { $limit: limit },
     ];
-
-    if (query.sort === "htl") {
-      pipeline.push({ $sort: { "additionalDetails.priceStartingFrom": -1 } }); // High to low
-    } else if (query.sort === "lth") {
-      pipeline.push({ $sort: { "additionalDetails.priceStartingFrom": 1 } }); // Low to high
-    }
-
-    console.log(pipeline);
 
     const result = await Venue.aggregate(pipeline);
 
@@ -387,8 +350,6 @@ const searchAllVendors = async (query) => {
     throw new Error("Error fetching vendors");
   }
 };
-
-
 
 const searchProducts = async (req, res, next) => {
   try {
