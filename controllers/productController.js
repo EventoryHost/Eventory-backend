@@ -260,15 +260,25 @@ const searchAllVendors = async (query) => {
     if (query.minPrice || query.maxPrice) {
       filters["additionalDetails.priceStartingFrom"] = {};
       if (query.minPrice)
-        filters["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
+        filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+          query.minPrice,
+          10,
+        );
       if (query.maxPrice)
-        filters["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
+        filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+          query.maxPrice,
+          10,
+        );
     }
 
     // Handle capacity filtering
     if (query.minCapacity || query.maxCapacity) {
-      const minCapacity = query.minCapacity ? parseInt(query.minCapacity, 10) : null;
-      const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
+      const minCapacity = query.minCapacity
+        ? parseInt(query.minCapacity, 10)
+        : null;
+      const maxCapacity = query.maxCapacity
+        ? parseInt(query.maxCapacity, 10)
+        : null;
 
       if (minCapacity !== null && maxCapacity !== null) {
         filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
@@ -304,7 +314,9 @@ const searchAllVendors = async (query) => {
       { $match: filters },
       { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
-      { $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] } },
+      {
+        $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
+      },
       { $count: "total" },
     ];
 
@@ -317,16 +329,33 @@ const searchAllVendors = async (query) => {
       { $match: filters },
       { $unionWith: { coll: "caterers", pipeline: [{ $match: filters }] } },
       { $unionWith: { coll: "decorators", pipeline: [{ $match: filters }] } },
-      { $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] } },
+      {
+        $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
+      },
       { $sort: sortStage }, // Apply sorting
       {
         $set: {
           vendorType: {
             $switch: {
               branches: [
-                { case: { $gt: [{ $type: "$basicDetails.capacity" }, "missing"] }, then: "Venue" },
-                { case: { $gt: [{ $type: "$basicDetails.cuisineType" }, "missing"] }, then: "Caterer" },
-                { case: { $gt: [{ $type: "$basicDetails.decorType" }, "missing"] }, then: "Decorator" },
+                {
+                  case: {
+                    $gt: [{ $type: "$basicDetails.capacity" }, "missing"],
+                  },
+                  then: "Venue",
+                },
+                {
+                  case: {
+                    $gt: [{ $type: "$basicDetails.cuisineType" }, "missing"],
+                  },
+                  then: "Caterer",
+                },
+                {
+                  case: {
+                    $gt: [{ $type: "$basicDetails.decorType" }, "missing"],
+                  },
+                  then: "Decorator",
+                },
               ],
               default: "Photographer",
             },
