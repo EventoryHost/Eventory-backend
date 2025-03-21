@@ -27,13 +27,13 @@ const updateSectionCompletion = async (id) => {
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
     makeupArtist.basicDetails.completed = checkCompletion(
-      makeupArtist.basicDetails,
+      makeupArtist.basicDetails
     );
     makeupArtist.serviceDetails.completed = checkCompletion(
-      makeupArtist.serviceDetails,
+      makeupArtist.serviceDetails
     );
     makeupArtist.additionalDetails.completed = checkCompletion(
-      makeupArtist.additionalDetails,
+      makeupArtist.additionalDetails
     );
     makeupArtist.policies.completed = checkCompletion(makeupArtist.policies);
 
@@ -158,9 +158,10 @@ const getAllMakeupArtist = async (req, res) => {
 
     const skip = (page - 1) * itemsPerPage;
 
-    const makeupArtists = await MakeupArtist.find()
-      .skip(skip)
-      .limit(itemsPerPage);
+    const makeupArtists =
+      page == -1
+        ? await MakeupArtist.find()
+        : await MakeupArtist.find().skip(skip).limit(itemsPerPage);
 
     const totalMakeupArtists = await MakeupArtist.countDocuments();
 

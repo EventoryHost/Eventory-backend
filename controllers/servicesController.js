@@ -4,10 +4,11 @@ import Photographer from "../models/photographers.js";
 import propRental from "../models/props.js";
 import { Service } from "../models/services.js";
 import { Venue } from "../models/venue.js";
+import MakeupArtist from "../models/makeupArtists.js";
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
-
+  console.log(vendortype, vendorid);
   try {
     let vendorData;
 
@@ -27,6 +28,9 @@ export const getService = async (req, res) => {
         break;
       case "Photographers & Videographers":
         vendorData = await Photographer.findOne({ id: vendorid });
+        break;
+      case "Makeup-Artist":
+        vendorData = await MakeupArtist.findOne({ id: vendorid });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
@@ -73,6 +77,7 @@ export const getVendorLimit = async (req, res) => {
       "Venue Provider": Venue,
       "Prop Rental": propRental,
       "Photographers & Videographers": Photographer,
+      "Makeup Artist": MakeupArtist,
     };
 
     model = vendorModels[vendortype];

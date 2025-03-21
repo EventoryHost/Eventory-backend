@@ -340,7 +340,6 @@ const createVenue = async (req, res) => {
 
 export const getAllVenues = async (req, res) => {
   try {
-    console.log("hello");
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
 
