@@ -8,6 +8,9 @@ const makeupArtistSchema = Schema({
   type: { type: String, default: "makeupArtist" },
   isVerified: { type: Boolean, default: false },
   profileCompletion: { type: Number, default: 0 },
+  address : { type: String },
+    longitude : { type: Number },
+    latitude : { type: Number },
   completed: { type: Boolean, default: false }, // Flag for section completion
   name: { type: String },
   eventSize: { type: String },
