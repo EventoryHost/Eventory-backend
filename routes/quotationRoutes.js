@@ -86,7 +86,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;
-    console.log("id is ",vendor_id)
+    console.log("id is ", vendor_id);
 
     if (!user_id) {
       return res.status(400).json({
