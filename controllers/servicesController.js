@@ -147,9 +147,9 @@ export const addReviews = async (req, res) => {
         photos,
         date,
       });
-    
+
       await venue.save();
-     
+
       res.status(200).json(venue);
     } else if (type === "caterer") {
       const caterer = await Caterer.findOne({ id: id });
@@ -167,7 +167,7 @@ export const addReviews = async (req, res) => {
         date,
       });
       await caterer.save();
-     
+
       res.status(200).json(caterer);
     } else if (type === "decorator") {
       const decorator = await Decorator.findOne({ id: id });
@@ -202,7 +202,7 @@ export const addReviews = async (req, res) => {
         date,
       });
       await photographer.save();
-     
+
       res.status(200).json(photographer);
     } else if (type === "propRental") {
       const prop = await propRental.findOne({ id: id });

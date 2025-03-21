@@ -49,12 +49,12 @@ router.post("/", async (req, res) => {
 
     const savedQuotation = await newQuotation.save();
 
-    if (!customer.bookings) {
-      customer.bookings = [];
+    if (!customer.quotations) {
+      customer.quotations = [];
     }
 
     if (
-      customer.bookings.find(
+      customer.quotations.find(
         (booking) => booking.serviceId === req.body.service_id,
       )
     ) {
@@ -63,9 +63,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    customer.bookings.push({
+    customer.quotations.push({
       serviceId: req.body.service_id,
-      bookingId: savedQuotation._id,
+      quotationId: savedQuotation._id,
     });
 
     await customer.save();

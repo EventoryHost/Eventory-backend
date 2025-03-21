@@ -12,7 +12,7 @@ export const addCustomer = async (req, res) => {
     const customer = await Customer.create({
       name,
       phone: "+91" + phone,
-      bookings: [],
+      quotations: [],
     });
     res.status(200).json(customer);
   } catch (error) {
@@ -39,7 +39,7 @@ export const getBooking = async (req, res) => {
     const customerId = req.params.cusId;
     const booking = await Customer.findOne({
       id: customerId,
-      bookings: { $elemMatch: { serviceId: serviceId } },
+      quotations: { $elemMatch: { serviceId: serviceId } },
     });
     if (!booking) {
       return res.status(404).json({ message: "No bookings found" });
