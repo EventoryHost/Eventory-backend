@@ -17,6 +17,9 @@ const catererSchema = new Schema({
     cuisine_specialities: { type: [String], required: true },
     regional_specialities: { type: [String], required: true },
     service_style_offered: { type: [String], required: true },
+    address: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
   },
   menuDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion

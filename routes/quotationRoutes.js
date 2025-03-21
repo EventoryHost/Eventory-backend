@@ -1,28 +1,40 @@
 import express from "express";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
+import { getQuotations } from "../controllers/quotationController.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const router = express.Router();
 
 // Create a new quotation
 router.post("/", async (req, res) => {
   try {
+    const parsedBudget = Number(req.body.budget);
+    const parsedNumberOfGuest = Number(req.body.number_of_guest);
+
+    // Validate budget and number_of_guest
+    if (isNaN(parsedBudget) || isNaN(parsedNumberOfGuest)) {
+      return res
+        .status(400)
+        .json({ error: "Budget and Number of Guests must be valid numbers." });
+    }
     const newQuotation = new Quotation({
       // Meta Data
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
 
+      id: generateUniqueId("quo"),
       // Data
       user_name: req.body.user_name,
       mobile: req.body.mobile,
       location: req.body.location,
-      start_date: req.body.start_date,
-      end_date: req.body.end_date,
+      start_date: new Date(req.body.start_date),
+      end_date: new Date(req.body.end_date),
 
       time: req.body.time,
-      budget: req.body.budget,
-      number_of_guest: req.body.number_of_guest,
+      budget: parsedBudget,
+      number_of_guest: parsedNumberOfGuest,
       requirements: req.body.requirements,
       event_type: req.body.event_type,
     });
@@ -70,23 +82,28 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get quotations by vendor id
+// Get quotations by vendor_id or user_id
 router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;
     console.log("id is ",vendor_id)
 
-    if (!vendor_id) {
+    if (!user_id) {
       return res.status(400).json({
-        message: "vendor_id is required",
+        message: "Either vendor_id or user_id is required",
       });
     }
 
-    const quotations = await Quotation.find({ vendor_id });
+    // Construct query dynamically
+    const query = {};
+    // if (vendor_id) query.vendor_id = vendor_id;
+    if (user_id) query.user_id = user_id;
+    console.log(query);
+    const quotations = await Quotation.find(query);
 
     if (quotations.length === 0) {
       return res.status(404).json({
-        message: `No quotations found for vendor_id: ${vendor_id}`,
+        message: `No quotations found for ${vendor_id ? "vendor_id: " + vendor_id : "user_id: " + user_id}`,
       });
     }
 
@@ -105,7 +122,7 @@ router.get("/", async (req, res) => {
 router.patch("/", async (req, res) => {
   try {
     await Quotation.updateOne(
-      { _id: req.body._id },
+      { id: req.body.id },
       { $set: { status: req.body.status } },
     );
     res.status(200).json({
@@ -119,5 +136,7 @@ router.patch("/", async (req, res) => {
     });
   }
 });
+
+router.route("/myquotations").get(getQuotations);
 
 export default router;

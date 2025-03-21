@@ -20,6 +20,9 @@ const decoratorSchema = Schema({
       seasonal: { type: [String] },
       cultural: { type: [String] },
     },
+    address: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
   },
   themesOffered: {
     completed: { type: Boolean, default: false }, // Flag for section completion
