@@ -155,7 +155,7 @@ export const removeFavourite = async (req, res) => {
 
 export const getCustomerByMobile = async (req, res) => {
   try {
-    const phone = req.params.phone;
+    const phone = req.params.mobile;
     const customer = await Customer.findOne({ mobile: phone });
 
     if (!customer) {
