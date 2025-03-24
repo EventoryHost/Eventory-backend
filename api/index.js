@@ -21,6 +21,7 @@ import serviceRouter from "../routes/servicesRoutes.js";
 import venueRouter from "../routes/venueRoutes.js";
 import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
 import customerRoutes from "../routes/customerRoutes.js";
+import reviewRoutes from "../routes/reviewRoutes.js";
 
 const app = express();
 const port = 4000;
@@ -76,6 +77,8 @@ app.use("/api/service", serviceRouter);
 app.use("/api/venue", venueRouter);
 app.use("/api", featuredVendorsRoutes);
 app.use("/api/customer", customerRoutes);
+
+app.use("/api/review", reviewRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");

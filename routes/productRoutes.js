@@ -12,6 +12,7 @@ import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers/products/photographerController.js";
 import vendorController from "../controllers/products/vendorController.js";
 import { getAllServices } from "../controllers/servicesController.js";
+import searchProducts from "../controllers/productController.js";
 
 const router = Router();
 
@@ -152,5 +153,7 @@ router.post(
   ]),
   photographerController.createPhotographer,
 );
+
+router.get("/search/", searchProducts);
 
 export default router;

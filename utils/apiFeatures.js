@@ -7,8 +7,11 @@ class APIFeatures {
 
   sort() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort.split(",").join(" ");
-      this.query = this.query.sort(sortBy); //passing the sort parameters to the sort method
+      if (this.queryString.sort === "lth") {
+        this.query = this.query.sort("additionalDetails.priceStartingFrom");
+      } else if (this.queryString.sort === "htl") {
+        this.query = this.query.sort("-additionalDetails.priceStartingFrom");
+      }
     } else {
       this.query = this.query.sort("-createdAt");
     }
