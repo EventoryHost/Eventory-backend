@@ -16,10 +16,10 @@ const CustomerSchema = new Schema({
   city: { type: String, default: "" },
   address: { type: String, default: "" },
   pincode: { type: String, default: "" },
-  bookings: [
+  quotations: [
     {
       serviceId: { type: String, required: true },
-      bookingId: { type: String, required: true },
+      quotationId: { type: String, required: true },
     },
   ],
   favoriteServices: [{ type: String }],

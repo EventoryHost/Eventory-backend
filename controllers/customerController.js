@@ -12,7 +12,7 @@ export const addCustomer = async (req, res) => {
     const customer = await Customer.create({
       name,
       phone: "+91" + phone,
-      bookings: [],
+      quotations: [],
     });
     res.status(200).json(customer);
   } catch (error) {
@@ -22,30 +22,12 @@ export const addCustomer = async (req, res) => {
 
 export const getCustomer = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-      return res
-        .status(401)
-        .json({ message: "Unauthorized: No token provided" });
+    const { phone } = req.body;
+    if (phone && !phone.startsWith("+91")) {
+      phone = "+91" + phone;
     }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const mobile = decoded.mobile;
-
-    if (!mobile) {
-      return res
-        .status(400)
-        .json({ message: "Invalid token: Phone number missing" });
-    }
-
-    const customer = await Customer.findOne({ mobile });
-
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
-    }
-
-    res.status(200).json({ customer });
+    const customer = await Customer.findOne({ mobile: phone });
+    res.status(200).json(customer);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -57,7 +39,7 @@ export const getBooking = async (req, res) => {
     const customerId = req.params.cusId;
     const booking = await Customer.findOne({
       id: customerId,
-      bookings: { $elemMatch: { serviceId: serviceId } },
+      quotations: { $elemMatch: { serviceId: serviceId } },
     });
     if (!booking) {
       return res.status(404).json({ message: "No bookings found" });
@@ -174,7 +156,6 @@ export const removeFavourite = async (req, res) => {
 export const getCustomerByMobile = async (req, res) => {
   try {
     const mobile = req.params.mobile;
-    console.log(mobile);
     const customer = await Customer.findOne({ mobile: mobile });
 
     if (!customer) {

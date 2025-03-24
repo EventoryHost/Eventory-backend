@@ -4,10 +4,11 @@ import Photographer from "../models/photographers.js";
 import propRental from "../models/props.js";
 import { Service } from "../models/services.js";
 import { Venue } from "../models/venue.js";
+import MakeupArtist from "../models/makeupArtists.js";
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
-  console.log(vendorid);
+  console.log(vendortype, vendorid);
   try {
     let vendorData;
 
@@ -27,6 +28,9 @@ export const getService = async (req, res) => {
         break;
       case "Photographers & Videographers":
         vendorData = await Photographer.findOne({ id: vendorid });
+        break;
+      case "Makeup-Artist":
+        vendorData = await MakeupArtist.findOne({ id: vendorid });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
@@ -53,7 +57,10 @@ export const getVendorLimit = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 9;
 
-  if (page <= 0 || limit <= 0) {
+  if (page == 0) {
+  }
+
+  if (page < 0 || limit <= 0) {
     return res
       .status(400)
       .json({ error: "Page and limit must be greater than 0" });
@@ -70,6 +77,7 @@ export const getVendorLimit = async (req, res) => {
       "Venue Provider": Venue,
       "Prop Rental": propRental,
       "Photographers & Videographers": Photographer,
+      "Makeup Artist": MakeupArtist,
     };
 
     model = vendorModels[vendortype];
@@ -139,7 +147,9 @@ export const addReviews = async (req, res) => {
         photos,
         date,
       });
+
       await venue.save();
+
       res.status(200).json(venue);
     } else if (type === "caterer") {
       const caterer = await Caterer.findOne({ id: id });
@@ -157,6 +167,7 @@ export const addReviews = async (req, res) => {
         date,
       });
       await caterer.save();
+
       res.status(200).json(caterer);
     } else if (type === "decorator") {
       const decorator = await Decorator.findOne({ id: id });
@@ -191,6 +202,7 @@ export const addReviews = async (req, res) => {
         date,
       });
       await photographer.save();
+
       res.status(200).json(photographer);
     } else if (type === "propRental") {
       const prop = await propRental.findOne({ id: id });
@@ -198,7 +210,7 @@ export const addReviews = async (req, res) => {
         return res.status(404).json({ message: "Prop Rental not found" });
       }
       if (!prop.reviews) {
-        prop.reviews = [];
+        prop.policies.reviews = [];
       }
       prop.reviews.push({
         rating,
