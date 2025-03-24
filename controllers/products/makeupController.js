@@ -27,13 +27,13 @@ const updateSectionCompletion = async (id) => {
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
     makeupArtist.basicDetails.completed = checkCompletion(
-      makeupArtist.basicDetails
+      makeupArtist.basicDetails,
     );
     makeupArtist.serviceDetails.completed = checkCompletion(
-      makeupArtist.serviceDetails
+      makeupArtist.serviceDetails,
     );
     makeupArtist.additionalDetails.completed = checkCompletion(
-      makeupArtist.additionalDetails
+      makeupArtist.additionalDetails,
     );
     makeupArtist.policies.completed = checkCompletion(makeupArtist.policies);
 
