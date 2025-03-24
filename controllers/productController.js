@@ -95,7 +95,6 @@ const searchDecorators = async (query) => {
     filters["themesOffered.themesOffered"] = { $in: query.themes };
   }
 
-
   let decoratorQuery = Decorator.find(filters);
 
   const apiFeatures = new APIFeatures(decoratorQuery, query)
