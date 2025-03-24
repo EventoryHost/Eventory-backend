@@ -95,7 +95,6 @@ const searchDecorators = async (query) => {
     filters["themesOffered.themesOffered"] = { $in: query.themes };
   }
 
-  console.log("priyanshu", filters, "end");
 
   let decoratorQuery = Decorator.find(filters);
 
@@ -233,7 +232,7 @@ const searchPAV = async (query) => {
     }
   }
 
-  console.log("priyanshu", filters, "end");
+  // console.log("priyanshu", filters, "end");
 
   let photographerQuery = Photographer.find(filters);
 
