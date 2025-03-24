@@ -247,6 +247,7 @@ const login = async (req, res) => {
 
 const CustomerLogin = async (req, res) => {
   const { mobile } = req.body;
+
   const params = {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
@@ -260,6 +261,7 @@ const CustomerLogin = async (req, res) => {
 
   try {
     const user = await CustomerExists(`+91${mobile}`);
+
     if (user) {
       const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
@@ -335,19 +337,26 @@ const verifyCustomerLoginOtp = async (req, res) => {
     const command = new AdminRespondToAuthChallengeCommand(params);
     var data = await cognito.send(command);
 
-    let user = await Customer.findOne({ phone: `+91${mobile}` });
+    let user = await Customer.findOne({ mobile: `+91${mobile}` });
     if (!user) {
       try {
-        const customer = new Customer({ name, phone: `+91${mobile}` });
+        const customer = new Customer({ name, mobile: `+91${mobile}` });
         await customer.save();
-        return res.status(200).json(customer);
+        const token = jwt.sign(
+          { id: customer.id, mobile: customer.mobile, name: customer.name },
+          process.env.JWT_SECRET,
+          { expiresIn: "24h" },
+        );
+        return res
+          .status(200)
+          .json({ message: "Login Success", token, user: customer });
       } catch (error) {
         return res.status(400).json({ message: error.message });
       }
     }
 
     const token = jwt.sign(
-      { id: user.id, mobile: user.phone, name: user.name },
+      { id: user.id, mobile: user.mobile, name: user.name },
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
@@ -434,9 +443,11 @@ const userExists = async (credential) => {
 };
 
 const CustomerExists = async (credential) => {
+  console.log(credential);
   const user = await Customer.findOne({
     $or: [{ email: credential }, { mobile: credential }],
   });
+  console.log(user);
   return user;
 };
 

@@ -224,17 +224,12 @@ const createVenue = async (req, res) => {
       return res.status(400).json({ message: "Venue already exists" });
     }
 
-    const termsAndConditionsFileUrl =
-      getFileUrls(req.files, "termsConditions")[0] || req.body.termsConditions;
-    const cancellationPolicyFileUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] ||
-      req.body.cancellationPolicy;
+    const termsAndConditionsFileUrl = req.body.termsConditions || [];
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
 
-    const photosUrls = getFileUrls(req.files, "photos");
-    const photos = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photos = req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos");
-    const videos = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videos = req.body.videos || [];
 
     const newVenue = new Venue({
       basicDetails: {
@@ -244,6 +239,8 @@ const createVenue = async (req, res) => {
         address: req.body.address,
         operatingHours: req.body.operatingHours,
         description: req.body.description,
+        latitude: req.body.latitude, // Ensure latitude is included
+        longitude: req.body.longitude,
         profileCompletion: 0, // Initial placeholder
       },
       venId: req.body.venId,

@@ -72,25 +72,15 @@ const calculateProfileCompletion = (basicDetails) => {
 
 const createProp = async (req, res) => {
   try {
-    const furnitureAndDecorListUrl =
-      getFileUrls(req.files, "furnitureAndDecorListUrl")[0] ||
-      req.body.furnitureAndDecorList;
+    const furnitureAndDecorListUrl = req.body.furnitureAndDecorList || [];
 
-    const tentAndCanopyListUrl =
-      getFileUrls(req.files, "tentAndCanopyListUrl")[0] ||
-      req.body.tentAndCanopyList;
+    const tentAndCanopyListUrl = req.body.tentAndCanopyList || [];
 
-    const audioVisualListUrl =
-      getFileUrls(req.files, "audioVisualListUrl")[0] ||
-      req.body.audioVisualList;
+    const audioVisualListUrl = req.body.audioVisualList || [];
 
-    const termsAndConditionsUrl =
-      getFileUrls(req.files, "termsAndConditions")[0] ||
-      req.body.termsAndConditions;
+    const termsAndConditionsUrl = req.body.termsAndConditions || [];
 
-    const cancellationPolicyUrl =
-      getFileUrls(req.files, "cancellationPolicy")[0] ||
-      req.body.cancellationPolicy;
+    const cancellationPolicyUrl = req.body.cancellationPolicy || [];
 
     const itemCatalogueFile = req.files?.itemCatalogue?.[0];
     const itemCatalogueUrl = itemCatalogueFile
@@ -99,11 +89,9 @@ const createProp = async (req, res) => {
         ? "true"
         : "false";
 
-    const photosUrls = getFileUrls(req.files, "photos");
-    const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
+    const photosUrl = req.body.photos || [];
 
-    const videosUrls = getFileUrls(req.files, "videos");
-    const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
+    const videosUrl = req.body.videos || [];
 
     const basicDetails = {
       managerName: req.body.managerName,
