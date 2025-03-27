@@ -1,6 +1,7 @@
 import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
 import { Vendor as User } from "../../models/users.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -75,11 +76,9 @@ const createDecorator = async (req, res) => {
     const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
     const themePhotosUrl = req.body.themephotos || [];
-
     const themeVideosUrl = req.body.themevideos || [];
 
     const photosUrl = req.body.photos || [];
-
     const videosUrl = req.body.videos || [];
 
     const eventTypes = {
@@ -94,7 +93,7 @@ const createDecorator = async (req, res) => {
     const fieldsToCheck = [
       req.body.name,
       req.body.description,
-      req.body.eventSize,
+      req.body.eventSize, // Check if eventSize.ul exists
       req.body.duration,
       req.body.themesOffered?.length > 0, // Check if at least one theme is offered
       req.body.customDesignProcess,
@@ -116,15 +115,24 @@ const createDecorator = async (req, res) => {
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-
+    const eventSize = parseRange(req.body.eventSize);
+    console.log("decorator:", req.body);
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
         description: req.body.description,
-        eventSize: req.body.eventSize,
+        eventSize,
         eventTypes,
         duration: req.body.duration,
+        address: req.body.address,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
         profileCompletion,
+        location: {
+          lat: req.body.latitude, // Latitude
+          lng: req.body.longitude, // Longitude
+          googleMapsAddress: req.body.address, // Google Maps address
+        },
       },
       themesOffered: {
         themesOffered: req.body.themesOffered,
@@ -151,7 +159,7 @@ const createDecorator = async (req, res) => {
         website: req.body.websiteurl,
         instagram: req.body.intstagramurl,
         advanceBookingPeriod: req.body.advanceBookingPeriod,
-        priceStartingFrom: req.body.priceStartingFrom,
+        priceStartingFrom: Number(req.body.priceStartingFrom), // Convert to number
         themeProposels: req.body.themeProposels,
         proposalRevisions: req.body.proposalRevisions,
       },
@@ -161,6 +169,7 @@ const createDecorator = async (req, res) => {
       },
       id: req.body.id,
       venId: req.body.venId,
+      rating: 0, // Default rating
     });
 
     const savedDecorator = await newDecorator.save();
@@ -176,6 +185,7 @@ const createDecorator = async (req, res) => {
       serId: savedDecorator.id,
     });
     await vendor.save();
+
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
     res.status(201).json(savedDecorator);

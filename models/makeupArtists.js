@@ -14,6 +14,9 @@ const makeupArtistSchema = Schema({
     description: { type: String, required: true },
     eventTypes: { type: [String], required: true },
     typesOfMakeupArtists: { type: [String], required: true },
+    address: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
   },
 
   serviceDetails: {
@@ -43,6 +46,16 @@ const makeupArtistSchema = Schema({
   id: { type: String, default: generateUniqueId("mak"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "makeupArtist" },
+
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 // const MakeupArtist = model("MakeupArtist", makeupArtistSchema);

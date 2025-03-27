@@ -1,6 +1,7 @@
 import { Caterer } from "../../models/caterer.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -74,71 +75,71 @@ const createCaterer = async (req, res) => {
 
     const cancellationPolicyFileUrl = req.body.cancellation_policy || "";
     const termsAndConditionsFileUrl = req.body.terms_and_conditions || "";
+    const clientTestimonialsUrl = req.body.client_testimonials_url || "";
 
-    // Handle file URLs (for both single and multiple files)
-
+    // Handle file uploads and array conversions
     const menu = req.body.menu || [];
-
     const photos = req.body.photos || [];
-
     const videos = req.body.videos || [];
+    const foodSafetyCertificates = req.body.food_safety_certificates || []; // 🔹 FIXED: Defined foodSafetyCertificates
 
-    const clientTestimonialsUrls = req.body.client_testimonials || "";
-
-    // Handle food safety certificates (multiple or single)
-
-    const foodSafetyCertificates = req.body.food_safety_certificates || [];
-
-    // Create new caterer
-
+    // Profile completion check
     const fieldsToCheck = [
       req.body.name,
       req.body.managerName,
       req.body.capacity,
       req.body.description,
-      req.body.cuisine_specialities?.length > 0, // Ensure there's at least one cuisine specialty
-      req.body.regional_specialities?.length > 0, // Ensure there's at least one regional specialty
+      req.body.cuisine_specialities?.length > 0,
+      req.body.regional_specialities?.length > 0,
       req.body.service_style_offered,
       req.body.vegOrNonVeg,
-      // Check if menu file is provided or if all relevant fields (appetizers, beverages, main_course) are provided
       menu.length > 0 ||
         (req.body.appetizers?.length > 0 &&
           req.body.beverages?.length > 0 &&
           req.body.main_course?.length > 0),
-      req.body.special_dietary_options?.length > 0, // Ensure there are dietary options
-      req.body.pre_set_menus?.length > 0, // Ensure pre-set menus exist
-      req.body.customizable === "true", // Ensure customizable option is properly set
-      req.body.additional_services?.length > 0, // Ensure additional services are listed
-      req.body.event_types_catered?.length > 0, // Ensure event types catered to are specified
-      req.body.equipment_provided?.length > 0, // Ensure equipment is provided
-      req.body.staff_provided?.length > 0, // Ensure staff is provided
+      req.body.special_dietary_options?.length > 0,
+      req.body.pre_set_menus?.length > 0,
+      req.body.customizable === "true",
+      req.body.additional_services?.length > 0,
+      req.body.event_types_catered?.length > 0,
+      req.body.equipment_provided?.length > 0,
+      req.body.staff_provided?.length > 0,
       req.body.priceStartingFrom,
       req.body.minimum_order_requirements,
       req.body.advance_booking_period,
-      req.body.tasting_sessions === "true", // Check if tasting sessions are offered
-      req.body.business_licenses === "true", // Check if business licenses are valid
-      foodSafetyCertificates.length > 0, // Ensure at least one food safety certificate
-      photos.length > 0, // At least one photo
-      videos.length > 0, // At least one video
-      cancellationPolicyFileUrl, // Ensure cancellation policy is uploaded
-      termsAndConditionsFileUrl, // Ensure terms and conditions file is uploaded
-      clientTestimonialsUrls, // Ensure client testimonials are uploaded
+      req.body.tasting_sessions === "true",
+      req.body.business_licenses === "true",
+      foodSafetyCertificates.length > 0,
+      photos.length > 0,
+      videos.length > 0,
+      cancellationPolicyFileUrl,
+      termsAndConditionsFileUrl,
+      clientTestimonialsUrl,
     ];
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
+    // Create new caterer document
     const newCaterer = new Caterer({
       basicDetails: {
         managerName: req.body.managerName,
-        capacity: req.body.capacity,
+        capacity: parseRange(req.body.capacity),
         name: req.body.name,
         description: req.body.description,
         cuisine_specialities: req.body.cuisine_specialities,
         regional_specialities: req.body.regional_specialities,
         service_style_offered: req.body.service_style_offered,
+        // address: req.body.address,
+        // latitude: req.body.latitude,
+        // longitude: req.body.longitude,
         profileCompletion,
+        location: {
+          lat: req.body.latitude, // Latitude
+          lng: req.body.longitude, // Longitude
+          googleMapsAddress: req.body.address, // Google Maps address
+        },
       },
       venId: req.body.venId,
       menuDetails: {
@@ -157,27 +158,25 @@ const createCaterer = async (req, res) => {
       },
       staffAndEquipmentDetails: {
         equipment_provided: req.body.equipment_provided,
-
         staff_provided: req.body.staff_provided,
       },
       additionalDetails: {
-        priceStartingFrom: req.body.priceStartingFrom,
+        priceStartingFrom: parseInt(req.body.priceStartingFrom, 10) || 0,
         minimum_order_requirements: req.body.minimum_order_requirements,
-        advance_booking_period: req.body.advance_booking_period,
+        advance_booking_period: parseRange(req.body.advance_booking_period),
         photos: Array.isArray(photos) ? photos : [photos],
         videos: Array.isArray(videos) ? videos : [videos],
         tasting_sessions: req.body.tasting_sessions === "true",
         business_licenses: req.body.business_licenses === "true",
         food_safety_certificates: Array.isArray(foodSafetyCertificates)
           ? foodSafetyCertificates
-          : [foodSafetyCertificates],
+          : [foodSafetyCertificates], // 🔹 FIXED: Ensured it's an array
       },
       policies: {
         cancellation_policy: cancellationPolicyFileUrl,
         terms_and_conditions: termsAndConditionsFileUrl,
-        client_testimonials: clientTestimonialsUrls,
+        client_testimonials: clientTestimonialsUrl,
       },
-      // deposit_required: req.body.deposit_required,
     });
 
     const savedCaterer = await newCaterer.save();
@@ -185,6 +184,7 @@ const createCaterer = async (req, res) => {
     // Update section completion and profile completion
     await updateSectionCompletion(savedCaterer.id);
 
+    // Associate with vendor
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Caterer.findByIdAndDelete(savedCaterer.id);
@@ -199,7 +199,7 @@ const createCaterer = async (req, res) => {
 
     res.status(201).json(savedCaterer);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({ error: error.message });
   }
 };

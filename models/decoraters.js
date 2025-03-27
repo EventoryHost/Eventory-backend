@@ -10,7 +10,10 @@ const decoratorSchema = Schema({
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false }, // Flag for section completion
     name: { type: String, required: true },
-    eventSize: { type: String, required: true },
+    eventSize: {
+      ul: { type: Number, required: true }, // Upper limit
+      ll: { type: Number, required: true }, // Lower limit
+    },
     description: { type: String, required: true },
     duration: { type: String },
     eventTypes: {
@@ -19,6 +22,21 @@ const decoratorSchema = Schema({
       corporate: { type: [String] },
       seasonal: { type: [String] },
       cultural: { type: [String] },
+    },
+    location: {
+      lat: { type: Number }, // Latitude
+      lng: { type: Number }, // Longitude
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+          },
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
+        },
+        // required: [true, 'Pincode is required'] // Ensures the pincode is required
+      },
+      googleMapsAddress: { type: String }, // Google Maps formatted address
     },
   },
   themesOffered: {
@@ -45,9 +63,9 @@ const decoratorSchema = Schema({
     website: { type: String },
     instagram: { type: String },
     advanceBookingPeriod: { type: String, required: true },
-    priceStartingFrom: { type: String, required: true },
+    priceStartingFrom: { type: Number, required: true }, // Changed to Number
     themeProposels: { type: Boolean },
-    proposalRevisions: { type: Boolean },
+    proposalRevisions: { type: Boolean, default: true },
   },
   policies: {
     completed: { type: Boolean, default: false }, // Flag for section completion
@@ -58,15 +76,7 @@ const decoratorSchema = Schema({
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
   schedule: [eventSchema],
-  reviews: [
-    {
-      rating: { type: Number, required: true },
-      name: { type: String, required: true },
-      feedback: { type: String, required: true },
-      photos: { type: [String] },
-      date: { type: Date, required: true },
-    },
-  ],
+  rating: { type: Number, default: 0 }, // Added rating field
 });
 
 const Decorator = model("Decorator", decoratorSchema);

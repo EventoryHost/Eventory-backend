@@ -1,5 +1,7 @@
+// import { Photographer } from "../../models/photographers.js";
 import Photographer from "../../models/photographers.js";
 import { Vendor as User } from "../../models/users.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -67,9 +69,9 @@ const checkCompletion = (section) => {
 };
 
 // Update section completion for a photographer
-const updateSectionCompletion = async (venId) => {
+const updateSectionCompletion = async (id) => {
   try {
-    const photographer = await Photographer.findOne({ venId });
+    const photographer = await Photographer.findOne({ id });
 
     if (!photographer) {
       throw new Error("Photographer not found");
@@ -107,9 +109,7 @@ const createPhotographer = async (req, res) => {
     }
 
     const photosUrl = req.body.photos || [];
-
     const videosUrl = req.body.videos || [];
-
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const termsAndConditionsFileUrl = req.body.termsAndConditions || [];
 
@@ -160,52 +160,86 @@ const createPhotographer = async (req, res) => {
 
     const completedFields = fieldsToCheck.filter((field) => !!field).length;
     const profileCompletion =
-      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+      Math.round(completedFields / fieldsToCheck.length) * 100 || 0;
 
     // Debug profile completion calculation
     console.log("Fields to Check:", fieldsToCheck);
     console.log("Completed Fields:", completedFields);
     console.log("Profile Completion:", profileCompletion);
 
+    // Prepare eventSize object
+    // const eventSizeCheck = parseRange(req.body.eventSize);
+    // console.log("Parsed Event Size:", eventSizeCheck);
+
+    // Prepare Videography and Photography finalDeliveryMethods
+    const Videography = {
+      ...req.body.Videography,
+      finalDeliveryMethods: req.body.Videography.finalDeliveryMethods, // Ensure enum value is passed
+    };
+
+    const Photography = {
+      ...req.body.Photography,
+      finalDeliveryMethods: req.body.Photography.finalDeliveryMethods, // Ensure enum value is passed
+    };
+
+    // Prepare consultationDetails
+    const consultationDetails = {
+      duration: req.body.duration, // Ensure enum value is passed
+      PackageTypes: req.body.PackageTypes, // Ensure enum value is passed
+      proposalsToClients: req.body.proposalsToClients === "true",
+      freeInitialConsultation: req.body.freeInitialConsultation === "true",
+      bookingDeposit: req.body.bookingDeposit === "true",
+      availableForDestinationEvents:
+        req.body.availablefordestinationevents === "true",
+      AdvanceSetup: req.body.Advancesetup === "true",
+      postProductionServices: req.body.postproductionservices === "true",
+    };
+
+    // Prepare additionalDetails
+    const additionalDetails = {
+      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+      clientTestimonials: req.body.clientTestimonials,
+      awards: req.body.awards,
+      website: req.body.website,
+      instagram: req.body.instagram,
+      priceStartingFrom: parseFloat(req.body.priceStartingFrom), // Convert to number
+    };
+
+    // Prepare policies
+    const policies = {
+      cancellationPolicy: cancellationPolicyFileUrl,
+      termsAndConditions: termsAndConditionsFileUrl,
+    };
+
+    const basicDetails = {
+      name: req.body.name,
+      description: req.body.description,
+      eventSize: parseRange(req.body.eventSize), // Updated to object
+      eventTypes: req.body.eventTypes,
+      profileCompletion, // Updated profile completion
+      location: {
+        lat: req.body.latitude, // Latitude
+        lng: req.body.longitude, // Longitude
+        googleMapsAddress: req.body.address, // Google Maps address
+      }, // Added location field
+    };
+
+    // Create new Photographer document
     const newPhotographer = new Photographer({
-      basicDetails: {
-        name: req.body.name,
-        description: req.body.description,
-        eventSize: req.body.eventSize,
-        eventTypes: req.body.eventTypes,
-        profileCompletion: 0, // Placeholder, will be updated later
-      },
-      Videography: req.body.Videography,
-      Photography: req.body.Photography,
-      consultationDetails: {
-        duration: req.body.duration,
-        PackageTypes: req.body.PackageTypes,
-        proposalsToClients: req.body.proposalsToClients === "true",
-        freeInitialConsultation: req.body.freeInitialConsultation === "true",
-        bookingDeposit: req.body.bookingDeposit === "true",
-        availableForDestinationEvents:
-          req.body.availablefordestinationevents === "true",
-        AdvanceSetup: req.body.Advancesetup === "true",
-        postProductionServices: req.body.postproductionservices === "true",
-      },
-      additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-        clientTestimonials: req.body.clientTestimonials,
-        awards: req.body.awards,
-        website: req.body.website,
-        instagram: req.body.instagram,
-        priceStartingFrom: req.body.priceStartingFrom,
-      },
-      ...req.body,
-      policies: {
-        cancellationPolicy: cancellationPolicyFileUrl,
-        termsAndConditions: termsAndConditionsFileUrl,
-      },
+      basicDetails,
+      Videography, // Updated with enum for finalDeliveryMethods
+      Photography, // Updated with enum for finalDeliveryMethods
+      consultationDetails, // Updated with enum for duration and PackageTypes
+      additionalDetails, // Updated with priceStartingFrom as number
+      policies, // Policies remain the same
+      venId: req.body.venId,
+      vendorType: "photographer",
+      rating: 0, // Added rating field
     });
 
-    // Update profile completion under basicDetails
-    newPhotographer.basicDetails.profileCompletion = profileCompletion;
+    // console.log(eventSizeCheck.ll);
+    // console.log(eventSizeCheck.ul);
 
     const saved = await newPhotographer.save();
     const vendor = await User.findOne({ id: req.body.venId });
@@ -221,7 +255,7 @@ const createPhotographer = async (req, res) => {
     await vendor.save();
 
     // Call to update section completion
-    await updateSectionCompletion(req.body.venId);
+    await updateSectionCompletion(newPhotographer.id);
 
     res.status(201).json({
       message: "Photographer created successfully",

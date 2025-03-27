@@ -16,12 +16,33 @@ const photographerSchema = Schema({
       type: String,
       required: true,
     },
-    eventSize: { type: String, required: true },
+    eventSize: {
+      ll: { type: Number, required: true }, // Lower limit
+      ul: { type: Number, required: true }, // Upper limit
+    },
     eventTypes: {
       type: [String],
       required: true,
     },
+    // address: { type: String, required: true },
+    // latitude: { type: Number, required: true },
+    // longitude: { type: Number, required: true },
     profileCompletion: { type: Number, default: 0 },
+    location: {
+      lat: { type: Number }, // Latitude
+      lng: { type: Number }, // Longitude
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+          },
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
+        },
+        // required: [true, 'Pincode is required'] // Ensures the pincode is required
+      },
+      googleMapsAddress: { type: String }, // Google Maps formatted address
+    },
   },
 
   id: { type: String, default: generateUniqueId("pav"), required: true },
@@ -44,6 +65,7 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   Photography: {
@@ -59,13 +81,23 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   consultationDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    duration: { type: String },
+    duration: {
+      type: String,
+      enum: [
+        "Less than 1 week",
+        "Less than 2 weeks",
+        "2-4 weeks",
+        "More than 4 weeks",
+      ],
+    },
     PackageTypes: {
       type: String,
+      enum: ["Customize", "Standard", "Both"],
       default: "Both",
     },
     proposalsToClients: {
@@ -101,10 +133,7 @@ const photographerSchema = Schema({
     awards: { type: String },
     website: { type: String },
     instagram: { type: String },
-    priceStartingFrom: { type: String, required: true },
-    // advanceBookingPeriod: { type: String, required: true },
-    // initialthemeProposels: { type: Boolean, default: false },
-    // WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
+    priceStartingFrom: { type: Number, required: true },
   },
   policies: {
     completed: { type: Boolean, default: false }, // Flag for section completion
@@ -115,17 +144,8 @@ const photographerSchema = Schema({
       type: [String],
     },
   },
-  reviews: [
-    {
-      rating: { type: Number, required: true },
-      name: { type: String, required: true },
-      feedback: { type: String, required: true },
-      photos: { type: [String] },
-      date: { type: String, required: true },
-    },
-  ],
 
-  // Page-5
+  rating: { type: Number, default: 0 }, // Added rating field
 });
 
 const Photographer = model("Photographer", photographerSchema);

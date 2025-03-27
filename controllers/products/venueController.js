@@ -155,6 +155,7 @@ import { Caterer } from "../../models/caterer.js";
 import { Decorator } from "../../models/decoraters.js";
 import Photographer from "../../models/photographers.js";
 import PropRental from "../../models/props.js";
+import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -216,60 +217,88 @@ const updateSectionCompletion = async (venId) => {
 
 const createVenue = async (req, res) => {
   try {
-    const alreadyExists = await Venue.findOne({
-      name: req.body.name,
-      id: req.body.venId,
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Venue already exists" });
-    }
+    // Check if the venue already exists
+    console.log(req.body);
+    // const alreadyExists = await Venue.findOne({
+    //   "basicDetails.name": req.body.name,
+    //   venId: req.body.venId,
+    // });
+    // if (alreadyExists) {
+    //   return res.status(400).json({ message: "Venue already exists" });
+    // }
 
-    const termsAndConditionsFileUrl = req.body.termsConditions || [];
-    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
+    // Extract file URLs from the request
+    const termsAndConditionsFileUrl =
+      req.files?.termsConditions?.[0]?.path || [];
+    const cancellationPolicyFileUrl =
+      req.files?.cancellationPolicy?.[0]?.path || [];
+    const insurancePolicyFileUrl = req.files?.insurancePolicy?.[0]?.path || [];
+    const photos = req.files?.photos?.map((file) => file.path) || [];
+    const videos = req.files?.videos?.map((file) => file.path) || [];
 
-    const photos = req.body.photos || [];
-
-    const videos = req.body.videos || [];
-
+    console.log("Hit3");
+    // Create a new venue object
+    console.log(JSON.parse(req.body.operatingHours));
+    const operatingHours = JSON.parse(req.body.operatingHours);
+    console.log("Hit");
     const newVenue = new Venue({
+      type: "venue",
+      venId: req.body.venId,
+      vendorType: "venue",
+      schedule: req.body.schedule || [], // Optional: Add events if provided
+
       basicDetails: {
-        managerName: req.body.managerName,
+        completed: false, // Will be updated based on completion
         name: req.body.name,
-        capacity: req.body.capacity,
-        address: req.body.address,
-        operatingHours: req.body.operatingHours,
+        managerName: req.body.managerName,
+        capacity: parseRange(req.body.capacity),
+        operatingHours,
+        // address: req.body.address,
         description: req.body.description,
+        location: {
+          lat: req.body.latitude,
+          lng: req.body.longitude,
+          googleMapsAddress: req.body.address,
+        },
         profileCompletion: 0, // Initial placeholder
       },
-      venId: req.body.venId,
+
       featureDetails: {
-        venueTypes: req.body.venueTypes,
-        decorServices: req.body.decorServices,
+        completed: false, // Will be updated based on completion
         catererServices: req.body.catererServices,
+        eventTypes: req.body.eventTypes,
         restrictionsPolicies: req.body.restrictionsPolicies,
         specialFeatures: req.body.specialFeatures,
+        decorServices: req.body.decorServices,
+        venueTypes: req.body.venueTypes,
         audioVisualEquipment: req.body.audioVisualEquipment,
         accessibilityFeatures: req.body.accessibilityFeatures,
         facilities: req.body.facilities,
       },
+
       additionalDetails: {
-        photos: Array.isArray(photos) ? photos : [photos],
-        videos: Array.isArray(videos) ? videos : [videos],
-        instagramURL: req.body.instagramURL,
-        websiteURL: req.body.websiteURL,
+        completed: false, // Will be updated based on completion
+        photos: photos,
+        videos: videos,
         awards: req.body.awards,
         clientTestimonials: req.body.clientTestimonials,
-        advanceBookingPeriod: req.body.advanceBookingPeriod,
+        instagramURL: req.body.instagramURL,
+        websiteURL: req.body.websiteURL,
+        advanceBookingPeriod: parseRange(req.body.advanceBookingPeriod),
         priceStartingFrom: req.body.priceStartingFrom,
       },
+
       policies: {
+        completed: false, // Will be updated based on completion
         termsConditions: termsAndConditionsFileUrl,
         cancellationPolicy: cancellationPolicyFileUrl,
-        insurancePolicy: req.body.insurancePolicy,
+        insurancePolicy: insurancePolicyFileUrl,
       },
+
+      rating: 0, // Default rating
     });
 
-    // Fields to check for profile completion
+    // Calculate profile completion
     const fieldsToCheck = [
       req.body.name,
       req.body.managerName,
@@ -278,8 +307,8 @@ const createVenue = async (req, res) => {
       req.body.operatingHours,
       req.body.description,
       req.body.venueTypes?.length > 0,
-      req.body.decorServices?.length > 0,
-      req.body.catererServices?.length > 0,
+      req.body.decorServices,
+      req.body.catererServices,
       req.body.restrictionsPolicies?.length > 0,
       req.body.specialFeatures?.length > 0,
       req.body.audioVisualEquipment?.length > 0,
@@ -289,35 +318,30 @@ const createVenue = async (req, res) => {
       videos.length > 0,
       req.body.instagramURL,
       req.body.websiteURL,
-      req.body.awards?.length > 0,
+      req.body.awards,
       req.body.clientTestimonials,
       req.body.advanceBookingPeriod,
       req.body.priceStartingFrom,
       termsAndConditionsFileUrl,
       cancellationPolicyFileUrl,
-      req.body.insurancePolicy,
+      insurancePolicyFileUrl,
     ];
+
+    console.log(req.body);
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-    console.log(
-      "profileCompletion came out to be in venue ------",
-      profileCompletion,
-    );
-    console.log(
-      "completedFields came out to be in venue ------",
-      completedFields,
-    );
-
     newVenue.basicDetails.profileCompletion = profileCompletion;
 
+    // Save the new venue
     const savedVenue = await newVenue.save();
 
     // Update section completion
     await updateSectionCompletion(savedVenue.id);
 
+    // Link the venue to the vendor (user)
     const vendor = await User.findOne({ id: req.body.venId });
     if (!vendor) {
       await Venue.findByIdAndDelete(savedVenue.id);
@@ -345,10 +369,13 @@ export const getAllVenues = async (req, res) => {
 
     const skip = (page - 1) * itemsPerPage;
 
-    const venues = await Venue.find().skip(skip).limit(itemsPerPage);
+    const venues =
+      page == -1
+        ? await Venue.find()
+        : await Venue.find().skip(skip).limit(itemsPerPage);
 
     const totalvenues = await Venue.countDocuments();
-
+    console.log("data is ", venues);
     res.status(200).json({
       data: venues,
       currentPage: page,
