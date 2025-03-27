@@ -273,8 +273,6 @@ const createVenue = async (req, res) => {
         venueTypes: req.body.venueTypes,
         audioVisualEquipment: req.body.audioVisualEquipment,
         accessibilityFeatures: req.body.accessibilityFeatures,
-        restrictionsPolicies: req.body.restrictionsPolicies,
-        specialFeatures: req.body.specialFeatures,
         facilities: req.body.facilities,
       },
 
