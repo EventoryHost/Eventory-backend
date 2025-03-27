@@ -66,7 +66,7 @@ router.post("/", async (req, res) => {
 
     customer.quotations.push({
       serviceId: req.body.service_id,
-      quotationId: savedQuotation._id,
+      quotationId: savedQuotation.id,
     });
 
     await customer.save();

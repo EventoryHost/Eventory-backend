@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 import axios from "axios";
 import { Customer } from "../models/customer.js";
+import { Vendor } from "../models/users.js";
+import { Quotation } from "../models/quotation.js";
 dotenv.config();
 
 async function sendInvoiceToWhatsApp(link, mobile, amount) {
@@ -125,53 +127,44 @@ async function sendConfirmationMessageToWhatsapp(event) {
 
 async function sendResponseOnIntroMessage(req, res) {
 
+  const mobile = req.body.mobile
 
-  const message = req.body;
+  var user = await Customer.findOne({ mobile }, { id: 1, name: 1, quotations: 1 })
+  if (!user) {
+    user = await Vendor.findOne({ mobile: mobile })
+  }
 
-  if (message.object) {
-    if (message.entry && message.entry[0].changes && message.entry[0].changes[0].value.messages && message.entry[0].changes[0].value.messages[0]) {
-      const phone_number_id = message.entry[0].changes[0].value.metadata.phone_number_id;
-      const from = message.entry[0].changes[0].value.messages[0].from; // extract the phone number from the webhook payload
-      const msg_body = message.entry[0].changes[0].value.messages[0].text.body; // extract the message text from the webhook payload
+  if (user) {
+    const userId = user.id
+    var quotations = []
+    console.log(user.quotations)
+    user.quotations.map((quotation) => quotations.push(quotation.quotationId))
 
-      console.log('phone number id:', phone_number_id);
-      console.log('Received message from:', from);
-      console.log('Message body:', msg_body);
-
-      const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
-      var customer;
-      try {
-        customer = await Customer.findOne({ mobile: `+` + from });
-        console.log('customer:', customer);
-        let body;
-        (customer === null) ?
-        body = "Please register as a customer to get started with Eventory. You can register by visiting our website at https://eventory.in":
-          customer.bookings.length === 0 ?
-            body = `Hi ${customer.name},\nyour id is ${customer.id},\nYou have no active quotes` :
-            body = `Hi ${customer.name},\nyour id is ${customer.id},\nyour active quote is ${customer.bookings[0].bookingId}`
-
-
-        axios({
-          method: 'POST',
-          url: WHATSAPP_API_URL,
-          headers: { 'Authorization': `Bearer ${process.env.WA_ACCESS_TOKEN}` },
-          data: {
-            messaging_product: 'whatsapp',
-            to: from,
-            text: {
-              body: body
-            }
-          }
-        })
-      } catch (error) {
-        console.error("Error finding customer:", error.message);
+    if (userId.startsWith("cus")) {
+      var response = {
+        quotations,
+        "message": `Hello ${user.name}, Welcome to Eventory!`,
       }
+    } else if (userId.startsWith("ven")) {
+      quotations = await Quotation.find({ vendor_id: userId })
+      var response = {
+        quotations,
+        "message": `Hello ${user.name}, welcome to Eventory!`,
+      }
+    } else {
+      return res.status(400).json({ message: "Please register on www.eventory.in to continue" })
     }
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(404);
+
+    console.log(response)
+    return res.status(200).json(response)
+  }
+
+  else {
+    return res.status(400).json({ message: "Please register on www.eventory.in to continue" })
   }
 }
+
+
 
 
 
