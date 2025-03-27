@@ -116,116 +116,46 @@ export const getVendorLimit = async (req, res) => {
 export const addReviews = async (req, res) => {
   try {
     const { date, feedback, id, name, photos, rating, type } = req.body;
-    if (!feedback && rating == 0) {
+
+    if (!id || !date || !name || (!feedback && rating === 0)) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-    if (!id || !Date) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-    if (!rating) {
-      return res.status(400).json({ message: "Rating is required" });
-    }
-    if (!name) {
-      return res.status(400).json({ message: "Name is required" });
-    }
-    if (!feedback) {
-      return res.status(400).json({ message: "Feedback is required" });
+
+    console.log("id : ", id, "date : ", date, "name : ", name, "photos : ", photos, "rating : ", rating, "type : ", type);
+
+    const models = {
+      venue: Venue,
+      caterer: Caterer,
+      decorator: Decorator,
+      photographer: Photographer,
+      propRental: propRental,
+      makeupArtist: MakeupArtist,
+    };
+
+    const Model = models[type];
+    if (!Model) {
+      return res.status(400).json({ message: "Invalid type provided" });
     }
 
-    if (type === "venue") {
-      const venue = await Venue.findOne({ id: id });
-      if (!venue) {
-        return res.status(404).json({ message: "Venue not found" });
-      }
-      if (!venue.reviews) {
-        venue.reviews = [];
-      }
-      venue.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-
-      await venue.save();
-
-      res.status(200).json(venue);
-    } else if (type === "caterer") {
-      const caterer = await Caterer.findOne({ id: id });
-      if (!caterer) {
-        return res.status(404).json({ message: "Caterer not found" });
-      }
-      if (!caterer.reviews) {
-        caterer.reviews = [];
-      }
-      caterer.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await caterer.save();
-
-      res.status(200).json(caterer);
-    } else if (type === "decorator") {
-      const decorator = await Decorator.findOne({ id: id });
-      if (!decorator) {
-        return res.status(404).json({ message: "Decorator not found" });
-      }
-      if (!decorator.reviews) {
-        decorator.reviews = [];
-      }
-      decorator.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await decorator.save();
-      res.status(200).json(decorator);
-    } else if (type === "photographer") {
-      const photographer = await Photographer.findOne({ id: id });
-      if (!photographer) {
-        return res.status(404).json({ message: "Photographer not found" });
-      }
-      if (!photographer.reviews) {
-        photographer.reviews = [];
-      }
-      photographer.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await photographer.save();
-
-      res.status(200).json(photographer);
-    } else if (type === "propRental") {
-      const prop = await propRental.findOne({ id: id });
-      if (!prop) {
-        return res.status(404).json({ message: "Prop Rental not found" });
-      }
-      if (!prop.reviews) {
-        prop.policies.reviews = [];
-      }
-      prop.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await prop.save();
-      res.status(200).json(prop);
+    const entity = await Model.findOne({ id });
+    if (!entity) {
+      return res.status(404).json({ message: `${type} not found` });
     }
+    console.log("entity : ", entity);
+
+    entity.reviews = entity.reviews || [];
+    entity.reviews.push({ rating, name, feedback, photos, date });
+
+    console.log("entity : ", entity);
+
+    await entity.save();
+
+    res.status(200).json(entity);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
+
 
 export const getAllServices = async (req, res) => {
   try {
@@ -260,19 +190,19 @@ export const handleSearch = async (req, res) => {
     const regex = new RegExp(`^${query}`, "i");
     const [venues, caterers, decorators, propRentals, pav] = await Promise.all([
       Venue.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id",
+        "basicDetails.name vendorType id"
       ),
       Caterer.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id",
+        "basicDetails.name vendorType id"
       ),
       Decorator.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id",
+        "basicDetails.name vendorType id"
       ),
       propRental
         .find({ "basicDetails.name": regex })
         .select("basicDetails.managerName vendorType id"),
       Photographer.find({ "basicDetails.name": regex }).select(
-        "basicDetails.name vendorType id",
+        "basicDetails.name vendorType id"
       ),
     ]);
 
@@ -285,7 +215,7 @@ export const handleSearch = async (req, res) => {
     ];
 
     const filteredResults = results.filter(
-      (group) => group.services.length > 0,
+      (group) => group.services.length > 0
     );
 
     res.json({ results: filteredResults });

@@ -46,6 +46,16 @@ const makeupArtistSchema = Schema({
   id: { type: String, default: generateUniqueId("mak"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "makeupArtist" },
+
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 // const MakeupArtist = model("MakeupArtist", makeupArtistSchema);
