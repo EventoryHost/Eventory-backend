@@ -266,6 +266,9 @@ const createVenue = async (req, res) => {
       featureDetails: {
         completed: false, // Will be updated based on completion
         catererServices: req.body.catererServices,
+        eventTypes: req.body.eventTypes,
+        restrictionsPolicies: req.body.restrictionsPolicies,
+        specialFeatures: req.body.specialFeatures,
         decorServices: req.body.decorServices,
         venueTypes: req.body.venueTypes,
         audioVisualEquipment: req.body.audioVisualEquipment,
