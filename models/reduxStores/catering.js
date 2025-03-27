@@ -10,9 +10,9 @@ const CateringSchema = new mongoose.Schema(
     description: { type: String },
     venueType: { type: String, default: "catering" },
     priceStarts: { type: String },
-    address : { type: String },
-    longitude : { type: Number },
-    latitude : { type: Number },
+    address: { type: String },
+    longitude: { type: Number },
+    latitude: { type: Number },
     // New fields based on the final model
     regionalSpecialties: { type: [String] }, // Renamed to match final model
     cuisineSpecialties: { type: [String] }, // Renamed to match final model

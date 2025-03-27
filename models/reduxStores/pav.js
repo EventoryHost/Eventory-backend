@@ -16,9 +16,9 @@ const photographerSchema = Schema(
     customizablePackage: { type: Boolean, default: false },
     customizableSoundAndLightingRates: { type: Boolean, default: false },
     equipmentAvailable: { type: [String] }, // To handle photoequipments
-    address : { type: String },
-    longitude : { type: Number },
-    latitude : { type: Number },
+    address: { type: String },
+    longitude: { type: Number },
+    latitude: { type: Number },
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
     rates: {
