@@ -88,22 +88,21 @@ router.get("/", async (req, res) => {
     const { vendor_id } = req.query;
     console.log("id is ", vendor_id);
 
-    if (!user_id) {
+    if (!vendor_id) {
       return res.status(400).json({
-        message: "Either vendor_id or user_id is required",
+        message: "vendor_id is required",
       });
     }
 
     // Construct query dynamically
     const query = {};
-    // if (vendor_id) query.vendor_id = vendor_id;
-    if (user_id) query.user_id = user_id;
+    if (vendor_id) query.vendor_id = vendor_id;
     console.log(query);
     const quotations = await Quotation.find(query);
 
     if (quotations.length === 0) {
       return res.status(404).json({
-        message: `No quotations found for ${vendor_id ? "vendor_id: " + vendor_id : "user_id: " + user_id}`,
+        message: `No quotations found for vendor_id: ${vendor_id}`,
       });
     }
 
