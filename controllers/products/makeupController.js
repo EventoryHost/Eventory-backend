@@ -158,9 +158,10 @@ const getAllMakeupArtist = async (req, res) => {
 
     const skip = (page - 1) * itemsPerPage;
 
-    const makeupArtists = await MakeupArtist.find()
-      .skip(skip)
-      .limit(itemsPerPage);
+    const makeupArtists =
+      page == -1
+        ? await MakeupArtist.find()
+        : await MakeupArtist.find().skip(skip).limit(itemsPerPage);
 
     const totalMakeupArtists = await MakeupArtist.countDocuments();
 

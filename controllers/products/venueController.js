@@ -369,10 +369,13 @@ export const getAllVenues = async (req, res) => {
 
     const skip = (page - 1) * itemsPerPage;
 
-    const venues = await Venue.find().skip(skip).limit(itemsPerPage);
+    const venues =
+      page == -1
+        ? await Venue.find()
+        : await Venue.find().skip(skip).limit(itemsPerPage);
 
     const totalvenues = await Venue.countDocuments();
-
+    console.log("data is ", venues);
     res.status(200).json({
       data: venues,
       currentPage: page,
