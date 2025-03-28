@@ -46,19 +46,9 @@ const venueSchema = new Schema({
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
     location: {
-      lat: { type: Number }, // Latitude
-      lng: { type: Number }, // Longitude
-      pincode: {
-        type: Number,
-        validate: {
-          validator: function (v) {
-            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
-          },
-          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
-        },
-        // required: [true, 'Pincode is required'] // Ensures the pincode is required
-      },
-      googleMapsAddress: { type: String }, // Google Maps formatted address
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true },
+      googleMapsAddress: { type: String, required: true },
     },
   },
 
