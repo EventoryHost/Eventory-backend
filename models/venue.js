@@ -7,6 +7,7 @@ export const eventSchema = new Schema({
   end: { type: Date, required: true }, // End time, e.g., "2024-11-06 20:30"
   id: { type: Number, required: true }, // Unique event id
   start: { type: Date, required: true }, // Start time, e.g., "2024-11-06 19:30"
+  description: { type: String },
   title: { type: String, required: true }, // Event title
 });
 
