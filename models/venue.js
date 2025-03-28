@@ -11,7 +11,12 @@ export const eventSchema = new Schema({
 });
 
 const venueSchema = new Schema({
-  id: { type: String, default: generateUniqueId("veu"), required: true },
+  id: {
+    type: String,
+    default: generateUniqueId("veu"),
+    required: true,
+    unique: true,
+  },
   type: { type: String, default: "venue" },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "venue" },
@@ -21,14 +26,23 @@ const venueSchema = new Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     name: { type: String, required: true },
     managerName: { type: String, required: true },
-    capacity: { type: String, required: true },
-    operatingHours: {
-      openingTime: { type: String },
-      closingTime: { type: String },
+    capacity: {
+      ll: { type: Number, required: true }, // Lower limit of capacity
+      ul: { type: Number, required: true }, // Upper limit of capacity
     },
-    address: { type: String, required: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    operatingHours: {
+      openingTime: {
+        hour: { type: Number, required: true, min: 0, max: 23 }, // Hour (0-23)
+        minute: { type: Number, required: true, min: 0, max: 59 }, // Minute (0-59)
+      },
+      closingTime: {
+        hour: { type: Number, required: true, min: 0, max: 23 }, // Hour (0-23)
+        minute: { type: Number, required: true, min: 0, max: 59 }, // Minute (0-59)
+      },
+    },
+    // address: { type: String, required: true },
+    // latitude: { type: Number, required: true },
+    // longitude: { type: Number, required: true },
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
     location: {
@@ -59,8 +73,11 @@ const venueSchema = new Schema({
     clientTestimonials: { type: String },
     instagramURL: { type: String },
     websiteURL: { type: String },
-    advanceBookingPeriod: { type: String },
-    priceStartingFrom: { type: String, required: true },
+    advanceBookingPeriod: {
+      ll: { type: Number, required: true }, // Lower limit of advance booking period (e.g., days)
+      ul: { type: Number, required: true }, // Upper limit of advance booking period (e.g., days)
+    },
+    priceStartingFrom: { type: Number, required: true }, // Starting price as an integer
   },
 
   policies: {
