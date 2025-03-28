@@ -17,6 +17,7 @@ const venueSchema = new Schema({
       type: String,
     },
   },
+  selectedEventTypes: { type: [String] },
   address: { type: String },
   latitude: { type: Number },
   longitude: { type: Number },
@@ -40,7 +41,7 @@ const venueSchema = new Schema({
     type: [String],
   },
   restrictionsPolicies: { type: [String] },
-  speacialFeatures: { type: [String] },
+  specialFeatures: { type: [String] },
   facilities: {
     type: [String],
   },

@@ -42,6 +42,7 @@ const venueSchema = new Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     catererServices: { type: Boolean, required: true },
     decorServices: { type: Boolean, required: true },
+    eventTypes: { type: [String], required: true },
     venueTypes: { type: [String], required: true },
     audioVisualEquipment: { type: [String] },
     accessibilityFeatures: { type: [String], required: true },
