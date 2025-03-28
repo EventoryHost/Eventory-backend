@@ -3,6 +3,7 @@ import { Customer } from "../models/customer.js";
 import Photographer from "../models/photographers.js";
 import { Decorator } from "../models/decoraters.js";
 import PropRental from "../models/props.js";
+import MakeupArtist from "../models/makeupArtists.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
 
@@ -103,8 +104,11 @@ export const getFavoriteServices = async (req, res) => {
       } else if (serviceId.startsWith("dec")) {
         collection = Decorator;
       } else if (serviceId.startsWith("prop")) {
-        collection = PropRental; // Fix: Properly check for 'prop' which has 4 characters
-      } else {
+        collection = PropRental; 
+      } else if (serviceId.startsWith("mak")) {
+        collection = MakeupArtist;
+      } 
+      else {
         console.warn(`Unknown prefix: ${serviceId}`);
         continue; // Skip if prefix is unknown
       }
@@ -122,6 +126,24 @@ export const getFavoriteServices = async (req, res) => {
 
     // Return the list of favorite vendors with full details
     res.status(200).json(favoriteVendors);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getFavoriteServiceIds = async (req, res) => {
+  try {
+    const customerId = req.params.cusId;
+    const customer = await Customer.findOne({ id: customerId });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    if (!customer.favoriteServices) {
+      customer.favoriteServices = [];
+    }
+    res.status(200).json(customer.favoriteServices);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

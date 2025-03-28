@@ -31,6 +31,11 @@ const venueSchema = new Schema({
     longitude: { type: Number, required: true },
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
+    location: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true },
+      googleMapsAddress: { type: String, required: true },
+    },
   },
 
   featureDetails: {
