@@ -104,11 +104,10 @@ export const getFavoriteServices = async (req, res) => {
       } else if (serviceId.startsWith("dec")) {
         collection = Decorator;
       } else if (serviceId.startsWith("prop")) {
-        collection = PropRental; 
+        collection = PropRental;
       } else if (serviceId.startsWith("mak")) {
         collection = MakeupArtist;
-      } 
-      else {
+      } else {
         console.warn(`Unknown prefix: ${serviceId}`);
         continue; // Skip if prefix is unknown
       }
