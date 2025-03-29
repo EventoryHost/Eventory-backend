@@ -31,7 +31,8 @@ async function getFeaturedVendors(req, res) {
     id: caterer.id,
     category_name: "Caterer",
     name: caterer.basicDetails.name || "Krishna Vendors",
-    rating: caterer.reviews[0]?.rating || "4.5",
+    rating: "4.5",
+    // rating: caterer.reviews[0]?.rating || "4.5",
     price: caterer.additionalDetails.priceStartingFrom || "4000",
     category: ["Caterer"],
     img:
@@ -44,7 +45,8 @@ async function getFeaturedVendors(req, res) {
     id: decorator.id,
     category_name: "Decorator",
     name: decorator.basicDetails.name || "Krishna Vendors",
-    rating: decorator.reviews[0]?.rating || "4.5",
+    rating: "4.5",
+    // rating: decorator.reviews[0]?.rating || "4.5",
     price: decorator.additionalDetails.priceStartingFrom || "4000",
     category: ["Decorator"],
     img:
@@ -57,7 +59,8 @@ async function getFeaturedVendors(req, res) {
     id: venue.id,
     category_name: "Venue Provider",
     name: venue.basicDetails.name || "Krishna Vendors",
-    rating: venue.policies.reviews[0]?.rating || "4.5",
+    // rating: venue.policies.reviews[0]?.rating || "4.5",
+    rating: "4.5",
     price: venue.additionalDetails.priceStartingFrom || "4000",
     category: ["Venue"],
     img:
@@ -70,7 +73,8 @@ async function getFeaturedVendors(req, res) {
     id: prop_rental.id,
     category_name: "Prop Rental",
     name: prop_rental.basicDetails.managerName || "Krishna Vendors",
-    rating: prop_rental.reviews[0]?.rating || "4.5",
+    rating: "4.5",
+    // rating: prop_rental.reviews[0]?.rating || "4.5",
     price: prop_rental.additionalDetails.priceStartingFrom || "4000",
     category: ["Property Rental"],
     img:
@@ -83,7 +87,8 @@ async function getFeaturedVendors(req, res) {
     id: pav.id,
     category_name: "Photographers & Videographers",
     name: pav.basicDetails.managerName || "Krishna Vendors",
-    rating: pav.reviews[0]?.rating || "4.5",
+    rating: "4.5",
+    // rating: pav.reviews[0]?.rating || "4.5",
     price: pav.additionalDetails.priceStartingFrom || "4000",
     category: ["Photography", "Videography"],
     img:

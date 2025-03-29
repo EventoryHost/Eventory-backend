@@ -23,7 +23,7 @@ router.put("/:bookingId", updateBooking);
 router.delete("/:bookingId", deleteBooking);
 router.get("/all", getAllBookings);
 
-router.post("/add-offline-booking", addOfflineEvent);
+router.patch("/add-offline-booking", addOfflineEvent);
 router.patch("/delete-offline-booking", deleteOfflineEvent);
 router.get("/get-vendor-bookings", getVendorBookings);
 

@@ -381,7 +381,7 @@ const searchAllVendors = async (query) => {
 
 const searchProducts = async (req, res, next) => {
   try {
-    const { type } = req.query;
+    const { type, start_date, end_date } = req.query;
     let results;
 
     switch (type) {
@@ -406,6 +406,28 @@ const searchProducts = async (req, res, next) => {
 
     // console.log("finals: ", results);
     const { data, totalResults, totalPages, currentPage } = results;
+
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    data.forEach((item) => {
+      if (item.schedule && item.schedule.start && item.schedule.end) {
+        const itemStart = new Date(item.schedule.start);
+        const itemEnd = new Date(item.schedule.end);
+        
+        if (itemStart <= startDate && itemEnd <= endDate) {
+          item.available = false;
+          console.log("false");
+        } else {
+          item.available = true;
+          console.log("true");
+        }
+      } else {
+        // Handle cases where schedule is missing
+        item.available = true; // Assuming no schedule means available
+        console.log("true");
+      }
+    });
 
     res.status(200).json({
       message: "Search results fetched successfully.",
