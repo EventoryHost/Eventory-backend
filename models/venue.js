@@ -96,15 +96,9 @@ const venueSchema = new Schema({
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
   },
-  reviews: [
-    {
-      rating: { type: Number, required: true },
-      name: { type: String, required: true },
-      feedback: { type: String, required: true },
-      photos: { type: [String] },
-      date: { type: String, required: true },
-    },
-  ],
+
+  rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
+
 });
 
 const Venue = model("Venue", venueSchema);
