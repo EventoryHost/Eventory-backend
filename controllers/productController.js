@@ -407,27 +407,34 @@ const searchProducts = async (req, res, next) => {
     // console.log("finals: ", results);
     const { data, totalResults, totalPages, currentPage } = results;
 
-    const startDate = new Date(start_date);
-    const endDate = new Date(end_date);
+    const startDate = new Date(start_date) || Date.now();
+    const endDate = new Date(end_date) || Date.now();
 
     data.forEach((item) => {
-      if (item.schedule && item.schedule.start && item.schedule.end) {
-        const itemStart = new Date(item.schedule.start);
-        const itemEnd = new Date(item.schedule.end);
-        
-        if (itemStart <= startDate && itemEnd <= endDate) {
-          item.available = false;
-          console.log("false");
-        } else {
-          item.available = true;
-          console.log("true");
-        }
+      if (Array.isArray(item.schedule) && item.schedule.length > 0) {
+        let isAvailable = true;
+
+        item.schedule.forEach((schedule) => {
+          if (schedule.start && schedule.end) {
+            const itemStart = new Date(schedule.start);
+            const itemEnd = new Date(schedule.end);
+
+            // If any schedule conflicts with the given range, mark as unavailable
+            if (itemStart <= startDate && itemEnd >= endDate) {
+              isAvailable = false;
+            }
+          }
+        });
+
+        item.available = isAvailable;
+        console.log(isAvailable ? "true" : "false");
       } else {
-        // Handle cases where schedule is missing
+        // Handle cases where schedule is missing or empty
         item.available = true; // Assuming no schedule means available
-        console.log("true");
+        console.log("true -2");
       }
     });
+
 
     res.status(200).json({
       message: "Search results fetched successfully.",
