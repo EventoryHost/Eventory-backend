@@ -63,7 +63,7 @@ const venueSchema = new Schema({
   },
 
   featureDetails: {
-    completed: { type: Boolean, default: false },  // Flag for section completion
+    completed: { type: Boolean, default: false }, // Flag for section completion
     catererServices: { type: Boolean, required: true },
     decorServices: { type: Boolean, required: true },
     eventTypes: { type: [String], required: true },
@@ -96,9 +96,15 @@ const venueSchema = new Schema({
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
   },
-
-  rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
-
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 const Venue = model("Venue", venueSchema);
