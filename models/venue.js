@@ -46,14 +46,24 @@ const venueSchema = new Schema({
     description: { type: String },
     profileCompletion: { type: Number, default: 0 },
     location: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
-      googleMapsAddress: { type: String, required: true },
+      lat: { type: Number }, // Latitude
+      lng: { type: Number }, // Longitude
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+          },
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
+        },
+        // required: [true, 'Pincode is required'] // Ensures the pincode is required
+      },
+      googleMapsAddress: { type: String }, // Google Maps formatted address
     },
   },
 
   featureDetails: {
-    completed: { type: Boolean, default: false }, // Flag for section completion
+    completed: { type: Boolean, default: false },  // Flag for section completion
     catererServices: { type: Boolean, required: true },
     decorServices: { type: Boolean, required: true },
     eventTypes: { type: [String], required: true },
@@ -86,9 +96,15 @@ const venueSchema = new Schema({
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
   },
-
-  rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
-
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 const Venue = model("Venue", venueSchema);
