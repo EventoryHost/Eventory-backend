@@ -43,7 +43,7 @@ const venueSchema = new Schema({
     // address: { type: String, required: true },
     // latitude: { type: Number, required: true },
     // longitude: { type: Number, required: true },
-    description: { type: String, required: true }, 
+    description: { type: String, required: true },
     profileCompletion: { type: Number, default: 0 },
     location: {
       lat: { type: Number }, // Latitude
@@ -63,7 +63,7 @@ const venueSchema = new Schema({
   },
 
   featureDetails: {
-    completed: { type: Boolean, default: false },  // Flag for section completion
+    completed: { type: Boolean, default: false }, // Flag for section completion
     catererServices: { type: Boolean, required: true },
     decorServices: { type: Boolean, required: true },
     eventTypes: { type: [String], required: true },
@@ -98,7 +98,6 @@ const venueSchema = new Schema({
   },
 
   rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
-
 });
 
 const Venue = model("Venue", venueSchema);

@@ -230,9 +230,7 @@ const createVenue = async (req, res) => {
     // Extract file URLs from the request
     const termsAndConditionsFileUrl = req.body.termsConditions || [];
 
-      
-    const cancellationPolicyFileUrl =
-    req.body.cancellationPolicy || [];
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const insurancePolicyFileUrl = req.body.insurancePolicy || [];
     const photosUrl = req.body.photos || [];
     const videosUrl = req.body.videos || [];
