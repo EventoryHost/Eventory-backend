@@ -27,11 +27,12 @@ async function getFeaturedVendors(req, res) {
     ]);
 
   // caterer
+  if (caterer)
   featuredVendors.push({
     id: caterer.id,
     category_name: "Caterer",
     name: caterer.basicDetails.name || "Krishna Vendors",
-    rating: caterer.reviews[0]?.rating || "4.5",
+    rating: caterer.rating || "4.5",
     price: caterer.additionalDetails.priceStartingFrom || "4000",
     category: ["Caterer"],
     img:
@@ -40,11 +41,12 @@ async function getFeaturedVendors(req, res) {
   });
 
   // decorator
+  if (decorator)
   featuredVendors.push({
     id: decorator.id,
     category_name: "Decorator",
     name: decorator.basicDetails.name || "Krishna Vendors",
-    rating: decorator.reviews[0]?.rating || "4.5",
+    rating: decorator.rating || "4.5",
     price: decorator.additionalDetails.priceStartingFrom || "4000",
     category: ["Decorator"],
     img:
@@ -53,11 +55,12 @@ async function getFeaturedVendors(req, res) {
   });
 
   // venue
+  if (venue)
   featuredVendors.push({
     id: venue.id,
     category_name: "Venue Provider",
     name: venue.basicDetails.name || "Krishna Vendors",
-    rating: venue.reviews[0]?.rating || "4.5",
+    rating: venue.rating || "4.5",
     price: venue.additionalDetails.priceStartingFrom || "4000",
     category: ["Venue"],
     img:
@@ -66,11 +69,12 @@ async function getFeaturedVendors(req, res) {
   });
 
   // prop rentals
+  if (prop_rental)
   featuredVendors.push({
     id: prop_rental.id,
     category_name: "Prop Rental",
     name: prop_rental.basicDetails.managerName || "Krishna Vendors",
-    rating: prop_rental.reviews[0]?.rating || "4.5",
+    rating: prop_rental.rating || "4.5",
     price: prop_rental.additionalDetails.priceStartingFrom || "4000",
     category: ["Property Rental"],
     img:
@@ -79,11 +83,12 @@ async function getFeaturedVendors(req, res) {
   });
 
   // photography and videography
+  if (pav)
   featuredVendors.push({
     id: pav.id,
     category_name: "Photographers & Videographers",
     name: pav.basicDetails.managerName || "Krishna Vendors",
-    rating: pav.reviews[0]?.rating || "4.5",
+    rating: pav.rating || "4.5",
     price: pav.additionalDetails.priceStartingFrom || "4000",
     category: ["Photography", "Videography"],
     img:
@@ -92,6 +97,7 @@ async function getFeaturedVendors(req, res) {
   });
 
   // makeup artist
+  if (makeupArtist)
   featuredVendors.push({
     id: makeupArtist.id,
     category_name: "Makeup Artist",

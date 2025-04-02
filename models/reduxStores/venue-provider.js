@@ -21,7 +21,7 @@ const venueSchema = new Schema({
   address: { type: String },
   latitude: { type: Number },
   longitude: { type: Number },
-  venueDescription: {
+  description: {
     type: String,
   },
   venueType: { type: String, default: "venue-provider" },
