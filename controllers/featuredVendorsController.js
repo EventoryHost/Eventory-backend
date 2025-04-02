@@ -27,6 +27,7 @@ async function getFeaturedVendors(req, res) {
     ]);
 
   // caterer
+  if (caterer)
   featuredVendors.push({
     id: caterer.id,
     category_name: "Caterer",
@@ -40,6 +41,7 @@ async function getFeaturedVendors(req, res) {
   });
 
   // decorator
+  if (decorator)
   featuredVendors.push({
     id: decorator.id,
     category_name: "Decorator",
@@ -53,6 +55,7 @@ async function getFeaturedVendors(req, res) {
   });
 
   // venue
+  if (venue)
   featuredVendors.push({
     id: venue.id,
     category_name: "Venue Provider",
@@ -66,6 +69,7 @@ async function getFeaturedVendors(req, res) {
   });
 
   // prop rentals
+  if (prop_rental)
   featuredVendors.push({
     id: prop_rental.id,
     category_name: "Prop Rental",
@@ -79,6 +83,7 @@ async function getFeaturedVendors(req, res) {
   });
 
   // photography and videography
+  if (pav)
   featuredVendors.push({
     id: pav.id,
     category_name: "Photographers & Videographers",
@@ -92,6 +97,7 @@ async function getFeaturedVendors(req, res) {
   });
 
   // makeup artist
+  if (makeupArtist)
   featuredVendors.push({
     id: makeupArtist.id,
     category_name: "Makeup Artist",
