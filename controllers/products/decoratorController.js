@@ -158,7 +158,7 @@ const createDecorator = async (req, res) => {
         awards: req.body.awards,
         website: req.body.websiteurl,
         instagram: req.body.intstagramurl,
-        advanceBookingPeriod: req.body.advanceBookingPeriod,
+        advanceBookingPeriod: parseRange(req.body.advanceBookingPeriod),
         priceStartingFrom: Number(req.body.priceStartingFrom), // Convert to number
         themeProposels: req.body.themeProposels,
         proposalRevisions: req.body.proposalRevisions,

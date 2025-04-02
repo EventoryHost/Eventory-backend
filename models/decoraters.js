@@ -62,7 +62,10 @@ const decoratorSchema = Schema({
     awards: { type: String },
     website: { type: String },
     instagram: { type: String },
-    advanceBookingPeriod: { type: String, required: true },
+    advanceBookingPeriod: {
+      ll: { type: Number, required: true },
+      ul: { type: Number, required: true },
+    },
     priceStartingFrom: { type: Number, required: true }, // Changed to Number
     themeProposels: { type: Boolean },
     proposalRevisions: { type: Boolean, default: true },
