@@ -8,7 +8,8 @@ import {
   getAllBookings,
   addOfflineEvent,
   getVendorBookings,
-  deleteOfflineEvent
+  deleteOfflineEvent,
+  editOfflineEvent
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.get("/all", getAllBookings);
 
 router.patch("/add-offline-booking", addOfflineEvent);
 router.patch("/delete-offline-booking", deleteOfflineEvent);
+router.patch("/edit-offline-booking", editOfflineEvent);
 router.get("/get-vendor-bookings", getVendorBookings);
 
 export default router;
