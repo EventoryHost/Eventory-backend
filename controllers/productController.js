@@ -404,45 +404,63 @@ const searchProducts = async (req, res, next) => {
         return res.status(400).json({ message: "Invalid Product type." });
     }
 
-    // console.log("finals: ", results);
-    const { data, totalResults, totalPages, currentPage } = results;
+    console.log("Initial results:", results);
 
-    const startDate = new Date(start_date) || Date.now();
-    const endDate = new Date(end_date) || Date.now();
+    const { totalResults, totalPages, currentPage } = results;
+    let { data = [] } = results; // Default to empty array if `data` is missing
 
-    data.forEach((item) => {
-      if (Array.isArray(item.schedule) && item.schedule.length > 0) {
-        let isAvailable = true;
+    const startDate = start_date ? new Date(start_date) : new Date();
+    const endDate = end_date ? new Date(end_date) : new Date();
 
-        item.schedule.forEach((schedule) => {
-          if (schedule.start && schedule.end) {
-            const itemStart = new Date(schedule.start);
-            const itemEnd = new Date(schedule.end);
+    if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
+    if (isNaN(endDate.getTime())) throw new Error("Invalid end date");
 
-            // If any schedule conflicts with the given range, mark as unavailable
-            if (itemStart <= startDate && itemEnd >= endDate) {
-              isAvailable = false;
-            }
-          }
-        });
+    if (!Array.isArray(data)) {
+      throw new Error("Expected 'data' to be an array");
+    }
 
-        item.available = isAvailable;
-        console.log(isAvailable ? "true" : "false");
-      } else {
-        // Handle cases where schedule is missing or empty
-        item.available = true; // Assuming no schedule means available
-        console.log("true -2");
+    console.log("Before modifying availability:", data);
+
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+
+      item.available = true;
+
+      if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
+        item.available = true;
+        continue;
       }
-    });
 
+      let hasOverlap = false;
+      for (let j = 0; j < item.schedule.length; j++) {
+        const scheduleItem = item.schedule[j];
+
+        if (!scheduleItem?.start || !scheduleItem?.end) continue;
+
+        const itemStart = new Date(scheduleItem.start);
+        const itemEnd = new Date(scheduleItem.end);
+
+        if (isNaN(itemStart.getTime()) || isNaN(itemEnd.getTime())) continue;
+
+        if (itemStart < endDate && itemEnd > startDate) {
+          hasOverlap = true;
+          break;
+        }
+      }
+
+      item.available = !hasOverlap;
+    }
+
+    results.data = [...data]; // Ensure updated reference
+    console.log("Final results:", results);
 
     res.status(200).json({
       message: "Search results fetched successfully.",
       size: data.length,
       totalResults,
-      totalPages: totalPages,
+      totalPages: 10,
       currentPage,
-      results: data,
+      results: results.data,
     });
   } catch (e) {
     console.error(e);

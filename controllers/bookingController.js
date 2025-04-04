@@ -220,9 +220,21 @@ export const addOfflineEvent = async (req, res) => {
   }
 };
 
+export const editOfflineEvent = async (req, res) => {
+  try {
+    
+  } catch (e) {
+
+  }
+}
+
+
+
 export const deleteOfflineEvent = async (req, res) => {
   try {
-    const { serId, calendarId, type } = req.query; // Extract parameters
+    const { serId, type } = req.body.data; // Extract parameters
+    const calendarId = req.body.data.calenderId; // Extract calendarId from query parameters
+    console.log("Received Data:", req.body.data);
 
     if (!serId || !calendarId || !type) {
       return res.status(400).json({ message: "Missing required fields: serId, calendarId, type" });
@@ -254,15 +266,16 @@ export const deleteOfflineEvent = async (req, res) => {
       return res.status(404).json({ message: `${type} not found` });
     }
 
-    // Find the event index using calendarId
-    const eventIndex = vendor.schedule.findIndex(event => event.calendarId === calendarId);
+    // Filter out the event that matches the given calendarId
+    const updatedSchedule = vendor.schedule.filter(event => event.calendarId !== calendarId);
 
-    if (eventIndex === -1) {
+    // If no change in schedule, it means the event was not found
+    if (updatedSchedule.length === vendor.schedule.length) {
       return res.status(404).json({ message: "Event not found in schedule" });
     }
 
-    // Remove the event from the schedule
-    vendor.schedule.splice(eventIndex, 1);
+    // Update the vendor's schedule
+    vendor.schedule = updatedSchedule;
 
     // Save the updated vendor document
     await vendor.save();
