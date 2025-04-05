@@ -261,7 +261,7 @@ export const editOfflineEvent = async (req, res) => {
       vendor.schedule = [];
     }
 
-    const index = vendor.schedule.findIndex(event => event.calendarId === calendarId);
+    const index = vendor.schedule.findIndex(event => event.calendarId === updatedEventData.calendarId);
 
     if (index === -1) {
       return res.status(404).json({ message: "Event not found in schedule" });

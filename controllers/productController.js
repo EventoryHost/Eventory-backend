@@ -404,7 +404,7 @@ const searchProducts = async (req, res, next) => {
         return res.status(400).json({ message: "Invalid Product type." });
     }
 
-    console.log("Initial results:", results);
+    // console.log("Initial results:", results);
 
     const { totalResults, totalPages, currentPage } = results;
     let { data = [] } = results; // Default to empty array if `data` is missing
@@ -418,13 +418,13 @@ const searchProducts = async (req, res, next) => {
     if (!Array.isArray(data)) {
       throw new Error("Expected 'data' to be an array");
     }
-
-    console.log("Before modifying availability:", data);
+    // console.log("Before modifying availability:", data);
 
     for (let i = 0; i < data.length; i++) {
       const item = data[i];
 
       item.available = true;
+      // console.log("Schedule for item:", item.basicDetails.name);
 
       if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
         item.available = true;
@@ -434,6 +434,8 @@ const searchProducts = async (req, res, next) => {
       let hasOverlap = false;
       for (let j = 0; j < item.schedule.length; j++) {
         const scheduleItem = item.schedule[j];
+
+        // console.log(item.schedule[j]);
 
         if (!scheduleItem?.start || !scheduleItem?.end) continue;
 
@@ -449,10 +451,16 @@ const searchProducts = async (req, res, next) => {
       }
 
       item.available = !hasOverlap;
+      // console.log(item.available);
     }
 
-    results.data = [...data]; // Ensure updated reference
-    console.log("Final results:", results);
+    const resu = [...data]; // Ensure updated reference
+    // console.log("Final results:", results);
+
+    for (let i = 0; i < results.data.length; i++) {
+      console.log("hello", resu[i].available);
+      console.log(resu[i]);
+    }
 
     res.status(200).json({
       message: "Search results fetched successfully.",
@@ -460,7 +468,7 @@ const searchProducts = async (req, res, next) => {
       totalResults,
       totalPages: 10,
       currentPage,
-      results: results.data,
+      results: resu,
     });
   } catch (e) {
     console.error(e);
