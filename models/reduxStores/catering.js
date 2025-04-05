@@ -30,7 +30,7 @@ const CateringSchema = new mongoose.Schema(
     selectedBeverages: { type: [String] },
     selectedMainCourses: { type: [String] },
     selectedDietaryOptions: { type: [String] },
-    food_safety_certificates: { type: [String], },
+    food_safety_certificates: { type: [String] },
     preSetMenu: { type: String }, // Can be adjusted based on requirements
     customizableMenu: { type: Boolean }, // Is the menu customizable?
 
