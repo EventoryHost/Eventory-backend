@@ -382,6 +382,8 @@ const searchAllVendors = async (query) => {
 const searchProducts = async (req, res, next) => {
   try {
     const { type, start_date, end_date } = req.query;
+
+    console.log(req.query);
     let results;
 
     switch (type) {
@@ -428,6 +430,7 @@ const searchProducts = async (req, res, next) => {
 
       if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
         item.available = true;
+        console.log("No schedule found for item:", item.basicDetails.name);
         continue;
       }
 
@@ -450,17 +453,18 @@ const searchProducts = async (req, res, next) => {
         }
       }
 
-      item.available = !hasOverlap;
-      // console.log(item.available);
+      // item.available = !hasOverlap;
+      item._doc.available = !hasOverlap; // Use _doc to modify the original document
+      console.log(item.available);
     }
 
     const resu = [...data]; // Ensure updated reference
     // console.log("Final results:", results);
 
-    for (let i = 0; i < results.data.length; i++) {
-      console.log("hello", resu[i].available);
-      console.log(resu[i]);
-    }
+    // for (let i = 0; i < results.data.length; i++) {
+    //   console.log("hello", resu[i].available);
+    //   console.log(resu[i]);
+    // }
 
     res.status(200).json({
       message: "Search results fetched successfully.",
