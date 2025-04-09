@@ -1,6 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 
 const makeupArtistSchema = Schema({
   type: { type: String, default: "makeupArtist" },
@@ -10,13 +11,28 @@ const makeupArtistSchema = Schema({
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false }, // Flag for section completion
     name: { type: String, required: true },
-    eventSize: { type: String, required: true },
+    eventSize: {
+      ll: { type: Number, required: true },
+      ul: { type: Number, required: true },
+    },
     description: { type: String, required: true },
     eventTypes: { type: [String], required: true },
     typesOfMakeupArtists: { type: [String], required: true },
     address: { type: String, required: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    location: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true },
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v);
+          },
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
+        },
+      },
+      googleMapsAddress: { type: String },
+    },
   },
 
   serviceDetails: {
@@ -32,7 +48,7 @@ const makeupArtistSchema = Schema({
     videos: { type: [String], required: true },
     socialMedia: { type: String },
     websiteUrl: { type: String },
-    priceStarts: { type: Number, required: true },
+    priceStartingFrom: { type: Number, required: true },
   },
 
   policies: {
@@ -46,6 +62,9 @@ const makeupArtistSchema = Schema({
   id: { type: String, default: generateUniqueId("mak"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "makeupArtist" },
+
+  schedule: [eventSchema],
+  rating: { type: Number, default: 0, min: 0, max: 5 },
 
   reviews: [
     {
