@@ -62,13 +62,12 @@ const createMakeupArtist = async (req, res) => {
 
     // Parse location data
     const location = {
-      lat: parseFloat(req.body.lat),
-      lng: parseFloat(req.body.lng),
+      lat: parseFloat(req.body.latitude),
+      lng: parseFloat(req.body.longitude),
       pincode: parseInt(req.body.pincode),
-      googleMapsAddress: req.body.googleMapsAddress || ""
+      googleMapsAddress: req.body.address || ""
     };
-
-    // Parse event size range
+    
     const eventSize = parseRange(req.body.eventSize);
 
     const newMakeupArtist = new MakeupArtist({
@@ -87,7 +86,11 @@ const createMakeupArtist = async (req, res) => {
         eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
         address: req.body.address,
-        location: location,
+        location: {
+          lat: req.body.latitude, // Latitude
+          lng: req.body.longitude, // Longitude
+          googleMapsAddress: req.body.address, // Google Maps address
+        },
         profileCompletion: 0 // Will be updated after creation
       },
 
