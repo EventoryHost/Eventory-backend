@@ -65,9 +65,9 @@ const createMakeupArtist = async (req, res) => {
       lat: parseFloat(req.body.latitude),
       lng: parseFloat(req.body.longitude),
       pincode: parseInt(req.body.pincode),
-      googleMapsAddress: req.body.address || ""
+      googleMapsAddress: req.body.address || "",
     };
-    
+
     const eventSize = parseRange(req.body.eventSize);
 
     const newMakeupArtist = new MakeupArtist({
@@ -81,7 +81,7 @@ const createMakeupArtist = async (req, res) => {
         description: req.body.description,
         eventSize: {
           ll: eventSize.ll,
-          ul: eventSize.ul
+          ul: eventSize.ul,
         },
         eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
@@ -91,13 +91,13 @@ const createMakeupArtist = async (req, res) => {
           lng: req.body.longitude, // Longitude
           googleMapsAddress: req.body.address, // Google Maps address
         },
-        profileCompletion: 0 // Will be updated after creation
+        profileCompletion: 0, // Will be updated after creation
       },
 
       serviceDetails: {
         onsiteMakeup: req.body.onsiteMakeup === "Yes",
         customization: req.body.customization === "Yes",
-        serviceTypes: req.body.serviceTypes.split(",")
+        serviceTypes: req.body.serviceTypes.split(","),
       },
 
       additionalDetails: {
@@ -105,7 +105,7 @@ const createMakeupArtist = async (req, res) => {
         videos: req.body.videos,
         socialMedia: req.body.socialMedia || "",
         websiteUrl: req.body.websiteUrl || "",
-        priceStartingFrom: req.body.priceStarts
+        priceStartingFrom: req.body.priceStarts,
       },
 
       policies: {
@@ -120,10 +120,10 @@ const createMakeupArtist = async (req, res) => {
           : [],
         clientTestimonials: req.body.clientTestimonials
           ? req.body.clientTestimonials.split(",")
-          : []
+          : [],
       },
 
-      venId: req.body.venId
+      venId: req.body.venId,
     });
 
     const savedMakeupArtist = await newMakeupArtist.save();
@@ -133,7 +133,7 @@ const createMakeupArtist = async (req, res) => {
     if (vendor) {
       vendor.serviceIds.push({
         serType: "makeupArtist",
-        serId: savedMakeupArtist.id
+        serId: savedMakeupArtist.id,
       });
       await vendor.save();
     }
