@@ -14,13 +14,26 @@ const getFileUrls = (files, fieldName) => {
 
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false;
-  return Object.keys(section).every((key) => {
+
+  let isComplete = true;
+
+  for (const key of Object.keys(section)) {
     const value = section[key];
-    return Array.isArray(value)
+    const isFilled = Array.isArray(value)
       ? value.length > 0
       : value !== undefined && value !== null && value !== "";
-  });
+
+    if (!isFilled) {
+      console.warn(`❌ Incomplete field: ${key}, Value: ${JSON.stringify(value)}`);
+      isComplete = false;
+    } else {
+      console.log(`✅ Filled field: ${key}`);
+    }
+  }
+
+  return isComplete;
 };
+
 
 const updateSectionCompletion = async (id) => {
   try {
@@ -28,14 +41,17 @@ const updateSectionCompletion = async (id) => {
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
     makeupArtist.basicDetails.completed = checkCompletion(
-      makeupArtist.basicDetails,
+      makeupArtist.basicDetails
     );
+    
     makeupArtist.serviceDetails.completed = checkCompletion(
-      makeupArtist.serviceDetails,
+      makeupArtist.serviceDetails
     );
+    
     makeupArtist.additionalDetails.completed = checkCompletion(
-      makeupArtist.additionalDetails,
+      makeupArtist.additionalDetails
     );
+    
     makeupArtist.policies.completed = checkCompletion(makeupArtist.policies);
 
     await makeupArtist.save();
@@ -61,13 +77,55 @@ const createMakeupArtist = async (req, res) => {
     // const videos = getFileUrls(req.files, "videos");
 
     // Parse location data
-    const location = {
-      lat: parseFloat(req.body.latitude),
-      lng: parseFloat(req.body.longitude),
-      pincode: parseInt(req.body.pincode),
-      googleMapsAddress: req.body.address || ""
-    };
+    // const location = {
+    //   lat: parseFloat(req.body.latitude),
+    //   lng: parseFloat(req.body.longitude),
+    //   pincode: parseInt(req.body.pincode),
+    //   googleMapsAddress: req.body.address || ""
+    // };
+
+    // Profile completion check
+    const fieldsToCheck = [
+      req.body.name, // basicDetails.name
+      req.body.eventSize?.ll, // basicDetails.eventSize.ll
+      req.body.eventSize?.ul, // basicDetails.eventSize.ul
+      req.body.description, // basicDetails.description
+      req.body.eventTypes?.length > 0, // basicDetails.eventTypes
+      req.body.typesOfMakeupArtists?.length > 0, // basicDetails.typesOfMakeupArtists
+      req.body.address, // basicDetails.address
+      // req.body.location?.lat, // basicDetails.location.lat
+      // req.body.location?.lng, // basicDetails.location.lng
+      // req.body.location?.pincode, // basicDetails.location.pincode (validated)
+      req.body.location?.googleMapsAddress, // basicDetails.location.googleMapsAddress (optional)
     
+      req.body.onsiteMakeup, // serviceDetails.onsiteMakeup
+      req.body.customization, // serviceDetails.customization
+      req.body.serviceTypes?.length > 0, // serviceDetails.serviceTypes
+    
+      req.body.photos?.length > 0, // additionalDetails.photos
+      req.body.videos?.length > 0, // additionalDetails.videos
+      req.body.socialMedia, // additionalDetails.socialMedia (optional)
+      req.body.websiteUrl, // additionalDetails.websiteUrl (optional)
+      req.body.priceStarts, // additionalDetails.priceStartingFrom
+    
+      req.body.termsAndConditions?.length > 0, // policies.termsAndConditions (optional)
+      req.body.cancellationPolicy?.length > 0, // policies.cancellationPolicy (optional)
+      req.body.certificateOrAwards?.length > 0, // policies.certificateOrAwards (optional)
+      req.body.clientTestimonials?.length > 0, // policies.clientTestimonials (optional)
+    
+      req.body.venId, // venId (required)
+    ];
+    
+
+    // Check if all required fields are filled
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profileCompletion =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+    console.log(
+      `Profile completion came out to be -------------> : ${profileCompletion}%`
+    );
+
     const eventSize = parseRange(req.body.eventSize);
 
     const newMakeupArtist = new MakeupArtist({
@@ -81,7 +139,7 @@ const createMakeupArtist = async (req, res) => {
         description: req.body.description,
         eventSize: {
           ll: eventSize.ll,
-          ul: eventSize.ul
+          ul: eventSize.ul,
         },
         eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
@@ -91,13 +149,13 @@ const createMakeupArtist = async (req, res) => {
           lng: req.body.longitude, // Longitude
           googleMapsAddress: req.body.address, // Google Maps address
         },
-        profileCompletion: 0 // Will be updated after creation
+        profileCompletion,
       },
 
       serviceDetails: {
         onsiteMakeup: req.body.onsiteMakeup === "Yes",
         customization: req.body.customization === "Yes",
-        serviceTypes: req.body.serviceTypes.split(",")
+        serviceTypes: req.body.serviceTypes.split(","),
       },
 
       additionalDetails: {
@@ -105,7 +163,7 @@ const createMakeupArtist = async (req, res) => {
         videos: req.body.videos,
         socialMedia: req.body.socialMedia || "",
         websiteUrl: req.body.websiteUrl || "",
-        priceStartingFrom: req.body.priceStarts
+        priceStartingFrom: req.body.priceStarts,
       },
 
       policies: {
@@ -120,10 +178,10 @@ const createMakeupArtist = async (req, res) => {
           : [],
         clientTestimonials: req.body.clientTestimonials
           ? req.body.clientTestimonials.split(",")
-          : []
+          : [],
       },
 
-      venId: req.body.venId
+      venId: req.body.venId,
     });
 
     const savedMakeupArtist = await newMakeupArtist.save();
@@ -133,13 +191,14 @@ const createMakeupArtist = async (req, res) => {
     if (vendor) {
       vendor.serviceIds.push({
         serType: "makeupArtist",
-        serId: savedMakeupArtist.id
+        serId: savedMakeupArtist.id,
       });
       await vendor.save();
     }
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);
+   
 
     res.status(201).json(savedMakeupArtist);
   } catch (error) {
