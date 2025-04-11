@@ -24,7 +24,9 @@ const checkCompletion = (section) => {
       : value !== undefined && value !== null && value !== "";
 
     if (!isFilled) {
-      console.warn(`❌ Incomplete field: ${key}, Value: ${JSON.stringify(value)}`);
+      console.warn(
+        `❌ Incomplete field: ${key}, Value: ${JSON.stringify(value)}`
+      );
       isComplete = false;
     } else {
       console.log(`✅ Filled field: ${key}`);
@@ -34,7 +36,6 @@ const checkCompletion = (section) => {
   return isComplete;
 };
 
-
 const updateSectionCompletion = async (id) => {
   try {
     const makeupArtist = await MakeupArtist.findOne({ id });
@@ -43,15 +44,15 @@ const updateSectionCompletion = async (id) => {
     makeupArtist.basicDetails.completed = checkCompletion(
       makeupArtist.basicDetails
     );
-    
+
     makeupArtist.serviceDetails.completed = checkCompletion(
       makeupArtist.serviceDetails
     );
-    
+
     makeupArtist.additionalDetails.completed = checkCompletion(
       makeupArtist.additionalDetails
     );
-    
+
     makeupArtist.policies.completed = checkCompletion(makeupArtist.policies);
 
     await makeupArtist.save();
@@ -97,25 +98,24 @@ const createMakeupArtist = async (req, res) => {
       // req.body.location?.lng, // basicDetails.location.lng
       // req.body.location?.pincode, // basicDetails.location.pincode (validated)
       req.body.location?.googleMapsAddress, // basicDetails.location.googleMapsAddress (optional)
-    
+
       req.body.onsiteMakeup, // serviceDetails.onsiteMakeup
       req.body.customization, // serviceDetails.customization
       req.body.serviceTypes?.length > 0, // serviceDetails.serviceTypes
-    
+
       req.body.photos?.length > 0, // additionalDetails.photos
       req.body.videos?.length > 0, // additionalDetails.videos
       req.body.socialMedia, // additionalDetails.socialMedia (optional)
       req.body.websiteUrl, // additionalDetails.websiteUrl (optional)
       req.body.priceStarts, // additionalDetails.priceStartingFrom
-    
+
       req.body.termsAndConditions?.length > 0, // policies.termsAndConditions (optional)
       req.body.cancellationPolicy?.length > 0, // policies.cancellationPolicy (optional)
       req.body.certificateOrAwards?.length > 0, // policies.certificateOrAwards (optional)
       req.body.clientTestimonials?.length > 0, // policies.clientTestimonials (optional)
-    
+
       req.body.venId, // venId (required)
     ];
-    
 
     // Check if all required fields are filled
     const completedFields = fieldsToCheck.filter((field) => field).length;
@@ -198,7 +198,6 @@ const createMakeupArtist = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);
-   
 
     res.status(201).json(savedMakeupArtist);
   } catch (error) {
