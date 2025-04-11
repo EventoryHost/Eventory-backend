@@ -25,7 +25,7 @@ const checkCompletion = (section) => {
 
     if (!isFilled) {
       console.warn(
-        `❌ Incomplete field: ${key}, Value: ${JSON.stringify(value)}`
+        `❌ Incomplete field: ${key}, Value: ${JSON.stringify(value)}`,
       );
       isComplete = false;
     } else {
@@ -42,15 +42,15 @@ const updateSectionCompletion = async (id) => {
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
     makeupArtist.basicDetails.completed = checkCompletion(
-      makeupArtist.basicDetails
+      makeupArtist.basicDetails,
     );
 
     makeupArtist.serviceDetails.completed = checkCompletion(
-      makeupArtist.serviceDetails
+      makeupArtist.serviceDetails,
     );
 
     makeupArtist.additionalDetails.completed = checkCompletion(
-      makeupArtist.additionalDetails
+      makeupArtist.additionalDetails,
     );
 
     makeupArtist.policies.completed = checkCompletion(makeupArtist.policies);
@@ -123,7 +123,7 @@ const createMakeupArtist = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     console.log(
-      `Profile completion came out to be -------------> : ${profileCompletion}%`
+      `Profile completion came out to be -------------> : ${profileCompletion}%`,
     );
 
     const eventSize = parseRange(req.body.eventSize);
