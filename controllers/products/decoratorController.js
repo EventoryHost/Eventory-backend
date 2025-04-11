@@ -93,11 +93,19 @@ const createDecorator = async (req, res) => {
     const fieldsToCheck = [
       req.body.name,
       req.body.description,
+      req.body.address,
+      req.body.latitude,
+      req.body.longitude,
       req.body.eventSize, // Check if eventSize.ul exists
       req.body.duration,
+      req.body.corporateEvents?.length > 0, // Check if at least one event type exists
+      req.body.culturalEvents?.length > 0, // Check if at least one event type exists
       req.body.themesOffered?.length > 0, // Check if at least one theme is offered
-      req.body.customDesignProcess,
       req.body.themeElements?.length > 0, // Check if at least one theme element exists
+      req.body.colorSchemeAssistance,
+      req.body.venueAdaptability,
+      req.body.propSelection,
+      req.body.customizationsThemes,
       req.body.clientTestimonials,
       req.body.websiteurl,
       req.body.intstagramurl,
@@ -108,7 +116,6 @@ const createDecorator = async (req, res) => {
       cancellationPolicyFileUrl,
       termsAndConditionsFileUrl,
       themePhotosUrl.length > 0, // At least one photo
-      themeVideosUrl.length > 0, // At least one video
       photosUrl.length > 0, // At least one additional photo
       videosUrl.length > 0, // At least one additional video
     ];

@@ -302,8 +302,9 @@ const createVenue = async (req, res) => {
       req.body.name,
       req.body.managerName,
       req.body.capacity,
+      req.body.latitude,
+      req.body.longitude,
       req.body.address,
-      req.body.operatingHours,
       req.body.description,
       req.body.venueTypes?.length > 0,
       req.body.decorServices,
@@ -323,7 +324,6 @@ const createVenue = async (req, res) => {
       req.body.priceStartingFrom,
       termsAndConditionsFileUrl,
       cancellationPolicyFileUrl,
-      insurancePolicyFileUrl,
     ];
 
     console.log(req.body);

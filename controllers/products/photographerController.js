@@ -137,6 +137,9 @@ const createPhotographer = async (req, res) => {
 
     const fieldsToCheck = [
       req.body.name,
+      req.body.latitude,
+      req.body.longitude,
+      req.body.address,
       req.body.description,
       req.body.eventSize,
       req.body.eventTypes?.length > 0, // Ensure eventTypes is not empty
@@ -152,8 +155,6 @@ const createPhotographer = async (req, res) => {
       req.body.postproductionservices, // Ensure postProductionServices is defined
       photosUrl.length > 0, // Ensure there are photos
       videosUrl.length > 0, // Ensure there are videos
-      req.body.clientTestimonials,
-      req.body.website,
       cancellationPolicyFileUrl, // Ensure cancellationPolicy is uploaded
       termsAndConditionsFileUrl, // Ensure termsAndConditions file is uploaded
     ];
