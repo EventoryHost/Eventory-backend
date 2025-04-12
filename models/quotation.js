@@ -29,7 +29,7 @@ const quotationSchema = new mongoose.Schema(
     number_of_guest: { type: Number, required: true },
     requirements: { type: String, required: true },
     location: { type: String, required: false },
-    event_type: { type: [String], required: true },
+    event_type: { type: String, required: true },
   },
   { timestamps: true },
 );
