@@ -466,6 +466,13 @@ const searchProducts = async (req, res, next) => {
     //   console.log(resu[i]);
     // }
 
+    // const idList = data.map(item => item.id);
+
+    // let finalOfflineBookings = await checkBookingsInRange(startDate, endDate, idList);
+
+    
+
+
     res.status(200).json({
       message: "Search results fetched successfully.",
       size: data.length,
