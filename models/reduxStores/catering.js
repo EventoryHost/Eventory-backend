@@ -30,14 +30,14 @@ const CateringSchema = new mongoose.Schema(
     selectedBeverages: { type: [String] },
     selectedMainCourses: { type: [String] },
     selectedDietaryOptions: { type: [String] },
-
+    food_safety_certificates: { type: [String] },
     preSetMenu: { type: String }, // Can be adjusted based on requirements
     customizableMenu: { type: Boolean }, // Is the menu customizable?
 
     // Additional fields based on your final model
-    cancellationPolicy: { type: String }, // Cancellation policy
-    termsAndConditions: { type: String }, // Terms and conditions
-    clientTestimonials: { type: String }, // Testimonials from clients
+    cancellationPolicy: [{ type: String }], // Cancellation policy
+    termsAndConditions: [{ type: String }], // Terms and conditions
+    clientTestimonials: [{ type: String }], // Testimonials from clients
 
     eventTypes: { type: [String] }, // Event types catered by the service
     additionalServices: { type: [String] }, // Additional services provided
