@@ -228,13 +228,12 @@ const createVenue = async (req, res) => {
     // }
 
     // Extract file URLs from the request
-    const termsAndConditionsFileUrl =
-      req.files?.termsConditions?.[0]?.path || [];
-    const cancellationPolicyFileUrl =
-      req.files?.cancellationPolicy?.[0]?.path || [];
-    const insurancePolicyFileUrl = req.files?.insurancePolicy?.[0]?.path || [];
-    const photos = req.files?.photos?.map((file) => file.path) || [];
-    const videos = req.files?.videos?.map((file) => file.path) || [];
+    const termsAndConditionsFileUrl = req.body.termsConditions || [];
+
+    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
+    const insurancePolicyFileUrl = req.body.insurancePolicy || [];
+    const photosUrl = req.body.photos || [];
+    const videosUrl = req.body.videos || [];
 
     console.log("Hit3");
     // Create a new venue object
@@ -266,19 +265,20 @@ const createVenue = async (req, res) => {
       featureDetails: {
         completed: false, // Will be updated based on completion
         catererServices: req.body.catererServices,
+        eventTypes: req.body.eventTypes,
+        restrictionsPolicies: req.body.restrictionsPolicies,
+        specialFeatures: req.body.specialFeatures,
         decorServices: req.body.decorServices,
         venueTypes: req.body.venueTypes,
         audioVisualEquipment: req.body.audioVisualEquipment,
         accessibilityFeatures: req.body.accessibilityFeatures,
-        restrictionsPolicies: req.body.restrictionsPolicies,
-        specialFeatures: req.body.specialFeatures,
         facilities: req.body.facilities,
       },
 
       additionalDetails: {
         completed: false, // Will be updated based on completion
-        photos: photos,
-        videos: videos,
+        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
+        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
         awards: req.body.awards,
         clientTestimonials: req.body.clientTestimonials,
         instagramURL: req.body.instagramURL,
@@ -302,8 +302,9 @@ const createVenue = async (req, res) => {
       req.body.name,
       req.body.managerName,
       req.body.capacity,
+      req.body.latitude,
+      req.body.longitude,
       req.body.address,
-      req.body.operatingHours,
       req.body.description,
       req.body.venueTypes?.length > 0,
       req.body.decorServices,
@@ -313,8 +314,8 @@ const createVenue = async (req, res) => {
       req.body.audioVisualEquipment?.length > 0,
       req.body.accessibilityFeatures?.length > 0,
       req.body.facilities?.length > 0,
-      photos.length > 0,
-      videos.length > 0,
+      photosUrl.length > 0,
+      videosUrl.length > 0,
       req.body.instagramURL,
       req.body.websiteURL,
       req.body.awards,
@@ -323,7 +324,6 @@ const createVenue = async (req, res) => {
       req.body.priceStartingFrom,
       termsAndConditionsFileUrl,
       cancellationPolicyFileUrl,
-      insurancePolicyFileUrl,
     ];
 
     console.log(req.body);
@@ -368,10 +368,13 @@ export const getAllVenues = async (req, res) => {
 
     const skip = (page - 1) * itemsPerPage;
 
-    const venues = await Venue.find().skip(skip).limit(itemsPerPage);
+    const venues =
+      page == -1
+        ? await Venue.find()
+        : await Venue.find().skip(skip).limit(itemsPerPage);
 
     const totalvenues = await Venue.countDocuments();
-
+    console.log("data is ", venues);
     res.status(200).json({
       data: venues,
       currentPage: page,

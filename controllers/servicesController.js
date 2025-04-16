@@ -4,10 +4,11 @@ import Photographer from "../models/photographers.js";
 import propRental from "../models/props.js";
 import { Service } from "../models/services.js";
 import { Venue } from "../models/venue.js";
+import MakeupArtist from "../models/makeupArtists.js";
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
-  console.log(vendorid);
+  console.log(vendortype, vendorid);
   try {
     let vendorData;
 
@@ -27,6 +28,9 @@ export const getService = async (req, res) => {
         break;
       case "Photographers & Videographers":
         vendorData = await Photographer.findOne({ id: vendorid });
+        break;
+      case "Makeup-Artist":
+        vendorData = await MakeupArtist.findOne({ id: vendorid });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
@@ -53,7 +57,10 @@ export const getVendorLimit = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 9;
 
-  if (page <= 0 || limit <= 0) {
+  if (page == 0) {
+  }
+
+  if (page < 0 || limit <= 0) {
     return res
       .status(400)
       .json({ error: "Page and limit must be greater than 0" });
@@ -70,6 +77,7 @@ export const getVendorLimit = async (req, res) => {
       "Venue Provider": Venue,
       "Prop Rental": propRental,
       "Photographers & Videographers": Photographer,
+      "Makeup Artist": MakeupArtist,
     };
 
     model = vendorModels[vendortype];
@@ -108,110 +116,56 @@ export const getVendorLimit = async (req, res) => {
 export const addReviews = async (req, res) => {
   try {
     const { date, feedback, id, name, photos, rating, type } = req.body;
-    if (!feedback && rating == 0) {
+
+    if (!id || !date || !name || (!feedback && rating === 0)) {
       return res.status(400).json({ message: "Missing required fields" });
-    }
-    if (!id || !Date) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-    if (!rating) {
-      return res.status(400).json({ message: "Rating is required" });
-    }
-    if (!name) {
-      return res.status(400).json({ message: "Name is required" });
-    }
-    if (!feedback) {
-      return res.status(400).json({ message: "Feedback is required" });
     }
 
-    if (type === "venue") {
-      const venue = await Venue.findOne({ id: id });
-      if (!venue) {
-        return res.status(404).json({ message: "Venue not found" });
-      }
-      if (!venue.reviews) {
-        venue.reviews = [];
-      }
-      venue.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await venue.save();
-      res.status(200).json(venue);
-    } else if (type === "caterer") {
-      const caterer = await Caterer.findOne({ id: id });
-      if (!caterer) {
-        return res.status(404).json({ message: "Caterer not found" });
-      }
-      if (!caterer.reviews) {
-        caterer.reviews = [];
-      }
-      caterer.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await caterer.save();
-      res.status(200).json(caterer);
-    } else if (type === "decorator") {
-      const decorator = await Decorator.findOne({ id: id });
-      if (!decorator) {
-        return res.status(404).json({ message: "Decorator not found" });
-      }
-      if (!decorator.reviews) {
-        decorator.reviews = [];
-      }
-      decorator.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await decorator.save();
-      res.status(200).json(decorator);
-    } else if (type === "photographer") {
-      const photographer = await Photographer.findOne({ id: id });
-      if (!photographer) {
-        return res.status(404).json({ message: "Photographer not found" });
-      }
-      if (!photographer.reviews) {
-        photographer.reviews = [];
-      }
-      photographer.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await photographer.save();
-      res.status(200).json(photographer);
-    } else if (type === "propRental") {
-      const prop = await propRental.findOne({ id: id });
-      if (!prop) {
-        return res.status(404).json({ message: "Prop Rental not found" });
-      }
-      if (!prop.reviews) {
-        prop.reviews = [];
-      }
-      prop.reviews.push({
-        rating,
-        name,
-        feedback,
-        photos,
-        date,
-      });
-      await prop.save();
-      res.status(200).json(prop);
+    console.log(
+      "id : ",
+      id,
+      "date : ",
+      date,
+      "name : ",
+      name,
+      "photos : ",
+      photos,
+      "rating : ",
+      rating,
+      "type : ",
+      type,
+    );
+
+    const models = {
+      venue: Venue,
+      caterer: Caterer,
+      decorator: Decorator,
+      photographer: Photographer,
+      propRental: propRental,
+      makeupArtist: MakeupArtist,
+    };
+
+    const Model = models[type];
+    if (!Model) {
+      return res.status(400).json({ message: "Invalid type provided" });
     }
+
+    const entity = await Model.findOne({ id });
+    if (!entity) {
+      return res.status(404).json({ message: `${type} not found` });
+    }
+    console.log("entity : ", entity);
+
+    entity.reviews = entity.reviews || [];
+    entity.reviews.push({ rating, name, feedback, photos, date });
+
+    console.log("entity : ", entity);
+
+    await entity.save();
+
+    res.status(200).json(entity);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

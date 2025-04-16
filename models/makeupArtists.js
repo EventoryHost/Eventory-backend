@@ -48,7 +48,7 @@ const makeupArtistSchema = Schema({
     videos: { type: [String], required: true },
     socialMedia: { type: String },
     websiteUrl: { type: String },
-    priceStartingFrom: { type: Number, required: true },
+    priceStarts: { type: Number, required: true },
   },
 
   policies: {
@@ -65,6 +65,16 @@ const makeupArtistSchema = Schema({
 
   schedule: [eventSchema],
   rating: { type: Number, default: 0, min: 0, max: 5 },
+
+  reviews: [
+    {
+      rating: { type: Number, required: true },
+      name: { type: String, required: true },
+      feedback: { type: String, required: true },
+      photos: { type: [String] },
+      date: { type: String, required: true },
+    },
+  ],
 });
 
 // const MakeupArtist = model("MakeupArtist", makeupArtistSchema);

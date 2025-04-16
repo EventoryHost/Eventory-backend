@@ -27,9 +27,7 @@ router.post("/", async (req, res) => {
       id: generateUniqueId("quo"),
       // Data
       user_name: req.body.user_name,
-      email: req.body.email,
       mobile: req.body.mobile,
-      event: req.body.event,
       location: req.body.location,
       start_date: new Date(req.body.start_date),
       end_date: new Date(req.body.end_date),
@@ -51,12 +49,12 @@ router.post("/", async (req, res) => {
 
     const savedQuotation = await newQuotation.save();
 
-    if (!customer.bookings) {
-      customer.bookings = [];
+    if (!customer.quotations) {
+      customer.quotations = [];
     }
 
     if (
-      customer.bookings.find(
+      customer.quotations.find(
         (booking) => booking.serviceId === req.body.service_id,
       )
     ) {
@@ -65,9 +63,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    customer.bookings.push({
+    customer.quotations.push({
       serviceId: req.body.service_id,
-      bookingId: savedQuotation._id,
+      quotationId: savedQuotation._id,
     });
 
     await customer.save();
@@ -87,25 +85,24 @@ router.post("/", async (req, res) => {
 // Get quotations by vendor_id or user_id
 router.get("/", async (req, res) => {
   try {
-    const { vendor_id, user_id } = req.query;
-    // console.log(vendor_id, user_id);
+    const { vendor_id } = req.query;
+    console.log("id is ", vendor_id);
 
-    if (!user_id) {
+    if (!vendor_id) {
       return res.status(400).json({
-        message: "Either vendor_id or user_id is required",
+        message: "vendor_id is required",
       });
     }
 
     // Construct query dynamically
     const query = {};
-    // if (vendor_id) query.vendor_id = vendor_id;
-    if (user_id) query.user_id = user_id;
+    if (vendor_id) query.vendor_id = vendor_id;
     console.log(query);
     const quotations = await Quotation.find(query);
 
     if (quotations.length === 0) {
       return res.status(404).json({
-        message: `No quotations found for ${vendor_id ? "vendor_id: " + vendor_id : "user_id: " + user_id}`,
+        message: `No quotations found for vendor_id: ${vendor_id}`,
       });
     }
 

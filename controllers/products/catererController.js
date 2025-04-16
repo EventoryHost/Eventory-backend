@@ -89,6 +89,9 @@ const createCaterer = async (req, res) => {
       req.body.managerName,
       req.body.capacity,
       req.body.description,
+      req.body.address,
+      req.body.latitude,
+      req.body.longitude,
       req.body.cuisine_specialities?.length > 0,
       req.body.regional_specialities?.length > 0,
       req.body.service_style_offered,
@@ -98,8 +101,7 @@ const createCaterer = async (req, res) => {
           req.body.beverages?.length > 0 &&
           req.body.main_course?.length > 0),
       req.body.special_dietary_options?.length > 0,
-      req.body.pre_set_menus?.length > 0,
-      req.body.customizable === "true",
+      req.body.customizable,
       req.body.additional_services?.length > 0,
       req.body.event_types_catered?.length > 0,
       req.body.equipment_provided?.length > 0,
@@ -107,14 +109,13 @@ const createCaterer = async (req, res) => {
       req.body.priceStartingFrom,
       req.body.minimum_order_requirements,
       req.body.advance_booking_period,
-      req.body.tasting_sessions === "true",
-      req.body.business_licenses === "true",
+      req.body.tasting_sessions,
+      req.body.business_licenses,
       foodSafetyCertificates.length > 0,
       photos.length > 0,
       videos.length > 0,
       cancellationPolicyFileUrl,
       termsAndConditionsFileUrl,
-      clientTestimonialsUrl,
     ];
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
