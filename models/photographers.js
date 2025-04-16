@@ -101,10 +101,10 @@ const photographerSchema = Schema({
       default: "Both",
     },
     proposalsToClients: {
-      type: Boolean
+      type: Boolean,
     },
     freeInitialConsultation: {
-      type: Boolean
+      type: Boolean,
     },
     bookingDeposit: {
       type: Boolean,

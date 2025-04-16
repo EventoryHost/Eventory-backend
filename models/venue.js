@@ -32,12 +32,12 @@ const venueSchema = new Schema({
     },
     operatingHours: {
       openingTime: {
-        hour: { type: Number,  min: 0, max: 23 }, // Hour (0-23)
-        minute: { type: Number,  min: 0, max: 59 }, // Minute (0-59)
+        hour: { type: Number, min: 0, max: 23 }, // Hour (0-23)
+        minute: { type: Number, min: 0, max: 59 }, // Minute (0-59)
       },
       closingTime: {
-        hour: { type: Number,  min: 0, max: 23 }, // Hour (0-23)
-        minute: { type: Number,  min: 0, max: 59 }, // Minute (0-59)
+        hour: { type: Number, min: 0, max: 23 }, // Hour (0-23)
+        minute: { type: Number, min: 0, max: 59 }, // Minute (0-59)
       },
     },
     // address: { type: String, required: true },
@@ -64,13 +64,13 @@ const venueSchema = new Schema({
 
   featureDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    catererServices: { type: Boolean,  },
-    decorServices: { type: Boolean,  },
-    eventTypes: { type: [String],  },
-    venueTypes: { type: [String],  },
+    catererServices: { type: Boolean },
+    decorServices: { type: Boolean },
+    eventTypes: { type: [String] },
+    venueTypes: { type: [String] },
     audioVisualEquipment: { type: [String] },
-    accessibilityFeatures: { type: [String], },
-    restrictionsPolicies: { type: [String], },
+    accessibilityFeatures: { type: [String] },
+    restrictionsPolicies: { type: [String] },
     specialFeatures: { type: [String] },
     facilities: { type: [String], required: true },
   },
