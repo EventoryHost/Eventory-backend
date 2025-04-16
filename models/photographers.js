@@ -101,28 +101,22 @@ const photographerSchema = Schema({
       default: "Both",
     },
     proposalsToClients: {
-      type: Boolean,
-      default: false,
+      type: Boolean
     },
     freeInitialConsultation: {
-      type: Boolean,
-      default: false,
+      type: Boolean
     },
     bookingDeposit: {
       type: Boolean,
-      default: false,
     },
     availableForDestinationEvents: {
       type: Boolean,
-      default: false,
     },
     AdvanceSetup: {
       type: Boolean,
-      default: false,
     },
     postProductionServices: {
       type: Boolean,
-      default: false,
     },
   },
   additionalDetails: {
