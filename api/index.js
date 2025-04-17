@@ -22,6 +22,7 @@ import venueRouter from "../routes/venueRoutes.js";
 import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
 import customerRoutes from "../routes/customerRoutes.js";
 import contactRoutes from "../routes/contactRoutes.js";
+import reviewRoutes from "../routes/reviewRoutes.js";
 import waRoutes from "../routes/waHooks.js";
 
 const app = express();
@@ -79,6 +80,8 @@ app.use("/api/venue", venueRouter);
 app.use("/api", featuredVendorsRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/contact", contactRoutes);
+
+app.use("/api/review", reviewRoutes);
 
 app.use("/webhook", waRoutes)
 
