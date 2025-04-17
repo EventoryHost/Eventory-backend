@@ -160,13 +160,21 @@ export const getAllBookings = async (req, res) => {
 
 export const addOfflineEvent = async (req, res) => {
   try {
-    const { title, start, end, calendarId, type, description } = req.body;
+    const { title, start, end, calendarId, type, description, color } = req.body;
     const { serId } = req.query; // Extract vendor ID from query parameters
 
-    if (!serId || !title || !start || !end || !type) {
+    if (!serId || !title || !start || !end || !type || !color) {
       console.log("hit", req.body);
-      return res.status(400).json({ message: "Missing required fields: serId, title, start, end, type" });
+      return res.status(400).json({ message: "Missing required fields: serId, title, start, end, type, color" });
     }
+
+    const colorOptions = {
+      "#94CCC1": "teal",
+      "#D59D53": "orange",
+      "#6D65C3": "indigo",
+      "#509BF0": "blue",
+      "#F050E3": "purple",
+    };
 
     let vendorModel;
 
@@ -202,9 +210,10 @@ export const addOfflineEvent = async (req, res) => {
       description,
       start: new Date(start), // Convert to Date object
       end: new Date(end),
+      color: colorOptions[color], // Use the color mapping or fallback to the provided color
     };
 
-    console.log(event);
+    // console.log(event);
     // Validate the event object against the eventSchema
 
     // Push the new event to the schedule array
