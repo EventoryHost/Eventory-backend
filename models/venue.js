@@ -92,7 +92,7 @@ const venueSchema = new Schema({
 
   policies: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    termsConditions: { type: [String] },
+    termsAndConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
   },
