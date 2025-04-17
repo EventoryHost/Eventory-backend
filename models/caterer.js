@@ -77,8 +77,8 @@ const catererSchema = new Schema({
   },
   policies: {
     completed: { type: Boolean, default: false },
-    cancellation_policy: { type: String },
-    terms_and_conditions: { type: String },
+    cancellationPolicy: { type: String },
+    termsAndConditions: { type: String },
     client_testimonials: { type: String },
   },
   id: {
