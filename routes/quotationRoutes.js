@@ -81,7 +81,6 @@ router.post("/", async (req, res) => {
       sendConfirmationMessageToWhatsapp({
         customer_mobile: customer.mobile,
         customer_name: customer.name,
-        service_name: req.body.service_name,
         id: newQuotation.id
       });
     })

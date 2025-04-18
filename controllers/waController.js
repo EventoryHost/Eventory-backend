@@ -102,10 +102,7 @@ async function sendConfirmationMessageToWhatsapp(event) {
                   type: "text",
                   text: `${event.customer_name}`,
                 },
-                {
-                  type: "text",
-                  text: `${event.service_name}`,
-                },
+                
                 {
                   type: "text",
                   text: `${event.id}`
