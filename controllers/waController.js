@@ -98,24 +98,22 @@ async function sendConfirmationMessageToWhatsapp(event) {
               type: "body",
               parameters: [
                 {
-
                   type: "text",
                   text: `${event.customer_name}`,
                 },
-                
+
                 {
                   type: "text",
-                  text: `${event.id}`
+                  text: `${event.id}`,
                 },
               ],
-            }
-          ]
+            },
+          ],
         },
-
       },
 
       { headers },
-    )
+    );
   } catch (error) {
     console.error("Error sending confirmation message:", error.message);
     throw error;
@@ -123,54 +121,47 @@ async function sendConfirmationMessageToWhatsapp(event) {
 }
 
 async function sendResponseOnIntroMessage(req, res) {
+  const mobile = req.body.mobile;
 
-  const mobile = req.body.mobile
-
-  var user = await Customer.findOne({ mobile }, { id: 1, name: 1, quotations: 1 })
+  var user = await Customer.findOne(
+    { mobile },
+    { id: 1, name: 1, quotations: 1 },
+  );
   if (!user) {
-    user = await Vendor.findOne({ mobile: mobile })
+    user = await Vendor.findOne({ mobile: mobile });
   }
 
   if (user) {
-    const userId = user.id
-    var quotations = []
-    console.log(user.quotations)
-    user.quotations.map((quotation) => quotations.push(quotation.quotationId))
+    const userId = user.id;
+    var quotations = [];
+    console.log(user.quotations);
+    user.quotations.map((quotation) => quotations.push(quotation.quotationId));
 
     if (userId.startsWith("cus")) {
       var response = {
         quotations,
-        "message": `Hello ${user.name}, Welcome to Eventory!`,
-      }
+        message: `Hello ${user.name}, Welcome to Eventory!`,
+      };
     } else if (userId.startsWith("ven")) {
-      quotations = await Quotation.find({ vendor_id: userId })
+      quotations = await Quotation.find({ vendor_id: userId });
       var response = {
         quotations,
-        "message": `Hello ${user.name}, welcome to Eventory!`,
-      }
+        message: `Hello ${user.name}, welcome to Eventory!`,
+      };
     } else {
-      return res.status(400).json({ message: "Please register on www.eventory.in to continue" })
+      return res
+        .status(400)
+        .json({ message: "Please register on www.eventory.in to continue" });
     }
 
-    console.log(response)
-    return res.status(200).json(response)
-  }
-
-  else {
-    return res.status(400).json({ message: "Please register on www.eventory.in to continue" })
+    console.log(response);
+    return res.status(200).json(response);
+  } else {
+    return res
+      .status(400)
+      .json({ message: "Please register on www.eventory.in to continue" });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 // // Example usage
 // const invoice = {
@@ -191,4 +182,8 @@ async function sendResponseOnIntroMessage(req, res) {
 //     .then(result => console.log('Success:', result))
 //     .catch(error => console.error('Error:', error));
 
-export { sendInvoiceToWhatsApp, sendConfirmationMessageToWhatsapp, sendResponseOnIntroMessage };
+export {
+  sendInvoiceToWhatsApp,
+  sendConfirmationMessageToWhatsapp,
+  sendResponseOnIntroMessage,
+};

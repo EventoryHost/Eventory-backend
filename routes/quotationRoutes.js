@@ -71,7 +71,6 @@ router.post("/", async (req, res) => {
 
     await customer.save();
 
-
     res.status(201).json({
       message: "Quotation created successfully!",
       data: savedQuotation,
@@ -81,9 +80,9 @@ router.post("/", async (req, res) => {
       sendConfirmationMessageToWhatsapp({
         customer_mobile: customer.mobile,
         customer_name: customer.name,
-        id: newQuotation.id
+        id: newQuotation.id,
       });
-    })
+    });
   } catch (error) {
     res.status(500).json({
       message: "Error creating quotation",

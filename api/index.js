@@ -83,7 +83,7 @@ app.use("/api/contact", contactRoutes);
 
 app.use("/api/review", reviewRoutes);
 
-app.use("/webhook", waRoutes)
+app.use("/webhook", waRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
