@@ -469,9 +469,6 @@ const searchProducts = async (req, res, next) => {
 
     // let finalOfflineBookings = await checkBookingsInRange(startDate, endDate, idList);
 
-    
-
-
     res.status(200).json({
       message: "Search results fetched successfully.",
       size: data.length,
