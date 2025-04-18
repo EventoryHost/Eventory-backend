@@ -174,8 +174,8 @@ const createCaterer = async (req, res) => {
           : [foodSafetyCertificates], // 🔹 FIXED: Ensured it's an array
       },
       policies: {
-        cancellation_policy: cancellationPolicyFileUrl,
-        terms_and_conditions: termsAndConditionsFileUrl,
+        cancellationPolicy: cancellationPolicyFileUrl,
+        termsAndConditions: termsAndConditionsFileUrl,
         client_testimonials: clientTestimonialsUrl,
       },
     });

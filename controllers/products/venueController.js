@@ -289,7 +289,7 @@ const createVenue = async (req, res) => {
 
       policies: {
         completed: false, // Will be updated based on completion
-        termsConditions: termsAndConditionsFileUrl,
+        termsAndConditions: termsAndConditionsFileUrl,
         cancellationPolicy: cancellationPolicyFileUrl,
         insurancePolicy: insurancePolicyFileUrl,
       },
