@@ -6,7 +6,7 @@ import { bankDetailsSchema } from "./bankDetails.js"; // Import the BankDetails 
 const Schema = _Schema;
 
 const vendorSchema = new Schema({
-  id: { type: String, default: generateUniqueId("ven"), required: true },
+  id: { type: String, default: () => generateUniqueId("ven"), required: true, unique: true },
   name: { type: String, required: true },
   mobile: { type: String },
   email: { type: String },

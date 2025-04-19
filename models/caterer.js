@@ -83,7 +83,7 @@ const catererSchema = new Schema({
   },
   id: {
     type: String,
-    default: generateUniqueId("cat"),
+    default: () => generateUniqueId("cat"),
     required: true,
     unique: true,
   },
