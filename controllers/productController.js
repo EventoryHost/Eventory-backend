@@ -380,7 +380,9 @@ const searchAllVendors = async (query) => {
 
 const searchProducts = async (req, res, next) => {
   try {
-    const { type } = req.query;
+    const { type, start_date, end_date } = req.query;
+
+    console.log(req.query);
     let results;
 
     switch (type) {
@@ -403,16 +405,77 @@ const searchProducts = async (req, res, next) => {
         return res.status(400).json({ message: "Invalid Product type." });
     }
 
-    // console.log("finals: ", results);
-    const { data, totalResults, totalPages, currentPage } = results;
+    // console.log("Initial results:", results);
+
+    const { totalResults, totalPages, currentPage } = results;
+    let { data = [] } = results; // Default to empty array if `data` is missing
+
+    const startDate = start_date ? new Date(start_date) : new Date();
+    const endDate = end_date ? new Date(end_date) : new Date();
+
+    if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
+    if (isNaN(endDate.getTime())) throw new Error("Invalid end date");
+
+    if (!Array.isArray(data)) {
+      throw new Error("Expected 'data' to be an array");
+    }
+    // console.log("Before modifying availability:", data);
+
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+
+      item.available = true;
+      // console.log("Schedule for item:", item.basicDetails.name);
+
+      if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
+        item.available = true;
+        console.log("No schedule found for item:", item.basicDetails.name);
+        continue;
+      }
+
+      let hasOverlap = false;
+      for (let j = 0; j < item.schedule.length; j++) {
+        const scheduleItem = item.schedule[j];
+
+        // console.log(item.schedule[j]);
+
+        if (!scheduleItem?.start || !scheduleItem?.end) continue;
+
+        const itemStart = new Date(scheduleItem.start);
+        const itemEnd = new Date(scheduleItem.end);
+
+        if (isNaN(itemStart.getTime()) || isNaN(itemEnd.getTime())) continue;
+
+        if (itemStart < endDate && itemEnd > startDate) {
+          hasOverlap = true;
+          break;
+        }
+      }
+
+      // item.available = !hasOverlap;
+      item._doc.available = !hasOverlap; // Use _doc to modify the original document
+      console.log(item.available);
+    }
+
+    const resu = [...data]; // Ensure updated reference
+    // console.log("Final results:", results);
+
+    // for (let i = 0; i < results.data.length; i++) {
+    //   console.log("hello", resu[i].available);
+    //   console.log(resu[i]);
+    // }
+
+    // const idList = data.map(item => item.id);
+
+    // let finalOfflineBookings = await checkBookingsInRange(startDate, endDate, idList);
 
     res.status(200).json({
       message: "Search results fetched successfully.",
       size: data.length,
       totalResults,
-      totalPages: totalPages,
+      totalPages: 10,
       currentPage,
-      results: data,
+      results: resu,
     });
   } catch (e) {
     console.error(e);

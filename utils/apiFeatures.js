@@ -13,7 +13,7 @@ class APIFeatures {
         this.query = this.query.sort("-additionalDetails.priceStartingFrom");
       }
     } else {
-      this.query = this.query.sort("-createdAt");
+      this.query = this.query.sort("id");
     }
     return this;
   }
