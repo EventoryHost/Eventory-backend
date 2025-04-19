@@ -5,7 +5,7 @@ const Schema = _Schema;
 const CustomerSchema = new Schema({
   id: {
     type: String,
-    default: generateUniqueId("cus"),
+    default: () => generateUniqueId("cus"),
     required: true,
     unique: true,
   },

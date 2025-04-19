@@ -45,7 +45,7 @@ const photographerSchema = Schema({
     },
   },
 
-  id: { type: String, default: generateUniqueId("pav"), required: true },
+  id: { type: String, default: () => generateUniqueId("pav"), required: true },
   venId: { type: String, required: true },
 
   vendorType: { type: String, default: "photographer" },

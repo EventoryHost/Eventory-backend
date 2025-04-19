@@ -59,7 +59,7 @@ const makeupArtistSchema = Schema({
     clientTestimonials: { type: [String] },
   },
 
-  id: { type: String, default: generateUniqueId("mak"), required: true },
+  id: { type: String, default: () => generateUniqueId("mak"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "makeupArtist" },
 

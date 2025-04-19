@@ -75,7 +75,7 @@ const decoratorSchema = Schema({
     cancellationPolicy: { type: String },
     termsAndConditions: { type: String },
   },
-  id: { type: String, default: generateUniqueId("dec"), required: true },
+  id: { type: String, default: () => generateUniqueId("dec"), required: true },
   venId: { type: String, required: true },
   vendorType: { type: String, default: "decorator" },
   schedule: [eventSchema],

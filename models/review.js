@@ -4,7 +4,7 @@ import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const reviewSchema = new Schema({
-  reviewId: { type: String, default: generateUniqueId("rev"), required: true },
+  reviewId: { type: String, default: () => generateUniqueId("rev"), required: true },
   serviceId: { type: String, required: true }, // Unique identifier for the service
   vendorType: { type: String, required: true }, // Vendor category (venue, caterer, etc.)
   userId: { type: String, required: true }, // User who submitted the review

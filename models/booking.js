@@ -3,7 +3,7 @@ import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 const BookingSchema = new Schema({
-  bookingid: { type: String, default: generateUniqueId("#"), required: true },
+  bookingid: { type: String, default: () => generateUniqueId("book"), required: true },
   venId: { type: String, required: true },
   serviceId: { type: String, required: true },
   type: {
