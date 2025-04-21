@@ -8,7 +8,11 @@ export const eventSchema = new Schema({
   id: { type: Number, required: true }, // Unique event id
   start: { type: Date, required: true }, // Start time, e.g., "2024-11-06 19:30"
   description: { type: String },
-  color: { type: String, enum: ["teal", "orange", "indigo", "blue", "purple"], default: "indigo" }, // Event color
+  color: {
+    type: String,
+    enum: ["teal", "orange", "indigo", "blue", "purple"],
+    default: "indigo",
+  }, // Event color
   title: { type: String, required: true }, // Event title
 });
 

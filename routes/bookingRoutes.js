@@ -9,7 +9,7 @@ import {
   addOfflineEvent,
   getVendorBookings,
   deleteOfflineEvent,
-  editOfflineEvent
+  editOfflineEvent,
 } from "../controllers/bookingController.js";
 
 const router = express.Router();

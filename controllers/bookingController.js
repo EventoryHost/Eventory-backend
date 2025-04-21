@@ -160,12 +160,18 @@ export const getAllBookings = async (req, res) => {
 
 export const addOfflineEvent = async (req, res) => {
   try {
-    const { title, start, end, calendarId, type, description, color } = req.body;
+    const { title, start, end, calendarId, type, description, color } =
+      req.body;
     const { serId } = req.query; // Extract vendor ID from query parameters
 
     if (!serId || !title || !start || !end || !type || !color) {
       console.log("hit", req.body);
-      return res.status(400).json({ message: "Missing required fields: serId, title, start, end, type, color" });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Missing required fields: serId, title, start, end, type, color",
+        });
     }
 
     const colorOptions = {
@@ -237,7 +243,8 @@ export const editOfflineEvent = async (req, res) => {
 
     if (!serId || !calendarId || !type || !updatedEventData) {
       return res.status(400).json({
-        message: "Missing required fields: serId, calendarId, type, or updatedEventData",
+        message:
+          "Missing required fields: serId, calendarId, type, or updatedEventData",
       });
     }
 
@@ -270,7 +277,9 @@ export const editOfflineEvent = async (req, res) => {
       vendor.schedule = [];
     }
 
-    const index = vendor.schedule.findIndex(event => event.calendarId === updatedEventData.calendarId);
+    const index = vendor.schedule.findIndex(
+      (event) => event.calendarId === updatedEventData.calendarId,
+    );
 
     if (index === -1) {
       return res.status(404).json({ message: "Event not found in schedule" });
@@ -284,13 +293,17 @@ export const editOfflineEvent = async (req, res) => {
 
     await vendor.save();
 
-    return res.status(200).json({ message: "Event updated successfully", updatedEvent: vendor.schedule[index] });
+    return res
+      .status(200)
+      .json({
+        message: "Event updated successfully",
+        updatedEvent: vendor.schedule[index],
+      });
   } catch (error) {
     console.error("Error in editOfflineEvent:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 export const deleteOfflineEvent = async (req, res) => {
   try {
@@ -299,7 +312,9 @@ export const deleteOfflineEvent = async (req, res) => {
     console.log("Received Data:", req.body.data);
 
     if (!serId || !calendarId || !type) {
-      return res.status(400).json({ message: "Missing required fields: serId, calendarId, type" });
+      return res
+        .status(400)
+        .json({ message: "Missing required fields: serId, calendarId, type" });
     }
 
     let vendorModel;
@@ -329,7 +344,9 @@ export const deleteOfflineEvent = async (req, res) => {
     }
 
     // Filter out the event that matches the given calendarId
-    const updatedSchedule = vendor.schedule.filter(event => event.calendarId !== calendarId);
+    const updatedSchedule = vendor.schedule.filter(
+      (event) => event.calendarId !== calendarId,
+    );
 
     // If no change in schedule, it means the event was not found
     if (updatedSchedule.length === vendor.schedule.length) {
@@ -348,7 +365,6 @@ export const deleteOfflineEvent = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 export const getVendorBookings = async (req, res) => {
   try {
