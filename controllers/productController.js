@@ -9,7 +9,7 @@ const searchVenues = async (query) => {
 
   // console.log(query);
 
-  if (query.typeOfEvent) {
+  if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
@@ -75,7 +75,7 @@ const searchVenues = async (query) => {
 const searchDecorators = async (query) => {
   const filters = {};
 
-  if (query.typeOfEvent) {
+  if (query.typeOfEvent && query.typeOfEvent !== "all") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
@@ -125,7 +125,7 @@ const searchCaterers = async (query) => {
   // console.log("start", query, "End");
   const filters = {};
 
-  if (query.typeOfEvent) {
+  if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["eventDetails.event_types_catered"] = { $in: [query.typeOfEvent] };
   }
 
@@ -201,7 +201,7 @@ const searchCaterers = async (query) => {
 const searchPAV = async (query) => {
   const filters = {};
 
-  if (query.typeOfEvent) {
+  if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
