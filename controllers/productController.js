@@ -9,6 +9,10 @@ const searchVenues = async (query) => {
 
   // console.log(query);
 
+  if (query.typeOfEvent) {
+    filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+  }
+
   //handle price range
   if (query.minPrice || query.maxPrice) {
     filters["additionalDetails.priceStartingFrom"] = {};
@@ -70,6 +74,11 @@ const searchVenues = async (query) => {
 
 const searchDecorators = async (query) => {
   const filters = {};
+
+  if (query.typeOfEvent) {
+    filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+  }
+
   if (query.minPrice || query.maxPrice) {
     filters["additionalDetails.priceStartingFrom"] = {};
     if (query.minPrice)
@@ -115,6 +124,10 @@ const searchDecorators = async (query) => {
 const searchCaterers = async (query) => {
   // console.log("start", query, "End");
   const filters = {};
+
+  if (query.typeOfEvent) {
+    filters["eventDetails.event_types_catered"] = { $in: [query.typeOfEvent] };
+  }
 
   // Handle price range
   if (query.minPrice || query.maxPrice) {
@@ -168,7 +181,7 @@ const searchCaterers = async (query) => {
 
   let catererQuery = Caterer.find(filters);
 
-  // console.log("priyanshu", filters, "end");
+  console.log("priyanshu", filters, "end");
 
   const apiFeatures = new APIFeatures(catererQuery, query)
     .sort()
@@ -187,6 +200,10 @@ const searchCaterers = async (query) => {
 
 const searchPAV = async (query) => {
   const filters = {};
+
+  if (query.typeOfEvent) {
+    filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+  }
 
   // Handle price range
   if (query.minPrice || query.maxPrice) {
@@ -469,7 +486,7 @@ const searchProducts = async (req, res, next) => {
 
     // let finalOfflineBookings = await checkBookingsInRange(startDate, endDate, idList);
 
-    
+
 
 
     res.status(200).json({
