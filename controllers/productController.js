@@ -314,12 +314,18 @@ const searchMakeupArtists = async (query) => {
   }
 
   if (query.typesOfMakeupArtists) {
-    query.typesOfMakeupArtists = query.typesOfMakeupArtists ? query.typesOfMakeupArtists.split(",") : [];
-    filters["basicDetails.typesOfMakeupArtists"] = { $in: query.typesOfMakeupArtists };
+    query.typesOfMakeupArtists = query.typesOfMakeupArtists
+      ? query.typesOfMakeupArtists.split(",")
+      : [];
+    filters["basicDetails.typesOfMakeupArtists"] = {
+      $in: query.typesOfMakeupArtists,
+    };
   }
 
   if (query.serviceTypes) {
-    query.serviceTypes = query.serviceTypes ? query.serviceTypes.split(",") : [];
+    query.serviceTypes = query.serviceTypes
+      ? query.serviceTypes.split(",")
+      : [];
     filters["serviceDetails.serviceTypes"] = { $in: query.serviceTypes };
   }
 
@@ -392,8 +398,7 @@ const searchAllVendors = async (query) => {
       sortStage = { "additionalDetails.priceStartingFrom": 1 };
     } else if (query.sort === "htl") {
       sortStage = { "additionalDetails.priceStartingFrom": -1 };
-    }
-    else {
+    } else {
       sortStage = { _id: -1 };
     }
 
@@ -579,9 +584,6 @@ const searchProducts = async (req, res, next) => {
     // const idList = data.map(item => item.id);
 
     // let finalOfflineBookings = await checkBookingsInRange(startDate, endDate, idList);
-
-
-
 
     res.status(200).json({
       message: "Search results fetched successfully.",
