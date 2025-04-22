@@ -185,7 +185,7 @@ export const addOfflineEvent = async (req, res) => {
     let vendorModel;
 
     switch (type) {
-      case "venue":
+      case "venue-provider":
         vendorModel = Venue;
         break;
       case "caterer":
@@ -380,7 +380,7 @@ export const getVendorBookings = async (req, res) => {
     let vendorModel;
 
     switch (type) {
-      case "venue":
+      case "venue-provider":
         vendorModel = Venue;
         break;
       case "caterer":

@@ -3,6 +3,7 @@ import { Decorator } from "../models/decoraters.js";
 import { Caterer } from "../models/caterer.js";
 import Photographer from "../models/photographers.js";
 import APIFeatures from "../utils/apiFeatures.js";
+import MakeupArtist from "../models/makeupArtists.js";
 
 const searchVenues = async (query) => {
   const filters = {};
@@ -62,7 +63,7 @@ const searchVenues = async (query) => {
     .limitFields()
     .paginate();
 
-  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const totalResults = await Venue.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
   const totalPages = Math.ceil(totalResults / limit);
@@ -75,7 +76,7 @@ const searchVenues = async (query) => {
 const searchDecorators = async (query) => {
   const filters = {};
 
-  if (query.typeOfEvent && query.typeOfEvent !== "all") {
+  if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
@@ -103,6 +104,8 @@ const searchDecorators = async (query) => {
     query.themes = query.themes ? query.themes.split(",") : [];
     filters["themesOffered.themesOffered"] = { $in: query.themes };
   }
+
+  console.log("priyyanshu", filters);
 
   let decoratorQuery = Decorator.find(filters);
 
@@ -188,7 +191,7 @@ const searchCaterers = async (query) => {
     .limitFields()
     .paginate();
 
-  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const totalResults = await Caterer.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
   const totalPages = Math.ceil(totalResults / limit);
@@ -257,10 +260,82 @@ const searchPAV = async (query) => {
     .limitFields()
     .paginate();
 
-  const totalResults = await Decorator.countDocuments(filters); // Get total count
+  const totalResults = await Photographer.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
   const totalPages = totalResults / limit;
+
+  const data = await apiFeatures.query;
+
+  return { data, totalResults, totalPages, currentPage: page };
+};
+
+const searchMakeupArtists = async (query) => {
+  const filters = {};
+
+  // console.log(query);
+
+  if (query.typeOfEvent && query.typeOfEvent !== "All") {
+    filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+  }
+
+  //handle price range
+  if (query.minPrice || query.maxPrice) {
+    filters["additionalDetails.priceStartingFrom"] = {};
+    if (query.minPrice)
+      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
+        query.minPrice,
+        10,
+      );
+    if (query.maxPrice)
+      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
+        query.maxPrice,
+        10,
+      );
+  }
+
+  //handle guest capacity range
+  if (query.minCapacity || query.maxCapacity) {
+    const minCapacity = query.minCapacity
+      ? parseInt(query.minCapacity, 10)
+      : null;
+    const maxCapacity = query.maxCapacity
+      ? parseInt(query.maxCapacity, 10)
+      : null;
+
+    if (minCapacity !== null && maxCapacity !== null) {
+      filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
+      filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
+    } else if (minCapacity !== null) {
+      filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
+    } else if (maxCapacity !== null) {
+      filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
+    }
+  }
+
+  if (query.typesOfMakeupArtists) {
+    query.typesOfMakeupArtists = query.typesOfMakeupArtists ? query.typesOfMakeupArtists.split(",") : [];
+    filters["basicDetails.typesOfMakeupArtists"] = { $in: query.typesOfMakeupArtists };
+  }
+
+  if (query.serviceTypes) {
+    query.serviceTypes = query.serviceTypes ? query.serviceTypes.split(",") : [];
+    filters["serviceDetails.serviceTypes"] = { $in: query.serviceTypes };
+  }
+
+  // console.log("priyanshu", filters, "end");
+
+  let makeupQuery = MakeupArtist.find(filters);
+
+  const apiFeatures = new APIFeatures(makeupQuery, query)
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const totalResults = await MakeupArtist.countDocuments(filters); // Get total count
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const totalPages = Math.ceil(totalResults / limit);
 
   const data = await apiFeatures.query;
 
@@ -410,6 +485,7 @@ const searchProducts = async (req, res, next) => {
         results = await searchVenues(req.query);
         break;
       case "decorators":
+        console.log("decorators", req.query);
         results = await searchDecorators(req.query);
         break;
       case "caterers":
@@ -417,6 +493,9 @@ const searchProducts = async (req, res, next) => {
         break;
       case "pav":
         results = await searchPAV(req.query);
+        break;
+      case "makeupartists":
+        results = await searchMakeupArtists(req.query);
         break;
       default:
         return res.status(400).json({ message: "Invalid Product type." });
@@ -493,7 +572,7 @@ const searchProducts = async (req, res, next) => {
       message: "Search results fetched successfully.",
       size: data.length,
       totalResults,
-      totalPages: 10,
+      totalPages: totalPages,
       currentPage,
       results: resu,
     });
