@@ -166,12 +166,10 @@ export const addOfflineEvent = async (req, res) => {
 
     if (!serId || !title || !start || !end || !type || !color) {
       console.log("hit", req.body);
-      return res
-        .status(400)
-        .json({
-          message:
-            "Missing required fields: serId, title, start, end, type, color",
-        });
+      return res.status(400).json({
+        message:
+          "Missing required fields: serId, title, start, end, type, color",
+      });
     }
 
     const colorOptions = {
@@ -185,7 +183,7 @@ export const addOfflineEvent = async (req, res) => {
     let vendorModel;
 
     switch (type) {
-      case "venue":
+      case "venue-provider":
         vendorModel = Venue;
         break;
       case "caterer":
@@ -293,12 +291,10 @@ export const editOfflineEvent = async (req, res) => {
 
     await vendor.save();
 
-    return res
-      .status(200)
-      .json({
-        message: "Event updated successfully",
-        updatedEvent: vendor.schedule[index],
-      });
+    return res.status(200).json({
+      message: "Event updated successfully",
+      updatedEvent: vendor.schedule[index],
+    });
   } catch (error) {
     console.error("Error in editOfflineEvent:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -380,7 +376,7 @@ export const getVendorBookings = async (req, res) => {
     let vendorModel;
 
     switch (type) {
-      case "venue":
+      case "venue-provider":
         vendorModel = Venue;
         break;
       case "caterer":

@@ -11,9 +11,11 @@ class APIFeatures {
         this.query = this.query.sort("additionalDetails.priceStartingFrom");
       } else if (this.queryString.sort === "htl") {
         this.query = this.query.sort("-additionalDetails.priceStartingFrom");
+      } else if (this.queryString.sort === "whats_new") {
+        this.query = this.query.sort({ _id: -1 });
       }
     } else {
-      this.query = this.query.sort("id");
+      this.query = this.query.sort({ _id: -1 });
     }
     return this;
   }
