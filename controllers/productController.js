@@ -521,7 +521,7 @@ const searchProducts = async (req, res, next) => {
         return res.status(400).json({ message: "Invalid Product type." });
     }
 
-    // console.log("Initial results:", results);  
+    // console.log("Initial results:", results);
 
     const { totalResults, totalPages, currentPage } = results;
     let { data = [] } = results; // Default to empty array if `data` is missing
