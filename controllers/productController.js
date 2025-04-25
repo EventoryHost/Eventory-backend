@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Venue } from "../models/venue.js";
 import { Decorator } from "../models/decoraters.js";
 import { Caterer } from "../models/caterer.js";
@@ -5,10 +6,39 @@ import Photographer from "../models/photographers.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import MakeupArtist from "../models/makeupArtists.js";
 
+const getPincodesList = async (cityName) => {
+  try {
+    const result = await mongoose.connection
+      .collection("pincode_metadata")
+      .find({
+        $or: [
+          { Districtname: cityName },
+          { statename: cityName }
+        ]
+      })
+      .project({ pincode: 1, _id: 0 })
+      .toArray();
+
+    console.log(result);
+
+    return result.map(doc => doc.pincode);
+  } catch (error) {
+    console.error("Error fetching pincodes:", error);
+    return [];
+  }
+};
+
 const searchVenues = async (query) => {
   const filters = {};
 
   // console.log(query);
+
+  if (query.city) {
+    const cityName = query.city;
+    const pincodes = await getPincodesList(cityName);
+    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    console.log(cityName, pincodes);
+  }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
@@ -76,6 +106,13 @@ const searchVenues = async (query) => {
 const searchDecorators = async (query) => {
   const filters = {};
 
+  if (query.city) {
+    const cityName = query.city;
+    const pincodes = await getPincodesList(cityName);
+    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    console.log(cityName, pincodes);
+  }
+
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
@@ -127,6 +164,13 @@ const searchDecorators = async (query) => {
 const searchCaterers = async (query) => {
   // console.log("start", query, "End");
   const filters = {};
+
+  if (query.city) {
+    const cityName = query.city;
+    const pincodes = await getPincodesList(cityName);
+    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    console.log(cityName, pincodes);
+  }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["eventDetails.event_types_catered"] = { $in: [query.typeOfEvent] };
@@ -204,6 +248,13 @@ const searchCaterers = async (query) => {
 const searchPAV = async (query) => {
   const filters = {};
 
+  if (query.city) {
+    const cityName = query.city;
+    const pincodes = await getPincodesList(cityName);
+    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    console.log(cityName, pincodes);
+  }
+
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
@@ -274,6 +325,13 @@ const searchMakeupArtists = async (query) => {
   const filters = {};
 
   // console.log(query);
+
+  if (query.city) {
+    const cityName = query.city;
+    const pincodes = await getPincodesList(cityName);
+    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    console.log(cityName, pincodes);
+  }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
