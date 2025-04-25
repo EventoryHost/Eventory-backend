@@ -535,43 +535,47 @@ const searchProducts = async (req, res, next) => {
     if (!Array.isArray(data)) {
       throw new Error("Expected 'data' to be an array");
     }
-    // console.log("Before modifying availability:", data);
+    console.log("Before modifying availability:", data);
 
-    // for (let i = 0; i < data.length; i++) {
-    //   const item = data[i];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
 
-    //   item.available = true;
-    //   // console.log("Schedule for item:", item.basicDetails.name);
+      item.available = true;
+      // console.log("Schedule for item:", item.basicDetails.name);
 
-    //   if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
-    //     item.available = true;
-    //     console.log("No schedule found for item:", item.basicDetails.name);
-    //     continue;
-    //   }
+      if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
+        item.available = true;
+        console.log("No schedule found for item:", item.basicDetails.name);
+        continue;
+      }
 
-    //   let hasOverlap = false;
-    //   for (let j = 0; j < item.schedule.length; j++) {
-    //     const scheduleItem = item.schedule[j];
+      let hasOverlap = false;
+      for (let j = 0; j < item.schedule.length; j++) {
+        const scheduleItem = item.schedule[j];
 
-    //     // console.log(item.schedule[j]);
+        // console.log(item.schedule[j]);
 
-    //     if (!scheduleItem?.start || !scheduleItem?.end) continue;
+        if (!scheduleItem?.start || !scheduleItem?.end) continue;
 
-    //     const itemStart = new Date(scheduleItem.start);
-    //     const itemEnd = new Date(scheduleItem.end);
+        const itemStart = new Date(scheduleItem.start);
+        const itemEnd = new Date(scheduleItem.end);
 
-    //     if (isNaN(itemStart.getTime()) || isNaN(itemEnd.getTime())) continue;
+        if (isNaN(itemStart.getTime()) || isNaN(itemEnd.getTime())) continue;
 
-    //     if (itemStart < endDate && itemEnd > startDate) {
-    //       hasOverlap = true;
-    //       break;
-    //     }
-    //   }
+        if (itemStart < endDate && itemEnd > startDate) {
+          hasOverlap = true;
+          break;
+        }
+      }
 
-    //   // item.available = !hasOverlap;
-    //   item._doc.available = !hasOverlap; // Use _doc to modify the original document
-    //   console.log(item.available);
-    // }
+      // item.available = !hasOverlap;
+      if (item._doc) {
+        item._doc.available = !hasOverlap;
+      } else {
+        item.available = !hasOverlap;
+      }
+      console.log(item.available);
+    }
 
     const resu = [...data]; // Ensure updated reference
     // console.log("Final results:", results);

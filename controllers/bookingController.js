@@ -249,7 +249,7 @@ export const editOfflineEvent = async (req, res) => {
     let vendorModel;
 
     switch (type.toLowerCase()) {
-      case "venue":
+      case "venue-provider":
         vendorModel = Venue;
         break;
       case "caterer":
@@ -316,7 +316,7 @@ export const deleteOfflineEvent = async (req, res) => {
     let vendorModel;
 
     switch (type) {
-      case "venue":
+      case "venue-provider":
         vendorModel = Venue;
         break;
       case "caterer":
