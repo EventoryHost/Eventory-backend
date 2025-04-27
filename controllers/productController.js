@@ -532,53 +532,39 @@ const searchProducts = async (req, res, next) => {
     if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
     if (isNaN(endDate.getTime())) throw new Error("Invalid end date");
 
-    if (!Array.isArray(data)) {
-      throw new Error("Expected 'data' to be an array");
-    }
-    console.log("Before modifying availability:", data);
+    const modifiedData = [];
 
     for (let i = 0; i < data.length; i++) {
       const item = data[i];
 
-      item.available = true;
-      // console.log("Schedule for item:", item.basicDetails.name);
+      let available = true;
 
-      if (!Array.isArray(item?.schedule) || item.schedule.length === 0) {
-        item.available = true;
-        console.log("No schedule found for item:", item.basicDetails.name);
-        continue;
-      }
+      if (Array.isArray(item?.schedule) && item.schedule.length > 0) {
+        for (let j = 0; j < item.schedule.length; j++) {
+          const scheduleItem = item.schedule[j];
 
-      let hasOverlap = false;
-      for (let j = 0; j < item.schedule.length; j++) {
-        const scheduleItem = item.schedule[j];
+          if (!scheduleItem?.start || !scheduleItem?.end) continue;
 
-        // console.log(item.schedule[j]);
+          const itemStart = new Date(scheduleItem.start);
+          const itemEnd = new Date(scheduleItem.end);
 
-        if (!scheduleItem?.start || !scheduleItem?.end) continue;
+          if (isNaN(itemStart.getTime()) || isNaN(itemEnd.getTime())) continue;
 
-        const itemStart = new Date(scheduleItem.start);
-        const itemEnd = new Date(scheduleItem.end);
-
-        if (isNaN(itemStart.getTime()) || isNaN(itemEnd.getTime())) continue;
-
-        if (itemStart < endDate && itemEnd > startDate) {
-          hasOverlap = true;
-          break;
+          if (itemStart < endDate && itemEnd > startDate) {
+            available = false;
+            break;
+          }
         }
       }
 
-      // item.available = !hasOverlap;
-      if (item._doc) {
-        item._doc.available = !hasOverlap;
-      } else {
-        item.available = !hasOverlap;
-      }
-      console.log(item.available);
-    }
+      // Create a new object combining old item fields and the new available field
+      const newItem = {
+        ...(item._doc ? item._doc : item), // if item is a Mongoose document
+        available: available,
+      };
 
-    const resu = [...data]; // Ensure updated reference
-    // console.log("Final results:", results);
+      modifiedData.push(newItem);
+    }
 
     // for (let i = 0; i < results.data.length; i++) {
     //   console.log("hello", resu[i].available);
@@ -591,11 +577,11 @@ const searchProducts = async (req, res, next) => {
 
     res.status(200).json({
       message: "Search results fetched successfully.",
-      size: data.length,
+      size: modifiedData.length,
       totalResults,
-      totalPages: totalPages,
+      totalPages,
       currentPage,
-      results: resu,
+      results: modifiedData,
     });
   } catch (e) {
     console.error(e);
