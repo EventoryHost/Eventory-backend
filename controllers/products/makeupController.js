@@ -163,7 +163,7 @@ const createMakeupArtist = async (req, res) => {
         videos: req.body.videos,
         socialMedia: req.body.socialMedia || "",
         websiteUrl: req.body.websiteUrl || "",
-        priceStarts: req.body.priceStarts,
+        priceStartingFrom: req.body.priceStarts,
       },
 
       policies: {
