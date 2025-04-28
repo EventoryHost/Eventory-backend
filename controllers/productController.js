@@ -566,7 +566,6 @@ const searchProducts = async (req, res, next) => {
       modifiedData.push(newItem);
     }
 
-
     // for (let i = 0; i < results.data.length; i++) {
     //   console.log("hello", resu[i].available);
     //   console.log(resu[i]);
@@ -584,7 +583,6 @@ const searchProducts = async (req, res, next) => {
       currentPage,
       results: modifiedData,
     });
-    
   } catch (e) {
     console.error(e);
     res.status(500).json({
