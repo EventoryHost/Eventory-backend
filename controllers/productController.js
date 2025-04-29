@@ -33,8 +33,8 @@ const searchVenues = async (query) => {
 
   // console.log(query);
 
-  if (query.city) {
-    const cityName = query.city;
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
     filters["basicDetails.location.pincode"] = { $in: pincodes };
     console.log(cityName, pincodes);
@@ -106,8 +106,8 @@ const searchVenues = async (query) => {
 const searchDecorators = async (query) => {
   const filters = {};
 
-  if (query.city) {
-    const cityName = query.city;
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
     filters["basicDetails.location.pincode"] = { $in: pincodes };
     console.log(cityName, pincodes);
@@ -165,8 +165,8 @@ const searchCaterers = async (query) => {
   // console.log("start", query, "End");
   const filters = {};
 
-  if (query.city) {
-    const cityName = query.city;
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
     filters["basicDetails.location.pincode"] = { $in: pincodes };
     console.log(cityName, pincodes);
@@ -248,8 +248,8 @@ const searchCaterers = async (query) => {
 const searchPAV = async (query) => {
   const filters = {};
 
-  if (query.city) {
-    const cityName = query.city;
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
     filters["basicDetails.location.pincode"] = { $in: pincodes };
     console.log(cityName, pincodes);
@@ -326,8 +326,8 @@ const searchMakeupArtists = async (query) => {
 
   // console.log(query);
 
-  if (query.city) {
-    const cityName = query.city;
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
     filters["basicDetails.location.pincode"] = { $in: pincodes };
     console.log(cityName, pincodes);
@@ -409,6 +409,13 @@ const searchMakeupArtists = async (query) => {
 const searchAllVendors = async (query) => {
   try {
     const filters = {};
+
+    if (query.location) {
+      const cityName = query.location.toLowerCase();
+      const pincodes = await getPincodesList(cityName);
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+      console.log(cityName, pincodes);
+    }
 
     // Handle price range filtering
     if (query.minPrice || query.maxPrice) {
