@@ -65,6 +65,8 @@ const updateSectionCompletion = async (venId) => {
 
 const createCaterer = async (req, res) => {
   try {
+    //ser1: Ankit caterer
+    //ser2: ankit caterer
     const alreadyExists = await Caterer.findOne({
       name: req.body.name,
       id: req.body.venId,
@@ -140,6 +142,7 @@ const createCaterer = async (req, res) => {
           lat: req.body.latitude, // Latitude
           lng: req.body.longitude, // Longitude
           googleMapsAddress: req.body.address, // Google Maps address
+          pincode: req.body.pincode
         },
       },
       venId: req.body.venId,
