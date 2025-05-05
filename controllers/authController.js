@@ -120,7 +120,10 @@ const signUp = async (req, res) => {
 
     Username: `+91${mobile}`,
     Password: "123456",
-    UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
+    UserAttributes: [
+      { Name: "phone_number", Value: `+91${mobile}` },
+      { Name: "custom:userType", Value: 'Vendor' },
+    ],
   };
 
   try {
@@ -173,7 +176,11 @@ const CustomerSignUp = async (req, res) => {
 
     Username: `+91${mobile}`,
     Password: "123456",
-    UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
+    UserAttributes: [
+      { Name: "phone_number", Value: `+91${mobile}` },
+      { Name: "custom:userType", Value: 'Customer' },
+
+    ],
   };
 
   try {
