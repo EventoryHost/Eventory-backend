@@ -122,7 +122,7 @@ const signUp = async (req, res) => {
     Password: "123456",
     UserAttributes: [
       { Name: "phone_number", Value: `+91${mobile}` },
-      { Name: "custom:userType", Value: 'Vendor' },
+      { Name: "custom:userType", Value: "Vendor" },
     ],
   };
 
@@ -178,8 +178,7 @@ const CustomerSignUp = async (req, res) => {
     Password: "123456",
     UserAttributes: [
       { Name: "phone_number", Value: `+91${mobile}` },
-      { Name: "custom:userType", Value: 'Customer' },
-
+      { Name: "custom:userType", Value: "Customer" },
     ],
   };
 
