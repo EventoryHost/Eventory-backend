@@ -610,6 +610,7 @@ const checkVerification = (service, serType) => {
         { path: "additionalDetails.photos", label: "Photos" },
         { path: "additionalDetails.videos", label: "Videos" },
       ];
+      break;
     // Add criteria for other service types as needed
     default:
       console.log(`Unknown service type: ${serType}`);

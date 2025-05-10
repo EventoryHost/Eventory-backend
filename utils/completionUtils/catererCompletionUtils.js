@@ -102,13 +102,13 @@ export const checkCatererProfileCompletion = async (catererId) => {
       },
     );
 
-    // Check if terms_and_conditions is filled (Ensure it's a URL or any non-empty string)
-    console.log("Checking terms_and_conditions...");
+    // Check if termsAndConditions is filled (Ensure it's a URL or any non-empty string)
+    console.log("Checking termsAndConditions...");
     let termsComplete = false;
     if (
       caterer.policies &&
-      caterer.policies.terms_and_conditions &&
-      caterer.policies.terms_and_conditions.trim() !== ""
+      caterer.policies.termsAndConditions &&
+      caterer.policies.termsAndConditions.trim() !== ""
     ) {
       termsComplete = true;
     }
@@ -126,13 +126,13 @@ export const checkCatererProfileCompletion = async (catererId) => {
     }
     console.log(`Client Testimonials Complete: ${testimonialsComplete}`);
 
-    // Check if cancellation_policy is filled (Ensure it's a URL or any non-empty string)
-    console.log("Checking cancellation_policy...");
+    // Check if cancellationPolicy is filled (Ensure it's a URL or any non-empty string)
+    console.log("Checking cancellationPolicy...");
     let cancellationComplete = false;
     if (
       caterer.policies &&
-      caterer.policies.cancellation_policy &&
-      caterer.policies.cancellation_policy.trim() !== ""
+      caterer.policies.cancellationPolicy &&
+      caterer.policies.cancellationPolicy.trim() !== ""
     ) {
       cancellationComplete = true;
     }
