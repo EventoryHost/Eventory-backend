@@ -14,7 +14,7 @@ import { checkMakeupArtistProfileCompletion } from "../utils/completionUtils/mak
 
 const router = express.Router();
 
-// Update API for basic vendor details such as name, mobile, email ((Full name and number))
+//1. Update API for basic vendor details such as name, mobile, email ((Full name and number))
 router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
@@ -60,7 +60,7 @@ router.put("/update-service/:serviceId", async (req, res) => {
   }
 });
 
-// API endpoint to update service details (company name and description)
+//2. API endpoint to update service details (company name and description)
 router.post("/updateService/:serviceId", async (req, res) => {
   const { serviceId } = req.params; // Get serviceId from the URL parameter
   const { newDescription, newCompanyName } = req.body; // Get other data from the request body
@@ -161,7 +161,7 @@ router.post("/updateService/:serviceId", async (req, res) => {
   }
 });
 
-// API endpoint to update service details
+//3. API endpoint to update service details
 const updateServiceDetails = async (req, res) => {
   const { serId } = req.params;
   const updateData = req.body;
