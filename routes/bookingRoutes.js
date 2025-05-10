@@ -6,6 +6,10 @@ import {
   deleteBooking,
   createBooking,
   getAllBookings,
+  addOfflineEvent,
+  getVendorBookings,
+  deleteOfflineEvent,
+  editOfflineEvent,
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
@@ -19,5 +23,10 @@ router.get("/fetch", fetchBooking);
 router.put("/:bookingId", updateBooking);
 router.delete("/:bookingId", deleteBooking);
 router.get("/all", getAllBookings);
+
+router.patch("/add-offline-booking", addOfflineEvent);
+router.patch("/delete-offline-booking", deleteOfflineEvent);
+router.patch("/edit-offline-booking", editOfflineEvent);
+router.get("/get-vendor-bookings", getVendorBookings);
 
 export default router;
