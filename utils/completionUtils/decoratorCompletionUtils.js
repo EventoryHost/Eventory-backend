@@ -101,7 +101,10 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
     );
 
     // Policies are considered complete if both cancellation and terms are filled
-    const policiesComplete = cancellationComplete && termsComplete;
+    const policiesComplete = Boolean(cancellationComplete && termsComplete);
+
+    console.log(`policiesComplete: ----- ${policiesComplete}`);
+    console.log(`Type of policiesComplete: ----- ${typeof policiesComplete}`);
 
     // Update completed flag for policies
     await Decorator.findOneAndUpdate(
