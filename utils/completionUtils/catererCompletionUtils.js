@@ -4,7 +4,7 @@ import { Caterer } from "../../models/caterer.js";
 export const checkCatererProfileCompletion = async (catererId) => {
   try {
     console.log(
-      `Checking profile completion for caterer with ID: ${catererId}`
+      `Checking profile completion for caterer with ID: ${catererId}`,
     );
 
     const caterer = await Caterer.findOne({ id: catererId });
@@ -30,7 +30,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { id: catererId },
       {
         "basicDetails.completed": basicDetailsComplete,
-      }
+      },
     );
 
     // Check if menu details are complete
@@ -46,7 +46,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { id: catererId },
       {
         "menuDetails.completed": menuDetailsComplete,
-      }
+      },
     );
 
     // Check if event details are complete
@@ -61,7 +61,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { id: catererId },
       {
         "eventDetails.completed": eventDetailsComplete,
-      }
+      },
     );
 
     // Check if staff and equipment details are complete
@@ -70,7 +70,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       caterer.staffAndEquipmentDetails.staff_provided.length > 0 &&
       caterer.staffAndEquipmentDetails.equipment_provided.length > 0;
     console.log(
-      `Staff and Equipment Details Complete: ${staffAndEquipmentComplete}`
+      `Staff and Equipment Details Complete: ${staffAndEquipmentComplete}`,
     );
 
     // Update completed flag for staff and equipment details
@@ -78,7 +78,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { id: catererId },
       {
         "staffAndEquipmentDetails.completed": staffAndEquipmentComplete,
-      }
+      },
     );
 
     // Check if additional details are complete
@@ -100,7 +100,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { id: catererId },
       {
         "additionalDetails.completed": additionalDetailsComplete,
-      }
+      },
     );
 
     // Check if termsAndConditions is filled (Ensure it's a URL or any non-empty string)
@@ -143,12 +143,12 @@ export const checkCatererProfileCompletion = async (catererId) => {
     if (termsComplete && testimonialsComplete && cancellationComplete) {
       await Caterer.findOneAndUpdate(
         { id: catererId },
-        { "policies.completed": true }
+        { "policies.completed": true },
       );
     }
 
     console.log(
-      `Profile completion check completed for caterer with ID: ${catererId}`
+      `Profile completion check completed for caterer with ID: ${catererId}`,
     );
     return true;
   } catch (error) {

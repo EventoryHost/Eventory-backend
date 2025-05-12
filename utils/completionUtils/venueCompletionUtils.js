@@ -50,12 +50,12 @@ export const checkVenueProfileCompletion = async (venueId) => {
     // Check if additional details are complete
     const additionalDetailsComplete = Boolean(
       venue.additionalDetails.photos.length > 0 &&
-      venue.additionalDetails.videos.length > 0 &&
-      venue.additionalDetails.awards != null &&
-      venue.additionalDetails.clientTestimonials != null &&
-      venue.additionalDetails.advanceBookingPeriod != null &&
-      venue.additionalDetails.priceStartingFrom != null
-    );    
+        venue.additionalDetails.videos.length > 0 &&
+        venue.additionalDetails.awards != null &&
+        venue.additionalDetails.clientTestimonials != null &&
+        venue.additionalDetails.advanceBookingPeriod != null &&
+        venue.additionalDetails.priceStartingFrom != null,
+    );
 
     console.log(
       `Additional details check: ------- ${additionalDetailsComplete}`,
@@ -84,12 +84,13 @@ export const checkVenueProfileCompletion = async (venueId) => {
       venue.policies.insurancePolicy.length > 0 &&
       venue.policies.insurancePolicy[0].trim().length > 0;
 
-      // console.log(`cancellationComplete is ${cancellationComplete}`); // Debugging line
-      // console.log(`termsComplete is ${termsComplete}`); // Debugging line
-      // console.log(`insuranceComplete is ${insuranceComplete}`); // Debugging line
+    // console.log(`cancellationComplete is ${cancellationComplete}`); // Debugging line
+    // console.log(`termsComplete is ${termsComplete}`); // Debugging line
+    // console.log(`insuranceComplete is ${insuranceComplete}`); // Debugging line
 
-
-    const policiesComplete =Boolean(cancellationComplete && termsComplete && insuranceComplete)
+    const policiesComplete = Boolean(
+      cancellationComplete && termsComplete && insuranceComplete,
+    );
 
     console.log(`Policies check--------------: ${policiesComplete}`);
 

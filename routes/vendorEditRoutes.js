@@ -19,7 +19,9 @@ router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
 
-  console.log(`1..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`);
+  console.log(
+    `1..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
+  );
 
   try {
     // Find the vendor containing the specific serviceId
@@ -36,17 +38,25 @@ router.put("/update-service/:serviceId", async (req, res) => {
     if (updateData.businessDetails) {
       const fieldsToUpdate = updateData.businessDetails;
 
-      if (fieldsToUpdate.businessName) vendor.businessDetails.businessName = fieldsToUpdate.businessName;
-      if (fieldsToUpdate.category) vendor.businessDetails.category = fieldsToUpdate.category;
-      if (fieldsToUpdate.teamsize) vendor.businessDetails.teamsize = fieldsToUpdate.teamsize;
-      if (fieldsToUpdate.years) vendor.businessDetails.years = fieldsToUpdate.years;
-      if (fieldsToUpdate.businessAddress) vendor.businessDetails.businessAddress = fieldsToUpdate.businessAddress;
-      if (fieldsToUpdate.pinCode) vendor.businessDetails.pinCode = fieldsToUpdate.pinCode;
-      if (fieldsToUpdate.cities) vendor.businessDetails.cities = fieldsToUpdate.cities;
-      if (fieldsToUpdate.annualrevenue) vendor.businessDetails.annualrevenue = fieldsToUpdate.annualrevenue;
-      if (fieldsToUpdate.gstin) vendor.businessDetails.gstin = fieldsToUpdate.gstin;
+      if (fieldsToUpdate.businessName)
+        vendor.businessDetails.businessName = fieldsToUpdate.businessName;
+      if (fieldsToUpdate.category)
+        vendor.businessDetails.category = fieldsToUpdate.category;
+      if (fieldsToUpdate.teamsize)
+        vendor.businessDetails.teamsize = fieldsToUpdate.teamsize;
+      if (fieldsToUpdate.years)
+        vendor.businessDetails.years = fieldsToUpdate.years;
+      if (fieldsToUpdate.businessAddress)
+        vendor.businessDetails.businessAddress = fieldsToUpdate.businessAddress;
+      if (fieldsToUpdate.pinCode)
+        vendor.businessDetails.pinCode = fieldsToUpdate.pinCode;
+      if (fieldsToUpdate.cities)
+        vendor.businessDetails.cities = fieldsToUpdate.cities;
+      if (fieldsToUpdate.annualrevenue)
+        vendor.businessDetails.annualrevenue = fieldsToUpdate.annualrevenue;
+      if (fieldsToUpdate.gstin)
+        vendor.businessDetails.gstin = fieldsToUpdate.gstin;
     }
-
 
     // Update the relevant service in the serviceIds array
     vendor.serviceIds = vendor.serviceIds.map((service) => {
@@ -97,7 +107,7 @@ router.post("/updateService/:serviceId", async (req, res) => {
 
       // Find the service details based on the serviceId
       const service = vendor.serviceIds.find(
-        (service) => service.serId === serviceId
+        (service) => service.serId === serviceId,
       );
 
       if (!service) {
@@ -182,7 +192,9 @@ const updateServiceDetails = async (req, res) => {
   const { serId } = req.params;
   const updateData = req.body;
 
-  console.log(`3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`);
+  console.log(
+    `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
+  );
 
   try {
     // Step 1: Find the vendor's service type
@@ -192,7 +204,7 @@ const updateServiceDetails = async (req, res) => {
     }
 
     const service = vendor.serviceIds.find(
-      (service) => service.serId === serId
+      (service) => service.serId === serId,
     );
     if (!service) {
       return res.status(404).json({ error: "Service not found" });
@@ -207,7 +219,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Caterer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkCatererProfileCompletion(serId);
         break;
@@ -215,7 +227,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Decorator.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkDecoratorProfileCompletion(serId);
         break;
@@ -223,7 +235,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Photographer.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkPhotographerProfileCompletion(serId);
         break;
@@ -231,7 +243,7 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await Venue.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkVenueProfileCompletion(serId);
         break;
@@ -239,14 +251,14 @@ const updateServiceDetails = async (req, res) => {
         updatedService = await PropRental.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         break;
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkMakeupArtistProfileCompletion(serId);
         break;
@@ -265,7 +277,7 @@ const updateServiceDetails = async (req, res) => {
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
       updatedService,
-      serType
+      serType,
     );
     await updatedService.updateOne({
       "basicDetails.profileCompletion": profileCompletion,
