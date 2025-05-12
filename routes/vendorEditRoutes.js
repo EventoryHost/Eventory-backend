@@ -19,6 +19,8 @@ router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
 
+  console.log(`1..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`);
+
   try {
     // Find the vendor containing the specific serviceId
     const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
@@ -31,6 +33,20 @@ router.put("/update-service/:serviceId", async (req, res) => {
     if (updateData.name) vendor.name = updateData.name;
     if (updateData.mobile) vendor.mobile = updateData.mobile;
     if (updateData.email) vendor.email = updateData.email;
+    if (updateData.businessDetails) {
+      const fieldsToUpdate = updateData.businessDetails;
+
+      if (fieldsToUpdate.businessName) vendor.businessDetails.businessName = fieldsToUpdate.businessName;
+      if (fieldsToUpdate.category) vendor.businessDetails.category = fieldsToUpdate.category;
+      if (fieldsToUpdate.teamsize) vendor.businessDetails.teamsize = fieldsToUpdate.teamsize;
+      if (fieldsToUpdate.years) vendor.businessDetails.years = fieldsToUpdate.years;
+      if (fieldsToUpdate.businessAddress) vendor.businessDetails.businessAddress = fieldsToUpdate.businessAddress;
+      if (fieldsToUpdate.pinCode) vendor.businessDetails.pinCode = fieldsToUpdate.pinCode;
+      if (fieldsToUpdate.cities) vendor.businessDetails.cities = fieldsToUpdate.cities;
+      if (fieldsToUpdate.annualrevenue) vendor.businessDetails.annualrevenue = fieldsToUpdate.annualrevenue;
+      if (fieldsToUpdate.gstin) vendor.businessDetails.gstin = fieldsToUpdate.gstin;
+    }
+
 
     // Update the relevant service in the serviceIds array
     vendor.serviceIds = vendor.serviceIds.map((service) => {
@@ -165,6 +181,8 @@ router.post("/updateService/:serviceId", async (req, res) => {
 const updateServiceDetails = async (req, res) => {
   const { serId } = req.params;
   const updateData = req.body;
+
+  console.log(`3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`);
 
   try {
     // Step 1: Find the vendor's service type
