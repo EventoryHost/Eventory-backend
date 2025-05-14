@@ -5,23 +5,11 @@ import { Caterer } from "../models/caterer.js";
 import Photographer from "../models/photographers.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import MakeupArtist from "../models/makeupArtists.js";
+import { pincodeMap } from "../constants/pincodes_map.js";
 
 const getPincodesList = async (cityName) => {
   try {
-    const result = await mongoose.connection
-      .collection("pincode_metadata")
-      .find({
-        $or: [
-          { Districtname: cityName },
-          { statename: cityName }
-        ]
-      })
-      .project({ pincode: 1, _id: 0 })
-      .toArray();
-
-    console.log(result);
-
-    return result.map(doc => doc.pincode);
+    return pincodeMap[cityName];
   } catch (error) {
     console.error("Error fetching pincodes:", error);
     return [];
