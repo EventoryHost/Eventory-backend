@@ -142,7 +142,7 @@ const createCaterer = async (req, res) => {
           lat: req.body.latitude, // Latitude
           lng: req.body.longitude, // Longitude
           googleMapsAddress: req.body.address, // Google Maps address
-          pincode: req.body.pincode
+          pincode: req.body.pincode,
         },
       },
       venId: req.body.venId,
