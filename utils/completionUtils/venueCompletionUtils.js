@@ -48,15 +48,14 @@ export const checkVenueProfileCompletion = async (venueId) => {
     );
 
     // Check if additional details are complete
-    const additionalDetailsComplete =
+    const additionalDetailsComplete = Boolean(
       venue.additionalDetails.photos.length > 0 &&
-      venue.additionalDetails.videos.length > 0 &&
-      venue.additionalDetails.awards != null &&
-      venue.additionalDetails.clientTestimonials != null &&
-      // venue.additionalDetails.instagramURL != null &&
-      // venue.additionalDetails.websiteURL != null &&
-      venue.additionalDetails.advanceBookingPeriod != null &&
-      venue.additionalDetails.priceStartingFrom != null;
+        venue.additionalDetails.videos.length > 0 &&
+        venue.additionalDetails.awards != null &&
+        venue.additionalDetails.clientTestimonials != null &&
+        venue.additionalDetails.advanceBookingPeriod != null &&
+        venue.additionalDetails.priceStartingFrom != null,
+    );
 
     console.log(
       `Additional details check: ------- ${additionalDetailsComplete}`,
@@ -76,19 +75,24 @@ export const checkVenueProfileCompletion = async (venueId) => {
       venue.policies.cancellationPolicy[0].trim().length > 0;
 
     const termsComplete =
-      Array.isArray(venue.policies.termsConditions) &&
-      venue.policies.termsConditions.length > 0 &&
-      venue.policies.termsConditions[0].trim().length > 0;
+      Array.isArray(venue.policies.termsAndConditions) &&
+      venue.policies.termsAndConditions.length > 0 &&
+      venue.policies.termsAndConditions[0].trim().length > 0;
 
     const insuranceComplete =
       Array.isArray(venue.policies.insurancePolicy) &&
       venue.policies.insurancePolicy.length > 0 &&
       venue.policies.insurancePolicy[0].trim().length > 0;
 
-    const policiesComplete =
-      cancellationComplete && termsComplete && insuranceComplete;
+    // console.log(`cancellationComplete is ${cancellationComplete}`); // Debugging line
+    // console.log(`termsComplete is ${termsComplete}`); // Debugging line
+    // console.log(`insuranceComplete is ${insuranceComplete}`); // Debugging line
 
-    console.log(`Policies check: ${policiesComplete}`);
+    const policiesComplete = Boolean(
+      cancellationComplete && termsComplete && insuranceComplete,
+    );
+
+    console.log(`Policies check--------------: ${policiesComplete}`);
 
     // Update the policies completion status in the database
     await Venue.findOneAndUpdate(

@@ -7,7 +7,7 @@ dotenv.config();
 
 async function sendInvoiceToWhatsApp(link, mobile, amount) {
   // WhatsApp Business API configuration
-  const WHATSAPP_API_URL = `https://graph.facebook.com/v21.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
+  const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
     Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
@@ -37,23 +37,6 @@ async function sendInvoiceToWhatsApp(link, mobile, amount) {
                     link: `${link}`,
                     filename: "invoice-eventory",
                   },
-                },
-              ],
-            },
-            {
-              type: "body",
-              parameters: [
-                {
-                  type: "text",
-                  text: `${amount}`,
-                },
-                {
-                  type: "text",
-                  text: "Eventory",
-                },
-                {
-                  type: "text",
-                  text: "receipt",
                 },
               ],
             },

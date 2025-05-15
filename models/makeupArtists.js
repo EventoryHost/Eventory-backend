@@ -48,7 +48,7 @@ const makeupArtistSchema = Schema({
     videos: { type: [String], required: true },
     socialMedia: { type: String },
     websiteUrl: { type: String },
-    priceStarts: { type: Number, required: true },
+    priceStartingFrom: { type: Number, required: true },
   },
 
   policies: {
