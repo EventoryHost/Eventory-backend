@@ -72,6 +72,15 @@ const searchVenues = async (query) => {
     filters["featureDetails.venueTypes"] = { $in: query.venueTypes };
   }
 
+  if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
   // console.log("priyanshu", filters, "end");
 
   let venueQuery = Venue.find(filters);
@@ -120,8 +129,13 @@ const searchDecorators = async (query) => {
   }
 
   if (query.rating) {
+    let rating = parseInt(query.rating, 10);
     filters["rating"] = {};
-    filters["rating"].$gte = parseInt(query.minPrice, 10);
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
   }
 
   // Handle themes offered
@@ -180,8 +194,13 @@ const searchCaterers = async (query) => {
   }
 
   if (query.rating) {
+    let rating = parseInt(query.rating, 10);
     filters["rating"] = {};
-    filters["rating"].$gte = parseInt(query.minPrice, 10);
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
   }
 
   // Handle guest capacity range
@@ -290,6 +309,16 @@ const searchPAV = async (query) => {
     }
   }
 
+  if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
+
   // console.log("priyanshu", filters, "end");
 
   let photographerQuery = Photographer.find(filters);
@@ -375,6 +404,16 @@ const searchMakeupArtists = async (query) => {
     filters["serviceDetails.serviceTypes"] = { $in: query.serviceTypes };
   }
 
+  if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
+
   // console.log("priyanshu", filters, "end");
 
   let makeupQuery = MakeupArtist.find(filters);
@@ -444,6 +483,16 @@ const searchAllVendors = async (query) => {
       query.eventTypes = query.eventTypes.split(",");
       filters["basicDetails.eventTypes"] = { $in: query.eventTypes };
     }
+
+    if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
 
     // Sorting logic
     let sortStage = {};
