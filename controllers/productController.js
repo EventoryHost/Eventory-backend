@@ -485,14 +485,14 @@ const searchAllVendors = async (query) => {
     }
 
     if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
-    if (rating === 0) {
-      filters["rating"].$lt = 1;
-    } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      let rating = parseInt(query.rating, 10);
+      filters["rating"] = {};
+      if (rating === 0) {
+        filters["rating"].$lt = 1;
+      } else {
+        filters["rating"].$gte = parseInt(query.rating, 10);
+      }
     }
-  }
 
     // Sorting logic
     let sortStage = {};
