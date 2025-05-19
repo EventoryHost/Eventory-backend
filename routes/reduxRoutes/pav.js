@@ -66,5 +66,33 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// DELETE route to remove decorator details by user ID
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  console.log("🗑️ Deleting decorator details for ID:", id);
+
+  if (!id) {
+    return res.status(400).json({ message: "User ID is required for deletion." });
+  }
+
+  try {
+    // Use findOneAndDelete with a filter object
+    const deletedDetails = await PAVModel.findOneAndDelete({ id });
+
+    if (!deletedDetails) {
+      return res.status(404).json({ message: "PAV details not found for deletion." });
+    }
+
+    console.log("✅ Deleted decorator details:", deletedDetails);
+    res.status(200).json({ message: "PAV details deleted successfully." });
+  } catch (error) {
+    console.error("❌ Error deleting PAV details:", error);
+    res.status(500).json({
+      message: "Failed to delete PAV details.",
+      error: error.message,
+    });
+  }
+});
+
 // Export the router
 export { router as pavRoutes };
