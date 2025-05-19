@@ -24,7 +24,9 @@ const searchVenues = async (query) => {
   if (query.location) {
     const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
-    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
     console.log(cityName, pincodes);
   }
 
@@ -106,8 +108,9 @@ const searchDecorators = async (query) => {
   if (query.location) {
     const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
-    filters["basicDetails.location.pincode"] = { $in: pincodes };
-    console.log(cityName, pincodes);
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    } console.log(cityName, pincodes);
   }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
@@ -170,7 +173,9 @@ const searchCaterers = async (query) => {
   if (query.location) {
     const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
-    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
     console.log(cityName, pincodes);
   }
 
@@ -258,7 +263,9 @@ const searchPAV = async (query) => {
   if (query.location) {
     const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
-    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
     console.log(cityName, pincodes);
   }
 
@@ -346,7 +353,9 @@ const searchMakeupArtists = async (query) => {
   if (query.location) {
     const cityName = query.location.toLowerCase();
     const pincodes = await getPincodesList(cityName);
-    filters["basicDetails.location.pincode"] = { $in: pincodes };
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
     console.log(cityName, pincodes);
   }
 
@@ -440,8 +449,9 @@ const searchAllVendors = async (query) => {
     if (query.location) {
       const cityName = query.location.toLowerCase();
       const pincodes = await getPincodesList(cityName);
-      filters["basicDetails.location.pincode"] = { $in: pincodes };
-      console.log(cityName, pincodes);
+      if (pincodes.length > 0) {
+        filters["basicDetails.location.pincode"] = { $in: pincodes };
+      } console.log(cityName, pincodes);
     }
 
     // Handle price range filtering
@@ -485,14 +495,14 @@ const searchAllVendors = async (query) => {
     }
 
     if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
-    if (rating === 0) {
-      filters["rating"].$lt = 1;
-    } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      let rating = parseInt(query.rating, 10);
+      filters["rating"] = {};
+      if (rating === 0) {
+        filters["rating"].$lt = 1;
+      } else {
+        filters["rating"].$gte = parseInt(query.rating, 10);
+      }
     }
-  }
 
     // Sorting logic
     let sortStage = {};
