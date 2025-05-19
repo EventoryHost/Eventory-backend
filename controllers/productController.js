@@ -110,7 +110,8 @@ const searchDecorators = async (query) => {
     const pincodes = await getPincodesList(cityName);
     if (pincodes.length > 0) {
       filters["basicDetails.location.pincode"] = { $in: pincodes };
-    } console.log(cityName, pincodes);
+    }
+    console.log(cityName, pincodes);
   }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
@@ -451,7 +452,8 @@ const searchAllVendors = async (query) => {
       const pincodes = await getPincodesList(cityName);
       if (pincodes.length > 0) {
         filters["basicDetails.location.pincode"] = { $in: pincodes };
-      } console.log(cityName, pincodes);
+      }
+      console.log(cityName, pincodes);
     }
 
     // Handle price range filtering

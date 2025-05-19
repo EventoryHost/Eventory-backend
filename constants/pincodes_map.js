@@ -50,5 +50,5 @@ export const pincodeMap = {
   dwarka: [110075, 110077, 110078],
   indirapuram: [201014],
   vasundhara: [201012],
-  all: []
+  all: [],
 };
