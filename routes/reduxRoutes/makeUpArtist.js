@@ -93,7 +93,9 @@ router.delete("/:id", async (req, res) => {
   console.log("🗑️ Deleting decorator details for ID:", id);
 
   if (!id) {
-    return res.status(400).json({ message: "User ID is required for deletion." });
+    return res
+      .status(400)
+      .json({ message: "User ID is required for deletion." });
   }
 
   try {
@@ -101,7 +103,9 @@ router.delete("/:id", async (req, res) => {
     const deletedDetails = await MakeupArtistModel.findOneAndDelete({ id });
 
     if (!deletedDetails) {
-      return res.status(404).json({ message: "Make-Up details not found for deletion." });
+      return res
+        .status(404)
+        .json({ message: "Make-Up details not found for deletion." });
     }
 
     console.log("✅ Deleted decorator details:", deletedDetails);

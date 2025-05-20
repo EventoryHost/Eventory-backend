@@ -73,7 +73,9 @@ router.delete("/:id", async (req, res) => {
   console.log("🗑️ Deleting decorator details for ID:", id);
 
   if (!id) {
-    return res.status(400).json({ message: "User ID is required for deletion." });
+    return res
+      .status(400)
+      .json({ message: "User ID is required for deletion." });
   }
 
   try {
@@ -81,11 +83,15 @@ router.delete("/:id", async (req, res) => {
     const deletedDetails = await DecoratorModel.findOneAndDelete({ id });
 
     if (!deletedDetails) {
-      return res.status(404).json({ message: "Decorator details not found for deletion." });
+      return res
+        .status(404)
+        .json({ message: "Decorator details not found for deletion." });
     }
 
     console.log("✅ Deleted decorator details:", deletedDetails);
-    res.status(200).json({ message: "Decorator details deleted successfully." });
+    res
+      .status(200)
+      .json({ message: "Decorator details deleted successfully." });
   } catch (error) {
     console.error("❌ Error deleting decorator details:", error);
     res.status(500).json({
