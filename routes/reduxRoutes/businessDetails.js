@@ -181,5 +181,37 @@ router.get("/catering-details/:id", async (req, res) => {
   }
 });
 
+// DELETE route to remove catering details by user ID
+router.delete("/catering-details/:id", async (req, res) => {
+  const { id } = req.params;
+  // Log details of service bieng deleted
+
+  console.log("Deleting catering details for ID:", id);
+
+  if (!id) {
+    return res
+      .status(400)
+      .json({ message: "User ID is required for deletion." });
+  }
+
+  try {
+    const deletedDetails = await CateringModel.findOneAndDelete(id); // Correct method
+
+    if (!deletedDetails) {
+      return res
+        .status(404)
+        .json({ message: "Catering details not found for deletion." });
+    }
+
+    res.status(200).json({ message: "Catering details deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting catering details:", error);
+    res.status(500).json({
+      message: "Failed to delete catering details.",
+      error: error.message,
+    });
+  }
+});
+
 // Export the router
 export { router as businessDetailsRoutes };
