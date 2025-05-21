@@ -127,6 +127,29 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get all quotations (no filters)
+router.get("/all", async (req, res) => {
+  try {
+    const quotations = await Quotation.find();
+
+    if (quotations.length === 0) {
+      return res.status(404).json({
+        message: "No quotations found",
+      });
+    }
+
+    res.status(200).json({
+      message: "All quotations retrieved successfully!",
+      data: quotations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving all quotations",
+      error: error.message,
+    });
+  }
+});
+
 router.patch("/", async (req, res) => {
   try {
     await Quotation.updateOne(
