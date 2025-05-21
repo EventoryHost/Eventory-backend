@@ -6,6 +6,9 @@ const DecoratorSchema = new mongoose.Schema(
     pageNumber: { type: Number, default: 1 },
     businessName: { type: String },
     description: { type: String },
+    address: { type: String },
+    longitude: { type: Number },
+    latitude: { type: Number },
     venueType: { type: [String], default: "decorator" },
     teamsizelist: { type: String },
     durationlist: { type: String },
@@ -37,6 +40,7 @@ const DecoratorSchema = new mongoose.Schema(
     ratings_reviews: { type: [String] },
     portfolio: { type: [String] },
     certificates_awards: { type: [String] },
+    priceStarts: { type: String },
   },
   { timestamps: true },
 );

@@ -17,8 +17,11 @@ const venueSchema = new Schema({
       type: String,
     },
   },
+  selectedEventTypes: { type: [String] },
   address: { type: String },
-  venueDescription: {
+  latitude: { type: Number },
+  longitude: { type: Number },
+  description: {
     type: String,
   },
   venueType: { type: String, default: "venue-provider" },
@@ -38,7 +41,7 @@ const venueSchema = new Schema({
     type: [String],
   },
   restrictionsPolicies: { type: [String] },
-  speacialFeatures: { type: [String] },
+  specialFeatures: { type: [String] },
   facilities: {
     type: [String],
   },
@@ -59,6 +62,7 @@ const venueSchema = new Schema({
   awards: { type: String },
   clientTestimonials: { type: String },
   advanceBookingPeriod: { type: String },
+  priceStarts: { type: String },
 });
 
 const VenueModel = model("ReduxVenueProvider", venueSchema);

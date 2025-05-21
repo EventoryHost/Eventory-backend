@@ -30,6 +30,10 @@ const propRentalSchema = new Schema(
     serviceProvided: { type: [String] },
     photos: { type: [String] },
     videos: { type: [String] },
+    address: { type: String },
+    longitude: { type: Number },
+    latitude: { type: Number },
+    services: { type: String },
 
     furnitureAndDecor: {
       listUrl: {
@@ -80,6 +84,7 @@ const propRentalSchema = new Schema(
 
     cancellationPolicy: { type: [String] },
     termsAndConditions: { type: [String] },
+    priceStarts: { type: String },
   },
   { timestamps: true },
 );

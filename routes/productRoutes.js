@@ -11,6 +11,8 @@ import giftController from "../controllers/products/giftController.js";
 import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers/products/photographerController.js";
 import vendorController from "../controllers/products/vendorController.js";
+import { getAllServices } from "../controllers/servicesController.js";
+import searchProducts from "../controllers/productController.js";
 
 const router = Router();
 
@@ -23,11 +25,28 @@ router.get("/makeup", makeupController.getAllMakeupArtist);
 router.get("/pav", photographerController.getAllPav);
 router.get("/prop-rental", propController.getAllProp);
 router.get("/venue", venueController.getAllVenues);
+router.get("/service", getAllServices);
 
+// Adding vendor-specific routes
+router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
+
+// Add Bank Details route
+router.post("/vendor/:vendorId/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+router.get("/vendor/:vendorId/bank-details", vendorController.getBankDetails);
+// In your backend routes file (e.g., routes.js or similar)
+router.delete(
+  "/vendor/:vendorId/delete-bank-details",
+  vendorController.deleteBankDetails,
+);
+
+// Delete bank details via POST
+
+// Add vendor creation routes (for other types of vendors)
 router.post(
   "/add-caterer",
   upload("Caterers").fields([
     { name: "menu", maxCount: 10 },
+    { name: "food_safety_certificates", maxCount: 10 },
     { name: "cancellation_policy", maxCount: 1 },
     { name: "terms_and_conditions", maxCount: 1 },
     { name: "photos", maxCount: 20 },
@@ -55,7 +74,6 @@ router.post(
     { name: "termsConditions", maxCount: 1 },
     { name: "cancellationPolicy", maxCount: 1 },
     { name: "portfolio", maxCount: 20 },
-    {},
   ]),
   eventPlannerController.createEventPlanner,
 );
@@ -135,7 +153,7 @@ router.post(
   ]),
   photographerController.createPhotographer,
 );
-router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 
-router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
+router.get("/search/", searchProducts);
+
 export default router;

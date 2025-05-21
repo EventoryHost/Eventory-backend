@@ -1,31 +1,63 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./venue.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
-  id: { type: String, default: generateUniqueId("ser"), required: true },
+  type: { type: String, default: "pav" },
+  isVerified: { type: Boolean, default: false },
+  basicDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    name: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    eventSize: {
+      ll: { type: Number, required: true }, // Lower limit
+      ul: { type: Number, required: true }, // Upper limit
+    },
+    eventTypes: {
+      type: [String],
+      required: true,
+    },
+    // address: { type: String, required: true },
+    // latitude: { type: Number, required: true },
+    // longitude: { type: Number, required: true },
+    profileCompletion: { type: Number, default: 0 },
+    location: {
+      lat: { type: Number }, // Latitude
+      lng: { type: Number }, // Longitude
+      pincode: {
+        type: Number,
+        validate: {
+          validator: function (v) {
+            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+          },
+          message: (props) => `${props.value} is not a valid 6-digit pincode!`,
+        },
+        // required: [true, 'Pincode is required'] // Ensures the pincode is required
+      },
+      googleMapsAddress: { type: String }, // Google Maps formatted address
+    },
+  },
+
+  id: { type: String, default: () => generateUniqueId("pav"), required: true },
   venId: { type: String, required: true },
-  description: {
-    type: String,
-    required: true,
-  },
+
   vendorType: { type: String, default: "photographer" },
-  name: {
-    type: String,
-    required: true,
-  },
-  eventSize: { type: String, required: true },
-  description: { type: String },
-  eventTypes: {
-    type: [String],
-    required: true,
-  },
-  //page 2
+  schedule: [eventSchema],
+
+  // Page 2
   Videography: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -33,13 +65,15 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
   Photography: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
     equipmentAvailable: {
       type: [String],
     },
-    typesofstyles: {
+    typesOfStyles: {
       type: [String],
     },
     addonsOrUpgradeAvailable: {
@@ -47,56 +81,65 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
+      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
     },
   },
-  //page-3
-  duration: { type: String },
-  PackageTypes: {
-    type: String,
-    default: "Both",
+  consultationDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    duration: {
+      type: String,
+      enum: [
+        "Less than 1 week",
+        "Less than 2 weeks",
+        "2-4 weeks",
+        "More than 4 weeks",
+      ],
+    },
+    PackageTypes: {
+      type: String,
+      enum: ["Customize", "Standard", "Both"],
+      default: "Both",
+    },
+    proposalsToClients: {
+      type: Boolean,
+    },
+    freeInitialConsultation: {
+      type: Boolean,
+    },
+    bookingDeposit: {
+      type: Boolean,
+    },
+    availableForDestinationEvents: {
+      type: Boolean,
+    },
+    AdvanceSetup: {
+      type: Boolean,
+    },
+    postProductionServices: {
+      type: Boolean,
+    },
   },
-  designProposals: {
-    type: Boolean,
-    default: false,
+  additionalDetails: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    photos: { type: [String], required: true },
+    videos: { type: [String], required: true },
+    clientTestimonials: { type: String },
+    awards: { type: String },
+    website: { type: String },
+    instagram: { type: String },
+    priceStartingFrom: { type: Number, required: true },
   },
-  freeInitialConsultation: {
-    type: Boolean,
-    default: false,
+  policies: {
+    completed: { type: Boolean, default: false }, // Flag for section completion
+    cancellationPolicy: {
+      type: [String],
+    },
+    termsAndConditions: {
+      type: [String],
+    },
   },
-  bookingDepositRequired: {
-    type: Boolean,
-    default: false,
-  },
-  availableForOutofTownbooking: {
-    type: Boolean,
-    default: false,
-  },
-  Advancesetup: {
-    type: Boolean,
-    default: false,
-  },
-  postproductionservices: {
-    type: Boolean,
-    default: false,
-  },
-  // page-4
-  photos: { type: [String], required: true },
-  videos: { type: [String], required: true },
-  clientTestimonials: { type: String },
-  awards: { type: String },
-  website: { type: String },
-  instagram: { type: String },
-  advanceBookingPeriod: { type: String, required: true },
-  initialthemeProposels: { type: Boolean, default: false },
-  WrittenthemeProposelsafterconsultaion: { type: Boolean, default: false },
 
-  //page-5
-  cancellationPolicy: {
-    type: [String],
-  },
-  termsAndConditions: {
-    type: [String],
-  },
+  rating: { type: Number, default: 0 }, // Added rating field
 });
 
 const Photographer = model("Photographer", photographerSchema);
