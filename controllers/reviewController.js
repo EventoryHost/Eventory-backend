@@ -2,13 +2,16 @@ import { Review } from "../models/review.js";
 import { Venue } from "../models/venue.js";
 import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decoraters.js";
+import Photographer from "../models/photographers.js";
+import MakeupArtist from "../models/makeupArtists.js";
 
 // Mapping vendor types to their respective Mongoose models
 const vendorModels = {
   venue: Venue,
   caterer: Caterer,
-  // photographer: Photographer,
+  photographer: Photographer,
   decorator: Decorator,
+  makeupArtist: MakeupArtist,
 };
 
 // Function to update vendor's average rating
@@ -43,9 +46,9 @@ export const createReview = async (req, res) => {
       photos,
     } = req.body;
 
-    if (!vendorModels[vendorType]) {
-      return res.status(400).json({ error: "Invalid vendor type." });
-    }
+    // if (!vendorModels[vendorType]) {
+    //   return res.status(400).json({ error: "Invalid vendor type." });
+    // }
 
     const newReview = await Review.create({
       serviceId,
@@ -73,6 +76,8 @@ export const createReview = async (req, res) => {
 export const getReviewsByVendor = async (req, res) => {
   try {
     const serviceId = req.query.serviceId;
+
+    console.log("Service ID:", serviceId);
 
     const reviews = await Review.find({ serviceId });
     return res.status(200).json({ reviews });

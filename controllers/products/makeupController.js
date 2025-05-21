@@ -128,6 +128,8 @@ const createMakeupArtist = async (req, res) => {
 
     const eventSize = parseRange(req.body.eventSize);
 
+    console.log(req.body);
+
     const newMakeupArtist = new MakeupArtist({
       type: "makeupArtist",
       isVerified: false,
@@ -148,6 +150,7 @@ const createMakeupArtist = async (req, res) => {
           lat: req.body.latitude, // Latitude
           lng: req.body.longitude, // Longitude
           googleMapsAddress: req.body.address, // Google Maps address
+          pincode: req.body.pincode,
         },
         profileCompletion,
       },

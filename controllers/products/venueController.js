@@ -258,6 +258,7 @@ const createVenue = async (req, res) => {
           lat: req.body.latitude,
           lng: req.body.longitude,
           googleMapsAddress: req.body.address,
+          pincode: req.body.pincode, // Pincode
         },
         profileCompletion: 0, // Initial placeholder
       },

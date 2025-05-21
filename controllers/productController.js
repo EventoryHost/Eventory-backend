@@ -1,14 +1,34 @@
+import mongoose from "mongoose";
 import { Venue } from "../models/venue.js";
 import { Decorator } from "../models/decoraters.js";
 import { Caterer } from "../models/caterer.js";
 import Photographer from "../models/photographers.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import MakeupArtist from "../models/makeupArtists.js";
+import { pincodeMap } from "../constants/pincodes_map.js";
+
+const getPincodesList = async (cityName) => {
+  try {
+    return pincodeMap[cityName];
+  } catch (error) {
+    console.error("Error fetching pincodes:", error);
+    return [];
+  }
+};
 
 const searchVenues = async (query) => {
   const filters = {};
 
   // console.log(query);
+
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
+    const pincodes = await getPincodesList(cityName);
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
+    console.log(cityName, pincodes);
+  }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
@@ -54,6 +74,15 @@ const searchVenues = async (query) => {
     filters["featureDetails.venueTypes"] = { $in: query.venueTypes };
   }
 
+  if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
   // console.log("priyanshu", filters, "end");
 
   let venueQuery = Venue.find(filters);
@@ -76,6 +105,15 @@ const searchVenues = async (query) => {
 const searchDecorators = async (query) => {
   const filters = {};
 
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
+    const pincodes = await getPincodesList(cityName);
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
+    console.log(cityName, pincodes);
+  }
+
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
@@ -95,8 +133,13 @@ const searchDecorators = async (query) => {
   }
 
   if (query.rating) {
+    let rating = parseInt(query.rating, 10);
     filters["rating"] = {};
-    filters["rating"].$gte = parseInt(query.minPrice, 10);
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
   }
 
   // Handle themes offered
@@ -128,6 +171,15 @@ const searchCaterers = async (query) => {
   // console.log("start", query, "End");
   const filters = {};
 
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
+    const pincodes = await getPincodesList(cityName);
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
+    console.log(cityName, pincodes);
+  }
+
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["eventDetails.event_types_catered"] = { $in: [query.typeOfEvent] };
   }
@@ -148,8 +200,13 @@ const searchCaterers = async (query) => {
   }
 
   if (query.rating) {
+    let rating = parseInt(query.rating, 10);
     filters["rating"] = {};
-    filters["rating"].$gte = parseInt(query.minPrice, 10);
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
   }
 
   // Handle guest capacity range
@@ -204,6 +261,15 @@ const searchCaterers = async (query) => {
 const searchPAV = async (query) => {
   const filters = {};
 
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
+    const pincodes = await getPincodesList(cityName);
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
+    console.log(cityName, pincodes);
+  }
+
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
@@ -251,6 +317,16 @@ const searchPAV = async (query) => {
     }
   }
 
+  if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
+
   // console.log("priyanshu", filters, "end");
 
   let photographerQuery = Photographer.find(filters);
@@ -274,6 +350,15 @@ const searchMakeupArtists = async (query) => {
   const filters = {};
 
   // console.log(query);
+
+  if (query.location) {
+    const cityName = query.location.toLowerCase();
+    const pincodes = await getPincodesList(cityName);
+    if (pincodes.length > 0) {
+      filters["basicDetails.location.pincode"] = { $in: pincodes };
+    }
+    console.log(cityName, pincodes);
+  }
 
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
     filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
@@ -329,6 +414,16 @@ const searchMakeupArtists = async (query) => {
     filters["serviceDetails.serviceTypes"] = { $in: query.serviceTypes };
   }
 
+  if (query.rating) {
+    let rating = parseInt(query.rating, 10);
+    filters["rating"] = {};
+    if (rating === 0) {
+      filters["rating"].$lt = 1;
+    } else {
+      filters["rating"].$gte = parseInt(query.rating, 10);
+    }
+  }
+
   // console.log("priyanshu", filters, "end");
 
   let makeupQuery = MakeupArtist.find(filters);
@@ -351,6 +446,15 @@ const searchMakeupArtists = async (query) => {
 const searchAllVendors = async (query) => {
   try {
     const filters = {};
+
+    if (query.location) {
+      const cityName = query.location.toLowerCase();
+      const pincodes = await getPincodesList(cityName);
+      if (pincodes.length > 0) {
+        filters["basicDetails.location.pincode"] = { $in: pincodes };
+      }
+      console.log(cityName, pincodes);
+    }
 
     // Handle price range filtering
     if (query.minPrice || query.maxPrice) {
@@ -390,6 +494,16 @@ const searchAllVendors = async (query) => {
     if (query.eventTypes) {
       query.eventTypes = query.eventTypes.split(",");
       filters["basicDetails.eventTypes"] = { $in: query.eventTypes };
+    }
+
+    if (query.rating) {
+      let rating = parseInt(query.rating, 10);
+      filters["rating"] = {};
+      if (rating === 0) {
+        filters["rating"].$lt = 1;
+      } else {
+        filters["rating"].$gte = parseInt(query.rating, 10);
+      }
     }
 
     // Sorting logic
