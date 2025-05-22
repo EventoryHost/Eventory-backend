@@ -1,0 +1,60 @@
+import Chat from "../models/chat.js";
+import Message from "../models/message.js";
+
+export const handleSocketConnection = (socket, io) => {
+    console.log(`🧠 Socket connected: ${socket.id}`);
+
+    socket.on("join_chat", async ({ chatId, userType }) => {
+        try {
+            const chat = await Chat.findOne({ chatId });
+
+            if (!chat) {
+                socket.emit("error", "Chat room does not exist");
+                return;
+            }
+
+            socket.join(chatId);
+            socket.emit("joined", `Joined chat room ${chatId}`);
+            console.log(`${userType} joined chat room: ${chatId}`);
+        } catch (err) {
+            console.error("join_chat error:", err);
+            socket.emit("error", "Error joining chat");
+        }
+    });
+
+    socket.on("send_message", async ({ chatId, senderType, content }) => {
+        try {
+            const chat = await Chat.findOne({ chatId });
+            if (!chat) {
+                socket.emit("error", "Invalid chatId");
+                return;
+            }
+
+            const validSenders = ["cus", "ven", "rm"];
+            if (!validSenders.includes(senderType)) {
+                socket.emit("error", "Invalid sender type");
+                return;
+            }
+
+            const message = new Message({ chatId, senderType, content });
+            await message.save();
+
+            // Emit to everyone in the room
+            io.to(chatId).emit("new_message", {
+                chatId,
+                senderType,
+                content,
+                timestamp: message.createdAt,
+            });
+            
+            console.log(`📤 ${senderType} sent message in chat ${chatId}`);
+        } catch (err) {
+            console.error("send_message error:", err);
+            socket.emit("error", "Error sending message");
+        }
+    });
+
+    socket.on("disconnect", () => {
+        console.log("🔌 Client disconnected:", socket.id);
+    });
+};

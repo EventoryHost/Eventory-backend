@@ -2,12 +2,17 @@ import "dotenv/config.js";
 import express, { Router } from "express";
 import connectDB from "../config/db.js";
 import cors from "cors";
+import chalk from "chalk";
+import morgan from "morgan";
+import http from "http";
+import { Server } from "socket.io";
+import { handleSocketConnection } from "../controllers/chatController.js"; // <- ADD THIS LINE
+
+// Route Imports
 import productRoutes from "../routes/productRoutes.js"; // This includes bank-details
 import authRoutes from "../routes/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes/aboutEmailRoutes.js";
-import chalk from "chalk";
-import morgan from "morgan";
 import razorpayRoutes from "../routes/razorpayRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
@@ -28,6 +33,21 @@ import waRoutes from "../routes/waHooks.js";
 const app = express();
 const port = 4000;
 const router = Router();
+
+// HTTP server and Socket.IO server setup
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// Socket.IO connection handler
+io.on("connection", (socket) => {
+  console.log("🟢 New client connected:", socket.id);
+  handleSocketConnection(socket, io);
+});
 
 app.use(morgan("dev"));
 
@@ -74,24 +94,21 @@ app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
 app.use("/api/verfication", verificationRoutes);
 app.use("/api/Bookings", BookingRoutes);
-
 app.use("/api/service", serviceRouter);
 app.use("/api/venue", venueRouter);
 app.use("/api", featuredVendorsRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/contact", contactRoutes);
-
 app.use("/api/review", reviewRoutes);
-
 app.use("/webhook", waRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(
-    "Server listening on port " + chalk.blueBright("http://localhost:" + port),
+    "🚀 Server listening on " + chalk.blueBright(`http://localhost:${port}`)
   );
 });
 
