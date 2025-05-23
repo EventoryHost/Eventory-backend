@@ -3,6 +3,7 @@ import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decoraters.js";
 import { eventSchema, Venue } from "../models/venue.js";
 import Photographer from "../models/photographers.js";
+import MakeupArtist from "../models/makeupArtists.js";
 import generateUniqueId from "../utils/generateId.js";
 
 export const createBooking = async (req, res) => {
@@ -195,6 +196,9 @@ export const addOfflineEvent = async (req, res) => {
       case "pav":
         vendorModel = Photographer;
         break;
+      case "makeup-artist":
+        vendorModel = MakeupArtist;
+        break;
       default:
         return res.status(400).json({ message: "Invalid vendor type" });
     }
@@ -260,6 +264,9 @@ export const editOfflineEvent = async (req, res) => {
         break;
       case "photographer":
         vendorModel = Photographer;
+        break;
+      case "makeup-artist":
+        vendorModel = MakeupArtist;
         break;
       default:
         return res.status(400).json({ message: "Invalid vendor type" });
@@ -364,7 +371,7 @@ export const deleteOfflineEvent = async (req, res) => {
 
 export const getVendorBookings = async (req, res) => {
   try {
-    const { year, month, vendorId, type } = req.query;
+    const { year, month, serId, type } = req.query;
 
     // if (!year || !month) {
     //   return res.status(400).json({ error: "Year and month are required." });
@@ -388,11 +395,14 @@ export const getVendorBookings = async (req, res) => {
       case "photographer":
         vendorModel = Photographer;
         break;
+      case "makeup-artist":
+        vendorModel = MakeupArtist;
+        break;
       default:
         return res.status(400).json({ error: "Invalid vendor type." });
     }
 
-    const vendor = await vendorModel.findOne({ venId: vendorId }, "schedule");
+    const vendor = await vendorModel.findOne({ id: serId }, "schedule");
     // console.log(startOfMonth, endOfMonth);
     const offlineBookings =
       vendor?.schedule.filter((booking) => {
@@ -402,7 +412,7 @@ export const getVendorBookings = async (req, res) => {
       }) || [];
 
     const onlineBookings = await Booking.find({
-      venId: vendorId,
+      serviceId: serId,
       // startDate: { $gte: startOfMonth, $lte: endOfMonth },
     });
 
