@@ -40,13 +40,13 @@ export const handleSocketConnection = (socket, io) => {
             await message.save();
 
             // Emit to everyone in the room
-            io.to(chatId).emit("new_message", {
+            socket.to(chatId).emit("new_message", {
                 chatId,
                 senderType,
                 content,
                 timestamp: message.createdAt,
             });
-            
+
             console.log(`📤 ${senderType} sent message in chat ${chatId}`);
         } catch (err) {
             console.error("send_message error:", err);
