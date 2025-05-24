@@ -163,7 +163,7 @@ router.patch("/", async (req, res) => {
 
       if (!existingChat) {
         const newChat = await Chat.create({
-          chatId: uuidv4(),
+          chatId: id,
           cusId: user_id,
           venId: vendor_id,
           serId: service_id,
