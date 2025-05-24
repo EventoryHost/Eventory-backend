@@ -5,6 +5,7 @@ import { getQuotations } from "../controllers/quotationController.js";
 import generateUniqueId from "../utils/generateId.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
 import { v4 as uuidv4 } from "uuid"; // For generating unique chatId
+import Chat from "../models/chat.js"; // Import Chat model
 
 const router = express.Router();
 
