@@ -3,6 +3,7 @@ import { getMessagesByChatId } from "../controllers/chatController.js";
 
 const router = express.Router();
 
-router.get("/:chatId", getMessagesByChatId);
+// Get messages for a chat
+router.get("/:chatId/messages", getMessagesByChatId);
 
 export default router;
