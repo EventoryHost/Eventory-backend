@@ -23,7 +23,7 @@ export const handleSocketConnection = (socket, io) => {
         }
     });
 
-    socket.on("send_message", async ({ chatId, senderType, content, contentType }) => {
+    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl }) => {
         try {
             const chat = await Chat.findOne({ chatId });
             if (!chat) {
@@ -32,29 +32,39 @@ export const handleSocketConnection = (socket, io) => {
             }
 
             const validSenders = ["cus", "ven", "rm"];
-            const validContentTypes = ["text", "image", "file"];
+            const validContentTypes = ["text", "image", "video", "pdf", "file"];
+            
             if (!validContentTypes.includes(contentType)) {
-                socket.emit("error", "Invalid sender type");
-                return;
+                contentType = "text"; // Default to text if not specified
             }
+            
             if (!validSenders.includes(senderType)) {
                 socket.emit("error", "Invalid sender type");
                 return;
             }
 
-            const message = new Message({ chatId, senderType, content, contentType });
+            // Create and save message with content type and media URL
+            const message = new Message({ 
+                chatId, 
+                senderType, 
+                content, 
+                contentType,
+                mediaUrl: mediaUrl || null
+            });
+            
             await message.save();
 
-            // Emit to everyone in the room
+            // Emit to everyone in the room with full message data
             socket.to(chatId).emit("new_message", {
                 chatId,
                 senderType,
                 content,
                 contentType,
+                mediaUrl: mediaUrl || null,
                 timestamp: message.createdAt,
             });
 
-            console.log(`📤 ${senderType} sent message in chat ${chatId}`);
+            console.log(`📤 ${senderType} sent ${contentType} message in chat ${chatId}`);
         } catch (err) {
             console.error("send_message error:", err);
             socket.emit("error", "Error sending message");
@@ -125,10 +135,24 @@ export const uploadChatMedia = (req, res) => {
 
   const fileKey = req.file.key; // This is the path inside S3 bucket
   const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}`;
+  
+  // Determine content type based on mime type
+  let contentType = "file";
+  const mimeType = req.file.mimetype || "";
+  
+  if (mimeType.startsWith('image/')) {
+    contentType = "image";
+  } else if (mimeType.startsWith('video/')) {
+    contentType = "video";
+  } else if (mimeType === 'application/pdf') {
+    contentType = "pdf";
+  }
 
   return res.status(200).json({
     message: "File uploaded successfully",
     url: cloudFrontUrl,
+    contentType: contentType,
+    originalName: req.file.originalname
   });
 };
 

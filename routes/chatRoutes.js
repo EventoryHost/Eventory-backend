@@ -1,15 +1,13 @@
 import express from "express";
-import { getMessagesByChatId, uploadChatMedia } from "../controllers/chatController.js";
 import upload from "../middlewares/uploads.js";
+import { getMessagesByChatId, uploadChatMedia } from "../controllers/chatController.js";
 
 const router = express.Router();
 
 // Get messages for a chat
 router.get("/:chatId/messages", getMessagesByChatId);
 
-router.post(
-  "/upload-media/:id", // :id = userId or chatId as per your logic
-  upload("Chat_Media").single("media"),
-  uploadChatMedia
-);
+// Upload media files for chat using the existing upload middleware
+router.post("/upload-media", upload("chat").single("file"), uploadChatMedia);
+
 export default router;
