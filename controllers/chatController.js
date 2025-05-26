@@ -23,7 +23,7 @@ export const handleSocketConnection = (socket, io) => {
         }
     });
 
-    socket.on("send_message", async ({ chatId, senderType, content }) => {
+    socket.on("send_message", async ({ chatId, senderType, content, contentType }) => {
         try {
             const chat = await Chat.findOne({ chatId });
             if (!chat) {
@@ -32,12 +32,17 @@ export const handleSocketConnection = (socket, io) => {
             }
 
             const validSenders = ["cus", "ven", "rm"];
+            const validContentTypes = ["text", "image", "file"];
+            if (!validContentTypes.includes(contentType)) {
+                socket.emit("error", "Invalid sender type");
+                return;
+            }
             if (!validSenders.includes(senderType)) {
                 socket.emit("error", "Invalid sender type");
                 return;
             }
 
-            const message = new Message({ chatId, senderType, content });
+            const message = new Message({ chatId, senderType, content, contentType });
             await message.save();
 
             // Emit to everyone in the room
@@ -45,6 +50,7 @@ export const handleSocketConnection = (socket, io) => {
                 chatId,
                 senderType,
                 content,
+                contentType,
                 timestamp: message.createdAt,
             });
 
@@ -94,4 +100,20 @@ export const getMessagesByChatId = async (req, res) => {
         console.error("Error fetching messages:", err);
         res.status(500).json({ error: "Failed to fetch messages" });
     }
+};
+
+export const uploadChatMedia = async (req, res) => {
+  try {
+    if (!req.file || !req.file.location) {
+      return res.status(400).json({ error: "No media file uploaded" });
+    }
+
+    return res.status(200).json({
+      url: req.file.location,
+      message: "Media uploaded successfully",
+    });
+  } catch (error) {
+    console.error("Error uploading chat media:", error);
+    return res.status(500).json({ error: "Failed to upload media" });
+  }
 };
