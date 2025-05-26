@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 const generateUniqueId = (type) => {
   const now = new Date();
   const { year, month, day, hours, minutes, seconds, miliseconds } = {
@@ -27,6 +29,27 @@ export function generatePaymentId() {
   };
 
   return "pay_" + randomChars(6, upperDigits) + randomChars(8, allChars);
+}
+
+export function generateSignature(clientId, key, timestamp) {
+
+  const publicKey = crypto.createPublicKey({
+      key: key,
+      format: 'pem'
+    });
+    const data = `${clientId}.${timestamp}`;
+
+
+    const encryptedData = crypto.publicEncrypt(
+      {
+        key: publicKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      },
+      Buffer.from(data, "utf8")
+    );
+
+    const signature = encryptedData.toString("base64");
+    return signature;
 }
 
 export default generateUniqueId;
