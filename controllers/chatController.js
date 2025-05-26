@@ -62,13 +62,12 @@ export const handleSocketConnection = (socket, io) => {
 
 export const getMessagesByChatId = async (req, res) => {
     const { chatId } = req.params;
+    const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.
 
     try {
         const features = new APIFeatures(
             Message.find({ chatId }).sort({ createdAt: 1 }), // messages sorted oldest to newest
-            {
-                limit: 3,
-            }
+            queryOptions
         )
             .sort()
             .limitFields()
