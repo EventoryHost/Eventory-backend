@@ -4,6 +4,6 @@ const verificationRoutes = express.Router();
 
 import { verifyGSTIN } from "../controllers/verificationController.js";
 
-verificationRoutes.get("/GSTIN/:GSTIN", verifyGSTIN);
+verificationRoutes.get("/GSTIN/:gstIn", verifyGSTIN);
 
 export default verificationRoutes;
