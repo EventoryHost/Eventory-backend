@@ -5,9 +5,7 @@ import { generateSignature } from "../utils/generateId.js";
 dotenv.config();
 
 const verifyGSTIN = async (req, res) => {
-
   const { gstIn } = req.params;
-
 
   if (!gstIn) {
     return res.status(400).json({ message: "Please provide a GSTIN number" });
@@ -22,33 +20,22 @@ const verifyGSTIN = async (req, res) => {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
     let publicKey = process.env.CASHFREE_PUBLIC_KEY;
-    
 
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const signature = generateSignature(
-      clientId,
-      publicKey,
-      timestamp
-    );
-
-
+    const signature = generateSignature(clientId, publicKey, timestamp);
 
     const url = `https://api.cashfree.com/verification/gstin`;
 
     const headers = {
-      'x-client-id': clientId,
-      'x-client-secret': clientSecret,
-      'X-Cf-Signature': signature,
-      'X-Timestamp': timestamp.toString(),
-      'Content-Type': 'application/json'
+      "x-client-id": clientId,
+      "x-client-secret": clientSecret,
+      "X-Cf-Signature": signature,
+      "X-Timestamp": timestamp.toString(),
+      "Content-Type": "application/json",
     };
 
-    const response = await axios.post(
-      url,
-      { gstin: gstIn },
-      { headers }
-    );
+    const response = await axios.post(url, { gstin: gstIn }, { headers });
 
     res.status(200).json(response.data);
   } catch (error) {
