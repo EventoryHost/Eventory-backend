@@ -32,24 +32,22 @@ export function generatePaymentId() {
 }
 
 export function generateSignature(clientId, key, timestamp) {
-
   const publicKey = crypto.createPublicKey({
-      key: key,
-      format: 'pem'
-    });
-    const data = `${clientId}.${timestamp}`;
+    key: key,
+    format: "pem",
+  });
+  const data = `${clientId}.${timestamp}`;
 
+  const encryptedData = crypto.publicEncrypt(
+    {
+      key: publicKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+    },
+    Buffer.from(data, "utf8"),
+  );
 
-    const encryptedData = crypto.publicEncrypt(
-      {
-        key: publicKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-      },
-      Buffer.from(data, "utf8")
-    );
-
-    const signature = encryptedData.toString("base64");
-    return signature;
+  const signature = encryptedData.toString("base64");
+  return signature;
 }
 
 export default generateUniqueId;
