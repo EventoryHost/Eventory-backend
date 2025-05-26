@@ -8,8 +8,8 @@ const router = express.Router();
 router.get("/:chatId/messages", getMessagesByChatId);
 
 router.post(
-  "/upload-media/:chatId", // :id = userId or chatId as per your logic
-  upload("Chat Media").single("media"),
+  "/upload-media/:id", // :id = userId or chatId as per your logic
+  upload("Chat_Media").single("media"),
   uploadChatMedia
 );
 export default router;

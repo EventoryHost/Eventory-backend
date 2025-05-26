@@ -102,18 +102,33 @@ export const getMessagesByChatId = async (req, res) => {
     }
 };
 
-export const uploadChatMedia = async (req, res) => {
-  try {
-    if (!req.file || !req.file.location) {
-      return res.status(400).json({ error: "No media file uploaded" });
-    }
+// export const uploadChatMedia = async (req, res) => {
+//   try {
+//     if (!req.file || !req.file.location) {
+//       return res.status(400).json({ error: "No media file uploaded" });
+//     }
 
-    return res.status(200).json({
-      url: req.file.location,
-      message: "Media uploaded successfully",
-    });
-  } catch (error) {
-    console.error("Error uploading chat media:", error);
-    return res.status(500).json({ error: "Failed to upload media" });
+//     return res.status(200).json({
+//       url: req.file.location,
+//       message: "Media uploaded successfully",
+//     });
+//   } catch (error) {
+//     console.error("Error uploading chat media:", error);
+//     return res.status(500).json({ error: "Failed to upload media" });
+//   }
+// };
+
+export const uploadChatMedia = (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
   }
+
+  const fileKey = req.file.key; // This is the path inside S3 bucket
+  const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}`;
+
+  return res.status(200).json({
+    message: "File uploaded successfully",
+    url: cloudFrontUrl,
+  });
 };
+
