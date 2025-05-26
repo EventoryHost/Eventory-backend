@@ -19,7 +19,7 @@ const verifyGSTIN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    let publicKey = `${process.env.CASHFREE_PUBLIC_KEY}`;
+    let publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
 
     const timestamp = Math.floor(Date.now() / 1000);
 
