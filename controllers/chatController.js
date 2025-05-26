@@ -63,10 +63,13 @@ export const handleSocketConnection = (socket, io) => {
 export const getMessagesByChatId = async (req, res) => {
     const { chatId } = req.params;
     const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.
-
+    queryOptions["limit"] = parseInt(queryOptions.limit) || 15; // default limit to 15 if not specified
+    
     try {
         const features = new APIFeatures(
-            Message.find({ chatId }).sort({ createdAt: 1 }), // messages sorted oldest to newest
+            // Return messages in descending order (newest first)
+            // This way we'll get the most recent messages in each page
+            Message.find({ chatId }).sort({ createdAt: -1 }), 
             queryOptions
         )
             .sort()
@@ -77,7 +80,7 @@ export const getMessagesByChatId = async (req, res) => {
 
         const total = await Message.countDocuments({ chatId });
         const page = parseInt(req.query.page) || 1;
-        const limit = 3;
+        const limit = parseInt(queryOptions.limit) || 15;
 
         res.status(200).json({
             messages,
