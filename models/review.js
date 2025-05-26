@@ -19,7 +19,7 @@ const reviewSchema = new Schema({
   date: { type: Date, default: Date.now }, // Auto-set date field
 });
 
-reviewSchema.index({ serviceId: 1, userId: 1 }, { unique: true });
+reviewSchema.index({ serviceId: 1, userId: 1 });
 
 const Review = model("Review", reviewSchema);
 export { Review };

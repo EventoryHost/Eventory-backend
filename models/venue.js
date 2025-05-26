@@ -102,7 +102,7 @@ const venueSchema = new Schema({
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
   },
-
+  isVerified: { type: Boolean, default: false }, // Flag for verification status
   rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
 });
 
