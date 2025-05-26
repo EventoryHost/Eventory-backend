@@ -1,22 +1,46 @@
 import axios from "axios";
-const verifyGSTIN = async (req, res) => {
-  const { GSTIN } = req.params;
+import dotenv from "dotenv";
 
-  // Validate if GSTIN is provided
-  if (!GSTIN) {
+dotenv.config();
+
+const verifyGSTIN = async (req, res) => {
+
+  const { gstIn } = req.params;
+
+  
+  if (!gstIn) {
     return res.status(400).json({ message: "Please provide a GSTIN number" });
   }
 
   // Validate GSTIN pattern: 15 characters with alphanumeric format
   const gstinPattern =
     /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/;
-  if (!gstinPattern.test(GSTIN)) {
+  if (!gstinPattern.test(gstIn)) {
     return res.status(400).json({ message: "Invalid GSTIN format" });
   }
-
   try {
-    // Make API call to Razorpay with the provided GSTIN
-    const response = await axios.get(`https://razorpay.com/api/gstin/${GSTIN}`);
+    // Setup Cashfree API headers - replace with your actual keys
+    const clientId = process.env.CASHFREE_CLIENT_ID;
+    const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
+    // const publicKey = process.env.CASHFREE_PUBLIC_KEY;
+    
+    // Cashfree GST Verification API endpoint
+    const url = `https://api.cashfree.com/verification/gstin`;
+    
+    const headers = {
+      'x-client-id': clientId,
+      'x-client-secret': clientSecret,
+      // 'x-public-key': publicKey,
+      'Content-Type': 'application/json'
+    };
+
+    // Make API call to Cashfree with the provided GSTIN
+    const response = await axios.post(
+      url, 
+      { gstin: gstIn },
+      { headers }
+    );
+    
     res.status(200).json(response.data);
   } catch (error) {
     // Handle specific HTTP status codes
@@ -29,7 +53,7 @@ const verifyGSTIN = async (req, res) => {
           .json({ message: "Too many requests, please try again later" });
       }
 
-      if (status === 500) {
+      if (status === 404) {
         return res.status(404).json({ message: "GSTIN not found" });
       }
 
