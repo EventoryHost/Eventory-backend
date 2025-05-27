@@ -24,9 +24,13 @@ const makeupArtistSchema = Schema({
       lng: { type: Number, required: true },
       pincode: {
         type: Number,
+        required: false, // Make pincode explicitly optional
         validate: {
           validator: function (v) {
-            return /^\d{6}$/.test(v);
+            // Skip validation if value is undefined, null, or zero
+            if (v === undefined || v === null || v === 0) return true;
+            // Ensure it's a 6-digit number
+            return /^\d{6}$/.test(String(v));
           },
           message: (props) => `${props.value} is not a valid 6-digit pincode!`,
         },
