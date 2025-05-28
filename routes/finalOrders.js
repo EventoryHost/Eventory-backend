@@ -3,17 +3,23 @@ import Order from "../models/finalOrders.js";
 
 const router = express.Router();
 
-// Create a new booking (multiple orders for the same vendor and customer allowed)
 router.post("/finalOrder", async (req, res) => {
     try {
-        const newOrder = new Order(req.body);
-        await newOrder.save();
-        res.status(201).json({ message: 'Order created successfully', data: newOrder });
-      } catch (error) {
-        console.log(error); // Log the error to get more details
-        res.status(400).json({ message: 'Failed to create booking', error: error.message });
-      }
+        const { orderId, ...rest } = req.body;
+
+        let order = await Order.findOneAndUpdate(
+            { orderId },
+            rest,
+            { new: true, upsert: true } // upsert = create if not found
+        );
+
+        res.status(200).json({ message: 'Order processed successfully', data: order });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: 'Failed to process booking', error: error.message });
+    }
 });
+
 
 // Fetch all current finalOrders without any identifying field
 router.get("/finalOrder", async (req, res) => {
