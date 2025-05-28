@@ -1,6 +1,7 @@
 import Chat from "../models/chat.js";
 import Message from "../models/message.js";
 import APIFeatures from "../utils/apiFeatures.js";
+import mongoose from "mongoose";
 
 export const handleSocketConnection = (socket, io) => {
     console.log(`🧠 Socket connected: ${socket.id}`);
@@ -78,39 +79,78 @@ export const handleSocketConnection = (socket, io) => {
 
 export const getMessagesByChatId = async (req, res) => {
     const { chatId } = req.params;
-    const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.
-    queryOptions["limit"] = parseInt(queryOptions.limit) || 15; // default limit to 15 if not specified
-    
+    const { cursor } = req.query;
+    const limit = 15;
+
     try {
-        const features = new APIFeatures(
-            // Return messages in descending order (newest first)
-            // This way we'll get the most recent messages in each page
-            Message.find({ chatId }).sort({ createdAt: -1 }), 
-            queryOptions
-        )
-            .sort()
-            .limitFields()
-            .paginate();
+        let query = { chatId };
 
-        const messages = await features.query;
+        if (cursor) {
+            query._id = { $lte: new mongoose.Types.ObjectId(cursor) };
+        }
 
-        const total = await Message.countDocuments({ chatId });
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(queryOptions.limit) || 15;
+        const messages = await Message.find(query)
+            .sort({ createdAt: -1, _id: -1 })
+            .limit(limit + 1); 
+
+        let hasMore = false;
+        let nextCursor = null;
+
+        if (messages.length > limit) {
+            hasMore = true;
+            nextCursor = messages[limit]._id;
+        }
+
+        // Slice to return only the first 15
+        const resultMessages = messages.slice(0, limit);
 
         res.status(200).json({
-            messages,
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
-            hasMore: (page - 1) * limit + messages.length < total,
+            messages: resultMessages,
+            hasMore,
+            nextCursor,
         });
     } catch (err) {
         console.error("Error fetching messages:", err);
         res.status(500).json({ error: "Failed to fetch messages" });
     }
 };
+
+
+// export const getMessagesByChatId = async (req, res) => {
+//     const { chatId } = req.params;
+//     const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.
+//     queryOptions["limit"] = parseInt(queryOptions.limit) || 15; // default limit to 15 if not specified
+    
+//     try {
+//         const features = new APIFeatures(
+//             // Return messages in descending order (newest first)
+//             // This way we'll get the most recent messages in each page
+//             Message.find({ chatId }).sort({ createdAt: -1 }), 
+//             queryOptions
+//         )
+//             .sort()
+//             .limitFields()
+//             .paginate();
+
+//         const messages = await features.query;
+
+//         const total = await Message.countDocuments({ chatId });
+//         const page = parseInt(req.query.page) || 1;
+//         const limit = parseInt(queryOptions.limit) || 15;
+
+//         res.status(200).json({
+//             messages,
+//             total,
+//             page,
+//             limit,
+//             totalPages: Math.ceil(total / limit),
+//             hasMore: (page - 1) * limit + messages.length < total,
+//         });
+//     } catch (err) {
+//         console.error("Error fetching messages:", err);
+//         res.status(500).json({ error: "Failed to fetch messages" });
+//     }
+// };
 
 // export const uploadChatMedia = async (req, res) => {
 //   try {
@@ -155,4 +195,3 @@ export const uploadChatMedia = (req, res) => {
     originalName: req.file.originalname
   });
 };
-

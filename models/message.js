@@ -9,4 +9,6 @@ const messageSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now },
 }, { timestamps: true });
 
+messageSchema.index({ chatId: 1, createdAt: -1, _id: -1 });
+
 export default mongoose.model("Message", messageSchema);
