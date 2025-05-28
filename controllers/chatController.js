@@ -115,6 +115,95 @@ export const getMessagesByChatId = async (req, res) => {
     }
 };
 
+export const searchMessages = async (req, res) => {
+    const { chatId } = req.params;
+    const { q } = req.query; 
+
+    if (!q || !chatId) {
+        return res.status(400).json({ error: "Query (q) and chatId are required" });
+    }
+
+    try {
+        const messages = await Message.find({
+            chatId,
+            content: { $regex: q, $options: "i" }, 
+        }).sort({ createdAt: -1 });
+
+        res.status(200).json({ messages });
+    } catch (err) {
+        console.error("Error searching messages:", err);
+        res.status(500).json({ error: "Failed to search messages" });
+    }
+};
+
+export const getMessageContext = async (req, res) => {
+    const { chatId, qId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(qId)) {
+        return res.status(400).json({ error: "Invalid messageId (qId)" });
+    }
+
+    try {
+        const currentMessage = await Message.findOne({ _id: qId, chatId });
+        if (!currentMessage) {
+            return res.status(404).json({ error: "Message not found in the given chat" });
+        }
+
+        const olderMessages = await Message.find({
+            chatId,
+            _id: { $lt: new mongoose.Types.ObjectId(qId) },
+        })
+            .sort({ _id: -1 })
+            .limit(20);
+
+        const newerMessages = await Message.find({
+            chatId,
+            _id: { $gt: new mongoose.Types.ObjectId(qId) },
+        })
+            .sort({ _id: 1 })
+            .limit(15);
+
+        const result = [
+            ...olderMessages.reverse(),  
+            currentMessage,
+            ...newerMessages             
+        ];
+
+        res.status(200).json({ messages: result });
+    } catch (err) {
+        console.error("Error fetching message context:", err);
+        res.status(500).json({ error: "Failed to fetch message context" });
+    }
+};
+
+export const uploadChatMedia = (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const fileKey = req.file.key; // This is the path inside S3 bucket
+  const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}`;
+  
+  // Determine content type based on mime type
+  let contentType = "file";
+  const mimeType = req.file.mimetype || "";
+  
+  if (mimeType.startsWith('image/')) {
+    contentType = "image";
+  } else if (mimeType.startsWith('video/')) {
+    contentType = "video";
+  } else if (mimeType === 'application/pdf') {
+    contentType = "pdf";
+  }
+
+  return res.status(200).json({
+    message: "File uploaded successfully",
+    url: cloudFrontUrl,
+    contentType: contentType,
+    originalName: req.file.originalname
+  });
+};
+
 
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
@@ -168,30 +257,3 @@ export const getMessagesByChatId = async (req, res) => {
 //   }
 // };
 
-export const uploadChatMedia = (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-
-  const fileKey = req.file.key; // This is the path inside S3 bucket
-  const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}`;
-  
-  // Determine content type based on mime type
-  let contentType = "file";
-  const mimeType = req.file.mimetype || "";
-  
-  if (mimeType.startsWith('image/')) {
-    contentType = "image";
-  } else if (mimeType.startsWith('video/')) {
-    contentType = "video";
-  } else if (mimeType === 'application/pdf') {
-    contentType = "pdf";
-  }
-
-  return res.status(200).json({
-    message: "File uploaded successfully",
-    url: cloudFrontUrl,
-    contentType: contentType,
-    originalName: req.file.originalname
-  });
-};
