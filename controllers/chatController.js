@@ -33,7 +33,7 @@ export const handleSocketConnection = (socket, io) => {
             return; // Prevent sending
         }
 
-        if (checkPhoneNumber(content)) {
+        if (contentType === "text" && checkPhoneNumber(content)) {
             socket.emit("error", "Please refrain from sharing personal information!");
             return; // Prevent sending
         }
