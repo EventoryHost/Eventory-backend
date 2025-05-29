@@ -26,7 +26,7 @@ export const handleSocketConnection = (socket, io) => {
         }
     });
 
-    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl }) => {
+    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl, parentId, parentContent, parentContentType }) => {
     try {
         if (checkProfanity(content)) {
             socket.emit("error", "Please refrain from using abusive words!");
@@ -66,7 +66,8 @@ export const handleSocketConnection = (socket, io) => {
             senderType,
             content,
             contentType,
-            mediaUrl: mediaUrl || null
+            mediaUrl: mediaUrl || null,
+            parent: parentId,
         });
 
         await message.save();
@@ -76,6 +77,9 @@ export const handleSocketConnection = (socket, io) => {
             senderType,
             content,
             contentType,
+            parentId,
+            parentContent,
+            parentContentType,
             mediaUrl: mediaUrl || null,
             timestamp: message.createdAt,
         });
@@ -93,41 +97,51 @@ export const handleSocketConnection = (socket, io) => {
 };
 
 export const getMessagesByChatId = async (req, res) => {
-    const { chatId } = req.params;
-    const { cursor } = req.query;
-    const limit = 15;
+  const { chatId } = req.params;
+  const { cursor } = req.query;
+  const limit = 15;
 
-    try {
-        let query = { chatId };
+  try {
+    let query = { chatId };
 
-        if (cursor) {
-            query._id = { $lte: new mongoose.Types.ObjectId(cursor) };
-        }
-
-        const messages = await Message.find(query)
-            .sort({ createdAt: -1, _id: -1 })
-            .limit(limit + 1); 
-
-        let hasMore = false;
-        let nextCursor = null;
-
-        if (messages.length > limit) {
-            hasMore = true;
-            nextCursor = messages[limit]._id;
-        }
-
-        // Slice to return only the first 15
-        const resultMessages = messages.slice(0, limit);
-
-        res.status(200).json({
-            messages: resultMessages,
-            hasMore,
-            nextCursor,
-        });
-    } catch (err) {
-        console.error("Error fetching messages:", err);
-        res.status(500).json({ error: "Failed to fetch messages" });
+    if (cursor) {
+      query._id = { $lte: new mongoose.Types.ObjectId(cursor) };
     }
+
+    const messages = await Message.find(query)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit + 1)
+      .populate({ path: "parent", select: "content" }) 
+      .lean();
+
+    let hasMore = false;
+    let nextCursor = null;
+
+    if (messages.length > limit) {
+      hasMore = true;
+      nextCursor = messages[limit]._id;
+    }
+
+    const resultMessages = messages.slice(0, limit);
+
+    // Add parentText field from populated parent
+    resultMessages.forEach(msg => {
+      if (msg.parent && typeof msg.parent === "object") {
+        msg.parentText = msg.parent.content;
+        msg.parent = msg.parent._id; // optionally keep parent as ID
+      }
+    });
+
+    res.status(200).json({
+      messages: resultMessages,
+      hasMore,
+      nextCursor,
+    });
+
+  } catch (err) {
+    console.error("Error fetching messages:", err);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
 };
 
 export const searchMessages = async (req, res) => {

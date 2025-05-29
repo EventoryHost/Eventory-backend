@@ -5,8 +5,8 @@ import { customAbusiveWords } from '../constants/bad_words.js';
 
 filter.addWords(...customAbusiveWords);
 
-export const checkPhoneNumber = (req, res, next) => {
-    const isAbusive = filter.isProfane(req.content);
+export const checkPhoneNumber = (text) => {
+    const isAbusive = filter.isProfane(text);
 
     return isAbusive;
 }

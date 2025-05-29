@@ -7,6 +7,7 @@ const messageSchema = new mongoose.Schema({
     content: { type: String, required: true },
     mediaUrl: { type: String, default: null }, // URL to media file if applicable
     timestamp: { type: Date, default: Date.now },
+    parent: { type: mongoose.Schema.Types.ObjectId, ref: "Message", default: null }
 }, { timestamps: true });
 
 messageSchema.index({ chatId: 1, createdAt: -1, _id: -1 });
