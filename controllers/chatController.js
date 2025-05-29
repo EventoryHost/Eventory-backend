@@ -27,60 +27,65 @@ export const handleSocketConnection = (socket, io) => {
     });
 
     socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl }) => {
-        try {
-            if(checkProfanity(content)) {
-                socket.emit("error", "Please refrain from using abusive words!");
-            }
-
-            if(checkPhoneNumber(content)) {
-                socket.emit("error", "Please refrain from sharing personal information!");
-            }
-
-            const chat = await Chat.findOne({ chatId });
-            if (!chat) {
-                socket.emit("error", "Invalid chatId");
-                return;
-            }
-
-            const validSenders = ["cus", "ven", "rm"];
-            const validContentTypes = ["text", "image", "video", "pdf", "file"];
-            
-            if (!validContentTypes.includes(contentType)) {
-                contentType = "text"; // Default to text if not specified
-            }
-            
-            if (!validSenders.includes(senderType)) {
-                socket.emit("error", "Invalid sender type");
-                return;
-            }
-
-            // Create and save message with content type and media URL
-            const message = new Message({ 
-                chatId, 
-                senderType, 
-                content, 
-                contentType,
-                mediaUrl: mediaUrl || null
-            });
-            
-            await message.save();
-
-            // Emit to everyone in the room with full message data
-            socket.to(chatId).emit("new_message", {
-                chatId,
-                senderType,
-                content,
-                contentType,
-                mediaUrl: mediaUrl || null,
-                timestamp: message.createdAt,
-            });
-
-            console.log(`📤 ${senderType} sent ${contentType} message in chat ${chatId}`);
-        } catch (err) {
-            console.error("send_message error:", err);
-            socket.emit("error", "Error sending message");
+    try {
+        if (checkProfanity(content)) {
+            socket.emit("error", "Please refrain from using abusive words!");
+            return; // Prevent sending
         }
-    });
+
+        if (checkPhoneNumber(content)) {
+            socket.emit("error", "Please refrain from sharing personal information!");
+            return; // Prevent sending
+        }
+
+        const chat = await Chat.findOne({ chatId });
+        if (!chat) {
+            socket.emit("error", "Invalid chatId");
+            return;
+        }
+
+        if (chat.status === "blocked") {
+            socket.emit("error", "This chat is blocked. You cannot send messages.");
+            return;
+        }
+
+        const validSenders = ["cus", "ven", "rm"];
+        const validContentTypes = ["text", "image", "video", "pdf", "file"];
+
+        if (!validSenders.includes(senderType)) {
+            socket.emit("error", "Invalid sender type");
+            return;
+        }
+
+        if (!validContentTypes.includes(contentType)) {
+            contentType = "text"; // Default to text
+        }
+
+        const message = new Message({
+            chatId,
+            senderType,
+            content,
+            contentType,
+            mediaUrl: mediaUrl || null
+        });
+
+        await message.save();
+
+        socket.to(chatId).emit("new_message", {
+            chatId,
+            senderType,
+            content,
+            contentType,
+            mediaUrl: mediaUrl || null,
+            timestamp: message.createdAt,
+        });
+
+        console.log(`📤 ${senderType} sent ${contentType} message in chat ${chatId}`);
+    } catch (err) {
+        console.error("send_message error:", err);
+        socket.emit("error", "Error sending message");
+    }});
+
 
     socket.on("disconnect", () => {
         console.log("🔌 Client disconnected:", socket.id);
