@@ -26,29 +26,16 @@ export const handleSocketConnection = (socket, io) => {
         }
     });
 
-    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl, clientMessageId }) => {
+    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl }) => {
         try {
-            // Skip empty content or null/undefined values
-            if (!content || content.trim() === '') {
-                content = ''; // Set to empty string if undefined/null
-            }
-
-            // Always perform both checks independently
-            const hasAbusiveLanguage = checkPhoneNumber(content);
-            const hasPhoneNumber = checkProfanity(content);
-
-            // Return early with specific error messages
-            if (hasAbusiveLanguage) {
+            if(checkProfanity(content)) {
                 socket.emit("error", "Please refrain from using abusive words!");
-                return;
             }
 
-            if (hasPhoneNumber) {
+            if(checkPhoneNumber(content)) {
                 socket.emit("error", "Please refrain from sharing personal information!");
-                return;
             }
 
-            // Continue with the rest of the function if checks pass
             const chat = await Chat.findOne({ chatId });
             if (!chat) {
                 socket.emit("error", "Invalid chatId");
