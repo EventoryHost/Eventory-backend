@@ -1,6 +1,6 @@
 import express from "express";
 import upload from "../middlewares/uploads.js";
-import { getMessagesByChatId, uploadChatMedia, searchMessages, getMessageContext, pinMessageInChat, unpinMessageInChat } from "../controllers/chatController.js";
+import { getMessagesByChatId, uploadChatMedia, searchMessages, getMessageContext, pinMessageInChat, unpinMessageInChat, blockChat, unblockChat } from "../controllers/chatController.js";
 
 const router = express.Router();
 
