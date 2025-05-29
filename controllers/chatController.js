@@ -1,3 +1,5 @@
+import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
+import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
 import Chat from "../models/chat.js";
 import Message from "../models/message.js";
 import APIFeatures from "../utils/apiFeatures.js";
@@ -26,6 +28,14 @@ export const handleSocketConnection = (socket, io) => {
 
     socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl }) => {
         try {
+            if(checkProfanity(content)) {
+                socket.emit("error", "Please refrain from using abusive words!");
+            }
+
+            if(checkPhoneNumber(content)) {
+                socket.emit("error", "Please refrain from sharing personal information!");
+            }
+
             const chat = await Chat.findOne({ chatId });
             if (!chat) {
                 socket.emit("error", "Invalid chatId");
