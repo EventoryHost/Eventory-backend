@@ -214,6 +214,108 @@ export const uploadChatMedia = (req, res) => {
   });
 };
 
+export const pinMessageInChat = async (req, res) => {
+  try {
+    const { chatId, messageId } = req.params;
+
+    if (!chatId || !messageId) {
+      return res.status(400).json({ error: "chatId and messageId are required" });
+    }
+
+    const chat = await Chat.findOne({ chatId });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    if (!chat.pinnedMessages.includes(messageId)) {
+      chat.pinnedMessages.push(messageId);
+      await chat.save();
+    }
+
+    return res.status(200).json({ message: "Message pinned successfully", pinnedMessages: chat.pinnedMessages });
+
+  } catch (error) {
+    console.error("Couldn't pin chat:", error);
+    return res.status(500).json({ error: "Could not pin chat" });
+  }
+};
+
+export const unpinMessageInChat = async (req, res) => {
+  try {
+    const { chatId, messageId } = req.params;
+
+    const chat = await Chat.findOne({ chatId });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    chat.pinnedMessages = chat.pinnedMessages.filter(id => id !== messageId);
+    await chat.save();
+
+    return res.status(200).json({ message: "Message unpinned successfully", pinnedMessages: chat.pinnedMessages });
+
+  } catch (error) {
+    console.error("Couldn't unpin chat:", error);
+    return res.status(500).json({ error: "Could not unpin chat" });
+  }
+};
+
+export const blockChat = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    if (!chatId) {
+      return res.status(400).json({ error: "chatId is required" });
+    }
+
+    const chat = await Chat.findOne({ chatId });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    if (chat.status === "blocked") {
+      return res.status(200).json({ message: "Chat is already blocked" });
+    }
+
+    chat.status = "blocked";
+    await chat.save();
+
+    return res.status(200).json({ message: "Chat blocked successfully", chat });
+
+  } catch (error) {
+    console.error("Couldn't block chat:", error);
+    return res.status(500).json({ error: "Could not block chat" });
+  }
+};
+
+export const unblockChat = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    const chat = await Chat.findOne({ chatId });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    if (chat.status === "active") {
+      return res.status(200).json({ message: "Chat is already active" });
+    }
+
+    chat.status = "active";
+    await chat.save();
+
+    return res.status(200).json({ message: "Chat unblocked successfully", chat });
+
+  } catch (error) {
+    console.error("Couldn't unblock chat:", error);
+    return res.status(500).json({ error: "Could not unblock chat" });
+  }
+};
+
 
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;

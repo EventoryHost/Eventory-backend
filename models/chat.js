@@ -6,6 +6,8 @@ const chatSchema = new mongoose.Schema({
     serId: { type: String, required: true },
     venId: { type: String, required: true },
     rmId: { type: String, required: true },
+    status: { type: String, default: "active", enum: ["active", "blocked"] },
+    pinnedMessages: { type: [String], default: [] }
 }, { timestamps: true });
-    
+
 export default mongoose.model("Chat", chatSchema);
