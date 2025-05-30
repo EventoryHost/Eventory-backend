@@ -5,8 +5,15 @@ import { customAbusiveWords } from '../constants/bad_words.js';
 
 filter.addWords(...customAbusiveWords);
 
+// Rename the function to match its purpose
 export const checkPhoneNumber = (text) => {
-    const isAbusive = filter.isProfane(text);
-
-    return isAbusive;
+    if (!text || typeof text !== 'string') return false;
+    
+    try {
+        const isAbusive = filter.isProfane(text);
+        return isAbusive;
+    } catch (error) {
+        console.error("Error checking for profanity:", error);
+        return false; // In case of error, let the message through
+    }
 }

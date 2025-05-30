@@ -26,69 +26,116 @@ export const handleSocketConnection = (socket, io) => {
         }
     });
 
-    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl, parentId, parentContent, parentContentType }) => {
-    try {
-        if (checkProfanity(content)) {
-            socket.emit("error", "Please refrain from using abusive words!");
-            return; // Prevent sending
-        }
+    socket.on("send_message", async ({ chatId, senderType, content, contentType, mediaUrl, parentId, parentContent, parentSenderType, clientMessageId }, callback) => {
+  try {
+    // Fix function name swap - these were incorrectly imported/named
+    if (checkPhoneNumber(content)) {  // This actually checks for profanity
+      console.log("Abusive content detected:", content);
+      // Call the callback with error if provided
+      if (typeof callback === 'function') {
+        callback("Please refrain from using abusive words!");
+      } else {
+        socket.emit("error", "Please refrain from using abusive words!");
+      }
+      return; // Prevent sending
+    }
 
-        if (checkPhoneNumber(content)) {
-            socket.emit("error", "Please refrain from sharing personal information!");
-            return; // Prevent sending
-        }
+    if (checkProfanity(content)) {  // This actually checks for phone numbers
+      console.log("Personal information detected:", content);
+      // Call the callback with error if provided
+      if (typeof callback === 'function') {
+        callback("Please refrain from sharing personal information!");
+      } else {
+        socket.emit("error", "Please refrain from sharing personal information!");
+      }
+      return; // Prevent sending
+    }
 
-        const chat = await Chat.findOne({ chatId });
-        if (!chat) {
-            socket.emit("error", "Invalid chatId");
-            return;
-        }
+    const chat = await Chat.findOne({ chatId });
+    if (!chat) {
+      // Call the callback with error if provided
+      if (typeof callback === 'function') {
+        callback("Invalid chatId");
+      } else {
+        socket.emit("error", "Invalid chatId");
+      }
+      return;
+    }
 
-        if (chat.status === "blocked") {
-            socket.emit("error", "This chat is blocked. You cannot send messages.");
-            return;
-        }
+    if (chat.status === "blocked") {
+      // Call the callback with error if provided
+      if (typeof callback === 'function') {
+        callback("This chat is blocked. You cannot send messages.");
+      } else {
+        socket.emit("error", "This chat is blocked. You cannot send messages.");
+      }
+      return;
+    }
 
-        const validSenders = ["cus", "ven", "rm"];
-        const validContentTypes = ["text", "image", "video", "pdf", "file"];
+    const validSenders = ["cus", "ven", "rm"];
+    const validContentTypes = ["text", "image", "video", "pdf", "file"];
 
-        if (!validSenders.includes(senderType)) {
-            socket.emit("error", "Invalid sender type");
-            return;
-        }
+    if (!validSenders.includes(senderType)) {
+      // Call the callback with error if provided
+      if (typeof callback === 'function') {
+        callback("Invalid sender type");
+      } else {
+        socket.emit("error", "Invalid sender type");
+      }
+      return;
+    }
 
-        if (!validContentTypes.includes(contentType)) {
-            contentType = "text"; // Default to text
-        }
+    if (!validContentTypes.includes(contentType)) {
+      contentType = "text"; // Default to text
+    }
 
-        const message = new Message({
-            chatId,
-            senderType,
-            content,
-            contentType,
-            mediaUrl: mediaUrl || null,
-            parent: parentId,
-        });
+    // Only set parent if it's a valid MongoDB ObjectId (24 hex chars)
+    let parent = undefined;
+    if (parentId && /^[a-fA-F0-9]{24}$/.test(parentId)) {
+      parent = parentId;
+    }
 
-        await message.save();
+    const message = new Message({
+      chatId,
+      senderType,
+      content,
+      contentType,
+      mediaUrl: mediaUrl || null,
+      parent // Only set if valid ObjectId
+    });
 
-        socket.to(chatId).emit("new_message", {
-            chatId,
-            senderType,
-            content,
-            contentType,
-            parentId,
-            parentContent,
-            parentContentType,
-            mediaUrl: mediaUrl || null,
-            timestamp: message.createdAt,
-        });
+    await message.save();
 
-        console.log(`📤 ${senderType} sent ${contentType} message in chat ${chatId}`);
-    } catch (err) {
-        console.error("send_message error:", err);
-        socket.emit("error", "Error sending message");
-    }});
+    // Include parent message info in the broadcast to ALL clients
+    io.to(chatId).emit("new_message", {
+      _id: message._id,
+      chatId,
+      senderType,
+      content,
+      contentType,
+      parentId: parentId,        // Use consistent field names
+      parentContent: parentContent,
+      parentSenderType: parentSenderType,
+      mediaUrl: mediaUrl || null,
+      timestamp: message.createdAt,
+      clientMessageId
+    });
+
+    console.log(`📤 ${senderType} sent ${contentType} message in chat ${chatId}`);
+    
+    // Call the callback with no error to indicate success
+    if (typeof callback === 'function') {
+      callback(null);
+    }
+  } catch (err) {
+    console.error("send_message error:", err);
+    // Call the callback with error if provided
+    if (typeof callback === 'function') {
+      callback("Error sending message");
+    } else {
+      socket.emit("error", "Error sending message");
+    }
+  }});
 
 
     socket.on("disconnect", () => {
@@ -111,7 +158,10 @@ export const getMessagesByChatId = async (req, res) => {
     const messages = await Message.find(query)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
-      .populate({ path: "parent", select: "content" }) 
+      .populate({ 
+        path: "parent", 
+        select: "content senderType" // Add senderType to populate
+      })
       .lean();
 
     let hasMore = false;
@@ -124,11 +174,12 @@ export const getMessagesByChatId = async (req, res) => {
 
     const resultMessages = messages.slice(0, limit);
 
-    // Add parentText field from populated parent
+    // Add parentText and parentSenderType fields from populated parent
     resultMessages.forEach(msg => {
       if (msg.parent && typeof msg.parent === "object") {
         msg.parentText = msg.parent.content;
-        msg.parent = msg.parent._id; // optionally keep parent as ID
+        msg.parentSenderType = msg.parent.senderType;
+        msg.parent = msg.parent._id; // Keep parent as ID
       }
     });
 
@@ -206,31 +257,56 @@ export const getMessageContext = async (req, res) => {
 };
 
 export const uploadChatMedia = (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
+  try {
+    if (!req.file) {
+      console.error("No file received in upload request");
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    
+    // Log more details about the incoming file
+    console.log("Server received file for upload:", {
+      originalname: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      key: req.file.key,
+      timestamp: req.body.timestamp || 'none'
+    });
 
-  const fileKey = req.file.key; // This is the path inside S3 bucket
-  const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}`;
-  
-  // Determine content type based on mime type
-  let contentType = "file";
-  const mimeType = req.file.mimetype || "";
-  
-  if (mimeType.startsWith('image/')) {
-    contentType = "image";
-  } else if (mimeType.startsWith('video/')) {
-    contentType = "video";
-  } else if (mimeType === 'application/pdf') {
-    contentType = "pdf";
-  }
+    // Make sure we have a key for the file
+    const fileKey = req.file.key; 
+    if (!fileKey) {
+      console.error("No file key present in uploaded file");
+      return res.status(500).json({ error: "File upload failed - no file key" });
+    }
 
-  return res.status(200).json({
-    message: "File uploaded successfully",
-    url: cloudFrontUrl,
-    contentType: contentType,
-    originalName: req.file.originalname
-  });
+    // Generate URL with timestamp if provided to prevent caching
+    const timestamp = req.body.timestamp || Date.now();
+    const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}?t=${timestamp}`;
+    
+    // Determine content type based on mime type
+    let contentType = "file";
+    const mimeType = req.file.mimetype || "";
+    
+    if (mimeType.startsWith('image/')) {
+      contentType = "image";
+    } else if (mimeType.startsWith('video/')) {
+      contentType = "video";
+    } else if (mimeType === 'application/pdf') {
+      contentType = "pdf";
+    }
+
+    console.log(`Successfully processed file upload. URL: ${cloudFrontUrl}`);
+    
+    return res.status(200).json({
+      message: "File uploaded successfully",
+      url: cloudFrontUrl,
+      contentType: contentType,
+      originalName: req.file.originalname
+    });
+  } catch (error) {
+    console.error("Error uploading chat media:", error);
+    return res.status(500).json({ error: "Failed to upload media" });
+  }
 };
 
 export const pinMessageInChat = async (req, res) => {
