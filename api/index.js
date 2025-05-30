@@ -94,7 +94,7 @@ app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
 app.use("/api/chats", chatRoutes); 
-app.use("/api/verfication", verificationRoutes);
+app.use("/api/verification", verificationRoutes);
 app.use("/api/Bookings", BookingRoutes);
 app.use("/api/service", serviceRouter);
 app.use("/api/venue", venueRouter);
