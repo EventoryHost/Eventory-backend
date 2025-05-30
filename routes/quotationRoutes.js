@@ -136,18 +136,22 @@ router.patch("/", async (req, res) => {
     // 1. Update quotation status
     const updateResult = await Quotation.updateOne(
       { id },
-      { $set: { status } }
+      { $set: { status } },
     );
 
     if (updateResult.modifiedCount === 0) {
-      return res.status(404).json({ message: "Quotation not found or unchanged" });
+      return res
+        .status(404)
+        .json({ message: "Quotation not found or unchanged" });
     }
 
     // 2. Fetch updated quotation from DB
     const updatedQuotation = await Quotation.findOne({ id });
 
     if (!updatedQuotation) {
-      return res.status(404).json({ message: "Quotation not found after update" });
+      return res
+        .status(404)
+        .json({ message: "Quotation not found after update" });
     }
 
     // 3. If status is "Accepted", create a new Chat

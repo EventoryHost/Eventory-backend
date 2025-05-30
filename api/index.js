@@ -28,7 +28,7 @@ import featuredVendorsRoutes from "../routes/featuredVendorsRoutes.js";
 import customerRoutes from "../routes/customerRoutes.js";
 import contactRoutes from "../routes/contactRoutes.js";
 import reviewRoutes from "../routes/reviewRoutes.js";
-import chatRoutes from "../routes/chatRoutes.js"; 
+import chatRoutes from "../routes/chatRoutes.js";
 import waRoutes from "../routes/waHooks.js";
 
 const app = express();
@@ -93,7 +93,7 @@ app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
-app.use("/api/chats", chatRoutes); 
+app.use("/api/chats", chatRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/Bookings", BookingRoutes);
 app.use("/api/service", serviceRouter);
@@ -110,7 +110,7 @@ app.get("/", (req, res) => {
 
 server.listen(port, () => {
   console.log(
-    "🚀 Server listening on " + chalk.blueBright(`http://localhost:${port}`)
+    "🚀 Server listening on " + chalk.blueBright(`http://localhost:${port}`),
   );
 });
 
