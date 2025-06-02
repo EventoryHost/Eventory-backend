@@ -75,7 +75,7 @@ app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/quotations", quotationRoutes);
-app.use("/api/verfication", verificationRoutes);
+app.use("/api/verification", verificationRoutes);
 app.use("/api/Bookings", BookingRoutes);
 
 app.use("/api/service", serviceRouter);
