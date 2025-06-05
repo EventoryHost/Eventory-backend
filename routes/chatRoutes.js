@@ -9,6 +9,8 @@ import {
   unpinMessageInChat,
   blockChat,
   unblockChat,
+  getPinnedMessages,
+  getBlockedChats
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -28,5 +30,10 @@ router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
 
 router.post("/chat/:chatId/block", blockChat);
 router.post("/chat/:chatId/unblock", unblockChat);
+
+router.get("/chat/:chatId/pinned", getPinnedMessages);
+
+// router for blocked chats 
+router.get("/blocked" , getBlockedChats);
 
 export default router;
