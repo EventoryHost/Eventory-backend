@@ -340,7 +340,8 @@ export const uploadChatMedia = (req, res) => {
 
 export const pinMessageInChat = async (req, res) => {
   try {
-    const { chatId, messageId } = req.params;
+    const { chatId } = req.params;
+    const { messageId } = req.body;
 
     if (!chatId || !messageId) {
       return res
