@@ -368,7 +368,7 @@ export const pinMessageInChat = async (req, res) => {
       });
   } catch (error) {
     console.error("Couldn't pin chat:", error);
-    return res.status(500).json({ error: "Could not pin chat" });
+    return res.status(500).json({ error: "Could not pin message" });
   }
 };
 
@@ -392,8 +392,8 @@ export const unpinMessageInChat = async (req, res) => {
         pinnedMessages: chat.pinnedMessages,
       });
   } catch (error) {
-    console.error("Couldn't unpin chat:", error);
-    return res.status(500).json({ error: "Could not unpin chat" });
+    console.error("Couldn't unpin message:", error);
+    return res.status(500).json({ error: "Could not unpin message" });
   }
 };
 
