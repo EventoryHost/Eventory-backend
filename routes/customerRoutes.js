@@ -10,7 +10,7 @@ import {
   blockChat,
   unblockChat,
   getPinnedMessages,
-  getBlockedChats
+  getBlockedChats,
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -33,7 +33,7 @@ router.post("/chat/:chatId/unblock", unblockChat);
 
 router.get("/chat/:chatId/pinned", getPinnedMessages);
 
-// router for blocked chats 
-router.get("/blocked" , getBlockedChats);
+// router for blocked chats
+router.get("/blocked", getBlockedChats);
 
 export default router;

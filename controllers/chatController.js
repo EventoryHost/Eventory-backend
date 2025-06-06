@@ -360,12 +360,10 @@ export const pinMessageInChat = async (req, res) => {
       await chat.save();
     }
 
-    return res
-      .status(200)
-      .json({
-        message: "Message pinned successfully",
-        pinnedMessages: chat.pinnedMessages,
-      });
+    return res.status(200).json({
+      message: "Message pinned successfully",
+      pinnedMessages: chat.pinnedMessages,
+    });
   } catch (error) {
     console.error("Couldn't pin chat:", error);
     return res.status(500).json({ error: "Could not pin message" });
@@ -385,18 +383,15 @@ export const unpinMessageInChat = async (req, res) => {
     chat.pinnedMessages = chat.pinnedMessages.filter((id) => id !== messageId);
     await chat.save();
 
-    return res
-      .status(200)
-      .json({
-        message: "Message unpinned successfully",
-        pinnedMessages: chat.pinnedMessages,
-      });
+    return res.status(200).json({
+      message: "Message unpinned successfully",
+      pinnedMessages: chat.pinnedMessages,
+    });
   } catch (error) {
     console.error("Couldn't unpin message:", error);
     return res.status(500).json({ error: "Could not unpin message" });
   }
 };
-
 
 export const blockChat = async (req, res) => {
   try {
@@ -474,19 +469,16 @@ export const getPinnedMessages = async (req, res) => {
 
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
-    try {
-        const blockedChats = await Chat.find({ status: "blocked" })
-            .select("chatId status")
-            .sort({ updatedAt: -1 }); // Sort by most recently updated
-        return res.status(200).json({ blockedChats });
-    } catch (error) {
-        console.error("Error fetching blocked chats:", error);
-        return res.status(500).json({ error: "Server error" });
-    }
+  try {
+    const blockedChats = await Chat.find({ status: "blocked" })
+      .select("chatId status")
+      .sort({ updatedAt: -1 }); // Sort by most recently updated
+    return res.status(200).json({ blockedChats });
+  } catch (error) {
+    console.error("Error fetching blocked chats:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
 };
-
-
-
 
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
