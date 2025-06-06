@@ -11,13 +11,10 @@ const OrderSchema = new mongoose.Schema({
     customerName: { type: String }, // maps from user_name
     vendorName: { type: String },
     finalPrice: { type: Number },
-    finalizedContents: [
-        {
-            itemName: { type: String },
-            quantity: { type: Number, default: 1 },
-            price: { type: Number },
-        },
-    ],
+    finalizedContents: {
+        type: [String],
+        default : [],
+    },
     description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
