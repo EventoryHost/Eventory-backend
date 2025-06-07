@@ -484,39 +484,6 @@ export const getBlockedChats = async (req, res) => {
 
 
 
-export const getPinnedMessages = async (req, res) => {
-  try {
-    const { chatId } = req.params;
-
-    const chat = await Chat.findOne({ chatId });
-    if (!chat) {
-      return res.status(404).json({ error: "Chat not found" });
-    }
-
-    const pinnedMessages = await Message.find({
-      _id: { $in: chat.pinnedMessages },
-    }).select("content contentType senderType mediaUrl timestamp");
-
-    return res.status(200).json({ pinnedMessages });
-  } catch (error) {
-    console.error("Error fetching pinned messages:", error);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// Api to get blocked chats
-export const getBlockedChats = async (req, res) => {
-  try {
-    const blockedChats = await Chat.find({ status: "blocked" })
-      .select("chatId status")
-      .sort({ updatedAt: -1 }); // Sort by most recently updated
-    return res.status(200).json({ blockedChats });
-  } catch (error) {
-    console.error("Error fetching blocked chats:", error);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
 //     const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.

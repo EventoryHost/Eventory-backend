@@ -10,8 +10,7 @@ import {
   blockChat,
   unblockChat,
   getPinnedMessages,
-  getBlockedChats
-  getPinnedMessages,
+  getBlockedChats,
 } from "../controllers/chatController.js";
 
 const router = express.Router();
