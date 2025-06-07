@@ -11,18 +11,20 @@ const OrderSchema = new mongoose.Schema({
     customerName: { type: String }, // maps from user_name
     vendorName: { type: String },
     finalPrice: { type: Number },
-    finalizedContents: [
-        {
-            itemName: { type: String },
-            quantity: { type: Number, default: 1 },
-            price: { type: Number },
-        },
-    ],
+    servicePhotos: { type: String}, // array of image URLs
+    photos: { type: [String], default: [] }, // array of image URLs
+    rating: { type: Number, default: 0 }, // added
+    finalURL : { type: String }, // added
+    finalizedContents: {
+        type: [String],
+        default : [],
+    },
     description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
     start_date: { type: String }, // added
     end_date: { type: String }, // added
+    service_id : { type: String },
     bookingDate: { type: Date, default: Date.now },
     contactDetails: {
         email: { type: String },
