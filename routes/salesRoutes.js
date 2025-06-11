@@ -1,13 +1,13 @@
-import rmadmin from "../models/rmadmin.js";
+import Sales from "../models/sales.js";
 import express from "express";
 
 const router = express.Router();
 
-// POST route for checking if a user exists
-router.post("/rmauth", async (req, res) => {
-  const { username, password } = req.body; // Destructure the request body
+// POST route for checking if a sales user exists
+router.post("/salesauth", async (req, res) => {
+  const { username, password } = req.body;
 
-  // Input validation: check if username and password are provided
+  // Input validation
   if (!username || !password) {
     return res
       .status(400)
@@ -15,11 +15,10 @@ router.post("/rmauth", async (req, res) => {
   }
 
   try {
-    // Find the user by username in the rmadmin model
-    const user = await rmadmin.findOne({ username });
+    // Find the user by username in the sales model
+    const user = await Sales.findOne({ username });
 
     if (!user) {
-      // If the user does not exist
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
@@ -28,7 +27,7 @@ router.post("/rmauth", async (req, res) => {
     // If user exists (without password comparison)
     return res.status(200).json({
       success: true,
-      message: "User authenticated successfully",
+      message: "Sales user authenticated successfully",
       user,
     });
   } catch (err) {
