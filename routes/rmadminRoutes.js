@@ -26,13 +26,11 @@ router.post("/rmauth", async (req, res) => {
     }
 
     // If user exists (without password comparison)
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "User authenticated successfully",
-        user,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "User authenticated successfully",
+      user,
+    });
   } catch (err) {
     console.error(err);
     return res
