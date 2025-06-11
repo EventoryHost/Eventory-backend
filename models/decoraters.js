@@ -28,13 +28,16 @@ const decoratorSchema = Schema({
       lng: { type: Number }, // Longitude
       pincode: {
         type: Number,
+        required: false, // Make pincode explicitly optional
         validate: {
           validator: function (v) {
-            return /^\d{6}$/.test(v); // Ensures the pincode is exactly 6 digits
+            // Skip validation if value is undefined, null, or zero
+            if (v === undefined || v === null || v === 0) return true;
+            // Ensure it's a 6-digit number
+            return /^\d{6}$/.test(String(v));
           },
           message: (props) => `${props.value} is not a valid 6-digit pincode!`,
         },
-        // required: [true, 'Pincode is required'] // Ensures the pincode is required
       },
       googleMapsAddress: { type: String }, // Google Maps formatted address
     },

@@ -4,6 +4,8 @@ import { Customer } from "../models/customer.js";
 import { getQuotations } from "../controllers/quotationController.js";
 import generateUniqueId from "../utils/generateId.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
+import { v4 as uuidv4 } from "uuid"; // For generating unique chatId
+import Chat from "../models/chat.js"; // Import Chat model
 
 const router = express.Router();
 
@@ -152,13 +154,56 @@ router.get("/all", async (req, res) => {
 
 router.patch("/", async (req, res) => {
   try {
-    await Quotation.updateOne(
-      { id: req.body.id },
-      { $set: { status: req.body.status } },
+    const { id, status } = req.body;
+
+    // 1. Update quotation status
+    const updateResult = await Quotation.updateOne(
+      { id },
+      { $set: { status } },
     );
+
+    if (updateResult.modifiedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Quotation not found or unchanged" });
+    }
+
+    // 2. Fetch updated quotation from DB
+    const updatedQuotation = await Quotation.findOne({ id });
+
+    if (!updatedQuotation) {
+      return res
+        .status(404)
+        .json({ message: "Quotation not found after update" });
+    }
+
+    // 3. If status is "Accepted", create a new Chat
+    if (status === "Accepted") {
+      const { user_id, vendor_id, service_id } = updatedQuotation;
+
+      // Check if chat already exists
+      const existingChat = await Chat.findOne({
+        cusId: user_id,
+        venId: vendor_id,
+        serId: service_id,
+      });
+
+      if (!existingChat) {
+        const newChat = await Chat.create({
+          chatId: id,
+          cusId: user_id,
+          venId: vendor_id,
+          serId: service_id,
+          rmId: "admin-rm", // or get from req/session if dynamic
+        });
+
+        console.log("✅ Chat created:", newChat.chatId);
+      }
+    }
+
     res.status(200).json({
       message: "Quotation updated successfully!",
-      data: req.body.status,
+      data: updatedQuotation.status,
     });
   } catch (error) {
     res.status(500).json({
