@@ -36,6 +36,6 @@ router.post("/chat/:chatId/unblock", unblockChat);
 
 router.get("/chat/:chatId/pinned", getPinnedMessages);
 
-router.get("/blocked" , getBlockedChats);
+router.get("/blocked", getBlockedChats);
 
 export default router;

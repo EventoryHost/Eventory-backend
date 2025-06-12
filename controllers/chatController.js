@@ -393,7 +393,6 @@ export const unpinMessageInChat = async (req, res) => {
   }
 };
 
-
 export const blockChat = async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -470,19 +469,16 @@ export const getPinnedMessages = async (req, res) => {
 
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
-    try {
-        const blockedChats = await Chat.find({ status: "blocked" })
-            .select("chatId status")
-            .sort({ updatedAt: -1 }); // Sort by most recently updated
-        return res.status(200).json({ blockedChats });
-    } catch (error) {
-        console.error("Error fetching blocked chats:", error);
-        return res.status(500).json({ error: "Server error" });
-    }
+  try {
+    const blockedChats = await Chat.find({ status: "blocked" })
+      .select("chatId status")
+      .sort({ updatedAt: -1 }); // Sort by most recently updated
+    return res.status(200).json({ blockedChats });
+  } catch (error) {
+    console.error("Error fetching blocked chats:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
 };
-
-
-
 
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
