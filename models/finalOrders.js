@@ -16,10 +16,14 @@ const OrderSchema = new mongoose.Schema({
     rating: { type: Number, default: 0 }, // added
     finalURL : { type: String }, // added
     finalizedContents: {
-        type: [String],
-        default : [],
-    },
-    description: { type: String }, // maps from requirements
+        type: [
+            {
+                name: { type: String, required: true },
+                price: { type: Number, required: true }
+            }
+        ],
+    }    ,
+    description: { type: String }, 
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
     start_date: { type: String }, // added
