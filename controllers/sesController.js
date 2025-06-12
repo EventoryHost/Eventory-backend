@@ -3,10 +3,10 @@ import { ses } from "../config/awsConfig.js";
 import { SendRawEmailCommand } from "@aws-sdk/client-ses";
 import dotenv from "dotenv";
 import mime from "mime-types";
-import path from "path";
 dotenv.config();
 
 const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
+  const CC_EMAIL = "payments@eventory.in, eventory-product-team-aaaaoycyqjayodqmeqow7ja6t4@eventory-hq.slack.com";
   try {
     const fileType = mime.lookup(fileName);
 
@@ -14,6 +14,7 @@ const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
     const rawEmail = [
       `From: ${process.env.EMAIL_FROM}`,
       `To: ${email}`,
+      !process.env.IS_LOCAL? `Cc: ${CC_EMAIL}` : '',
       `Subject: Your Invoice from Eventory`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/mixed; boundary="${boundary}"`,
@@ -52,3 +53,4 @@ const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
 };
 
 export { sendEmailInvoice };
+
