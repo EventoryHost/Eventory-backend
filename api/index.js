@@ -30,6 +30,10 @@ import contactRoutes from "../routes/contactRoutes.js";
 import reviewRoutes from "../routes/reviewRoutes.js";
 import chatRoutes from "../routes/chatRoutes.js";
 import waRoutes from "../routes/waHooks.js";
+import rmadminRoutes from "../routes/rmadminRoutes.js";
+import salesRoutes from "../routes/salesRoutes.js";
+import Vendor from "../routes/vendorRoutes.js";
+import finalOrders from "../routes/finalOrders.js";
 
 const app = express();
 const port = 4000;
@@ -103,6 +107,10 @@ app.use("/api/customer", customerRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/webhook", waRoutes);
+app.use("/api", rmadminRoutes);
+app.use("/api", salesRoutes);
+app.use("/api/vendors", Vendor);
+app.use("/api", finalOrders);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
