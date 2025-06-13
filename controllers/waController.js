@@ -3,6 +3,7 @@ import axios from "axios";
 import { Customer } from "../models/customer.js";
 import { Vendor } from "../models/users.js";
 import { Quotation } from "../models/quotation.js";
+import { Promotion } from "../models/promo.js";
 dotenv.config();
 
 async function sendInvoiceToWhatsApp(link, mobile, amount) {
@@ -146,6 +147,170 @@ async function sendResponseOnIntroMessage(req, res) {
   }
 }
 
+const sendPromotionTemplate = async (req, res) => {
+  const results = [];
+
+  const WHATSAPP_API_URL = `https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
+
+  try {
+    const promotions = await Promotion.find({ canSend: true });
+    const phoneNumbers = promotions.map(promo => promo.phoneNumber);
+
+    for (const number of phoneNumbers) {
+      try {
+        const payload = {
+          messaging_product: 'whatsapp',
+          to: number,
+          type: 'template',
+          template: {
+            namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+            name: "vendor_promotions_template_v3",
+            language: {
+              code: "en",
+            },
+            components: [
+              {
+                type: "button",
+                sub_type: "quick_reply",
+                index: "0",
+                parameters: [
+                  {
+                    type: "payload",
+                    payload: "JOIN_COMMUNITY"
+                  }
+                ]
+              },
+              {
+                type: "button",
+                sub_type: "quick_reply",
+                index: "1",
+                parameters: [
+                  {
+                    type: "payload",
+                    payload: "BOOK_CALL"
+                  }
+                ]
+              },
+              {
+                type: "button",
+                sub_type: "quick_reply",
+                index: "2",
+                parameters: [
+                  {
+                    type: "payload",
+                    payload: "STOP_PROMOTIONS"
+                  }
+                ]
+              }
+            ]
+          }
+        };
+
+        const response = await axios.post(WHATSAPP_API_URL, payload, {
+          headers: {
+            Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        results.push({ number, status: 'success', messageId: response.data.messages?.[0]?.id });
+      } catch (error) {
+        results.push({
+          number,
+          status: 'failed',
+          error: error?.response?.data || error.message,
+        });
+      }
+    }
+
+    return res.status(200).json({ sent: results });
+  } catch (dbError) {
+    console.error("Error fetching promotions:", dbError);
+    return res.status(500).json({ error: "Failed to fetch promotion phone numbers." });
+  }
+};
+
+const handlePromoResponse = async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+
+  if (!message || message.type !== 'button') {
+    return res.sendStatus(200); // Ignore if not a button click
+  }
+
+  const phone = message.from;
+  const payload = message.button.payload;
+
+  try {
+    if (payload === 'JOIN_COMMUNITY') {
+      // Send community link
+      await axios.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`, {
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: {
+          body: "Thanks, here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS"
+        }
+      }, {
+        headers: {
+          Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      });
+    } else if (payload === 'BOOK_CALL') {
+      await saveBookingRequestToDB(phone);
+    } else if (payload === 'STOP_PROMOTIONS') {
+      await stopPromotionsForVendor(phone);
+    }
+
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error("Error in handlePromoResponse:", error);
+    return res.sendStatus(500);
+  }
+};
+
+const stopPromotionsForVendor = async (phone) => {
+  try {
+    const updated = await Promotion.findOneAndUpdate(
+      { phoneNumber: phone },
+      { canSend: false },
+      { new: true }
+    );
+
+    if (updated) {
+      console.log(`Stopped future promotions for ${phone}`);
+    } else {
+      console.log(`No promotion record found for ${phone}`);
+    }
+  } catch (error) {
+    console.error(`Error stopping promotions for ${phone}:`, error);
+  }
+};
+
+// Saves a booking request by updating callRequest status and timestamp
+const saveBookingRequestToDB = async (phone) => {
+  try {
+    const updated = await Promotion.findOneAndUpdate(
+      { phoneNumber: phone },
+      {
+        $set: {
+          "callRequest.status": true,
+          "callRequest.date": new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    if (updated) {
+      console.log(`Saved booking request for ${phone}`);
+    } else {
+      console.log(`No promotion record found for ${phone}`);
+    }
+  } catch (error) {
+    console.error(`Error saving booking request for ${phone}:`, error);
+  }
+};
+
 // // Example usage
 // const invoice = {
 //     invoiceNumber: "INV-2024-001",
@@ -169,4 +334,6 @@ export {
   sendInvoiceToWhatsApp,
   sendConfirmationMessageToWhatsapp,
   sendResponseOnIntroMessage,
+  sendPromotionTemplate,
+  handlePromoResponse,
 };
