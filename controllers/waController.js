@@ -150,7 +150,7 @@ async function sendResponseOnIntroMessage(req, res) {
 const sendPromotionTemplate = async (req, res) => {
   const results = [];
   const { phoneNumber } = req.body; // e.g., "9871524768, 9876543210"
-
+  const {templateName} =req.body;
 
   const WHATSAPP_API_URL = `https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
@@ -168,7 +168,7 @@ const sendPromotionTemplate = async (req, res) => {
           type: 'template',
           template: {
             namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
-            name: "vendor_promotions_template_v3",
+            name: templateName,
             language: {
               code: "en",
             },
@@ -226,6 +226,7 @@ const sendPromotionTemplate = async (req, res) => {
         });
       }
     }
+  console.log("Phone Numbers:", phoneNumbers);    
 
     return res.status(200).json({ sent: results });
   } catch (dbError) {
