@@ -149,13 +149,17 @@ async function sendResponseOnIntroMessage(req, res) {
 
 const sendPromotionTemplate = async (req, res) => {
   const results = [];
+  const { phoneNumber } = req.body; // e.g., "9871524768, 9876543210"
+
 
   const WHATSAPP_API_URL = `https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   try {
-    const promotions = await Promotion.find({ canSend: true });
-    const phoneNumbers = promotions.map(promo => promo.phoneNumber);
-
+    // const promotions = await Promotion.find({ canSend: true });
+    const phoneNumbers = phoneNumber
+      .split(',')
+      .map(num => num.trim())
+      .filter(num => num.length > 0); 
     for (const number of phoneNumbers) {
       try {
         const payload = {
