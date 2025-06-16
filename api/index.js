@@ -6,7 +6,9 @@ import chalk from "chalk";
 import morgan from "morgan";
 import http from "http";
 import { Server } from "socket.io";
-import { handleSocketConnection } from "../controllers/chatController.js"; // <- ADD THIS LINE
+import { handleSocketConnection } from "../controllers/chatController.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Route Imports
 import productRoutes from "../routes/productRoutes.js"; // This includes bank-details
@@ -36,7 +38,7 @@ import Vendor from "../routes/vendorRoutes.js";
 import finalOrders from "../routes/finalOrders.js";
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT;
 const router = Router();
 
 // HTTP server and Socket.IO server setup
