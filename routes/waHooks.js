@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { sendResponseOnIntroMessage } from "../controllers/waController.js";
+import {
+  sendResponseOnIntroMessage,
+  sendPromotionTemplate,
+  handlePromoResponse
+}
+  from "../controllers/waController.js";
 
 const waRoutes = Router();
 
@@ -9,8 +14,30 @@ waRoutes.get("/", (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
+  const myToken = "EVENTORY1234";
+
   if (mode && token) {
-    if (mode === "subscribe" && token === "hooks") {
+    if (mode === "subscribe" && token === myToken) {
+      console.log("WEBHOOK_VERIFIED");
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
+    }
+  }
+});
+
+waRoutes.post("/send-promotions", sendPromotionTemplate);
+
+waRoutes.post('/promo-response', handlePromoResponse);
+waRoutes.get("/promo-response", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  const myToken = "EVENTORY1234";
+
+  if (mode && token) {
+    if (mode === "subscribe" && token === myToken) {
       console.log("WEBHOOK_VERIFIED");
       res.status(200).send(challenge);
     } else {
