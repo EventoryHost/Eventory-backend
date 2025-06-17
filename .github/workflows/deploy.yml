@@ -25,10 +25,10 @@ jobs:
 
             if [ "$BRANCH" = "prod" ]; then
               APP_DIR="prod"
-              ENV_CONTENT="${{ secrets.PROD_ENV }}"
+              ENV_CONTENT="${{ vars.PROD_ENV }}"
             else
               APP_DIR="dev"
-              ENV_CONTENT="${{ secrets.DEV_ENV }}"
+              ENV_CONTENT="${{ vars.DEV_ENV }}"
             fi
 
             
