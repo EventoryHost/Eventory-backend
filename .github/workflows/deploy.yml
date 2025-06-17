@@ -39,5 +39,5 @@ jobs:
             echo "$ENV_CONTENT" > .env
             npm install
             pm2 delete $BRANCH || true
-            pm2 start api/index.js --name $BRANCH
+            pm2 start api/index.js --name $BRANCH --namespace $BRANCH
             pm2 save
