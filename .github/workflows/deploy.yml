@@ -1,0 +1,43 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - prod
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            BRANCH=${{ github.ref_name }}
+
+            if [ "$BRANCH" = "prod" ]; then
+              APP_DIR="prod"
+              ENV_CONTENT="${{ secrets.PROD_ENV }}"
+            else
+              APP_DIR="dev"
+              ENV_CONTENT="${{ secrets.DEV_ENV }}"
+            fi
+
+            
+            cd ~
+            rm -rf $APP_DIR
+            git clone -b $BRANCH git@github.com:EventoryHost/Eventory-backend.git $APP_DIR
+            cd $APP_DIR
+            echo "$ENV_CONTENT" > .env
+            npm install
+            pm2 delete $BRANCH || true
+            pm2 start api/index.js --name $BRANCH --namespace $BRANCH
+            pm2 save
