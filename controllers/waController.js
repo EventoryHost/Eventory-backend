@@ -179,12 +179,10 @@ const sendPromotionTemplate = async (req, res) => {
         callRequest: { value: false, updatedAt: null },
         lastSentDate: currDate,
       });
-      return res
-        .status(200)
-        .json({
-          number: phoneNumber,
-          status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
-        });
+      return res.status(200).json({
+        number: phoneNumber,
+        status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
+      });
     }
 
     // If promotions are disabled
