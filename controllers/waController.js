@@ -162,7 +162,7 @@ const sendPromotionTemplate = async (req, res) => {
         lastSentDate: 1,
         vendorName: 1,
         vendorType: 1,
-      }
+      },
     ).lean();
 
     // If phone number not present — first-time vendor
@@ -179,45 +179,50 @@ const sendPromotionTemplate = async (req, res) => {
         callRequest: { value: false, updatedAt: null },
         lastSentDate: currDate,
       });
-      return res.status(200).json({ number: phoneNumber, status: `Promotion message has been sent to ${phoneNumber} on ${currDate}` });
+      return res
+        .status(200)
+        .json({
+          number: phoneNumber,
+          status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
+        });
     }
 
     // If promotions are disabled
     if (!data.canSend?.value) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Vendor has stopped the promotions on ${data.canSend?.updatedAt} .`
+        status: `Vendor has stopped the promotions on ${data.canSend?.updatedAt} .`,
       });
     }
 
     if (data.callRequest?.value && data.reqToJoinCommunity?.value) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested for 1:1 call on ${data.callRequest.updatedAt} and has requested to join the community on ${data.reqToJoinCommunity.updatedAt}.`
+        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested for 1:1 call on ${data.callRequest.updatedAt} and has requested to join the community on ${data.reqToJoinCommunity.updatedAt}.`,
       });
     }
 
     if (data.callRequest?.value && !data.reqToJoinCommunity?.value) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested for 1:1 call on ${data.callRequest.updatedAt}.`
+        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested for 1:1 call on ${data.callRequest.updatedAt}.`,
       });
     }
 
     if (!data.callRequest?.value && data.reqToJoinCommunity?.value) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested to join the community on ${data.reqToJoinCommunity.updatedAt}.`
+        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested to join the community on ${data.reqToJoinCommunity.updatedAt}.`,
       });
     }
 
     // Enforce 60-day rule
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    //this is if last sent date is ahead of (today - 60days) 
+    //this is if last sent date is ahead of (today - 60days)
     if (data.lastSentDate && data.lastSentDate > sixtyDaysAgo) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate}.`
+        status: `Promotional message has already been sent on ${data.lastSentDate}.`,
       });
     }
 
@@ -230,27 +235,28 @@ const sendPromotionTemplate = async (req, res) => {
         $inc: { "sentBeforeCount.value": 1 },
         $set: {
           lastSentDate: currDate,
-          "sentBeforeCount.updatedAt": currDate
-        }
-      }
+          "sentBeforeCount.updatedAt": currDate,
+        },
+      },
     );
 
     return res.status(200).json({
       number: phoneNumber,
-      status: `Promotional message was again sent on ${currDate}.`
+      status: `Promotional message was again sent on ${currDate}.`,
     });
-
   } catch (error) {
     console.error("Error sending promotion:", error);
-    return res.status(500).json({ error: error?.message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ error: error?.message || "Internal Server Error" });
   }
 };
 
 const sendWhatsAppTemplate = async (phoneNumber, WHATSAPP_API_URL) => {
   const payload = {
-    messaging_product: 'whatsapp',
+    messaging_product: "whatsapp",
     to: phoneNumber,
-    type: 'template',
+    type: "template",
     template: {
       namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
       name: "vendor_promotions_template_v3",
@@ -260,36 +266,36 @@ const sendWhatsAppTemplate = async (phoneNumber, WHATSAPP_API_URL) => {
           type: "button",
           sub_type: "quick_reply",
           index: "0",
-          parameters: [{ type: "payload", payload: "JOIN_COMMUNITY" }]
+          parameters: [{ type: "payload", payload: "JOIN_COMMUNITY" }],
         },
         {
           type: "button",
           sub_type: "quick_reply",
           index: "1",
-          parameters: [{ type: "payload", payload: "BOOK_CALL" }]
+          parameters: [{ type: "payload", payload: "BOOK_CALL" }],
         },
         {
           type: "button",
           sub_type: "quick_reply",
           index: "2",
-          parameters: [{ type: "payload", payload: "STOP_PROMOTIONS" }]
-        }
-      ]
-    }
+          parameters: [{ type: "payload", payload: "STOP_PROMOTIONS" }],
+        },
+      ],
+    },
   };
 
   await axios.post(WHATSAPP_API_URL, payload, {
     headers: {
       Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
-      'Content-Type': 'application/json'
-    }
+      "Content-Type": "application/json",
+    },
   });
 };
 
 const handlePromoResponse = async (req, res) => {
   const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-  if (!message || message.type !== 'button') {
+  if (!message || message.type !== "button") {
     return res.sendStatus(200);
   }
 
@@ -302,30 +308,35 @@ const handlePromoResponse = async (req, res) => {
 
     const { callRequest, reqToJoinCommunity } = data;
 
-    if (payload === 'JOIN_COMMUNITY') {
+    if (payload === "JOIN_COMMUNITY") {
       if (reqToJoinCommunity?.value) return res.sendStatus(200);
 
-      await sendText(phone, "Thanks, here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS");
+      await sendText(
+        phone,
+        "Thanks, here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS",
+      );
       await Promotion.updateOne(
         { phoneNumber: phone },
         {
           $set: {
             "reqToJoinCommunity.value": true,
-            "reqToJoinCommunity.updatedAt": new Date()
-          }
-        }
+            "reqToJoinCommunity.updatedAt": new Date(),
+          },
+        },
       );
-    }
-
-    else if (payload === 'BOOK_CALL') {
+    } else if (payload === "BOOK_CALL") {
       if (callRequest?.value) return res.sendStatus(200);
 
-      await sendText(phone, "Thanks for showing interest! Someone from our team will connect with you in the next few business hours.");
+      await sendText(
+        phone,
+        "Thanks for showing interest! Someone from our team will connect with you in the next few business hours.",
+      );
       await saveBookingRequestToDB(phone);
-    }
-
-    else if (payload === 'STOP_PROMOTIONS') {
-      await sendText(phone, "Thank you for giving us your time! We hope we'll serve you in future! If you still want to connect, call on +91 8800725840");
+    } else if (payload === "STOP_PROMOTIONS") {
+      await sendText(
+        phone,
+        "Thank you for giving us your time! We hope we'll serve you in future! If you still want to connect, call on +91 8800725840",
+      );
       await stopPromotionsForVendor(phone);
     }
 
@@ -337,17 +348,21 @@ const handlePromoResponse = async (req, res) => {
 };
 
 const sendText = async (phone, text) => {
-  await axios.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`, {
-    messaging_product: "whatsapp",
-    to: phone,
-    type: "text",
-    text: { body: text }
-  }, {
-    headers: {
-      Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
-      "Content-Type": "application/json"
-    }
-  });
+  await axios.post(
+    `https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to: phone,
+      type: "text",
+      text: { body: text },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
 };
 
 const stopPromotionsForVendor = async (phone) => {
@@ -357,9 +372,9 @@ const stopPromotionsForVendor = async (phone) => {
       {
         $set: {
           "canSend.value": false,
-          "canSend.updatedAt": new Date()
-        }
-      }
+          "canSend.updatedAt": new Date(),
+        },
+      },
     );
     console.log(`Stopped future promotions for ${phone}`);
   } catch (error) {
@@ -374,9 +389,9 @@ const saveBookingRequestToDB = async (phone) => {
       {
         $set: {
           "callRequest.value": true,
-          "callRequest.updatedAt": new Date()
-        }
-      }
+          "callRequest.updatedAt": new Date(),
+        },
+      },
     );
     console.log(`Saved booking request for ${phone}`);
   } catch (error) {
@@ -387,16 +402,16 @@ const saveBookingRequestToDB = async (phone) => {
 const getVendors = async (req, res) => {
   try {
     const vendors = await Promotion.find({}).sort({ lastSentDate: -1 });
-    
-    res.status(200).json({ 
-      success: true, 
-      vendors 
+
+    res.status(200).json({
+      success: true,
+      vendors,
     });
   } catch (error) {
-    console.error('Error fetching vendors:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch vendor data' 
+    console.error("Error fetching vendors:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch vendor data",
     });
   }
 };

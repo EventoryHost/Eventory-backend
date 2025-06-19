@@ -3,9 +3,8 @@ import {
   sendResponseOnIntroMessage,
   sendPromotionTemplate,
   handlePromoResponse,
-  getVendors
-}
-  from "../controllers/waController.js";
+  getVendors,
+} from "../controllers/waController.js";
 
 const waRoutes = Router();
 
@@ -30,7 +29,7 @@ waRoutes.get("/", (req, res) => {
 waRoutes.post("/send-promotions", sendPromotionTemplate);
 waRoutes.get("/vendors", getVendors);
 
-waRoutes.post('/promo-response', handlePromoResponse);
+waRoutes.post("/promo-response", handlePromoResponse);
 waRoutes.get("/promo-response", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
