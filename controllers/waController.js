@@ -176,7 +176,7 @@ const sendPromotionTemplate = async (req, res) => {
         sentBeforeCount: { value: 1, updatedAt: currDate },
         canSend: { value: true, updatedAt: currDate },
         reqToJoinCommunity: { value: false, updatedAt: null },
-        callRequest: { status: false, date: null, updatedAt: null },
+        callRequest: { value: false, updatedAt: null },
         lastSentDate: currDate,
       });
       return res.status(200).json({ number: phoneNumber, status: `Promotion message has been sent to ${phoneNumber} on ${currDate}` });
@@ -219,7 +219,7 @@ const sendPromotionTemplate = async (req, res) => {
         number: phoneNumber,
         status: `Promotional message has already been sent on ${data.lastSentDate}.`
       });
-    } 
+    }
 
     // Valid vendor with canSend = true and past 60 days → send promotion
     await sendWhatsAppTemplate(phoneNumber, WHATSAPP_API_URL);
@@ -318,7 +318,7 @@ const handlePromoResponse = async (req, res) => {
     }
 
     else if (payload === 'BOOK_CALL') {
-      if (callRequest?.status) return res.sendStatus(200);
+      if (callRequest?.value) return res.sendStatus(200);
 
       await sendText(phone, "Thanks for showing interest! Someone from our team will connect with you in the next few business hours.");
       await saveBookingRequestToDB(phone);
@@ -373,8 +373,7 @@ const saveBookingRequestToDB = async (phone) => {
       { phoneNumber: phone },
       {
         $set: {
-          "callRequest.status": true,
-          "callRequest.date": new Date(),
+          "callRequest.value": true,
           "callRequest.updatedAt": new Date()
         }
       }

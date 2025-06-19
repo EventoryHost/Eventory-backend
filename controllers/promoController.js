@@ -17,7 +17,7 @@ const getAllPromotions = async (req, res) => {
             const lastSentDate = promo.lastSentDate ? new Date(promo.lastSentDate) : null;
             const canSend = promo.canSend?.value;
             const canSendUpdated = promo.canSend?.updatedAt;
-            const callReq = promo.callRequest?.status;
+            const callReq = promo.callRequest?.value;
             const callReqUpdated = promo.callRequest?.updatedAt;
             const joinComm = promo.reqToJoinCommunity?.value;
             const joinCommUpdated = promo.reqToJoinCommunity?.updatedAt;
