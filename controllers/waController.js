@@ -318,7 +318,7 @@ const handlePromoResponse = async (req, res) => {
     }
 
     else if (payload === 'BOOK_CALL') {
-      if (callRequest?.status) return res.sendStatus(200);
+      if (callRequest?.value) return res.sendStatus(200);
 
       await sendText(phone, "Thanks for showing interest! Someone from our team will connect with you in the next few business hours.");
       await saveBookingRequestToDB(phone);
@@ -373,7 +373,7 @@ const saveBookingRequestToDB = async (phone) => {
       { phoneNumber: phone },
       {
         $set: {
-          "callRequest.status": true,
+          "callRequest.value": true,
           "callRequest.date": new Date(),
           "callRequest.updatedAt": new Date()
         }
