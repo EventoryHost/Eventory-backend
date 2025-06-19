@@ -385,6 +385,23 @@ const saveBookingRequestToDB = async (phone) => {
   }
 };
 
+const getVendors = async (req, res) => {
+  try {
+    const vendors = await Promotion.find({}).sort({ lastSentDate: -1 });
+    
+    res.status(200).json({ 
+      success: true, 
+      vendors 
+    });
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch vendor data' 
+    });
+  }
+};
+
 // // Example usage
 // const invoice = {
 //     invoiceNumber: "INV-2024-001",
@@ -410,4 +427,5 @@ export {
   sendResponseOnIntroMessage,
   sendPromotionTemplate,
   handlePromoResponse,
+  getVendors,
 };

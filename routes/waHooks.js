@@ -2,7 +2,8 @@ import { Router } from "express";
 import {
   sendResponseOnIntroMessage,
   sendPromotionTemplate,
-  handlePromoResponse
+  handlePromoResponse,
+  getVendors
 }
   from "../controllers/waController.js";
 
@@ -27,6 +28,7 @@ waRoutes.get("/", (req, res) => {
 });
 
 waRoutes.post("/send-promotions", sendPromotionTemplate);
+waRoutes.get("/vendors", getVendors);
 
 waRoutes.post('/promo-response', handlePromoResponse);
 waRoutes.get("/promo-response", (req, res) => {
