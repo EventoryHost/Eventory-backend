@@ -183,7 +183,6 @@ const sendPromotionTemplate = async (req, res) => {
         number: phoneNumber,
         status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
       });
-
     }
 
     // If promotions are disabled
