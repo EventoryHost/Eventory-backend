@@ -17,10 +17,25 @@ router.post("/", async (req, res) => {
 
     // Validate budget and number_of_guest
     if (isNaN(parsedBudget) || isNaN(parsedNumberOfGuest)) {
-      return res
-        .status(400)
-        .json({ error: "Budget and Number of Guests must be valid numbers." });
+      return res.status(400).json({
+        error: "Budget and Number of Guests must be valid numbers.",
+      });
     }
+
+    // Check for existing "Pending" quotation with same user & service
+    const existingPendingQuotation = await Quotation.findOne({
+      user_id: req.body.user_id,
+      service_id: req.body.service_id,
+      status: "Pending",
+    });
+
+    if (existingPendingQuotation) {
+      return res.status(400).json({
+        message: "A quotation for this service is already pending.",
+      });
+    }
+
+    // Create new quotation
     const newQuotation = new Quotation({
       // Meta Data
       user_id: req.body.user_id,
@@ -42,6 +57,8 @@ router.post("/", async (req, res) => {
       event_type: req.body.event_type,
     });
 
+    const savedQuotation = await newQuotation.save();
+
     const customer = await Customer.findOne({ id: req.body.user_id });
 
     if (!customer) {
@@ -50,20 +67,8 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const savedQuotation = await newQuotation.save();
-
     if (!customer.quotations) {
       customer.quotations = [];
-    }
-
-    if (
-      customer.quotations.find(
-        (booking) => booking.serviceId === req.body.service_id,
-      )
-    ) {
-      return res.status(400).json({
-        message: "Quotation already created for this service",
-      });
     }
 
     customer.quotations.push({
@@ -82,7 +87,7 @@ router.post("/", async (req, res) => {
       sendConfirmationMessageToWhatsapp({
         customer_mobile: customer.mobile,
         customer_name: customer.name,
-        id: newQuotation.id,
+        id: savedQuotation.id,
       });
     });
   } catch (error) {
