@@ -49,8 +49,10 @@ const updateVendor = async (req, res) => {
       phoneNumber,
       panNo,
       gstin,
+      verificationType,
       businessDetails,
     } = req.body;
+    
     // Check if vendorId is provided
     if (!vendorId) {
       return res.status(400).json({ message: "Please provide a vendorId." });
@@ -63,13 +65,37 @@ const updateVendor = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update user details
-    user.businessDetails = {
-      ...user.businessDetails,
-      ...businessDetails,
-      panNo,
-      gstin,
-    };
+    // Update user details based on verification type
+    // This allows us to store GSTIN obtained from PAN verification
+    // without showing it to the user in the frontend
+    if (verificationType === "GSTIN") {
+      // If GSTIN was verified, only update GSTIN
+      user.businessDetails = {
+        ...user.businessDetails,
+        ...businessDetails,
+        gstin,
+        verificationType: "GSTIN"
+      };
+    } else if (verificationType === "PAN") {
+      // If PAN was verified, update PAN and silently store any GSTIN found
+      user.businessDetails = {
+        ...user.businessDetails,
+        ...businessDetails,
+        panNo,
+        // Store GSTIN if it was found during PAN verification
+        gstin: gstin || user.businessDetails.gstin,
+        verificationType: "PAN"
+      };
+    } else {
+      // Fallback for any other case
+      user.businessDetails = {
+        ...user.businessDetails,
+        ...businessDetails,
+        panNo,
+        gstin,
+      };
+    }
+    
     user.name = name || user.name;
     user.email = email || user.email;
     user.mobile = phoneNumber || user.mobile;

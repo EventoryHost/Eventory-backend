@@ -6,6 +6,7 @@ export const businessSchema = new mongoose.Schema({
   category: { type: String, required: true },
   gstin: { type: String },
   panNo: { type: String },
+  verificationType: { type: String, enum: ["GSTIN", "PAN", ""] },
   teamsize: { type: String, required: true },
   businessAddress: { type: String, required: true },
   pinCode: { type: Number, required: true },
