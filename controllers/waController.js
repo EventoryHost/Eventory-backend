@@ -183,6 +183,16 @@ const sendPromotionTemplate = async (req, res) => {
     }
 
     // If promotions are disabled
+    if (!data.canSend?.value && (!data.canSend?.updatedAt < !data.callRequest?.updatedAt) ||
+      (!data.canSend?.updatedAt < !data.reqToJoinCommunity?.updatedAt)) {
+      await Promotion.updateOne({ phoneNumber }, {
+        $set: {
+          "canSend.value": true,
+          "canSend.updatedAt": currDate
+        }
+      })
+    }
+
     if (!data.canSend?.value) {
       return res.status(200).json({
         number: phoneNumber,
@@ -296,6 +306,8 @@ const handlePromoResponse = async (req, res) => {
   const phone = message.from;
   const payload = message.button.payload;
 
+  const currDate = new Date();
+
   try {
     const data = await Promotion.findOne({ phoneNumber: phone }).lean();
     if (!data) return res.sendStatus(404);
@@ -303,25 +315,65 @@ const handlePromoResponse = async (req, res) => {
     const { callRequest, reqToJoinCommunity } = data;
 
     if (payload === 'JOIN_COMMUNITY') {
-      if (reqToJoinCommunity?.value) return res.sendStatus(200);
+      const canSendCondition =
+        !data.canSend?.value &&
+        (
+          (!data.canSend?.updatedAt || data.callRequest?.updatedAt > data.canSend.updatedAt) ||
+          (!data.canSend?.updatedAt || data.reqToJoinCommunity?.updatedAt > data.canSend.updatedAt)
+        );
 
-      await sendText(phone, "Thanks, here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS");
-      await Promotion.updateOne(
-        { phoneNumber: phone },
-        {
-          $set: {
-            "reqToJoinCommunity.value": true,
-            "reqToJoinCommunity.updatedAt": new Date()
-          }
-        }
+      const updateFields = {};
+
+      if (canSendCondition) {
+        updateFields["canSend.value"] = true;
+        updateFields["canSend.updatedAt"] = currDate;
+      }
+
+      await sendText(
+        phone,
+        "Thanks, here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS"
       );
+
+      updateFields["reqToJoinCommunity.value"] = true;
+      updateFields["reqToJoinCommunity.updatedAt"] = new Date();
+
+
+      if (Object.keys(updateFields).length) {
+        await Promotion.updateOne(
+          { phoneNumber: phone },
+          { $set: updateFields }
+        );
+      }
     }
 
     else if (payload === 'BOOK_CALL') {
-      if (callRequest?.value) return res.sendStatus(200);
+      const canSendCondition =
+        !data.canSend?.value &&
+        (
+          (!data.canSend?.updatedAt || data.callRequest?.updatedAt > data.canSend.updatedAt) ||
+          (!data.canSend?.updatedAt || data.reqToJoinCommunity?.updatedAt > data.canSend.updatedAt)
+        );
 
-      await sendText(phone, "Thanks for showing interest! Someone from our team will connect with you in the next few business hours.");
+      const updateFields = {};
+
+      if (canSendCondition) {
+        updateFields["canSend.value"] = true;
+        updateFields["canSend.updatedAt"] = currDate;
+      }
+
+      await sendText(
+        phone,
+        "Thanks for showing interest! Someone from our team will connect with you in the next few business hours."
+      );
+
       await saveBookingRequestToDB(phone);
+
+      if (Object.keys(updateFields).length) {
+        await Promotion.updateOne(
+          { phoneNumber: phone },
+          { $set: updateFields }
+        );
+      }
     }
 
     else if (payload === 'STOP_PROMOTIONS') {
