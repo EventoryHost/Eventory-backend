@@ -7,7 +7,7 @@ dotenv.config();
 
 const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
   const CC_EMAIL =
-    "payments@eventory.in, eventory-product-team-aaaaoycyqjayodqmeqow7ja6t4@eventory-hq.slack.com";
+    "payments@eventory.in, event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com";
   try {
     const fileType = mime.lookup(fileName);
 
