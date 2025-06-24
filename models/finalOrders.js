@@ -16,12 +16,13 @@ const OrderSchema = new mongoose.Schema({
     photos: { type: [String], default: [] }, // array of image URLs
     rating: { type: Number, default: 0 }, // added
     finalURL : { type: String }, // added
-    approvals : {
+    approvals: {
       type: {
         customer: { type: Boolean, default: null },
-        vendor: { type: Boolean, default: null },
+        vendor: { type: Boolean, default: null }
       },
-    },
+      default: () => ({ customer: null, vendor: null })
+    },    
     finalizedContents: {
         type: [String],
         default : [],
