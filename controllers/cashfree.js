@@ -1,4 +1,5 @@
 import { Cashfree, CFEnvironment } from "cashfree-pg";
+
 import generateInvoice, {
   sendInvoiceWithDiscount,
 } from "../utils/generateInvoice.js";
@@ -16,6 +17,7 @@ const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 
 const cashfree = process.env.IS_LOCAL === true ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
   new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
+
 
 
 
