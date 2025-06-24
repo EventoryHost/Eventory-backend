@@ -70,6 +70,7 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
+    console.log("Payment verified:", payment);
     const formattedDetails = {
       invoiceNumber: payment.order_id,
       invoiceDate: new Date().toLocaleDateString(),
