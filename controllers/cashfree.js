@@ -53,7 +53,7 @@ const createOrder = async (req, res) => {
 
 
 const verifyPayment = async (req, res) => {
-  const { order_id, payment_id, ven_id } = req.body;
+  const { order_id, ven_id } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -70,12 +70,12 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
+    console.log("Payment verified:", payment);
     const formattedDetails = {
-      invoiceNumber: payment.cf_order_id,
+      invoiceNumber: payment.order_id,
       invoiceDate: new Date().toLocaleDateString(),
-      amount: payment.payment_amount,
-      method: payment.payment_method,
-      created_at: new Date(payment.payment_time).toLocaleDateString(),
+      amount: payment.order_amount,
+      method: payment.order_meta.payment_methods? payment.order_meta.payment_methods: "QR Code",
       id: ven_id,
     };
 
