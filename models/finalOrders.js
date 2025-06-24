@@ -6,6 +6,7 @@ const OrderSchema = new mongoose.Schema({
         enum: ['caterer', 'decorator', 'pav', 'prop-rental', 'venue-provider', 'Other'],
     },
     vendorId: { type: String, required: true },
+    quotationId: { type: String, },
     orderId: { type: String, required: true, unique: true },
     customerId: { type: String },
     customerName: { type: String }, // maps from user_name
@@ -15,6 +16,12 @@ const OrderSchema = new mongoose.Schema({
     photos: { type: [String], default: [] }, // array of image URLs
     rating: { type: Number, default: 0 }, // added
     finalURL : { type: String }, // added
+    approvals : {
+      type: {
+        customer: { type: Boolean, default: null },
+        vendor: { type: Boolean, default: null },
+      },
+    },
     finalizedContents: {
         type: [String],
         default : [],

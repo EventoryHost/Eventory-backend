@@ -31,6 +31,64 @@ router.get("/finalOrder", async (req, res) => {
     }
 });
 
+// backend route to find status of approvals using quotationId
+router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const order = await Order.findOne({ quotationId: id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    res.json(order);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// Approve or mark as needs discussion
+router.put("/finalOrder/approve", async (req, res) => {
+  console.log("🔵 Approve Route HIT");
+
+  try {
+    console.log("🔵 Request Body:", req.body);
+
+    const { orderId, userType, value } = req.body;
+
+    if (!orderId || !userType || typeof value !== "boolean") {
+      console.log("❌ Missing required fields");
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const updateField = {};
+    updateField[`approvals.${userType}`] = value;
+
+    console.log("🔍 Looking for orderId:", orderId);
+    console.log("🛠 Update Field:", updateField);
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId },
+      { $set: updateField },
+      { new: true }
+    );
+
+    console.log("✅ Found Order:", updatedOrder);
+
+    if (!updatedOrder)
+      return res.status(404).json({ message: "Order not found" });
+
+    return res.status(200).json({
+      message: `Approval updated for ${userType}`,
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.error("🔥 Approval update error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
+});
+
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
     try {
@@ -111,5 +169,9 @@ router.delete("/finalOrder/:orderId", async (req, res) => {
         res.status(500).json({ message: "Failed to delete booking", error: error.message });
     }
 });
+
+
+
+
 
 export default router;

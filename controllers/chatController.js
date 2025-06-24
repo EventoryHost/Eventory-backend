@@ -96,7 +96,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         const validSenders = ["cus", "ven", "rm"];
-        const validContentTypes = ["text", "image", "video", "pdf", "file"];
+        const validContentTypes = ["text", "image", "video", "pdf", "file", "approval_request"];
 
         if (!validSenders.includes(senderType)) {
           // Call the callback with error if provided
