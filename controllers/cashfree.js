@@ -1,4 +1,5 @@
-import { Cashfree } from "cashfree-pg";
+import { Cashfree, CFEnvironment } from "cashfree-pg";
+
 import generateInvoice, {
   sendInvoiceWithDiscount,
 } from "../utils/generateInvoice.js";
@@ -14,8 +15,9 @@ import { sendInvoiceToWhatsApp } from "./waController.js";
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 
-var cashfree = process.env.IS_LOCAL === true ? new Cashfree(Cashfree.SANDBOX, `${clientId}`, `${clientSecret}`) :
-  new Cashfree(Cashfree.PRODUCTION, `${clientId}`, `${clientSecret}`);
+const cashfree = process.env.IS_LOCAL === true ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
+  new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
+
 
 
 
