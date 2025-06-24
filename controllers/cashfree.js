@@ -70,12 +70,11 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    console.log("Payment verified:", payment);
     const formattedDetails = {
       invoiceNumber: payment.order_id,
       invoiceDate: new Date().toLocaleDateString(),
       amount: payment.order_amount,
-      method: payment.order_meta.payment_methods? payment.order_meta.payment_methods: "QR Code",
+      method: payment.order_meta.payment_methods !== null ? payment.order_meta.payment_methods : "UPI CC",
       id: ven_id,
     };
 
