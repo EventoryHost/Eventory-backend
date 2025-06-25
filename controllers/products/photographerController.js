@@ -2,6 +2,8 @@
 import Photographer from "../../models/photographers.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
+
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -260,7 +262,10 @@ const createPhotographer = async (req, res) => {
 
     // Call to update section completion
     await updateSectionCompletion(newPhotographer.id);
-
+    !process.env.IS_DEV && sendEmailToSlack({
+          name: saved.basicDetails.name,
+          type: saved.type,
+        })
     res.status(201).json({
       message: "Photographer created successfully",
       profileCompletion,
