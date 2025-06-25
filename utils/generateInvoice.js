@@ -79,7 +79,13 @@ async function generateInvoice(customer, paymentDetails) {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-web-security',
-            '--disable-features=VizDisplayCompositor'
+            '--disable-features=VizDisplayCompositor',
+            '--memory-pressure-off',
+            '--max_old_space_size=128',
+            '--single-process',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding'
           ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
@@ -90,13 +96,13 @@ async function generateInvoice(customer, paymentDetails) {
 
     const page = await browser.newPage();
     await page.setContent(html, {
-      waitUntil: ['networkidle0', 'domcontentloaded'],
-      timeout: 30000
+      waitUntil: ['domcontentloaded'],
+      timeout: 15000
     });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 15000 });
 
     await browser.close();
 
@@ -197,7 +203,13 @@ export async function sendInvoiceWithDiscount(
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-web-security',
-            '--disable-features=VizDisplayCompositor'
+            '--disable-features=VizDisplayCompositor',
+            '--memory-pressure-off',
+            '--max_old_space_size=128',
+            '--single-process',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding'
           ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
@@ -210,13 +222,13 @@ export async function sendInvoiceWithDiscount(
 
     const page = await browser.newPage();
     await page.setContent(html, {
-      waitUntil: ['networkidle0', 'domcontentloaded'],
-      timeout: 30000
+      waitUntil: ['domcontentloaded'],
+      timeout: 15000
     });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 15000 });
 
     await browser.close();
 
