@@ -231,7 +231,7 @@ export async function sendInvoiceWithDiscount(
     page = await browser.newPage();
 
     await page.setContent(html, {
-      waitUntil: ['domcontentloaded'],
+      waitUntil:  "load",
     });
     await page.addStyleTag({ content: css });
 
