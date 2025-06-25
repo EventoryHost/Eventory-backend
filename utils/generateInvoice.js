@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 
-import puppeteer from "puppeteer";
 
 dotenv.config();
 
