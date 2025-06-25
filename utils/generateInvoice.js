@@ -1,4 +1,6 @@
 import dotenv from "dotenv";
+
+
 dotenv.config();
 
 import { readFileSync } from "fs";
@@ -7,7 +9,16 @@ import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
 import { Vendor } from "../models/users.js";
 import chromium from "@sparticuz/chromium";
 
+const puppeteer =
+  process.env.IS_LOCAL === "true"
+    ? await import("puppeteer")
+    : await import("puppeteer-core");
+
 async function generateInvoice(customer, paymentDetails) {
+  let browser = null;
+  let page = null;
+
+  console.log(paymentDetails);
   try {
     const templatePath = path.resolve("templates", "invoiceTemplate.html");
     let html = readFileSync(templatePath, "utf8");
@@ -16,7 +27,6 @@ async function generateInvoice(customer, paymentDetails) {
     const subtotal = paymentDetails.amount * 0.82;
     const tax = paymentDetails.amount * 0.18;
     let taxSection = "";
-    console.log("Customer:", customer.businessDetails);
     if (customer.businessDetails.pinCode.toString().startsWith("1")) {
       // CGST & SGST for Delhi-based pincodes
       const cgst = tax / 2;
@@ -59,28 +69,46 @@ async function generateInvoice(customer, paymentDetails) {
     html = html.replace("{{taxSection}}", taxSection);
     html = html.replace("{{vendorId}}", customer.id);
     // Launch Puppeteer and create PDF
-    const puppeteer =
-      process.env.IS_LOCAL === "true"
-        ? await import("puppeteer")
-        : await import("puppeteer-core");
 
-    const browser =
+
+    browser =
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-          });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+          args: [
+            ...chromium.args,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+          ],
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+
+        });
+
+
+    page = await browser.newPage();
+
+    await page.setContent(html, {
+      waitUntil: ['domcontentloaded'],
+      timeout: 30000,
+    });
     await page.addStyleTag({ content: css });
 
+    
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
 
-    await browser.close();
+    if (page && !page.isClosed()) {
+      await page.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
@@ -100,6 +128,16 @@ async function generateInvoice(customer, paymentDetails) {
     return result;
   } catch (error) {
     console.error("Error generating invoice:", error);
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+      if (browser) {
+        await browser.close();
+      }
+    } catch (cleanupError) {
+      console.error("Error during cleanup:", cleanupError);
+    }
     throw error;
   }
 }
@@ -166,28 +204,45 @@ export async function sendInvoiceWithDiscount(
     html = html.replace("{{taxSection}}", taxSection);
     html = html.replace("{{vendorId}}", customer.id);
     // Launch Puppeteer and create PDF
-    const puppeteer =
-      process.env.IS_LOCAL === "true"
-        ? await import("puppeteer")
-        : await import("puppeteer-core");
 
-    const browser =
+
+
+    browser =
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-          });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+          args: [
+            ...chromium.args,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+          ],
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+
+        });
+
+
+
+
+    page = await browser.newPage();
+
+    await page.setContent(html, {
+      waitUntil: ['domcontentloaded'],
+    });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
+    await page.close();
     await browser.close();
+    browser = null;
+    page = null;
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,

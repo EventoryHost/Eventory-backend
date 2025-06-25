@@ -4,6 +4,7 @@ import Chat from "../models/chat.js";
 import Message from "../models/message.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
+import { checkEmails } from "../middlewares/checkEmails.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -44,9 +45,8 @@ export const handleSocketConnection = (socket, io) => {
     ) => {
       try {
         // Fix function name swap - these were incorrectly imported/named
-        if (checkPhoneNumber(content)) {
-          // This actually checks for profanity
-          console.log("Abusive content detected:", content);
+        if (checkPhoneNumber(content) && checkEmails(content)) {
+          console.log("Phone number or email detected:", content);
           // Call the callback with error if provided
           if (typeof callback === "function") {
             callback("Please refrain from using abusive words!");

@@ -6,14 +6,16 @@ import chalk from "chalk";
 import morgan from "morgan";
 import http from "http";
 import { Server } from "socket.io";
-import { handleSocketConnection } from "../controllers/chatController.js"; // <- ADD THIS LINE
+import { handleSocketConnection } from "../controllers/chatController.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Route Imports
 import productRoutes from "../routes/productRoutes.js"; // This includes bank-details
 import authRoutes from "../routes/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes/aboutEmailRoutes.js";
-import razorpayRoutes from "../routes/razorpayRoutes.js";
+import cashfreeRoutes from "../routes/cashfreeRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
 import updatePageRoutes from "../routes/updatePageRoutes.js";
@@ -36,7 +38,7 @@ import Vendor from "../routes/vendorRoutes.js";
 import finalOrders from "../routes/finalOrders.js";
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT;
 const router = Router();
 
 // HTTP server and Socket.IO server setup
@@ -72,7 +74,6 @@ app.use(
       "Authorization",
       "Access-Control-Allow-Origin",
     ],
-    credentials: true,
     exposedHeaders: ["Authorization"],
   }),
 );
@@ -90,7 +91,7 @@ app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
 app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
 app.use("/api", vendorEditRoutes); // Route to update vendor details
 app.use("/api/products", productRoutes); // Handles the product and bank details routes
-app.use("/api/payment", razorpayRoutes);
+app.use("/api/payment", cashfreeRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);

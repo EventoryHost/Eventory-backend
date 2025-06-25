@@ -489,4 +489,7 @@ export {
   sendPromotionTemplate,
   handlePromoResponse,
   getVendors,
+  sendPromotionTemplate,
+  handlePromoResponse,
+  getVendors,
 };
