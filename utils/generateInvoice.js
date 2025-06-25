@@ -75,17 +75,11 @@ async function generateInvoice(customer, paymentDetails) {
         : await puppeteer.launch({
           args: [
             ...chromium.args,
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--memory-pressure-off',
-            '--max_old_space_size=128',
-            '--single-process',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-web-security',
+              '--disable-features=VizDisplayCompositor'
           ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
@@ -96,8 +90,6 @@ async function generateInvoice(customer, paymentDetails) {
 
     const page = await browser.newPage();
 
-    await page.setJavaScriptEnabled(false);
-    await page.setCacheEnabled(false);
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
       timeout: 15000
@@ -202,17 +194,11 @@ export async function sendInvoiceWithDiscount(
         : await puppeteer.launch({
           args: [
             ...chromium.args,
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--memory-pressure-off',
-            '--max_old_space_size=128',
-            '--single-process',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-web-security',
+              '--disable-features=VizDisplayCompositor'
           ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
@@ -225,8 +211,6 @@ export async function sendInvoiceWithDiscount(
 
     const page = await browser.newPage();
 
-    await page.setJavaScriptEnabled(false);
-    await page.setCacheEnabled(false);
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
       timeout: 15000
