@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import puppeteer from "puppeteer";
 
 dotenv.config();
 
@@ -8,6 +7,11 @@ import path from "path";
 import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
 import { Vendor } from "../models/users.js";
 import chromium from "@sparticuz/chromium";
+
+const puppeteer =
+  process.env.IS_LOCAL === "true"
+    ? await import("puppeteer")
+    : await import("puppeteer-core");
 
 async function generateInvoice(customer, paymentDetails) {
 
@@ -65,7 +69,17 @@ async function generateInvoice(customer, paymentDetails) {
     // Launch Puppeteer and create PDF
 
 
-    const browser = await puppeteer.launch()
+    const browser =
+      process.env.IS_LOCAL === "true"
+        ? await puppeteer.launch()
+        : await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+
+        });
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
@@ -162,7 +176,20 @@ export async function sendInvoiceWithDiscount(
     // Launch Puppeteer and create PDF
 
 
-    const browser = await puppeteer.launch()
+
+    const browser =
+      process.env.IS_LOCAL === "true"
+        ? await puppeteer.launch()
+        : await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+
+        });
+
+
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
