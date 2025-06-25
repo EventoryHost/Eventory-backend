@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+
 import puppeteer from "puppeteer";
 
 dotenv.config();
@@ -9,7 +10,14 @@ import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
 import { Vendor } from "../models/users.js";
 import chromium from "@sparticuz/chromium";
 
+const puppeteer =
+  process.env.IS_LOCAL === "true"
+    ? await import("puppeteer")
+    : await import("puppeteer-core");
+
 async function generateInvoice(customer, paymentDetails) {
+  let browser = null;
+  let page = null;
 
   console.log(paymentDetails);
   try {
@@ -65,16 +73,44 @@ async function generateInvoice(customer, paymentDetails) {
     // Launch Puppeteer and create PDF
 
 
-    const browser = await puppeteer.launch()
+    browser =
+      process.env.IS_LOCAL === "true"
+        ? await puppeteer.launch()
+        : await puppeteer.launch({
+          args: [
+            ...chromium.args,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+          ],
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+        });
+
+
+    page = await browser.newPage();
+
+    await page.setContent(html, {
+      waitUntil: ['domcontentloaded'],
+      timeout: 30000,
+    });
     await page.addStyleTag({ content: css });
 
+    await page.waitForTimeout(500);
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
 
-    await browser.close();
+    if (page && !page.isClosed()) {
+      await page.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
@@ -94,6 +130,16 @@ async function generateInvoice(customer, paymentDetails) {
     return result;
   } catch (error) {
     console.error("Error generating invoice:", error);
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+      if (browser) {
+        await browser.close();
+      }
+    } catch (cleanupError) {
+      console.error("Error during cleanup:", cleanupError);
+    }
     throw error;
   }
 }
@@ -162,16 +208,43 @@ export async function sendInvoiceWithDiscount(
     // Launch Puppeteer and create PDF
 
 
-    const browser = await puppeteer.launch()
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+    browser =
+      process.env.IS_LOCAL === "true"
+        ? await puppeteer.launch()
+        : await puppeteer.launch({
+          args: [
+            ...chromium.args,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+          ],
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+
+        });
+
+
+
+
+    page = await browser.newPage();
+
+    await page.setContent(html, {
+      waitUntil: ['domcontentloaded'],
+    });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
+    await page.close();
     await browser.close();
+    browser = null;
+    page = null;
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
