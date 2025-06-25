@@ -73,14 +73,7 @@ async function generateInvoice(customer, paymentDetails) {
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
-          args: [
-            ...chromium.args,
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-web-security',
-              '--disable-features=VizDisplayCompositor'
-          ],
+          args: chromium.args,
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
           headless: chromium.headless,
@@ -92,12 +85,12 @@ async function generateInvoice(customer, paymentDetails) {
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
-      timeout: 30000
+
     });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
     await page.close();
     await browser.close();
@@ -197,11 +190,11 @@ export async function sendInvoiceWithDiscount(
         : await puppeteer.launch({
           args: [
             ...chromium.args,
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-web-security',
-              '--disable-features=VizDisplayCompositor'
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
           ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
@@ -216,12 +209,11 @@ export async function sendInvoiceWithDiscount(
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
-      timeout: 30000
     });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
     await page.close();
     await browser.close();
