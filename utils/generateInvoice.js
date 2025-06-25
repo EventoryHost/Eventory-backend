@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
 
+import puppeteer from "puppeteer";
+
 dotenv.config();
 
 import { readFileSync } from "fs";
@@ -16,6 +18,7 @@ const puppeteer =
 async function generateInvoice(customer, paymentDetails) {
   let browser = null;
   let page = null;
+
   console.log(paymentDetails);
   try {
     const templatePath = path.resolve("templates", "invoiceTemplate.html");
@@ -70,7 +73,7 @@ async function generateInvoice(customer, paymentDetails) {
     // Launch Puppeteer and create PDF
 
 
-    const browser =
+    browser =
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
@@ -89,7 +92,8 @@ async function generateInvoice(customer, paymentDetails) {
 
         });
 
-    const page = await browser.newPage();
+
+    page = await browser.newPage();
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
@@ -205,7 +209,7 @@ export async function sendInvoiceWithDiscount(
 
 
 
-    const browser =
+    browser =
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
@@ -226,7 +230,8 @@ export async function sendInvoiceWithDiscount(
 
 
 
-    const page = await browser.newPage();
+
+    page = await browser.newPage();
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
