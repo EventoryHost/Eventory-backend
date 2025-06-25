@@ -89,10 +89,10 @@ const createMakeupArtist = async (req, res) => {
     const fieldsToCheck = [
       req.body.name, // basicDetails.name
       req.body.eventSize?.ll, // basicDetails.eventSize.ll
-      req.body.eventSize?.ul, // basicDetails.eventSize.ul
-      req.body.description, // basicDetails.description
+      req.body.eventSize?.ul, // basicDetails.eventSize.ul      req.body.description, // basicDetails.description
       req.body.eventTypes?.length > 0, // basicDetails.eventTypes
       req.body.typesOfMakeupArtists?.length > 0, // basicDetails.typesOfMakeupArtists
+      req.body.serviceAreas?.length > 0, // basicDetails.serviceAreas
       req.body.address, // basicDetails.address
       // req.body.location?.lat, // basicDetails.location.lat
       // req.body.location?.lng, // basicDetails.location.lng
@@ -126,9 +126,8 @@ const createMakeupArtist = async (req, res) => {
       `Profile completion came out to be -------------> : ${profileCompletion}%`,
     );
 
-    const eventSize = parseRange(req.body.eventSize);
-
-    console.log(req.body);
+    const eventSize = parseRange(req.body.eventSize);    console.log(req.body);
+    console.log("Service Areas received:", req.body.serviceAreas);
 
     const newMakeupArtist = new MakeupArtist({
       type: "makeupArtist",
@@ -142,9 +141,9 @@ const createMakeupArtist = async (req, res) => {
         eventSize: {
           ll: eventSize.ll,
           ul: eventSize.ul,
-        },
-        eventTypes: req.body.eventTypes.split(","),
+        },        eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
+        serviceAreas: req.body.serviceAreas ? req.body.serviceAreas.split(",") : [],
         address: req.body.address,
         location: {
           lat: req.body.latitude, // Latitude

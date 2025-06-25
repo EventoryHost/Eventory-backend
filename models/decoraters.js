@@ -13,9 +13,9 @@ const decoratorSchema = Schema({
     eventSize: {
       ul: { type: Number, required: true }, // Upper limit
       ll: { type: Number, required: true }, // Lower limit
-    },
-    description: { type: String, required: true },
+    },    description: { type: String, required: true },
     duration: { type: String },
+    serviceAreas: { type: [String], default: [] },
     eventTypes: {
       types: { type: [String], default: [], required: true },
       wedding: { type: [String] },

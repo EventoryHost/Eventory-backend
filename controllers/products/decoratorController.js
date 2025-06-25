@@ -79,8 +79,7 @@ const createDecorator = async (req, res) => {
     const themeVideosUrl = req.body.themevideos || [];
 
     const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];
-
+    const videosUrl = req.body.videos || [];    
     const eventTypes = {
       types: req.body.typesOfEvents || [],
       wedding: req.body.weddingEvents || [],
@@ -88,6 +87,8 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
+    
+    console.log("Service Areas received:", req.body.serviceAreas);
 
     // Calculate profile completion
     const fieldsToCheck = [
@@ -124,12 +125,17 @@ const createDecorator = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
     console.log("decorator:", req.body);
-    const newDecorator = new Decorator({
-      basicDetails: {
-        name: req.body.name,
+    const newDecorator = new Decorator({      basicDetails: {        name: req.body.name,
         description: req.body.description,
         eventSize,
-        eventTypes,
+        serviceAreas: req.body.serviceAreas || [],
+        eventTypes: {
+          types: req.body.typesOfEvents || [],
+          wedding: req.body.weddingEvents || [],
+          corporate: req.body.corporateEvents || [],
+          seasonal: req.body.seasonalEvents || [],
+          cultural: req.body.culturalEvents || [],
+        },
         duration: req.body.duration,
         address: req.body.address,
         latitude: req.body.latitude,

@@ -20,6 +20,10 @@ const photographerSchema = Schema({
       ll: { type: Number, required: true }, // Lower limit
       ul: { type: Number, required: true }, // Upper limit
     },
+    serviceAreas: {
+      type: [String],
+      required: true,
+    },
     eventTypes: {
       type: [String],
       required: true,
