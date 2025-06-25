@@ -14,7 +14,8 @@ const puppeteer =
     : await import("puppeteer-core");
 
 async function generateInvoice(customer, paymentDetails) {
-
+  let browser = null;
+  let page = null;
   console.log(paymentDetails);
   try {
     const templatePath = path.resolve("templates", "invoiceTemplate.html");
@@ -73,7 +74,14 @@ async function generateInvoice(customer, paymentDetails) {
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
-          args: chromium.args,
+          args: [
+            ...chromium.args,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+          ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
           headless: chromium.headless,
@@ -85,17 +93,20 @@ async function generateInvoice(customer, paymentDetails) {
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
-
+      timeout: 30000,
     });
     await page.addStyleTag({ content: css });
 
+    await page.waitForTimeout(500);
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
 
-    await page.close();
-    await browser.close();
-    browser = null;
-    page = null;
+    if (page && !page.isClosed()) {
+      await page.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
@@ -115,6 +126,16 @@ async function generateInvoice(customer, paymentDetails) {
     return result;
   } catch (error) {
     console.error("Error generating invoice:", error);
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+      if (browser) {
+        await browser.close();
+      }
+    } catch (cleanupError) {
+      console.error("Error during cleanup:", cleanupError);
+    }
     throw error;
   }
 }
