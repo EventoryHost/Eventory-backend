@@ -27,7 +27,6 @@ async function generateInvoice(customer, paymentDetails) {
     const subtotal = paymentDetails.amount * 0.82;
     const tax = paymentDetails.amount * 0.18;
     let taxSection = "";
-    console.log("Customer:", customer.businessDetails);
     if (customer.businessDetails.pinCode.toString().startsWith("1")) {
       // CGST & SGST for Delhi-based pincodes
       const cgst = tax / 2;
@@ -100,7 +99,7 @@ async function generateInvoice(customer, paymentDetails) {
     });
     await page.addStyleTag({ content: css });
 
-    await page.waitForTimeout(500);
+    
     // Define PDF options
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
 
