@@ -75,18 +75,18 @@ async function generateInvoice(customer, paymentDetails) {
       process.env.IS_LOCAL === "true"
         ? await puppeteer.launch()
         : await puppeteer.launch({
-          args: [
-            ...chromium.args,
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor'
-          ],
+          args: chromium.args,
+          // args: [
+          //   ...chromium.args,
+          //   '--no-sandbox',
+          //   '--disable-setuid-sandbox',
+          //   '--disable-dev-shm-usage',
+          //   '--disable-web-security',
+          //   '--disable-features=VizDisplayCompositor'
+          // ],
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
           headless: chromium.headless,
-          ignoreHTTPSErrors: true,
 
         });
 
@@ -94,14 +94,13 @@ async function generateInvoice(customer, paymentDetails) {
     page = await browser.newPage();
 
     await page.setContent(html, {
-      waitUntil: ['domcontentloaded'],
-      timeout: 30000,
+      waitUntil: "load",
     });
     await page.addStyleTag({ content: css });
 
     
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
     if (page && !page.isClosed()) {
       await page.close();
