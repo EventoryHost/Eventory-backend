@@ -95,6 +95,9 @@ async function generateInvoice(customer, paymentDetails) {
         });
 
     const page = await browser.newPage();
+
+    await page.setJavaScriptEnabled(false);
+    await page.setCacheEnabled(false);
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
       timeout: 15000
@@ -221,6 +224,9 @@ export async function sendInvoiceWithDiscount(
 
 
     const page = await browser.newPage();
+
+    await page.setJavaScriptEnabled(false);
+    await page.setCacheEnabled(false);
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
       timeout: 15000
