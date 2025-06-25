@@ -92,14 +92,17 @@ async function generateInvoice(customer, paymentDetails) {
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
-      timeout: 15000
+      timeout: 30000
     });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 15000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
 
+    await page.close();
     await browser.close();
+    browser = null;
+    page = null;
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
@@ -213,14 +216,17 @@ export async function sendInvoiceWithDiscount(
 
     await page.setContent(html, {
       waitUntil: ['domcontentloaded'],
-      timeout: 15000
+      timeout: 30000
     });
     await page.addStyleTag({ content: css });
 
     // Define PDF options
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 15000 });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, timeout: 30000 });
 
+    await page.close();
     await browser.close();
+    browser = null;
+    page = null;
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
