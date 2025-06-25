@@ -11,11 +11,11 @@ const verifyGSTIN = async (req, res) => {
     return res.status(400).json({ message: "Please provide a GSTIN number" });
   }
 
-  const gstinPattern =
-    /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/;
-  if (!gstinPattern.test(gstIn)) {
-    return res.status(400).json({ message: "Invalid GSTIN format" });
-  }
+  // const gstinPattern =
+  //   /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/;
+  // if (!gstinPattern.test(gstIn)) {
+  //   return res.status(400).json({ message: "Invalid GSTIN format" });
+  // }
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
@@ -25,11 +25,15 @@ const verifyGSTIN = async (req, res) => {
 
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    const url = `https://api.cashfree.com/verification/gstin`;
+    var url
+    process.env.IS_DEV === "true"?
+    url = `https://sandbox.cashfree.com/verification/gstin`:
+    url = `https://api.cashfree.com/verification/gstin`;
 
     const headers = {
       "x-client-id": clientId,
       "x-client-secret": clientSecret,
+      "X-Environment": "sandbox",
       "X-Cf-Signature": signature,
       "X-Timestamp": timestamp.toString(),
       "Content-Type": "application/json",
