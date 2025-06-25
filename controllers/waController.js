@@ -318,8 +318,8 @@ const handlePromoResponse = async (req, res) => {
       const canSendCondition =
         !data.canSend?.value &&
         (
-          (!data.canSend?.updatedAt || data.callRequest?.updatedAt > data.canSend.updatedAt) ||
-          (!data.canSend?.updatedAt || data.reqToJoinCommunity?.updatedAt > data.canSend.updatedAt)
+          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt) ||
+          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt)
         );
 
       const updateFields = {};
@@ -350,8 +350,8 @@ const handlePromoResponse = async (req, res) => {
       const canSendCondition =
         !data.canSend?.value &&
         (
-          (!data.canSend?.updatedAt || data.callRequest?.updatedAt > data.canSend.updatedAt) ||
-          (!data.canSend?.updatedAt || data.reqToJoinCommunity?.updatedAt > data.canSend.updatedAt)
+          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt) ||
+          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt)
         );
 
       const updateFields = {};
