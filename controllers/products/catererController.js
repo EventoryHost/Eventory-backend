@@ -2,6 +2,7 @@ import { Caterer } from "../../models/caterer.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -100,9 +101,9 @@ const createCaterer = async (req, res) => {
       req.body.service_style_offered,
       req.body.vegOrNonVeg,
       menu.length > 0 ||
-        (req.body.appetizers?.length > 0 &&
-          req.body.beverages?.length > 0 &&
-          req.body.main_course?.length > 0),
+      (req.body.appetizers?.length > 0 &&
+        req.body.beverages?.length > 0 &&
+        req.body.main_course?.length > 0),
       req.body.special_dietary_options?.length > 0,
       req.body.customizable,
       req.body.additional_services?.length > 0,
@@ -185,6 +186,7 @@ const createCaterer = async (req, res) => {
       },
     });
 
+
     const savedCaterer = await newCaterer.save();
 
     // Update section completion and profile completion
@@ -202,7 +204,10 @@ const createCaterer = async (req, res) => {
       serId: savedCaterer.id,
     });
     await vendor.save();
-
+    !process.env.IS_DEV && sendEmailToSlack({
+      name: savedCaterer.basicDetails.name,
+      type: savedCaterer.type,
+    })
     res.status(201).json(savedCaterer);
   } catch (error) {
     console.error(error);
