@@ -13,5 +13,5 @@ export const businessSchema = new mongoose.Schema({
   pinCode: { type: Number, required: true },
   cities: { type: [String], required: true },
   annualrevenue: { type: String }, // Made optional
-  bookingsPerMonth: { type: Number, default: 0 }, // Added with default
+  bookingsPerMonth: { type: Number }, // Added with default
 });
