@@ -18,6 +18,7 @@ const catererSchema = new Schema({
     },
     description: { type: String, required: true },
     cuisine_specialities: { type: [String], required: true },
+    serviceAreas: { type: [String], required: true },
     regional_specialities: { type: [String], required: true },
     service_style_offered: { type: [String], required: true },
     location: {

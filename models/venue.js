@@ -36,6 +36,7 @@ const venueSchema = new Schema({
       ll: { type: Number, required: true }, // Lower limit of capacity
       ul: { type: Number, required: true }, // Upper limit of capacity
     },
+    serviceAreas: { type: [String], required: true },
     operatingHours: {
       openingTime: {
         hour: { type: Number, min: 0, max: 23 }, // Hour (0-23)

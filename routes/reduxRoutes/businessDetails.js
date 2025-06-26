@@ -14,13 +14,15 @@ import { invitationRoutes } from "./invitation.js";
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
   const { id, businessDetails2 } = req.body;
+  
+  console.log("Backend received request with data:", { id, businessDetails2 });
 
   if (!businessDetails2) {
+    console.log("Error: No business details provided");
     return res
       .status(400)
       .json({ message: "Please provide business details." });
   }
-
   const {
     businessName,
     category,
@@ -32,13 +34,13 @@ router.post("/business-details", async (req, res) => {
     annualrevenue,
     pinCode,
     cities,
+    bookingsPerMonth,
   } = businessDetails2;
 
   try {
     const existingDetails = await BusinessDetailsModel.findOne({ id });
 
-    if (existingDetails) {
-      await BusinessDetailsModel.findOneAndUpdate(
+    if (existingDetails) {      await BusinessDetailsModel.findOneAndUpdate(
         { id },
         {
           businessName,
@@ -51,14 +53,14 @@ router.post("/business-details", async (req, res) => {
           cities,
           years,
           annualrevenue,
+          bookingsPerMonth,
         },
         { new: true },
       );
       return res
         .status(200)
         .json({ message: "Business details updated successfully." });
-    } else {
-      const newBusinessDetails = new BusinessDetailsModel({
+    } else {      const newBusinessDetails = new BusinessDetailsModel({
         id,
         businessName,
         category,
@@ -70,18 +72,18 @@ router.post("/business-details", async (req, res) => {
         cities,
         years,
         annualrevenue,
+        bookingsPerMonth,
       });
 
       await newBusinessDetails.save();
       return res
         .status(201)
         .json({ message: "Business details saved successfully." });
-    }
-  } catch (error) {
-    console.error(error);
+    }  } catch (error) {
+    console.error("Error in business-details endpoint:", error);
     res
       .status(500)
-      .json({ message: "Failed to save or update business details." });
+      .json({ message: "Failed to save or update business details.", error: error.message });
   }
 });
 

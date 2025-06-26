@@ -56,6 +56,8 @@ router.put("/update-service/:serviceId", async (req, res) => {
         vendor.businessDetails.annualrevenue = fieldsToUpdate.annualrevenue;
       if (fieldsToUpdate.gstin)
         vendor.businessDetails.gstin = fieldsToUpdate.gstin;
+      if(fieldsToUpdate.bookingsPerMonth)
+        vendor.businessDetails.bookingsPerMonth = fieldsToUpdate.bookingsPerMonth;
     }
 
     // Update the relevant service in the serviceIds array

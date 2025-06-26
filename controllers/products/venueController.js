@@ -256,6 +256,7 @@ const createVenue = async (req, res) => {
         operatingHours,
         // address: req.body.address,
         description: req.body.description,
+        serviceAreas: req.body.serviceAreas || [], // Add service areas array
         location: {
           lat: req.body.latitude,
           lng: req.body.longitude,
@@ -309,6 +310,7 @@ const createVenue = async (req, res) => {
       req.body.longitude,
       req.body.address,
       req.body.description,
+      req.body.serviceAreas?.length > 0, // Add service areas check
       req.body.venueTypes?.length > 0,
       req.body.decorServices,
       req.body.catererServices,

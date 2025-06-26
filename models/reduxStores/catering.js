@@ -17,6 +17,7 @@ const CateringSchema = new mongoose.Schema(
     regionalSpecialties: { type: [String] }, // Renamed to match final model
     cuisineSpecialties: { type: [String] }, // Renamed to match final model
     serviceStyles: { type: [String] }, // Renamed to match final model
+    serviceAreas: { type: [String] }, // Service areas where catering is available
 
     // Additional fields
     venId: { type: String },
