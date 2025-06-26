@@ -13,6 +13,8 @@ export const checkVenueProfileCompletion = async (venueId) => {
       venue.basicDetails.name != null &&
       venue.basicDetails.managerName != null &&
       venue.basicDetails.capacity != null &&
+      venue.basicDetails.serviceAreas != null &&
+      venue.basicDetails.serviceAreas.length > 0 &&
       venue.basicDetails.operatingHours.openingTime != null &&
       venue.basicDetails.operatingHours.closingTime != null;
     // venue.basicDetails.address != null &&

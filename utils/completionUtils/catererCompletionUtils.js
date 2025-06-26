@@ -20,6 +20,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       caterer.basicDetails.managerName &&
       caterer.basicDetails.capacity &&
       caterer.basicDetails.description &&
+      caterer.basicDetails.serviceAreas?.length > 0 &&
       caterer.basicDetails.cuisine_specialities.length > 0 &&
       caterer.basicDetails.regional_specialities.length > 0 &&
       caterer.basicDetails.service_style_offered.length > 0;

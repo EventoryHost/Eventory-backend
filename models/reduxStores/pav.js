@@ -12,6 +12,7 @@ const photographerSchema = Schema(
     clientTestimonials: { type: String },
     portfolio: { type: String },
     specialization: { type: [String] },
+    serviceAreas: { type: [String] },
     eventTypes: { type: [String] },
     customizablePackage: { type: Boolean, default: undefined },
     customizableSoundAndLightingRates: { type: Boolean, default: undefined },
