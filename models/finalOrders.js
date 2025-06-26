@@ -23,10 +23,12 @@ const OrderSchema = new mongoose.Schema({
       },
       default: () => ({ customer: null, vendor: null })
     },    
-    finalizedContents: {
-        type: [String],
-        default : [],
-    },
+    finalizedContents: [
+        {
+          name: String,
+          price: Number
+        }
+      ],      
     description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
