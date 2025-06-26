@@ -14,10 +14,9 @@ const verifyGSTIN = async (req, res) => {
 
   const gstinPattern =
     /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/;
-  if (!gstinPattern.test(gstIn)) {
+  if (!process.env.IS_DEV && !gstinPattern.test(gstIn)) {
     return res.status(400).json({ message: "Invalid GSTIN format" });
   }
-  
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
@@ -27,11 +26,15 @@ const verifyGSTIN = async (req, res) => {
 
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    const url = `https://api.cashfree.com/verification/gstin`;
+    var url
+    process.env.IS_DEV === "true"?
+    url = `https://sandbox.cashfree.com/verification/gstin`:
+    url = `https://api.cashfree.com/verification/gstin`;
 
     const headers = {
       "x-client-id": clientId,
       "x-client-secret": clientSecret,
+      "X-Environment": "sandbox",
       "X-Cf-Signature": signature,
       "X-Timestamp": timestamp.toString(),
       "Content-Type": "application/json",
@@ -101,7 +104,7 @@ const verifyPAN = async (req, res) => {
 
   // PAN card format validation - 5 letters followed by 4 numbers and then 1 letter
   const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-  if (!panPattern.test(panNo)) {
+  if (!process.env.IS_DEV && !panPattern.test(panNo)) {
     return res.status(400).json({ message: "Invalid PAN card format" });
   }
 
@@ -114,7 +117,13 @@ const verifyPAN = async (req, res) => {
     
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    const url = `https://api.cashfree.com/verification/pan`;
+    const panUrl = process.env.IS_DEV === "true" 
+      ? `https://sandbox.cashfree.com/verification/pan`
+      : `https://api.cashfree.com/verification/pan`;
+
+    const panGstinUrl = process.env.IS_DEV === "true"
+      ? `https://sandbox.cashfree.com/verification/pan-gstin`
+      : `https://api.cashfree.com/verification/pan-gstin`;
 
     const headers = {
       "x-client-id": clientId,
@@ -125,7 +134,7 @@ const verifyPAN = async (req, res) => {
     };
     
     // First, verify the PAN
-    const panResponse = await axios.post(url, { pan: panNo }, { headers });
+    const panResponse = await axios.post(panUrl, { pan: panNo }, { headers });
     
     console.log("PAN Verification response:", panResponse.data);
     
@@ -137,11 +146,11 @@ const verifyPAN = async (req, res) => {
       const verification_id = `eventory_${Date.now()}_${panNo}`;
       
       const gstinResponse = await axios.post(
-        `https://api.cashfree.com/verification/pan-gstin`, 
-        { 
-          pan: panNo, 
-          verification_id: verification_id 
-        }, 
+        panGstinUrl,
+        {
+          pan: panNo,
+          verification_id: verification_id
+        },
         { headers }
       );
       

@@ -156,6 +156,8 @@ import { Decorator } from "../../models/decoraters.js";
 import Photographer from "../../models/photographers.js";
 import PropRental from "../../models/props.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
+
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -357,6 +359,10 @@ const createVenue = async (req, res) => {
 
     await vendor.save();
 
+    !process.env.IS_DEV && sendEmailToSlack({
+      name: savedVenue.basicDetails.name,
+      type: savedVenue.type,
+    })
     res.status(201).json(savedVenue);
   } catch (error) {
     console.error(error);
