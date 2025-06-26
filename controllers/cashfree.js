@@ -15,7 +15,7 @@ import { sendInvoiceToWhatsApp } from "./waController.js";
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 
-const cashfree = process.env.IS_LOCAL === true ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
+const cashfree = process.env.IS_DEV === "true" ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
   new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
 
 
