@@ -203,7 +203,7 @@ const createDecorator = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
-    !process.env.IS_DEV && sendEmailToSlack({
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
           name: savedDecorator.basicDetails.name,
           type: savedDecorator.type,
         })

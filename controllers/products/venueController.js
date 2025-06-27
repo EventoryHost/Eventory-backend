@@ -359,7 +359,7 @@ const createVenue = async (req, res) => {
 
     await vendor.save();
 
-    !process.env.IS_DEV && sendEmailToSlack({
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
       name: savedVenue.basicDetails.name,
       type: savedVenue.type,
     })
