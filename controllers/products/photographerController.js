@@ -270,6 +270,7 @@ const createPhotographer = async (req, res) => {
     // Call to update section completion
     await updateSectionCompletion(newPhotographer.id);
     process.env.IS_DEV !== "true" && sendEmailToSlack({
+
           name: saved.basicDetails.name,
           type: saved.type,
         })

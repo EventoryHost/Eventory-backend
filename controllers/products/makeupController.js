@@ -203,6 +203,7 @@ const createMakeupArtist = async (req, res) => {
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);
     process.env.IS_DEV !== "true" && sendEmailToSlack({
+
       name: savedMakeupArtist.basicDetails.name,
       type: savedMakeupArtist.type,
     })

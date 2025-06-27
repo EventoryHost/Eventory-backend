@@ -205,6 +205,7 @@ const createCaterer = async (req, res) => {
     });
     await vendor.save();
     process.env.IS_DEV !== "true" && sendEmailToSlack({
+
       name: savedCaterer.basicDetails.name,
       type: savedCaterer.type,
     })
