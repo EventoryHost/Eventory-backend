@@ -6,7 +6,7 @@ cashfreeRoutes.post("/create-order", cashfreeController.createOrder);
 cashfreeRoutes.post("/verify-payment", cashfreeController.verifyPayment);
 cashfreeRoutes.post(
   "/generate-invoice",
-  cashfreeController.generateInvoiceWithDiscount,
+  cashfreeController.sendInvoice,
 );
 cashfreeRoutes.get("/payment-session/:order_id", cashfreeController.getPaymentSession);
 cashfreeRoutes.post("/webhook", cashfreeController.handleWebhook);

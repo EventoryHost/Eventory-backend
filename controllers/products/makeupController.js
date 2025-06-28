@@ -128,7 +128,7 @@ const createMakeupArtist = async (req, res) => {
       `Profile completion came out to be -------------> : ${profileCompletion}%`,
     );
 
-    const eventSize = parseRange(req.body.eventSize);    console.log(req.body);
+    const eventSize = parseRange(req.body.eventSize);
     console.log("Service Areas received:", req.body.serviceAreas);
 
     const newMakeupArtist = new MakeupArtist({
@@ -143,7 +143,7 @@ const createMakeupArtist = async (req, res) => {
         eventSize: {
           ll: eventSize.ll,
           ul: eventSize.ul,
-        },        eventTypes: req.body.eventTypes.split(","),
+        }, eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
         serviceAreas: req.body.serviceAreas ? req.body.serviceAreas.split(",") : [],
         address: req.body.address,
@@ -202,10 +202,12 @@ const createMakeupArtist = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);
-    !process.env.IS_DEV && sendEmailToSlack({
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
+
       name: savedMakeupArtist.basicDetails.name,
       type: savedMakeupArtist.type,
     })
+    
     res.status(201).json(savedMakeupArtist);
   } catch (error) {
     console.error("Error:", error);

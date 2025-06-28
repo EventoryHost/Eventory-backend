@@ -80,7 +80,7 @@ const createDecorator = async (req, res) => {
     const themeVideosUrl = req.body.themevideos || [];
 
     const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];    
+    const videosUrl = req.body.videos || [];
     const eventTypes = {
       types: req.body.typesOfEvents || [],
       wedding: req.body.weddingEvents || [],
@@ -88,7 +88,7 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
-    
+
     console.log("Service Areas received:", req.body.serviceAreas);
 
     // Calculate profile completion
@@ -126,7 +126,9 @@ const createDecorator = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
     console.log("decorator:", req.body);
-    const newDecorator = new Decorator({      basicDetails: {        name: req.body.name,
+    const newDecorator = new Decorator({
+      basicDetails: {
+        name: req.body.name,
         description: req.body.description,
         eventSize,
         serviceAreas: req.body.serviceAreas || [],
@@ -203,10 +205,11 @@ const createDecorator = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
-    !process.env.IS_DEV && sendEmailToSlack({
-          name: savedDecorator.basicDetails.name,
-          type: savedDecorator.type,
-        })
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
+
+      name: savedDecorator.basicDetails.name,
+      type: savedDecorator.type,
+    })
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);
