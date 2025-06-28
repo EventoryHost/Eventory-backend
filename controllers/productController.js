@@ -17,410 +17,578 @@ const getPincodesList = async (cityName) => {
 };
 
 const searchVenues = async (query) => {
-  const filters = {};
+  const matchStage = {};
 
-  // console.log(query);
+  const location = query.location;
 
-  if (query.location) {
-    const cityName = query.location;
-    filters["basicDetails.serviceAreas"] = cityName;
-  }
-
+  // Type of Event
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
-    filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+    matchStage["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
-  //handle price range
+  // Price Range
   if (query.minPrice || query.maxPrice) {
-    filters["additionalDetails.priceStartingFrom"] = {};
+    matchStage["additionalDetails.priceStartingFrom"] = {};
     if (query.minPrice)
-      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
-        query.minPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
     if (query.maxPrice)
-      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
-        query.maxPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
   }
 
-  //handle guest capacity range
-  if (query.minCapacity || query.maxCapacity) {
-    const minCapacity = query.minCapacity
-      ? parseInt(query.minCapacity, 10)
-      : null;
-    const maxCapacity = query.maxCapacity
-      ? parseInt(query.maxCapacity, 10)
-      : null;
-
-    if (minCapacity !== null && maxCapacity !== null) {
-      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
-      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
-    } else if (minCapacity !== null) {
-      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
-    } else if (maxCapacity !== null) {
-      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
-    }
+  // Guest Capacity
+  const minCapacity = query.minCapacity ? parseInt(query.minCapacity, 10) : null;
+  const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
+  if (minCapacity !== null && maxCapacity !== null) {
+    matchStage["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+    matchStage["basicDetails.capacity.ul"] = { $gte: minCapacity };
+  } else if (minCapacity !== null) {
+    matchStage["basicDetails.capacity.ul"] = { $gte: minCapacity };
+  } else if (maxCapacity !== null) {
+    matchStage["basicDetails.capacity.ll"] = { $lte: maxCapacity };
   }
 
-  //handle veneue types
+  // Venue Types
   if (query.venueTypes) {
-    query.venueTypes = query.venueTypes ? query.venueTypes.split(",") : [];
-    filters["featureDetails.venueTypes"] = { $in: query.venueTypes };
+    const types = query.venueTypes.split(",").map((v) => v.trim());
+    matchStage["featureDetails.venueTypes"] = { $in: types };
   }
 
+  // Rating
   if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
+    const rating = parseInt(query.rating, 10);
+    matchStage["rating"] = {};
     if (rating === 0) {
-      filters["rating"].$lt = 1;
+      matchStage["rating"].$lt = 1;
     } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      matchStage["rating"].$gte = rating;
     }
   }
-  // console.log("priyanshu", filters, "end");
 
-  let venueQuery = Venue.find(filters);
-
-  const apiFeatures = new APIFeatures(venueQuery, query)
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const totalResults = await Venue.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-  const totalPages = Math.ceil(totalResults / limit);
+  const skip = (page - 1) * limit;
 
-  const data = await apiFeatures.query;
+  const pipeline = [{ $match: matchStage }];
 
-  return { data, totalResults, totalPages, currentPage: page };
+  // Add location relevance if location is provided
+  if (location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: {
+                $in: [location, { $ifNull: ["$basicDetails.serviceAreas", []] }]
+              },
+              then: 1,
+              else: 0
+            }
+          }
+        }
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  // Continue with pagination
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          {
+            $addFields: {
+              page: page,
+              totalPages: {
+                $ceil: {
+                  $divide: ["$total", limit]
+                }
+              }
+            }
+          }
+        ],
+        data: [
+          { $skip: skip },
+          { $limit: limit }
+        ]
+      }
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page"
+      }
+    }
+  );
+
+  const result = await Venue.aggregate(pipeline);
+
+  return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
 };
 
+
 const searchDecorators = async (query) => {
-  const filters = {};
+  const matchStage = {};
 
-  if (query.location) {
-    const cityName = query.location;
-    filters["basicDetails.serviceAreas"] = cityName;
-  }
+  const location = query.location;
 
+  // Event type
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
-    filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+    matchStage["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
+  // Price range
   if (query.minPrice || query.maxPrice) {
-    filters["additionalDetails.priceStartingFrom"] = {};
+    matchStage["additionalDetails.priceStartingFrom"] = {};
     if (query.minPrice)
-      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
-        query.minPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
     if (query.maxPrice)
-      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
-        query.maxPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
   }
 
+  // Rating
   if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
+    const rating = parseInt(query.rating, 10);
+    matchStage["rating"] = {};
     if (rating === 0) {
-      filters["rating"].$lt = 1;
+      matchStage["rating"].$lt = 1;
     } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      matchStage["rating"].$gte = rating;
     }
   }
 
-  // Handle themes offered
+  // Themes
   if (query.themes) {
-    query.themes = query.themes ? query.themes.split(",") : [];
-    filters["themesOffered.themesOffered"] = { $in: query.themes };
+    const themeList = query.themes.split(",").map((theme) => theme.trim());
+    matchStage["themesOffered.themesOffered"] = { $in: themeList };
   }
 
-  console.log("priyyanshu", filters);
-
-  let decoratorQuery = Decorator.find(filters);
-
-  const apiFeatures = new APIFeatures(decoratorQuery, query)
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const totalResults = await Decorator.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-  const totalPages = Math.ceil(totalResults / limit);
+  const skip = (page - 1) * limit;
 
-  const data = await apiFeatures.query;
+  const pipeline = [{ $match: matchStage }];
 
-  return { data, totalResults, totalPages, currentPage: page };
+  // Prioritize location-based sorting
+  if (location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: {
+                $in: [location, { $ifNull: ["$basicDetails.serviceAreas", []] }]
+              },
+              then: 1,
+              else: 0
+            }
+          }
+        }
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  // Pagination with metadata
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          {
+            $addFields: {
+              page: page,
+              totalPages: {
+                $ceil: {
+                  $divide: ["$total", limit]
+                }
+              }
+            }
+          }
+        ],
+        data: [
+          { $skip: skip },
+          { $limit: limit }
+        ]
+      }
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page"
+      }
+    }
+  );
+
+  const result = await Decorator.aggregate(pipeline);
+
+  return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
 };
 
 const searchCaterers = async (query) => {
-  // console.log("start", query, "End");
-  const filters = {};
+  const matchStage = {};
 
-  if (query.location) {
-    const cityName = query.location;
-    filters["basicDetails.serviceAreas"] = cityName;
-  }
+  const location = query.location;
 
+  // Event Type
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
-    filters["eventDetails.event_types_catered"] = { $in: [query.typeOfEvent] };
+    matchStage["eventDetails.event_types_catered"] = { $in: [query.typeOfEvent] };
   }
 
-  // Handle price range
+  // Price range
   if (query.minPrice || query.maxPrice) {
-    filters["additionalDetails.priceStartingFrom"] = {};
+    matchStage["additionalDetails.priceStartingFrom"] = {};
     if (query.minPrice)
-      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
-        query.minPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
     if (query.maxPrice)
-      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
-        query.maxPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
   }
 
+  // Rating
   if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
+    const rating = parseInt(query.rating, 10);
+    matchStage["rating"] = {};
     if (rating === 0) {
-      filters["rating"].$lt = 1;
+      matchStage["rating"].$lt = 1;
     } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      matchStage["rating"].$gte = rating;
     }
   }
 
-  // Handle guest capacity range
-  if (query.minCapacity || query.maxCapacity) {
-    const minCapacity = query.minCapacity
-      ? parseInt(query.minCapacity, 10)
-      : null;
-    const maxCapacity = query.maxCapacity
-      ? parseInt(query.maxCapacity, 10)
-      : null;
-
-    if (minCapacity !== null && maxCapacity !== null) {
-      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
-      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
-    } else if (minCapacity !== null) {
-      filters["basicDetails.capacity.ul"] = { $gte: minCapacity };
-    } else if (maxCapacity !== null) {
-      filters["basicDetails.capacity.ll"] = { $lte: maxCapacity };
-    }
+  // Guest capacity
+  const minCapacity = query.minCapacity ? parseInt(query.minCapacity, 10) : null;
+  const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
+  if (minCapacity !== null && maxCapacity !== null) {
+    matchStage["basicDetails.capacity.ll"] = { $lte: maxCapacity };
+    matchStage["basicDetails.capacity.ul"] = { $gte: minCapacity };
+  } else if (minCapacity !== null) {
+    matchStage["basicDetails.capacity.ul"] = { $gte: minCapacity };
+  } else if (maxCapacity !== null) {
+    matchStage["basicDetails.capacity.ll"] = { $lte: maxCapacity };
   }
 
+  // Cuisine specialities
   if (query.cuisineSpecialities) {
-    const cuisineList = query.cuisineSpecialities
-      .split(",")
-      .map((item) => item.trim());
-    filters["basicDetails.cuisine_specialities"] = { $in: cuisineList };
+    const cuisineList = query.cuisineSpecialities.split(",").map((item) => item.trim());
+    matchStage["basicDetails.cuisine_specialities"] = { $in: cuisineList };
   }
 
+  // Veg / Non-Veg
   if (query.vegOrNonVeg) {
-    filters["menuDetails.vegOrNonVeg"] = query.vegOrNonVeg.toLowerCase();
+    matchStage["menuDetails.vegOrNonVeg"] = query.vegOrNonVeg.toLowerCase();
   }
 
-  let catererQuery = Caterer.find(filters);
-
-  console.log("priyanshu", filters, "end");
-
-  const apiFeatures = new APIFeatures(catererQuery, query)
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const totalResults = await Caterer.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-  const totalPages = Math.ceil(totalResults / limit);
+  const skip = (page - 1) * limit;
 
-  const data = await apiFeatures.query;
+  const pipeline = [
+    { $match: matchStage }
+  ];
 
-  return { data, totalResults, totalPages, currentPage: page };
+  // Add location-based sorting if location is provided
+  if (location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: {
+                $in: [
+                  location,
+                  { $ifNull: ["$basicDetails.serviceAreas", []] }
+                ]
+              },
+              then: 1,
+              else: 0
+            }
+          }
+        }
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  // Continue with pagination
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          {
+            $addFields: {
+              page: page,
+              totalPages: {
+                $ceil: {
+                  $divide: ["$total", limit]
+                }
+              }
+            }
+          }
+        ],
+        data: [
+          { $skip: skip },
+          { $limit: limit }
+        ]
+      }
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page"
+      }
+    }
+  );
+
+  const result = await Caterer.aggregate(pipeline);
+
+  return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
 };
 
 const searchPAV = async (query) => {
-  const filters = {};
+  const matchStage = {};
 
-  if (query.location) {
-    const cityName = query.location;
-    filters["basicDetails.serviceAreas"] = cityName;
-  }
+  const location = query.location;
 
+  // Type of Event
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
-    filters["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+    matchStage["basicDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
-  // Handle price range
+  // Price Range
   if (query.minPrice || query.maxPrice) {
-    filters["additionalDetails.priceStartingFrom"] = {};
+    matchStage["additionalDetails.priceStartingFrom"] = {};
     if (query.minPrice)
-      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
-        query.minPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
     if (query.maxPrice)
-      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
-        query.maxPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
   }
 
-  // Handle event types filtering
+  // Event Types
   if (query.eventTypes) {
     const eventList = query.eventTypes.split(",").map((item) => item.trim());
-    filters["basicDetails.eventTypes"] = { $in: eventList };
+    matchStage["basicDetails.eventTypes"] = { $in: eventList };
   }
 
-  // Handle services and styles filtering
+  // Services + Styles
   if (query.services) {
     const services = query.services.toLowerCase();
     if (services === "photography" || services === "videography") {
       const stylesField = `${services.charAt(0).toUpperCase() + services.slice(1)}.typesOfStyles`;
       if (query.styles) {
         const stylesList = query.styles.split(",").map((style) => style.trim());
-        filters[stylesField] = { $in: stylesList };
+        matchStage[stylesField] = { $in: stylesList };
       }
-    } else if (services === "both") {
-      const photoStylesField = "Photography.typesOfStyles";
-      const videoStylesField = "Videography.typesOfStyles";
-      if (query.styles) {
-        const stylesList = query.styles.split(",").map((style) => style.trim());
-        filters.$or = [
-          { [photoStylesField]: { $in: stylesList } },
-          { [videoStylesField]: { $in: stylesList } },
-        ];
-      }
+    } else if (services === "both" && query.styles) {
+      const stylesList = query.styles.split(",").map((style) => style.trim());
+      matchStage.$or = [
+        { "Photography.typesOfStyles": { $in: stylesList } },
+        { "Videography.typesOfStyles": { $in: stylesList } }
+      ];
     }
   }
 
+  // Rating
   if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
+    const rating = parseInt(query.rating, 10);
+    matchStage["rating"] = {};
     if (rating === 0) {
-      filters["rating"].$lt = 1;
+      matchStage["rating"].$lt = 1;
     } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      matchStage["rating"].$gte = rating;
     }
   }
 
-  // console.log("priyanshu", filters, "end");
-
-  let photographerQuery = Photographer.find(filters);
-
-  const apiFeatures = new APIFeatures(photographerQuery, query)
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const totalResults = await Photographer.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-  const totalPages = totalResults / limit;
+  const skip = (page - 1) * limit;
 
-  const data = await apiFeatures.query;
+  const pipeline = [{ $match: matchStage }];
 
-  return { data, totalResults, totalPages, currentPage: page };
+  // Add location-based prioritization
+  if (location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: {
+                $in: [location, { $ifNull: ["$basicDetails.serviceAreas", []] }]
+              },
+              then: 1,
+              else: 0
+            }
+          }
+        }
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          {
+            $addFields: {
+              page: page,
+              totalPages: {
+                $ceil: {
+                  $divide: ["$total", limit]
+                }
+              }
+            }
+          }
+        ],
+        data: [
+          { $skip: skip },
+          { $limit: limit }
+        ]
+      }
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page"
+      }
+    }
+  );
+
+  const result = await Photographer.aggregate(pipeline);
+
+  return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
 };
 
 const searchMakeupArtists = async (query) => {
-  const filters = {};
+  const matchStage = {};
 
-  // console.log(query);
+  const location = query.location;
 
-  if (query.location) {
-    const cityName = query.location;
-    filters["basicDetails.serviceAreas"] = cityName;
-  }
-
+  // Type of Event
   if (query.typeOfEvent && query.typeOfEvent !== "All") {
-    filters["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
+    matchStage["featureDetails.eventTypes"] = { $in: [query.typeOfEvent] };
   }
 
-  //handle price range
+  // Price Range
   if (query.minPrice || query.maxPrice) {
-    filters["additionalDetails.priceStartingFrom"] = {};
+    matchStage["additionalDetails.priceStartingFrom"] = {};
     if (query.minPrice)
-      filters["additionalDetails.priceStartingFrom"].$gte = parseInt(
-        query.minPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$gte = parseInt(query.minPrice, 10);
     if (query.maxPrice)
-      filters["additionalDetails.priceStartingFrom"].$lte = parseInt(
-        query.maxPrice,
-        10,
-      );
+      matchStage["additionalDetails.priceStartingFrom"].$lte = parseInt(query.maxPrice, 10);
   }
 
-  //handle guest capacity range
-  if (query.minCapacity || query.maxCapacity) {
-    const minCapacity = query.minCapacity
-      ? parseInt(query.minCapacity, 10)
-      : null;
-    const maxCapacity = query.maxCapacity
-      ? parseInt(query.maxCapacity, 10)
-      : null;
-
-    if (minCapacity !== null && maxCapacity !== null) {
-      filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
-      filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
-    } else if (minCapacity !== null) {
-      filters["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
-    } else if (maxCapacity !== null) {
-      filters["basicDetails.eventSize.ul"] = { $gte: minCapacity };
-    }
+  // Event Size / Capacity
+  const minCapacity = query.minCapacity ? parseInt(query.minCapacity, 10) : null;
+  const maxCapacity = query.maxCapacity ? parseInt(query.maxCapacity, 10) : null;
+  if (minCapacity !== null && maxCapacity !== null) {
+    matchStage["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
+    matchStage["basicDetails.eventSize.ul"] = { $gte: minCapacity };
+  } else if (minCapacity !== null) {
+    matchStage["basicDetails.eventSize.ul"] = { $gte: minCapacity };
+  } else if (maxCapacity !== null) {
+    matchStage["basicDetails.eventSize.ll"] = { $lte: maxCapacity };
   }
 
+  // Types of Makeup Artists
   if (query.typesOfMakeupArtists) {
-    query.typesOfMakeupArtists = query.typesOfMakeupArtists
-      ? query.typesOfMakeupArtists.split(",")
-      : [];
-    filters["basicDetails.typesOfMakeupArtists"] = {
-      $in: query.typesOfMakeupArtists,
-    };
+    const types = query.typesOfMakeupArtists.split(",").map((t) => t.trim());
+    matchStage["basicDetails.typesOfMakeupArtists"] = { $in: types };
   }
 
+  // Service Types
   if (query.serviceTypes) {
-    query.serviceTypes = query.serviceTypes
-      ? query.serviceTypes.split(",")
-      : [];
-    filters["serviceDetails.serviceTypes"] = { $in: query.serviceTypes };
+    const services = query.serviceTypes.split(",").map((t) => t.trim());
+    matchStage["serviceDetails.serviceTypes"] = { $in: services };
   }
 
+  // Rating
   if (query.rating) {
-    let rating = parseInt(query.rating, 10);
-    filters["rating"] = {};
+    const rating = parseInt(query.rating, 10);
+    matchStage["rating"] = {};
     if (rating === 0) {
-      filters["rating"].$lt = 1;
+      matchStage["rating"].$lt = 1;
     } else {
-      filters["rating"].$gte = parseInt(query.rating, 10);
+      matchStage["rating"].$gte = rating;
     }
   }
 
-  // console.log("priyanshu", filters, "end");
-
-  let makeupQuery = MakeupArtist.find(filters);
-
-  const apiFeatures = new APIFeatures(makeupQuery, query)
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const totalResults = await MakeupArtist.countDocuments(filters); // Get total count
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
-  const totalPages = Math.ceil(totalResults / limit);
+  const skip = (page - 1) * limit;
 
-  const data = await apiFeatures.query;
+  const pipeline = [{ $match: matchStage }];
 
-  return { data, totalResults, totalPages, currentPage: page };
+  // Location prioritization
+  if (location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: {
+                $in: [location, { $ifNull: ["$basicDetails.serviceAreas", []] }]
+              },
+              then: 1,
+              else: 0
+            }
+          }
+        }
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  // Pagination and metadata
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          {
+            $addFields: {
+              page: page,
+              totalPages: {
+                $ceil: {
+                  $divide: ["$total", limit]
+                }
+              }
+            }
+          }
+        ],
+        data: [
+          { $skip: skip },
+          { $limit: limit }
+        ]
+      }
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page"
+      }
+    }
+  );
+
+  const result = await MakeupArtist.aggregate(pipeline);
+
+  return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
 };
 
 const searchAllVendors = async (query) => {
@@ -587,6 +755,10 @@ const searchProducts = async (req, res, next) => {
     console.log(req.query);
     let results;
 
+    if(req.query.location && req.query.location.toLowerCase() === "all") {
+      req.query.location = "";
+    }
+
     switch (type) {
       case "all":
         results = await searchAllVendors(req.query);
@@ -605,7 +777,9 @@ const searchProducts = async (req, res, next) => {
         results = await searchPAV(req.query);
         break;
       case "makeupartists":
+        console.log("hit");
         results = await searchMakeupArtists(req.query);
+        console.log("hit");
         break;
       default:
         return res.status(400).json({ message: "Invalid Product type." });
