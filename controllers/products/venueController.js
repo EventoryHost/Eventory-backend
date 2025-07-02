@@ -156,6 +156,8 @@ import { Decorator } from "../../models/decoraters.js";
 import Photographer from "../../models/photographers.js";
 import PropRental from "../../models/props.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
+
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -254,6 +256,7 @@ const createVenue = async (req, res) => {
         operatingHours,
         // address: req.body.address,
         description: req.body.description,
+        serviceAreas: req.body.serviceAreas || [], // Add service areas array
         location: {
           lat: req.body.latitude,
           lng: req.body.longitude,
@@ -307,6 +310,7 @@ const createVenue = async (req, res) => {
       req.body.longitude,
       req.body.address,
       req.body.description,
+      req.body.serviceAreas?.length > 0, // Add service areas check
       req.body.venueTypes?.length > 0,
       req.body.decorServices,
       req.body.catererServices,
@@ -355,6 +359,11 @@ const createVenue = async (req, res) => {
 
     await vendor.save();
 
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
+
+      name: savedVenue.basicDetails.name,
+      type: savedVenue.type,
+    })
     res.status(201).json(savedVenue);
   } catch (error) {
     console.error(error);

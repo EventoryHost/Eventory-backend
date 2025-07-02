@@ -1,12 +1,11 @@
-import { readFileSync } from "fs";
 import { ses } from "../config/awsConfig.js";
 import { SendRawEmailCommand } from "@aws-sdk/client-ses";
 import dotenv from "dotenv";
 import mime from "mime-types";
-import path from "path";
 dotenv.config();
 
 const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
+
   try {
     const fileType = mime.lookup(fileName);
 
@@ -51,4 +50,34 @@ const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
   }
 };
 
-export { sendEmailInvoice };
+const sendEmailToSlack = async (service) => {
+  const rawEmail = [
+    `From: ${process.env.EMAIL_FROM}`,
+    `To: event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com, payments@eventory.in`,
+    `To: ankitchakraborty1972@gmail.com, sreyoni.nandi@gmail.com`,
+    `Subject: New Vendor Onboarding`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset=UTF-8`,
+    ``,
+    `A new serivce has been onboarded.`,
+    `Service Details:`,
+    `${service.name} - ${service.type}`,
+  ].join("\r\n");
+
+  const params = {
+    RawMessage: {
+      Data: rawEmail,
+    },
+  };
+
+  try {
+    const command = new SendRawEmailCommand(params);
+    return await ses.send(command);
+  } catch (error) {
+    return error.message;
+  }
+}
+
+
+
+export { sendEmailInvoice, sendEmailToSlack };

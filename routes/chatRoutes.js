@@ -10,7 +10,7 @@ import {
   blockChat,
   unblockChat,
   getPinnedMessages,
-  getBlockedChats
+  getBlockedChats,
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -24,6 +24,9 @@ router.post("/upload-media", upload("chat").single("file"), uploadChatMedia);
 router.get("/:chatId/search", searchMessages);
 router.get("/:chatId/search/:qId", getMessageContext);
 
+// Get pinned messages for a chat
+router.get("/:chatId/pinned-messages", getPinnedMessages);
+
 //RM FUNCTIONS
 router.post("/chat/:chatId/pin/:messageId", pinMessageInChat);
 router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
@@ -33,6 +36,6 @@ router.post("/chat/:chatId/unblock", unblockChat);
 
 router.get("/chat/:chatId/pinned", getPinnedMessages);
 
-router.get("/blocked" , getBlockedChats);
+router.get("/blocked", getBlockedChats);
 
 export default router;

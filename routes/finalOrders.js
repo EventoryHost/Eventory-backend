@@ -7,11 +7,13 @@ const router = express.Router();
 router.post("/finalOrder", async (req, res) => {
   try {
     const { orderId, ...rest } = req.body;
+  try {
+    const { orderId, ...rest } = req.body;
 
     let order = await Order.findOneAndUpdate(
       { orderId },
       rest,
-      { new: true, upsert: true } // upsert = create if not found
+      { new: true, upsert: true }, // upsert = create if not found
     );
 
     res
@@ -155,6 +157,8 @@ router.put("/finalOrder/approve", async (req, res) => {
 
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
   try {
     const { orderId } = req.params;
 

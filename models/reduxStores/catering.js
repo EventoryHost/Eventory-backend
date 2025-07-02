@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const CateringSchema = new mongoose.Schema(
   {
     id: { type: String, unique: true },
-    pageNumber: { type: String, default: "1" },
+    pageNumber: { type: Number, default: 1 },
     cateringName: { type: String },
     businessName: { type: String },
     servingCapacity: { type: String },
@@ -17,6 +17,7 @@ const CateringSchema = new mongoose.Schema(
     regionalSpecialties: { type: [String] }, // Renamed to match final model
     cuisineSpecialties: { type: [String] }, // Renamed to match final model
     serviceStyles: { type: [String] }, // Renamed to match final model
+    serviceAreas: { type: [String] }, // Service areas where catering is available
 
     // Additional fields
     venId: { type: String },

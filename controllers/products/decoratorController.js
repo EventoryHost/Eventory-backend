@@ -2,6 +2,7 @@ import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -80,7 +81,6 @@ const createDecorator = async (req, res) => {
 
     const photosUrl = req.body.photos || [];
     const videosUrl = req.body.videos || [];
-
     const eventTypes = {
       types: req.body.typesOfEvents || [],
       wedding: req.body.weddingEvents || [],
@@ -88,6 +88,8 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
+
+    console.log("Service Areas received:", req.body.serviceAreas);
 
     // Calculate profile completion
     const fieldsToCheck = [
@@ -129,7 +131,14 @@ const createDecorator = async (req, res) => {
         name: req.body.name,
         description: req.body.description,
         eventSize,
-        eventTypes,
+        serviceAreas: req.body.serviceAreas || [],
+        eventTypes: {
+          types: req.body.typesOfEvents || [],
+          wedding: req.body.weddingEvents || [],
+          corporate: req.body.corporateEvents || [],
+          seasonal: req.body.seasonalEvents || [],
+          cultural: req.body.culturalEvents || [],
+        },
         duration: req.body.duration,
         address: req.body.address,
         latitude: req.body.latitude,
@@ -196,6 +205,11 @@ const createDecorator = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
+
+      name: savedDecorator.basicDetails.name,
+      type: savedDecorator.type,
+    })
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);

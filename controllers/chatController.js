@@ -4,6 +4,7 @@ import Chat from "../models/chat.js";
 import Message from "../models/message.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
+import { checkEmails } from "../middlewares/checkEmails.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -44,9 +45,8 @@ export const handleSocketConnection = (socket, io) => {
     ) => {
       try {
         // Fix function name swap - these were incorrectly imported/named
-        if (checkPhoneNumber(content)) {
-          // This actually checks for profanity
-          console.log("Abusive content detected:", content);
+        if (checkPhoneNumber(content) && checkEmails(content)) {
+          console.log("Phone number or email detected:", content);
           // Call the callback with error if provided
           if (typeof callback === "function") {
             callback("Please refrain from using abusive words!");
@@ -340,7 +340,8 @@ export const uploadChatMedia = (req, res) => {
 
 export const pinMessageInChat = async (req, res) => {
   try {
-    const { chatId, messageId } = req.params;
+    const { chatId } = req.params;
+    const { messageId } = req.body;
 
     if (!chatId || !messageId) {
       return res
@@ -359,15 +360,13 @@ export const pinMessageInChat = async (req, res) => {
       await chat.save();
     }
 
-    return res
-      .status(200)
-      .json({
-        message: "Message pinned successfully",
-        pinnedMessages: chat.pinnedMessages,
-      });
+    return res.status(200).json({
+      message: "Message pinned successfully",
+      pinnedMessages: chat.pinnedMessages,
+    });
   } catch (error) {
     console.error("Couldn't pin chat:", error);
-    return res.status(500).json({ error: "Could not pin chat" });
+    return res.status(500).json({ error: "Could not pin message" });
   }
 };
 
@@ -384,18 +383,15 @@ export const unpinMessageInChat = async (req, res) => {
     chat.pinnedMessages = chat.pinnedMessages.filter((id) => id !== messageId);
     await chat.save();
 
-    return res
-      .status(200)
-      .json({
-        message: "Message unpinned successfully",
-        pinnedMessages: chat.pinnedMessages,
-      });
+    return res.status(200).json({
+      message: "Message unpinned successfully",
+      pinnedMessages: chat.pinnedMessages,
+    });
   } catch (error) {
-    console.error("Couldn't unpin chat:", error);
-    return res.status(500).json({ error: "Could not unpin chat" });
+    console.error("Couldn't unpin message:", error);
+    return res.status(500).json({ error: "Could not unpin message" });
   }
 };
-
 
 export const blockChat = async (req, res) => {
   try {
@@ -473,19 +469,16 @@ export const getPinnedMessages = async (req, res) => {
 
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
-    try {
-        const blockedChats = await Chat.find({ status: "blocked" })
-            .select("chatId status")
-            .sort({ updatedAt: -1 }); // Sort by most recently updated
-        return res.status(200).json({ blockedChats });
-    } catch (error) {
-        console.error("Error fetching blocked chats:", error);
-        return res.status(500).json({ error: "Server error" });
-    }
+  try {
+    const blockedChats = await Chat.find({ status: "blocked" })
+      .select("chatId status")
+      .sort({ updatedAt: -1 }); // Sort by most recently updated
+    return res.status(200).json({ blockedChats });
+  } catch (error) {
+    console.error("Error fetching blocked chats:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
 };
-
-
-
 
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;

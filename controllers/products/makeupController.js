@@ -1,6 +1,8 @@
 import MakeupArtist from "../../models/makeupArtists.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
+
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -89,10 +91,10 @@ const createMakeupArtist = async (req, res) => {
     const fieldsToCheck = [
       req.body.name, // basicDetails.name
       req.body.eventSize?.ll, // basicDetails.eventSize.ll
-      req.body.eventSize?.ul, // basicDetails.eventSize.ul
-      req.body.description, // basicDetails.description
+      req.body.eventSize?.ul, // basicDetails.eventSize.ul      req.body.description, // basicDetails.description
       req.body.eventTypes?.length > 0, // basicDetails.eventTypes
       req.body.typesOfMakeupArtists?.length > 0, // basicDetails.typesOfMakeupArtists
+      req.body.serviceAreas?.length > 0, // basicDetails.serviceAreas
       req.body.address, // basicDetails.address
       // req.body.location?.lat, // basicDetails.location.lat
       // req.body.location?.lng, // basicDetails.location.lng
@@ -127,8 +129,7 @@ const createMakeupArtist = async (req, res) => {
     );
 
     const eventSize = parseRange(req.body.eventSize);
-
-    console.log(req.body);
+    console.log("Service Areas received:", req.body.serviceAreas);
 
     const newMakeupArtist = new MakeupArtist({
       type: "makeupArtist",
@@ -142,9 +143,9 @@ const createMakeupArtist = async (req, res) => {
         eventSize: {
           ll: eventSize.ll,
           ul: eventSize.ul,
-        },
-        eventTypes: req.body.eventTypes.split(","),
+        }, eventTypes: req.body.eventTypes.split(","),
         typesOfMakeupArtists: req.body.typesOfMakeupArtists.split(","),
+        serviceAreas: req.body.serviceAreas ? req.body.serviceAreas.split(",") : [],
         address: req.body.address,
         location: {
           lat: req.body.latitude, // Latitude
@@ -201,7 +202,12 @@ const createMakeupArtist = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
 
+      name: savedMakeupArtist.basicDetails.name,
+      type: savedMakeupArtist.type,
+    })
+    
     res.status(201).json(savedMakeupArtist);
   } catch (error) {
     console.error("Error:", error);

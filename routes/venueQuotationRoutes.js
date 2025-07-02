@@ -68,18 +68,16 @@ router.get("/all", async (req, res) => {
     const quotations = await venueQuotation.find(); // Fetch all quotations from the database
 
     if (quotations.length === 0) {
-      return res.status(404).json([]);  // Return an empty array if no quotations are found
+      return res.status(404).json([]); // Return an empty array if no quotations are found
     }
 
     res.status(200).json(quotations); // Return the array of quotations as JSON
   } catch (error) {
     res.status(500).json({
       message: "Error retrieving quotations", // Send a meaningful error message
-      error: error.message,  // Include error details for debugging
+      error: error.message, // Include error details for debugging
     });
   }
 });
-
-
 
 export default router;
