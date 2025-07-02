@@ -16,6 +16,8 @@ const OrderSchema = new mongoose.Schema({
     photos: { type: [String], default: [] }, // array of image URLs
     rating: { type: Number, default: 0 }, // added
     finalURL : { type: String }, // added
+    advance_payment: { type: Number}, 
+    advance_payment_type: { type: String, }, 
     approvals: {
       type: {
         customer: { type: Boolean, default: null },
