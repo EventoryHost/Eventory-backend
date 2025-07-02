@@ -7,13 +7,11 @@ const router = express.Router();
 router.post("/finalOrder", async (req, res) => {
   try {
     const { orderId, ...rest } = req.body;
-  try {
-    const { orderId, ...rest } = req.body;
 
     let order = await Order.findOneAndUpdate(
       { orderId },
       rest,
-      { new: true, upsert: true }, // upsert = create if not found
+      { new: true, upsert: true } // upsert = create if not found
     );
 
     res
@@ -157,30 +155,29 @@ router.put("/finalOrder/approve", async (req, res) => {
 
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
-  try {
-    const { orderId } = req.params;
-  try {
-    const { orderId } = req.params;
+try {
+  const { orderId } = req.params;
 
-    // Find the order by orderId, not _id
-    const updatedOrder = await Order.findOneAndUpdate(
-      { orderId: orderId }, // Use orderId to find the order
-      req.body, // Update with the request body
-      { new: true } // Return the updated order
-    );
+  // Find the order by orderId, not _id
+  const updatedOrder = await Order.findOneAndUpdate(
+    { orderId: orderId }, // Use orderId to find the order
+    req.body, // Update with the request body
+    { new: true } // Return the updated order
+  );
 
-    if (!updatedOrder)
-      return res.status(404).json({ message: "Booking not found" });
+  if (!updatedOrder)
+    return res.status(404).json({ message: "Booking not found" });
 
-    res
-      .status(200)
-      .json({ message: "Booking updated successfully", data: updatedOrder });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to update booking", error: error.message });
-  }
+  res
+    .status(200)
+    .json({ message: "Booking updated successfully", data: updatedOrder });
+} catch (error) {
+  res
+    .status(500)
+    .json({ message: "Failed to update booking", error: error.message });
+}
 });
+
 
 // Fetch all bookings for a vendor (by vendorId)
 router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
