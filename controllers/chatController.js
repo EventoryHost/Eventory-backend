@@ -480,6 +480,40 @@ export const getBlockedChats = async (req, res) => {
   }
 };
 
+export const getCustomerNotifications = async (req, res) => {
+  try {
+    // your logic here
+    return res.status(200).json({ message: "Notifications fetched successfully" });
+  } catch (error) {
+    console.error("Error in getCustomerNotifications:", error);
+    return res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+
+    if (!notificationId) {
+      return res.status(400).json({ error: "Notification ID is required" });
+    }
+
+    // Assuming you have a Notification model
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+
+    notification.read = true; // Mark as read
+    await notification.save();
+
+    return res.status(200).json({ message: "Notification marked as read" });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    return res.status(500).json({ error: "Failed to mark notification as read" });
+  }
+}
+
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
 //     const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.

@@ -33,6 +33,10 @@ const OrderSchema = new mongoose.Schema(
       },
       default: () => ({ customer: null, vendor: null }),
     },
+    lastAction: {
+      by: { type: String, enum: ["customer", "vendor"], default: null },
+      value: { type: Boolean, default: null },
+    },
     finalizedContents: [
       {
         name: String,
