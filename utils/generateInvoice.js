@@ -26,12 +26,14 @@ async function generateInvoice(customer, paymentDetails) {
 
     const subtotal = (paymentDetails.amount) * 0.82;
     const discount = parseInt(paymentDetails.discount).toFixed(2) || 0;
+
     const tax = (paymentDetails.amount - paymentDetails.discount) * 0.18;
     let taxSection = "";
     if (customer.businessDetails.pinCode.toString().startsWith("1")) {
       // CGST & SGST for Delhi-based pincodes
       const cgst = tax / 2;
       const sgst = tax / 2;
+
       taxSection = `<p>Subtotal: \u20B9 ${subtotal.toFixed(2)}</p>
       ${discount !== 0 ? `<p>Discount: -\u20B9 ${(discount * 0.82).toFixed(2)}</p>` : ""}
         <p>CGST (9%): \u20B9 ${cgst.toFixed(2)}</p>
@@ -43,6 +45,7 @@ async function generateInvoice(customer, paymentDetails) {
       // IGST for other pincodes
 
       taxSection = `
+
       <p>Subtotal: \u20B9 ${subtotal.toFixed(2)}</p>
       ${discount !== 0 ? `<p>Discount: -\u20B9 ${(discount * 0.82).toFixed(2)}</p>` : ""}
       <p>IGST (18%): \u20B9 ${tax.toFixed(2)}</p>
@@ -67,6 +70,7 @@ async function generateInvoice(customer, paymentDetails) {
       "{{customerAddress}}",
       customer.businessDetails.businessAddress,
     );
+
     html = html.replace("{{amount}}", (paymentDetails.amount - paymentDetails.discount).toFixed(2));
 
     html = html.replace("{{gstin}}", customer.businessDetails.gstin);

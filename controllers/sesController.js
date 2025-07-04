@@ -54,6 +54,7 @@ const sendEmailToSlack = async (service) => {
   const rawEmail = [
     `From: ${process.env.EMAIL_FROM}`,
     `To: event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com, payments@eventory.in`,
+    `To: ankitchakraborty1972@gmail.com, sreyoni.nandi@gmail.com`,
     `Subject: New Vendor Onboarding`,
     `MIME-Version: 1.0`,
     `Content-Type: text/plain; charset=UTF-8`,
