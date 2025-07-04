@@ -126,7 +126,9 @@ const createDecorator = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
     console.log("decorator:", req.body);
-    const newDecorator = new Decorator({      basicDetails: {        name: req.body.name,
+    const newDecorator = new Decorator({
+      basicDetails: {
+        name: req.body.name,
         description: req.body.description,
         eventSize,
         serviceAreas: req.body.serviceAreas || [],
