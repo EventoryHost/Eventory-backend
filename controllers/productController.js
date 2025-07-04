@@ -598,6 +598,8 @@ const searchAllVendors = async (query) => {
     if (query.location) {
       const cityName = query.location;
       filters["basicDetails.serviceAreas"] = cityName;
+      const cityName = query.location;
+      filters["basicDetails.serviceAreas"] = cityName;
     }
 
     // Handle price range filtering

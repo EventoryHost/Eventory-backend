@@ -158,7 +158,8 @@ const createProp = async (req, res) => {
 
     // Update section completion for prop rental
     await updateSectionCompletion(savedProp.id);
-    !process.env.IS_DEV && sendEmailToSlack({
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
+
       name: savedProp.basicDetails.name,
       type: savedProp.type,
     })

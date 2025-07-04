@@ -1,8 +1,6 @@
 import { Cashfree, CFEnvironment } from "cashfree-pg";
 
-import generateInvoice, {
-  sendInvoiceWithDiscount,
-} from "../utils/generateInvoice.js";
+import generateInvoice from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
 import { Vendor } from "../models/users.js";
 import { sendEmailInvoice } from "./sesController.js";
@@ -15,7 +13,7 @@ import { sendInvoiceToWhatsApp } from "./waController.js";
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 
-const cashfree = process.env.IS_LOCAL === true ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
+const cashfree = process.env.IS_DEV === "true" ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
   new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
 
 
@@ -53,7 +51,7 @@ const createOrder = async (req, res) => {
 
 
 const verifyPayment = async (req, res) => {
-  const { order_id, ven_id } = req.body;
+  const { order_id, ven_id, discount } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -76,6 +74,7 @@ const verifyPayment = async (req, res) => {
       invoiceDate: new Date().toLocaleDateString(),
       amount: payment.order_amount,
       method: payment.order_meta.payment_methods !== null ? payment.order_meta.payment_methods : "UPI CC",
+      discount: discount || 0,
       id: ven_id,
     };
 
@@ -92,7 +91,7 @@ const verifyPayment = async (req, res) => {
   }
 };
 
-async function generateInvoiceWithDiscount(req, res) {
+async function sendInvoice(req, res) {
   try {
     const { ven_id, amount, discount } = req.body;
     const payment_id = generatePaymentId();
@@ -101,14 +100,15 @@ async function generateInvoiceWithDiscount(req, res) {
       invoiceNumber: payment_id,
       invoiceDate: new Date().toLocaleDateString(),
       amount: amount,
+      discount: discount,
       method: "None",
+      id: ven_id,
     };
 
     const vendor = await Vendor.findOne({ id: ven_id });
-    const file = await sendInvoiceWithDiscount(
+    const file = await generateInvoice(
       vendor,
       formattedDetails,
-      discount,
     );
     if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
     sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
@@ -206,7 +206,7 @@ const getPaymentSession = async (req, res) => {
 export default {
   createOrder,
   verifyPayment,
-  generateInvoiceWithDiscount,
+  sendInvoice,
   handleWebhook,
   getPaymentSession,
 };
