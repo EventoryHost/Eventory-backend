@@ -20,6 +20,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: PROD_ENV,DEV_ENV
           script: |
             BRANCH=${{ github.ref_name }}
 
@@ -28,7 +29,7 @@ jobs:
               ENV_CONTENT=${{secrets.PROD_ENV}}
             else
               APP_DIR="dev"
-              ENV_CONTENT=${{secrets.DEV_ENV}}
+              echo "$DEV_ENV" > ~/.env.temp
              fi
 
             
@@ -36,7 +37,7 @@ jobs:
             rm -rf $APP_DIR
             git clone -b $BRANCH git@github.com:EventoryHost/Eventory-backend.git $APP_DIR
             cd $APP_DIR
-            echo "$ENV_CONTENT" > .env
+            mv ~/.env.temp .env
             npm install
             pm2 delete $BRANCH || true
             pm2 start api/index.js --name $BRANCH --namespace $BRANCH
