@@ -5,6 +5,7 @@ import Message from "../models/message.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
+import customerNotification from "../models/customerNotification.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -480,12 +481,30 @@ export const getBlockedChats = async (req, res) => {
   }
 };
 
+// export const getCustomerNotifications = async (req, res) => {
+//   try {
+//     // your logic here
+//     return res.status(200).json({ message: "Notifications fetched successfully" });
+//   } catch (error) {
+//     console.error("Error in getCustomerNotifications:", error);
+//     return res.status(500).json({ error: "Failed to fetch notifications" });
+//   }
+// };
 export const getCustomerNotifications = async (req, res) => {
   try {
-    // your logic here
-    return res.status(200).json({ message: "Notifications fetched successfully" });
+    const { customerId } = req.params;
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Customer ID is required" });
+    }
+
+    const notifications = await customerNotification
+      .find({ customerId })
+      .sort({ createdAt: -1 }); // Sort by most recent notifications
+
+    return res.status(200).json({ notifications });
   } catch (error) {
-    console.error("Error in getCustomerNotifications:", error);
+    console.error("Error fetching customer notifications:", error);
     return res.status(500).json({ error: "Failed to fetch notifications" });
   }
 };

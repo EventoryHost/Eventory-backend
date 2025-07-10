@@ -5,6 +5,9 @@ const customerNotificationSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  message : {
+    type: String,
+  },
   orderId: {
     type: String,
     required: true,
@@ -15,11 +18,9 @@ const customerNotificationSchema = new mongoose.Schema({
   },
   finalPrice: {
     type: Number,
-    required: true,
   },
   checkoutURL: {
     type: String,
-    required: true,
   },
   read: {
     type: Boolean,

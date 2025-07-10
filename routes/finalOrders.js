@@ -1,6 +1,8 @@
 import express from "express";
 import Order from "../models/finalOrders.js";
 import customerNotification from "../models/customerNotification.js";
+import vendorNotification from "../models/vendorNotification.js";
+import adminNotification from "../models/adminNotification.js";
 
 const router = express.Router();
 
@@ -83,20 +85,17 @@ router.put("/finalOrder/approve", async (req, res) => {
 
     // ✅ CASE 1: Both parties approved
     if (approvals.customer === true && approvals.vendor === true) {
-      const checkoutURL =
-        order.finalURL ||
-        `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId || "unknown"}&orderId=${order.orderId}`;
-
-      // 🔔 TODO: Send checkout link to customer via Amazon SNS
-      // await sendSNSNotification(order.customerId, `Your booking is approved! Checkout here: ${checkoutURL}`);
-
-      console.log("✅ Both approved. Sending checkout link:", checkoutURL);
-      // Parse final price by removing comma (if any)
       const parsedFinalPrice = Number(
         String(order.budget || order.finalPrice || 0).replace(/,/g, "")
       );
 
-      // ✅ Save a notification in the DB
+      const checkoutURL =
+        order.finalURL ||
+        `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
+
+        const message = `✅ Final Order Approved by both Vendor and Customer. (Order ID: ${order.orderId})`;
+
+      // Customer Notification
       await customerNotification.findOneAndUpdate(
         {
           customerId: order.customerId,
@@ -106,11 +105,28 @@ router.put("/finalOrder/approve", async (req, res) => {
         {
           $set: {
             finalPrice: parsedFinalPrice,
-            checkoutURL: checkoutURL,
+            checkoutURL,
+            message,
           },
         },
-        { new: true, upsert: true } // update if exists, create if not
+        { new: true, upsert: true }
       );
+
+      // Vendor Notification
+      await vendorNotification.create({
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });
+
+      // Admin Notification
+      await adminNotification.create({
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });
 
       return res.status(200).json({
         message: `Both parties approved. Checkout link sent to customer.`,
@@ -119,9 +135,30 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
     }
 
-    // ❌ CASE 2: Any party rejected
+    // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
-      console.log("❌ Rejected. Resetting approvals to null.");
+      const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
+
+      await vendorNotification.create({
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });
+
+      await adminNotification.create({
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });
+
+      await customerNotification.create({
+        customerId: order.customerId,
+        vendorId: order.vendorId,
+        orderId: order.orderId,
+        message,
+      });
 
       const resetOrder = await Order.findOneAndUpdate(
         { orderId },
@@ -144,6 +181,32 @@ router.put("/finalOrder/approve", async (req, res) => {
     }
 
     // 🟡 CASE 3: Only one party approved, waiting for the other
+    const message = `🕐 Final Order approved by ${userType}. Waiting for the other party. (Order ID: ${order.orderId})`;
+
+    // Notify Vendor
+    await vendorNotification.create({
+      vendorId: order.vendorId,
+      customerId: order.customerId,
+      orderId: order.orderId,
+      message,
+    });
+
+    // Notify Admin
+    await adminNotification.create({
+      vendorId: order.vendorId,
+      customerId: order.customerId,
+      orderId: order.orderId,
+      message,
+    });
+
+    // Optionally: Notify Customer too (depending on your UX design)
+    await customerNotification.create({
+      customerId: order.customerId,
+      vendorId: order.vendorId,
+      orderId: order.orderId,
+      message,
+    });
+
     return res.status(200).json({
       message: `Approval updated for ${userType}, waiting for other party.`,
       data: order,

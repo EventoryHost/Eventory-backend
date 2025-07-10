@@ -37,7 +37,7 @@ router.get("/chat/:chatId/pinned", getPinnedMessages);
 
 // router for blocked chats
 router.get("/blocked", getBlockedChats);
-router.get("/notifications/:customerId" , getCustomerNotifications);
+router.get("/:customerId/customerNotifications" , getCustomerNotifications);
 router.patch("/notifications/read/:notificationId", markNotificationAsRead);
 
 
