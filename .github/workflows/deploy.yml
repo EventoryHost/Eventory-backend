@@ -20,17 +20,14 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: PROD_ENV,DEV_ENV
+          envs: ${{ secrets.DEV_ENV }}
           script: |
             BRANCH=${{ github.ref_name }}
 
-            if [ "$BRANCH" = "prod" ]; then
-              APP_DIR="prod"
-              ENV_CONTENT=${{secrets.PROD_ENV}}
-            else
-              APP_DIR="dev"
-              echo "$DEV_ENV" > ~/.env.temp
-             fi
+            
+            APP_DIR="dev"
+            echo "$DEV_ENV" > ~/.env.temp
+
 
             
             cd ~
