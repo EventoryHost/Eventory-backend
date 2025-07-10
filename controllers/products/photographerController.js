@@ -1,5 +1,6 @@
 // import { Photographer } from "../../models/photographers.js";
 import Photographer from "../../models/photographers.js";
+import PAVModel from "../../models/reduxStores/pav.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
@@ -238,6 +239,22 @@ const createPhotographer = async (req, res) => {
       }, // Added location field
     };
 
+    // Fetch agreement data from temporary PAV collection
+    const tempPAVData = await PAVModel.findOne({ id: req.body.venId });
+    const agreementUrl = tempPAVData?.agreementUrl || null;
+    const agreementSignedAt = tempPAVData?.agreementSignedAt || null;
+    
+    if (agreementUrl) {
+      console.log("Found agreement data for photographer:", agreementUrl);
+    }
+
+    // Add agreement data to policies
+    const updatedPolicies = {
+      ...policies,
+      agreementUrl: agreementUrl,
+      agreementSignedAt: agreementSignedAt,
+    };
+
     // Create new Photographer document
     const newPhotographer = new Photographer({
       basicDetails,
@@ -245,7 +262,7 @@ const createPhotographer = async (req, res) => {
       Photography, // Updated with enum for finalDeliveryMethods
       consultationDetails, // Updated with enum for duration and PackageTypes
       additionalDetails, // Updated with priceStartingFrom as number
-      policies, // Policies remain the same
+      policies: updatedPolicies, // Updated policies with agreement data
       venId: req.body.venId,
       vendorType: "photographer",
       rating: 0, // Added rating field

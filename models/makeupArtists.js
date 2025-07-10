@@ -61,6 +61,8 @@ const makeupArtistSchema = Schema({
     cancellationPolicy: { type: [String] },
     certificateOrAwards: { type: [String] },
     clientTestimonials: { type: [String] },
+    agreementUrl: { type: String },
+    agreementSignedAt: { type: Date },
   },
 
   id: { type: String, default: () => generateUniqueId("mak"), required: true },

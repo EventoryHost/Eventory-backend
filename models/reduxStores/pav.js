@@ -64,6 +64,8 @@ const photographerSchema = Schema(
     writtenthemeproposalafterconsultaion: { type: Boolean },
     freerevisionforinitialthemeproposal: { type: Boolean },
     priceStarts: { type: String },
+    agreementUrl: { type: String }, // URL of the signed agreement PDF
+    agreementSignedAt: { type: Date }, // When the agreement was signed
   },
   { timestamps: true },
 );

@@ -105,6 +105,8 @@ const venueSchema = new Schema({
     termsAndConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     insurancePolicy: { type: [String] },
+    agreementUrl: { type: String },
+    agreementSignedAt: { type: Date },
   },
   isVerified: { type: Boolean, default: false }, // Flag for verification status
   rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews

@@ -38,10 +38,14 @@ const DecoratorSchema = new mongoose.Schema(
     advbookingperiod: { type: String },
     termsAndConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
+    agreementUrl: { type: String }, // URL of the signed agreement PDF
+    agreementSignedAt: { type: Date },
     ratings_reviews: { type: [String] },
     portfolio: { type: [String] },
     certificates_awards: { type: [String] },
     priceStarts: { type: String },
+    agreementUrl: { type: String }, // URL of the signed agreement PDF
+    agreementSignedAt: { type: Date }, // When the agreement was signed
   },
   { timestamps: true },
 );
