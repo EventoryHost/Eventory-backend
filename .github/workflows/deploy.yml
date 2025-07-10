@@ -10,6 +10,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      DEV_ENV: ${{ secrets.DEV_ENV }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -20,22 +23,25 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ${{ secrets.DEV_ENV }}
+          envs: DEV_ENV
           script: |
             BRANCH=${{ github.ref_name }}
+            APP_DIR="dev"
 
             
-            APP_DIR="dev"
             echo "$DEV_ENV" > ~/.env.temp
 
-
-            
+          
             cd ~
             rm -rf $APP_DIR
-            git clone -b $BRANCH git@github.com:EventoryHost/Eventory-backend.git $APP_DIR
+            git clone -b $BRANCH https://github.com/EventoryHost/Eventory-backend.git $APP_DIR
             cd $APP_DIR
+
+            
             mv ~/.env.temp .env
             npm install
+
+          
             pm2 delete $BRANCH || true
             pm2 start api/index.js --name $BRANCH --namespace $BRANCH
             pm2 save
