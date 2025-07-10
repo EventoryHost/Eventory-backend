@@ -15,13 +15,15 @@ import { invitationRoutes } from "./invitation.js";
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
   const { id, businessDetails2 } = req.body;
+  
+  console.log("Backend received request with data:", { id, businessDetails2 });
 
   if (!businessDetails2) {
+    console.log("Error: No business details provided");
     return res
       .status(400)
       .json({ message: "Please provide business details." });
   }
-
   const {
     businessName,
     category,
@@ -33,13 +35,13 @@ router.post("/business-details", async (req, res) => {
     annualrevenue,
     pinCode,
     cities,
+    bookingsPerMonth,
   } = businessDetails2;
 
   try {
     const existingDetails = await BusinessDetailsModel.findOne({ id });
 
-    if (existingDetails) {
-      await BusinessDetailsModel.findOneAndUpdate(
+    if (existingDetails) {      await BusinessDetailsModel.findOneAndUpdate(
         { id },
         {
           businessName,
@@ -52,14 +54,14 @@ router.post("/business-details", async (req, res) => {
           cities,
           years,
           annualrevenue,
+          bookingsPerMonth,
         },
         { new: true },
       );
       return res
         .status(200)
         .json({ message: "Business details updated successfully." });
-    } else {
-      const newBusinessDetails = new BusinessDetailsModel({
+    } else {      const newBusinessDetails = new BusinessDetailsModel({
         id,
         businessName,
         category,
@@ -71,18 +73,18 @@ router.post("/business-details", async (req, res) => {
         cities,
         years,
         annualrevenue,
+        bookingsPerMonth,
       });
 
       await newBusinessDetails.save();
       return res
         .status(201)
         .json({ message: "Business details saved successfully." });
-    }
-  } catch (error) {
-    console.error(error);
+    }  } catch (error) {
+    console.error("Error in business-details endpoint:", error);
     res
       .status(500)
-      .json({ message: "Failed to save or update business details." });
+      .json({ message: "Failed to save or update business details.", error: error.message });
   }
 });
 
@@ -178,6 +180,38 @@ router.get("/catering-details/:id", async (req, res) => {
     console.error("Error retrieving catering details:", error);
     res.status(500).json({
       message: "Failed to retrieve catering details.",
+      error: error.message,
+    });
+  }
+});
+
+// DELETE route to remove catering details by user ID
+router.delete("/catering-details/:id", async (req, res) => {
+  const { id } = req.params;
+  // Log details of service bieng deleted
+
+  console.log("Deleting catering details for ID:", id);
+
+  if (!id) {
+    return res
+      .status(400)
+      .json({ message: "User ID is required for deletion." });
+  }
+
+  try {
+    const deletedDetails = await CateringModel.findOneAndDelete(id); // Correct method
+
+    if (!deletedDetails) {
+      return res
+        .status(404)
+        .json({ message: "Catering details not found for deletion." });
+    }
+
+    res.status(200).json({ message: "Catering details deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting catering details:", error);
+    res.status(500).json({
+      message: "Failed to delete catering details.",
       error: error.message,
     });
   }

@@ -6,14 +6,13 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
 
     if (!decorator) {
       throw new Error("Decorator not found");
-    }
-
-    // Check if basic details are complete (only check for non-empty fields)
+    }    // Check if basic details are complete (only check for non-empty fields)
     const basicDetailsComplete =
       decorator.basicDetails.name &&
       decorator.basicDetails.eventSize &&
       decorator.basicDetails.description &&
-      decorator.basicDetails.eventTypes.types.length > 0;
+      decorator.basicDetails.eventTypes.types.length > 0 &&
+      decorator.basicDetails.serviceAreas?.length > 0;
 
     // Log the result of the basic details check
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
@@ -101,7 +100,10 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
     );
 
     // Policies are considered complete if both cancellation and terms are filled
-    const policiesComplete = cancellationComplete && termsComplete;
+    const policiesComplete = Boolean(cancellationComplete && termsComplete);
+
+    console.log(`policiesComplete: ----- ${policiesComplete}`);
+    console.log(`Type of policiesComplete: ----- ${typeof policiesComplete}`);
 
     // Update completed flag for policies
     await Decorator.findOneAndUpdate(

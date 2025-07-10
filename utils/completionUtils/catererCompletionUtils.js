@@ -20,6 +20,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       caterer.basicDetails.managerName &&
       caterer.basicDetails.capacity &&
       caterer.basicDetails.description &&
+      caterer.basicDetails.serviceAreas?.length > 0 &&
       caterer.basicDetails.cuisine_specialities.length > 0 &&
       caterer.basicDetails.regional_specialities.length > 0 &&
       caterer.basicDetails.service_style_offered.length > 0;
@@ -89,26 +90,27 @@ export const checkCatererProfileCompletion = async (catererId) => {
       caterer.additionalDetails.tasting_sessions !== undefined &&
       caterer.additionalDetails.business_licenses !== undefined &&
       caterer.additionalDetails.food_safety_certificates.length > 0 &&
-      caterer.additionalDetails.priceStartingFrom &&
-      caterer.additionalDetails.advance_booking_period &&
-      caterer.additionalDetails.minimum_order_requirements;
+      caterer.additionalDetails.priceStartingFrom != null &&
+      caterer.additionalDetails.advance_booking_period != null &&
+      caterer.additionalDetails.minimum_order_requirements != null;
+
     console.log(`Additional Details Complete: ${additionalDetailsComplete}`);
-    const check = additionalDetailsComplete ? "true" : "false";
-    // Update completed flag for additional details
+
+    // Update completed flag for additional details with real boolean
     await Caterer.findOneAndUpdate(
       { id: catererId },
       {
-        "additionalDetails.completed": check,
+        "additionalDetails.completed": additionalDetailsComplete,
       },
     );
 
-    // Check if terms_and_conditions is filled (Ensure it's a URL or any non-empty string)
-    console.log("Checking terms_and_conditions...");
+    // Check if termsAndConditions is filled (Ensure it's a URL or any non-empty string)
+    console.log("Checking termsAndConditions...");
     let termsComplete = false;
     if (
       caterer.policies &&
-      caterer.policies.terms_and_conditions &&
-      caterer.policies.terms_and_conditions.trim() !== ""
+      caterer.policies.termsAndConditions &&
+      caterer.policies.termsAndConditions.trim() !== ""
     ) {
       termsComplete = true;
     }
@@ -126,13 +128,13 @@ export const checkCatererProfileCompletion = async (catererId) => {
     }
     console.log(`Client Testimonials Complete: ${testimonialsComplete}`);
 
-    // Check if cancellation_policy is filled (Ensure it's a URL or any non-empty string)
-    console.log("Checking cancellation_policy...");
+    // Check if cancellationPolicy is filled (Ensure it's a URL or any non-empty string)
+    console.log("Checking cancellationPolicy...");
     let cancellationComplete = false;
     if (
       caterer.policies &&
-      caterer.policies.cancellation_policy &&
-      caterer.policies.cancellation_policy.trim() !== ""
+      caterer.policies.cancellationPolicy &&
+      caterer.policies.cancellationPolicy.trim() !== ""
     ) {
       cancellationComplete = true;
     }

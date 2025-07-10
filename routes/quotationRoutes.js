@@ -1,30 +1,43 @@
 import express from "express";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
+import { getQuotations } from "../controllers/quotationController.js";
+import generateUniqueId from "../utils/generateId.js";
+import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
+import { v4 as uuidv4 } from "uuid"; // For generating unique chatId
+import Chat from "../models/chat.js"; // Import Chat model
 
 const router = express.Router();
 
 // Create a new quotation
 router.post("/", async (req, res) => {
   try {
+    const parsedBudget = Number(req.body.budget);
+    const parsedNumberOfGuest = Number(req.body.number_of_guest);
+
+    // Validate budget and number_of_guest
+    if (isNaN(parsedBudget) || isNaN(parsedNumberOfGuest)) {
+      return res
+        .status(400)
+        .json({ error: "Budget and Number of Guests must be valid numbers." });
+    }
     const newQuotation = new Quotation({
       // Meta Data
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
 
+      id: generateUniqueId("quo"),
       // Data
       user_name: req.body.user_name,
-      email: req.body.email,
       mobile: req.body.mobile,
-      event: req.body.event,
       location: req.body.location,
-      start_date: req.body.start_date,
-      end_date: req.body.end_date,
+      start_date: new Date(req.body.start_date),
+      end_date: new Date(req.body.end_date),
 
       time: req.body.time,
-      budget: req.body.budget,
-      number_of_guest: req.body.number_of_guest,
+      budget: parsedBudget,
+      number_of_guest: parsedNumberOfGuest,
       requirements: req.body.requirements,
       event_type: req.body.event_type,
     });
@@ -39,12 +52,12 @@ router.post("/", async (req, res) => {
 
     const savedQuotation = await newQuotation.save();
 
-    if (!customer.bookings) {
-      customer.bookings = [];
+    if (!customer.quotations) {
+      customer.quotations = [];
     }
 
     if (
-      customer.bookings.find(
+      customer.quotations.find(
         (booking) => booking.serviceId === req.body.service_id,
       )
     ) {
@@ -53,9 +66,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    customer.bookings.push({
+    customer.quotations.push({
       serviceId: req.body.service_id,
-      bookingId: savedQuotation._id,
+      quotationId: savedQuotation.id,
     });
 
     await customer.save();
@@ -63,6 +76,14 @@ router.post("/", async (req, res) => {
     res.status(201).json({
       message: "Quotation created successfully!",
       data: savedQuotation,
+    });
+
+    setImmediate(() => {
+      sendConfirmationMessageToWhatsapp({
+        customer_mobile: customer.mobile,
+        customer_name: customer.name,
+        id: newQuotation.id,
+      });
     });
   } catch (error) {
     res.status(500).json({
@@ -72,10 +93,11 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get quotations by vendor id
+// Get quotations by vendor_id or user_id
 router.get("/", async (req, res) => {
   try {
     const { vendor_id } = req.query;
+    console.log("id is ", vendor_id);
 
     if (!vendor_id) {
       return res.status(400).json({
@@ -83,7 +105,11 @@ router.get("/", async (req, res) => {
       });
     }
 
-    const quotations = await Quotation.find({ vendor_id });
+    // Construct query dynamically
+    const query = {};
+    if (vendor_id) query.vendor_id = vendor_id;
+    console.log(query);
+    const quotations = await Quotation.find(query);
 
     if (quotations.length === 0) {
       return res.status(404).json({
@@ -103,15 +129,81 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get all quotations (no filters)
+router.get("/all", async (req, res) => {
+  try {
+    const quotations = await Quotation.find();
+
+    if (quotations.length === 0) {
+      return res.status(404).json({
+        message: "No quotations found",
+      });
+    }
+
+    res.status(200).json({
+      message: "All quotations retrieved successfully!",
+      data: quotations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving all quotations",
+      error: error.message,
+    });
+  }
+});
+
 router.patch("/", async (req, res) => {
   try {
-    await Quotation.updateOne(
-      { _id: req.body._id },
-      { $set: { status: req.body.status } },
+    const { id, status } = req.body;
+
+    // 1. Update quotation status
+    const updateResult = await Quotation.updateOne(
+      { id },
+      { $set: { status } },
     );
+
+    if (updateResult.modifiedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Quotation not found or unchanged" });
+    }
+
+    // 2. Fetch updated quotation from DB
+    const updatedQuotation = await Quotation.findOne({ id });
+
+    if (!updatedQuotation) {
+      return res
+        .status(404)
+        .json({ message: "Quotation not found after update" });
+    }
+
+    // 3. If status is "Accepted", create a new Chat
+    if (status === "Accepted") {
+      const { user_id, vendor_id, service_id } = updatedQuotation;
+
+      // Check if chat already exists
+      const existingChat = await Chat.findOne({
+        cusId: user_id,
+        venId: vendor_id,
+        serId: service_id,
+      });
+
+      if (!existingChat) {
+        const newChat = await Chat.create({
+          chatId: id,
+          cusId: user_id,
+          venId: vendor_id,
+          serId: service_id,
+          rmId: "admin-rm", // or get from req/session if dynamic
+        });
+
+        console.log("✅ Chat created:", newChat.chatId);
+      }
+    }
+
     res.status(200).json({
       message: "Quotation updated successfully!",
-      data: req.body.status,
+      data: updatedQuotation.status,
     });
   } catch (error) {
     res.status(500).json({
@@ -120,5 +212,7 @@ router.patch("/", async (req, res) => {
     });
   }
 });
+
+router.route("/myquotations").get(getQuotations);
 
 export default router;

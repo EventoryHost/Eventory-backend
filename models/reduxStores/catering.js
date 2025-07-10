@@ -3,17 +3,21 @@ import mongoose from "mongoose";
 const CateringSchema = new mongoose.Schema(
   {
     id: { type: String, unique: true },
-    pageNumber: { type: String, default: "1" },
+    pageNumber: { type: Number, default: 1 },
     cateringName: { type: String },
     businessName: { type: String },
     servingCapacity: { type: String },
     description: { type: String },
     venueType: { type: String, default: "catering" },
     priceStarts: { type: String },
+    address: { type: String },
+    longitude: { type: Number },
+    latitude: { type: Number },
     // New fields based on the final model
     regionalSpecialties: { type: [String] }, // Renamed to match final model
     cuisineSpecialties: { type: [String] }, // Renamed to match final model
     serviceStyles: { type: [String] }, // Renamed to match final model
+    serviceAreas: { type: [String] }, // Service areas where catering is available
 
     // Additional fields
     venId: { type: String },
@@ -27,14 +31,14 @@ const CateringSchema = new mongoose.Schema(
     selectedBeverages: { type: [String] },
     selectedMainCourses: { type: [String] },
     selectedDietaryOptions: { type: [String] },
-
+    food_safety_certificates: { type: [String] },
     preSetMenu: { type: String }, // Can be adjusted based on requirements
     customizableMenu: { type: Boolean }, // Is the menu customizable?
 
     // Additional fields based on your final model
-    cancellationPolicy: { type: String }, // Cancellation policy
-    termsAndConditions: { type: String }, // Terms and conditions
-    clientTestimonials: { type: String }, // Testimonials from clients
+    cancellationPolicy: [{ type: String }], // Cancellation policy
+    termsAndConditions: [{ type: String }], // Terms and conditions
+    clientTestimonials: [{ type: String }], // Testimonials from clients
 
     eventTypes: { type: [String] }, // Event types catered by the service
     additionalServices: { type: [String] }, // Additional services provided

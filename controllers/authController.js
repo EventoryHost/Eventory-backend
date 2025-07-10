@@ -49,8 +49,10 @@ const updateVendor = async (req, res) => {
       phoneNumber,
       panNo,
       gstin,
+      verificationType,
       businessDetails,
     } = req.body;
+    
     // Check if vendorId is provided
     if (!vendorId) {
       return res.status(400).json({ message: "Please provide a vendorId." });
@@ -63,13 +65,37 @@ const updateVendor = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update user details
-    user.businessDetails = {
-      ...user.businessDetails,
-      ...businessDetails,
-      panNo,
-      gstin,
-    };
+    // Update user details based on verification type
+    // This allows us to store GSTIN obtained from PAN verification
+    // without showing it to the user in the frontend
+    if (verificationType === "GSTIN") {
+      // If GSTIN was verified, only update GSTIN
+      user.businessDetails = {
+        ...user.businessDetails,
+        ...businessDetails,
+        gstin,
+        verificationType: "GSTIN"
+      };
+    } else if (verificationType === "PAN") {
+      // If PAN was verified, update PAN and silently store any GSTIN found
+      user.businessDetails = {
+        ...user.businessDetails,
+        ...businessDetails,
+        panNo,
+        // Store GSTIN if it was found during PAN verification
+        gstin: gstin || user.businessDetails.gstin,
+        verificationType: "PAN"
+      };
+    } else {
+      // Fallback for any other case
+      user.businessDetails = {
+        ...user.businessDetails,
+        ...businessDetails,
+        panNo,
+        gstin,
+      };
+    }
+    
     user.name = name || user.name;
     user.email = email || user.email;
     user.mobile = phoneNumber || user.mobile;
@@ -120,7 +146,10 @@ const signUp = async (req, res) => {
 
     Username: `+91${mobile}`,
     Password: "123456",
-    UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
+    UserAttributes: [
+      { Name: "phone_number", Value: `+91${mobile}` },
+      { Name: "custom:userType", Value: "Vendor" },
+    ],
   };
 
   try {
@@ -173,7 +202,10 @@ const CustomerSignUp = async (req, res) => {
 
     Username: `+91${mobile}`,
     Password: "123456",
-    UserAttributes: [{ Name: "phone_number", Value: `+91${mobile}` }],
+    UserAttributes: [
+      { Name: "phone_number", Value: `+91${mobile}` },
+      { Name: "custom:userType", Value: "Customer" },
+    ],
   };
 
   try {
@@ -247,6 +279,7 @@ const login = async (req, res) => {
 
 const CustomerLogin = async (req, res) => {
   const { mobile } = req.body;
+
   const params = {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
@@ -260,6 +293,7 @@ const CustomerLogin = async (req, res) => {
 
   try {
     const user = await CustomerExists(`+91${mobile}`);
+
     if (user) {
       const command = new AdminInitiateAuthCommand(params);
       const data = await cognito.send(command);
@@ -317,7 +351,6 @@ const verifyLoginOtp = async (req, res) => {
 
 const verifyCustomerLoginOtp = async (req, res) => {
   const { mobile, code, session, name } = req.body;
-
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
     ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
@@ -330,22 +363,26 @@ const verifyCustomerLoginOtp = async (req, res) => {
     },
     Session: session,
   };
-
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
     var data = await cognito.send(command);
-
     let user = await Customer.findOne({ mobile: `+91${mobile}` });
     if (!user) {
       try {
         const customer = new Customer({ name, mobile: `+91${mobile}` });
         await customer.save();
-        return res.status(200).json(customer);
+        const token = jwt.sign(
+          { id: customer.id, mobile: customer.mobile, name: customer.name },
+          process.env.JWT_SECRET,
+          { expiresIn: "24h" },
+        );
+        return res
+          .status(200)
+          .json({ message: "Login Success", token, user: customer });
       } catch (error) {
         return res.status(400).json({ message: error.message });
       }
     }
-
     const token = jwt.sign(
       { id: user.id, mobile: user.mobile, name: user.name },
       process.env.JWT_SECRET,
@@ -353,7 +390,6 @@ const verifyCustomerLoginOtp = async (req, res) => {
         expiresIn: "24h",
       },
     );
-
     res.status(200).json({ message: "Login Success", token, user });
   } catch (error) {
     console.log(error);
@@ -434,9 +470,11 @@ const userExists = async (credential) => {
 };
 
 const CustomerExists = async (credential) => {
+  console.log(credential);
   const user = await Customer.findOne({
     $or: [{ email: credential }, { mobile: credential }],
   });
+  console.log(user);
   return user;
 };
 

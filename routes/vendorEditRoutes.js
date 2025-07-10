@@ -1,4 +1,3 @@
-//  routes/vendorEditRoutes.js
 import express from "express";
 import { Vendor } from "../models/users.js";
 import { Caterer } from "../models/caterer.js";
@@ -8,7 +7,6 @@ import PropRental from "../models/props.js";
 import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import DjArtist from "../models/djArtist.js";
-
 import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
 import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pavCompletionUtils.js";
@@ -18,10 +16,14 @@ import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompl
 
 const router = express.Router();
 
-// Update API for basic vendor details such as name, mobile, email ((Full name and number))
+//1. Update API for basic vendor details such as name, mobile, email ((Full name and number))
 router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
   const updateData = req.body;
+
+  console.log(
+    `1..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
+  );
 
   try {
     // Find the vendor containing the specific serviceId
@@ -35,6 +37,30 @@ router.put("/update-service/:serviceId", async (req, res) => {
     if (updateData.name) vendor.name = updateData.name;
     if (updateData.mobile) vendor.mobile = updateData.mobile;
     if (updateData.email) vendor.email = updateData.email;
+    if (updateData.businessDetails) {
+      const fieldsToUpdate = updateData.businessDetails;
+
+      if (fieldsToUpdate.businessName)
+        vendor.businessDetails.businessName = fieldsToUpdate.businessName;
+      if (fieldsToUpdate.category)
+        vendor.businessDetails.category = fieldsToUpdate.category;
+      if (fieldsToUpdate.teamsize)
+        vendor.businessDetails.teamsize = fieldsToUpdate.teamsize;
+      if (fieldsToUpdate.years)
+        vendor.businessDetails.years = fieldsToUpdate.years;
+      if (fieldsToUpdate.businessAddress)
+        vendor.businessDetails.businessAddress = fieldsToUpdate.businessAddress;
+      if (fieldsToUpdate.pinCode)
+        vendor.businessDetails.pinCode = fieldsToUpdate.pinCode;
+      if (fieldsToUpdate.cities)
+        vendor.businessDetails.cities = fieldsToUpdate.cities;
+      if (fieldsToUpdate.annualrevenue)
+        vendor.businessDetails.annualrevenue = fieldsToUpdate.annualrevenue;
+      if (fieldsToUpdate.gstin)
+        vendor.businessDetails.gstin = fieldsToUpdate.gstin;
+      if(fieldsToUpdate.bookingsPerMonth)
+        vendor.businessDetails.bookingsPerMonth = fieldsToUpdate.bookingsPerMonth;
+    }
 
     // Update the relevant service in the serviceIds array
     vendor.serviceIds = vendor.serviceIds.map((service) => {
@@ -64,7 +90,7 @@ router.put("/update-service/:serviceId", async (req, res) => {
   }
 });
 
-// API endpoint to update service details (company name and description)
+//2. API endpoint to update service details (company name and description)
 router.post("/updateService/:serviceId", async (req, res) => {
   const { serviceId } = req.params; // Get serviceId from the URL parameter
   const { newDescription, newCompanyName } = req.body; // Get other data from the request body
@@ -171,10 +197,14 @@ router.post("/updateService/:serviceId", async (req, res) => {
   }
 });
 
-// API endpoint to update service details
+//3. API endpoint to update service details
 const updateServiceDetails = async (req, res) => {
   const { serId } = req.params;
   const updateData = req.body;
+
+  console.log(
+    `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
+  );
 
   try {
     // Step 1: Find the vendor's service type
@@ -259,6 +289,7 @@ const updateServiceDetails = async (req, res) => {
     }
 
     const isVerified = checkVerification(updatedService, serType);
+    console.log(`Verification status for ${serType}: ${isVerified}`);
     await updatedService.updateOne({ isVerified });
 
     // Step 3: Calculate and update profile completion percentage
@@ -290,16 +321,11 @@ const serviceFields = {
     "basicDetails.service_style_offered",
     "menuDetails.menu",
     "menuDetails.vegOrNonVeg",
-    "menuDetails.appetizers",
-    "menuDetails.main_course",
-    "menuDetails.beverages",
-    "menuDetails.special_dietary_options",
     "menuDetails.pre_set_menus",
     "menuDetails.customizable",
     "eventDetails.event_types_catered",
     "eventDetails.additional_services",
     "staffAndEquipmentDetails.staff_provided",
-    "staffAndEquipmentDetails.equipment_provided",
     "additionalDetails.minimum_order_requirements",
     "additionalDetails.advance_booking_period",
     "additionalDetails.photos",
@@ -308,28 +334,23 @@ const serviceFields = {
     "additionalDetails.business_licenses",
     "additionalDetails.food_safety_certificates",
     "additionalDetails.priceStartingFrom",
-    "policies.cancellation_policy",
-    "policies.terms_and_conditions",
-    "policies.client_testimonials",
+    "policies.cancellationPolicy",
+    "policies.termsAndConditions",
   ],
   decorator: [
     "basicDetails.name",
-    "basicDetails.description",
     "basicDetails.eventSize",
-    "basicDetails.duration",
-    "themesOffered.themesOffered",
-    "themesOffered.customDesignProcess",
+    "basicDetails.description",
+    "basicDetails.eventTypes.types",
+    "themesOffered",
+    "themesOffered.colorSchemeAssistance",
+    "themesOffered.venueAdaptability",
+    "themesOffered.themeCustomization",
     "themesElement.themeElements",
     "themesElement.themePhotos",
     "themesElement.themeVideos",
-    "additionalDetails.photos",
-    "additionalDetails.videos",
-    "additionalDetails.clientTestimonials",
-    "additionalDetails.awards",
-    "additionalDetails.website",
-    "additionalDetails.instagram",
-    "additionalDetails.advanceBookingPeriod",
     "additionalDetails.priceStartingFrom",
+    "additionalDetails.advanceBookingPeriod",
     "additionalDetails.themeProposels",
     "additionalDetails.proposalRevisions",
     "policies.cancellationPolicy",
@@ -365,81 +386,51 @@ const serviceFields = {
     "serviceDetails.serviceTypes",
 
     "additionalDetails.photos",
-    "additionalDetails.videos",
-    "additionalDetails.socialMedia",
-    "additionalDetails.websiteUrl",
-    "additionalDetails.priceStarts",
-
     "policies.termsAndConditions",
     "policies.cancellationPolicy",
-    "policies.certificateOrAwards",
-    "policies.clientTestimonials",
   ],
+
   pav: [
     "basicDetails.name",
-    "basicDetails.description",
     "basicDetails.eventSize",
+    "basicDetails.description",
     "basicDetails.eventTypes",
-    "Videography.equipmentAvailable",
-    "Videography.typesOfStyles",
-    "Videography.addonsOrUpgradeAvailable",
-    "Videography.finalDeliveryMethods",
-    "Photography.equipmentAvailable",
+    "additionalDetails.priceStartingFrom",
     "Photography.typesOfStyles",
+    "Photography.equipmentAvailable",
     "Photography.addonsOrUpgradeAvailable",
     "Photography.finalDeliveryMethods",
-    "consultationDetails.duration",
-    "consultationDetails.PackageTypes",
-    "consultationDetails.proposalsToClients",
+    "Videography.typesOfStyles",
+    "Videography.equipmentAvailable",
+    "Videography.addonsOrUpgradeAvailable",
+    "Videography.finalDeliveryMethods",
     "consultationDetails.freeInitialConsultation",
     "consultationDetails.bookingDeposit",
+    "consultationDetails.proposalsToClients",
+    "consultationDetails.postProductionServices",
     "consultationDetails.availableForDestinationEvents",
     "consultationDetails.AdvanceSetup",
-    "consultationDetails.postProductionServices",
+    "policies.termsAndConditions",
+    "policies.cancellationPolicy",
     "additionalDetails.photos",
     "additionalDetails.videos",
-    "additionalDetails.clientTestimonials",
-    "additionalDetails.awards",
-    "additionalDetails.website",
-    "additionalDetails.instagram",
-    "additionalDetails.priceStartingFrom",
-    "policies.cancellationPolicy",
-    "policies.termsAndConditions",
   ],
-  "venue-provider": [
-    // Basic Details
-    "basicDetails.name",
-    "basicDetails.managerName",
-    "basicDetails.capacity",
-    // "basicDetails.operatingHours.openingTime",
-    // "basicDetails.operatingHours.closingTime",
-    // "basicDetails.address",
-    // "basicDetails.description",
 
-    // Feature Details
-    "featureDetails.catererServices",
-    "featureDetails.decorServices",
+  "venue-provider": [
+    "basicDetails.name",
+    "basicDetails.capacity",
+    "additionalDetails.priceStartingFrom",
     "featureDetails.venueTypes",
-    "featureDetails.audioVisualEquipment",
     "featureDetails.accessibilityFeatures",
     "featureDetails.restrictionsPolicies",
-    "featureDetails.specialFeatures",
     "featureDetails.facilities",
-
-    // Additional Details
+    "featureDetails.catererServices",
+    "featureDetails.decorServices",
+    "additionalDetails.advanceBookingPeriod",
+    "policies.termsAndConditions",
+    "policies.cancellationPolicy",
     "additionalDetails.photos",
     "additionalDetails.videos",
-    "additionalDetails.awards",
-    "additionalDetails.clientTestimonials",
-    "additionalDetails.instagramURL",
-    "additionalDetails.websiteURL",
-    "additionalDetails.advanceBookingPeriod",
-    "additionalDetails.priceStartingFrom",
-
-    // Policies
-    "policies.termsConditions",
-    "policies.cancellationPolicy",
-    "policies.insurancePolicy",
   ],
 };
 
@@ -464,7 +455,7 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
       if (currentValue[key] !== undefined && currentValue[key] !== null) {
         currentValue = currentValue[key];
       } else {
-        console.log(`Field ${field} XXXXXXX`);
+        console.log(`Field ${field} ❌`);
         return; // Field is not filled, exit early
       }
     }
@@ -472,9 +463,9 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
     // Check if the final value is filled (non-empty string or non-null)
     if (currentValue?.toString().trim()) {
       filledFields += 1;
-      console.log(`Field ${field} OK`);
+      console.log(`Field ${field} ✅`);
     } else {
-      console.log(`Field ${field} XXXXXXX`);
+      console.log(`Field ${field} ❌`);
     }
   });
 
@@ -483,37 +474,46 @@ const calculateProfileCompletion = (serviceData, serviceType) => {
   return Math.round(completionPercentage);
 };
 
-// Helper function to check verification criteria
+// Helper function to check verification criteria (Checkers)
 const checkVerification = (service, serType) => {
   console.log(`Checking verification for ${serType} service...`);
   let allFieldsValid = true;
 
-  let fieldsToCheck;
+  let fieldsToCheck = [];
 
   switch (serType) {
     case "caterer":
       fieldsToCheck = [
-        { path: "basicDetails.name", label: "Service Name" },
+        { path: "basicDetails.name", label: "Business Name" },
         { path: "basicDetails.managerName", label: "Manager Name" },
-        { path: "basicDetails.capacity", label: "Guest Capacity" },
+        { path: "basicDetails.capacity", label: "Serving Capacity" },
         { path: "basicDetails.description", label: "Description" },
         {
           path: "basicDetails.cuisine_specialities",
-          label: "Cuisine Specialties",
+          label: "Cuisine Specialities",
         },
         {
           path: "basicDetails.regional_specialities",
-          label: "Regional Specialties",
+          label: "Regional Specialities",
         },
-        { path: "basicDetails.service_style_offered", label: "Service Style" },
+        {
+          path: "basicDetails.service_style_offered",
+          label: "Service Style Offered",
+        },
         { path: "menuDetails.menu", label: "Menu" },
-        { path: "menuDetails.vegOrNonVeg", label: "Veg Only" },
-        { path: "menuDetails.pre_set_menus", label: "Add manually" },
+        {
+          path: "menuDetails.vegOrNonVeg",
+          label: "Vegetarian or Non-Vegetarian",
+        },
+        { path: "menuDetails.pre_set_menus", label: "Pre-set Menus" },
         { path: "menuDetails.customizable", label: "Customizable Menu" },
-        { path: "eventDetails.event_types_catered", label: "Event Type" },
+        {
+          path: "eventDetails.event_types_catered",
+          label: "Event Types Catered",
+        },
         {
           path: "eventDetails.additional_services",
-          label: "Additional Service",
+          label: "Additional Services",
         },
         {
           path: "staffAndEquipmentDetails.staff_provided",
@@ -521,7 +521,7 @@ const checkVerification = (service, serType) => {
         },
         {
           path: "additionalDetails.minimum_order_requirements",
-          label: "Minimum Order Requirement",
+          label: "Minimum Order Requirements",
         },
         {
           path: "additionalDetails.advance_booking_period",
@@ -535,47 +535,42 @@ const checkVerification = (service, serType) => {
         },
         {
           path: "additionalDetails.business_licenses",
-          label: "Business License",
+          label: "Business Licenses",
         },
         {
           path: "additionalDetails.food_safety_certificates",
-          label: "Food Safety Certificate",
+          label: "Food Safety Certificates",
         },
         {
           path: "additionalDetails.priceStartingFrom",
           label: "Price Starting From",
         },
-        { path: "policies.cancellation_policy", label: "Cancellation Policy" },
-        { path: "policies.terms_and_conditions", label: "Terms & Condition" },
+        { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
+        { path: "policies.termsAndConditions", label: "Terms & Conditions" },
       ];
       break;
     case "decorator":
       fieldsToCheck = [
         { path: "basicDetails.name", label: "Service Name" },
-        { path: "basicDetails.eventSize", label: "Location (City)" },
+        { path: "basicDetails.eventSize", label: "Event Size" },
         { path: "basicDetails.description", label: "Description" },
         { path: "basicDetails.eventTypes.types", label: "Types of Events" },
-        {
-          path: "basicDetails.eventTypes.corporate",
-          label: "Corporate Events",
-        },
-        { path: "basicDetails.eventTypes.cultural", label: "Cultural Events" },
-        { path: "themesOffered", label: "Themes Available" },
+        { path: "themesOffered", label: "Themes Offered" },
         {
           path: "themesOffered.colorSchemeAssistance",
-          label: "Assistance with Creating Color Schemes",
+          label: "Color Scheme Assistance",
         },
         {
           path: "themesOffered.venueAdaptability",
-          label: "Adapt Themes to Different Venue Sizes",
+          label: "Venue Adaptability",
         },
         {
           path: "themesOffered.themeCustomization",
-          label: "Customization of Themes",
+          label: "Theme Customization",
         },
         { path: "themesElement.themeElements", label: "Theme Elements" },
         { path: "themesElement.themePhotos", label: "Theme Photos" },
-        { path: "themesElement.themeVideos", label: "Videos" },
+        { path: "themesElement.themeVideos", label: "Theme Videos" },
         {
           path: "additionalDetails.priceStartingFrom",
           label: "Price Starting From",
@@ -586,77 +581,64 @@ const checkVerification = (service, serType) => {
         },
         {
           path: "additionalDetails.themeProposels",
-          label: "A Written Theme Proposal After Consultation",
+          label: "Theme Proposals",
         },
         {
           path: "additionalDetails.proposalRevisions",
-          label: "Revisions to the Initial Theme Proposal",
+          label: "Proposal Revisions",
         },
-        { path: "additionalDetails.photos", label: "Photos" },
+        { path: "additionalDetails.photos", label: "Additional Photos" },
         { path: "policies.termsAndConditions", label: "Terms & Conditions" },
         { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
       ];
       break;
     case "pav":
       fieldsToCheck = [
-        // Basic Details
-        { path: "basicDetails.name", label: "Service Name" },
-        { path: "basicDetails.eventSize", label: "Location (City)" },
+        { path: "basicDetails.name", label: "Business Name" },
+        { path: "basicDetails.eventSize", label: "Event Size" },
         { path: "basicDetails.description", label: "Description" },
-        { path: "basicDetails.eventTypes", label: "Types of Events" },
+        { path: "basicDetails.eventTypes", label: "Event Types" },
         {
           path: "additionalDetails.priceStartingFrom",
           label: "Price Starting From",
         },
-
-        // Photography Section
-        {
-          path: "Photography.typesOfStyles",
-          label: "Photography: Types of Styles",
-        },
+        { path: "Photography.typesOfStyles", label: "Photography Styles" },
         {
           path: "Photography.equipmentAvailable",
-          label: "Photography: Equipment Available",
+          label: "Photography Equipment Available",
         },
         {
           path: "Photography.addonsOrUpgradeAvailable",
-          label: "Photography: Add-ons or Upgrades Available",
+          label: "Photography Add-ons or Upgrades",
         },
         {
           path: "Photography.finalDeliveryMethods",
-          label: "Photography: Final Delivery Methods",
+          label: "Photography Final Delivery Methods",
         },
-
-        // Videography Section
-        {
-          path: "Videography.typesOfStyles",
-          label: "Videography: Types of Styles",
-        },
+        { path: "Videography.typesOfStyles", label: "Videography Styles" },
         {
           path: "Videography.equipmentAvailable",
-          label: "Videography: Equipment Available",
+          label: "Videography Equipment Available",
         },
         {
           path: "Videography.addonsOrUpgradeAvailable",
-          label: "Videography: Add-ons or Upgrades Available",
+          label: "Videography Add-ons or Upgrades",
         },
         {
           path: "Videography.finalDeliveryMethods",
-          label: "Videography: Final Delivery Methods",
+          label: "Videography Final Delivery Methods",
         },
-
-        // Consultation Details
         {
           path: "consultationDetails.freeInitialConsultation",
           label: "Free Initial Consultation",
         },
         {
           path: "consultationDetails.bookingDeposit",
-          label: "Booking Deposit for Your Service",
+          label: "Booking Deposit",
         },
         {
           path: "consultationDetails.proposalsToClients",
-          label: "Design Proposal",
+          label: "Proposals to Clients",
         },
         {
           path: "consultationDetails.postProductionServices",
@@ -664,127 +646,79 @@ const checkVerification = (service, serType) => {
         },
         {
           path: "consultationDetails.availableForDestinationEvents",
-          label: "Available for Destination Events (Out of Town)",
+          label: "Available for Destination Events",
         },
-        {
-          path: "consultationDetails.AdvanceSetup",
-          label: "Advance Booking Period",
-        },
-
-        // Policies
+        { path: "consultationDetails.AdvanceSetup", label: "Advance Setup" },
         { path: "policies.termsAndConditions", label: "Terms & Conditions" },
         { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
-
-        // Additional Details
         { path: "additionalDetails.photos", label: "Photos" },
         { path: "additionalDetails.videos", label: "Videos" },
       ];
+      break;
     case "venue-provider":
       fieldsToCheck = [
-        // Basic Details
-        { path: "basicDetails.name", label: "Service Name" },
-        // { path: "basicDetails.address", label: "Location (City)" },
-        { path: "basicDetails.capacity", label: "Guest Capacity" },
+        { path: "basicDetails.name", label: "Venue Name" },
+        { path: "basicDetails.capacity", label: "Venue Capacity" },
         {
           path: "additionalDetails.priceStartingFrom",
           label: "Price Starting From",
         },
-        // { path: "basicDetails.description", label: "Description" },
-
-        // Feature Details
-        { path: "featureDetails.venueTypes", label: "Types of Venues" },
+        { path: "featureDetails.venueTypes", label: "Venue Types" },
         {
           path: "featureDetails.accessibilityFeatures",
           label: "Accessibility Features",
         },
         {
           path: "featureDetails.restrictionsPolicies",
-          label: "Restrictions at Venue",
+          label: "Restrictions and Policies",
         },
-        { path: "featureDetails.facilities", label: "Facilities at Venue" },
-
-        // Services
+        { path: "featureDetails.facilities", label: "Facilities" },
         {
           path: "featureDetails.catererServices",
-          label: "In-House Catering Service",
+          label: "Catering Services Available",
         },
         {
           path: "featureDetails.decorServices",
-          label: "In-House Decoration Service",
+          label: "Decoration Services Available",
         },
-
-        // Additional Details
         {
           path: "additionalDetails.advanceBookingPeriod",
           label: "Advance Booking Period",
         },
-        // { path: "basicDetails.address", label: "Venue Address" },
-
-        // Policies
-        { path: "policies.termsConditions", label: "Terms & Conditions" },
-        { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
-
-        // Media
-        { path: "additionalDetails.photos", label: "Photos" },
-        { path: "additionalDetails.videos", label: "Videos" },
-      ];
-    case "makeup-artist":
-      fieldsToCheck = [
-        // Basic Details
-        { path: "basicDetails.name", label: "Service Name" },
-        // { path: "basicDetails.address", label: "Location (City)" }, (Location not in schema)
-        { path: "basicDetails.eventSize", label: "Guest Capacity" },
-        { path: "additionalDetails.priceStarts", label: "Price Starting From" },
-        { path: "basicDetails.description", label: "Description" },
-
-        // Feature Details
-        { path: "basicDetails.eventTypes", label: "Types of Events" },
-        {
-          path: "basicDetails.typesOfMakeupArtists",
-          label: "Types of Makeup Artist",
-        },
-        { path: "serviceDetails.serviceTypes", label: "Types of Services" },
-        { path: "serviceDetails.onsiteMakeup", label: "On-site Service" },
-        { path: "serviceDetails.customization", label: "Customization" },
-
-        // Policies
         { path: "policies.termsAndConditions", label: "Terms & Conditions" },
         { path: "policies.cancellationPolicy", label: "Cancellation Policy" },
-
-        // Media
         { path: "additionalDetails.photos", label: "Photos" },
         { path: "additionalDetails.videos", label: "Videos" },
       ];
-
-      fieldsToCheck.forEach(({ path, label }) => {
-        const fieldPath = path.split(".");
-        let currentValue = service;
-
-        for (let key of fieldPath) {
-          if (currentValue[key] !== undefined && currentValue[key] !== null) {
-            currentValue = currentValue[key];
-          } else {
-            console.log(`Field "${label}" (${path}) XXXXXXX`);
-            allFieldsValid = false;
-            return; // Field is not valid, exit early
-          }
-        }
-
-        if (currentValue?.toString().trim()) {
-          // console.log(`Field "${label}" (${path}) OK`);
-        } else {
-          // console.log(`Field "${label}" (${path}) XXXXXXX`);
-          allFieldsValid = false;
-        }
-      });
-
-      return allFieldsValid;
-
+      break;
     // Add criteria for other service types as needed
     default:
       console.log(`Unknown service type: ${serType}`);
       return false;
   }
+  fieldsToCheck.forEach(({ path, label }) => {
+    const fieldPath = path.split(".");
+    let currentValue = service;
+
+    for (let key of fieldPath) {
+      if (currentValue[key] !== undefined && currentValue[key] !== null) {
+        currentValue = currentValue[key];
+      } else {
+        console.log(`Field "${label}" (${path}) XXXXXXX`);
+        allFieldsValid = false;
+        return; // Field is not valid, exit early
+      }
+    }
+
+    if (currentValue?.toString().trim()) {
+      console.log(`Field "${label}" (${path}) OK`);
+    } else {
+      console.log(`Field "${label}" (${path}) XXXXXXX`);
+      allFieldsValid = false;
+    }
+  });
+
+  return allFieldsValid;
 };
 
 export default router;

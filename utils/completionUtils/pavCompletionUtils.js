@@ -13,7 +13,9 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       photographer.basicDetails.name &&
       photographer.basicDetails.description &&
       photographer.basicDetails.eventSize &&
-      photographer.basicDetails.eventTypes.length > 0;
+      photographer.basicDetails.eventTypes.length > 0 &&
+      photographer.basicDetails.serviceAreas &&
+      photographer.basicDetails.serviceAreas.length > 0;
 
     // Log the result of the basic details check
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
