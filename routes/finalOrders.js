@@ -137,7 +137,7 @@ router.put("/finalOrder/approve", async (req, res) => {
 
     // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
-      const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
+      const message = `💬 Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
 
       await vendorNotification.create({
         vendorId: order.vendorId,
@@ -181,7 +181,7 @@ router.put("/finalOrder/approve", async (req, res) => {
     }
 
     // 🟡 CASE 3: Only one party approved, waiting for the other
-    const message = `🕐 Final Order approved by ${userType}. Waiting for the other party. (Order ID: ${order.orderId})`;
+    const message = `⏳ Final Order approved by ${userType}. Waiting for the other party. (Order ID: ${order.orderId})`;
 
     // Notify Vendor
     await vendorNotification.create({
