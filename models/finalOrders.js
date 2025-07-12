@@ -13,6 +13,7 @@ const OrderSchema = new mongoose.Schema(
         "Other",
       ],
     },
+    adminId : { type: String, required: true },// admin ID for tracking
     vendorId: { type: String, required: true },
     quotationId: { type: String },
     orderId: { type: String, required: true, unique: true },

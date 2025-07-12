@@ -8,11 +8,11 @@ const router = express.Router();
 
 router.post("/finalOrder", async (req, res) => {
   try {
-    const { orderId, ...rest } = req.body;
+    const { orderId, adminId , ...rest } = req.body;
 
     let order = await Order.findOneAndUpdate(
       { orderId },
-      rest,
+      { ...rest, adminId },
       { new: true, upsert: true } // upsert = create if not found
     );
 
@@ -122,11 +122,12 @@ router.put("/finalOrder/approve", async (req, res) => {
 
       // Admin Notification
       await adminNotification.create({
+        adminId: order.adminId, // ✅ now added
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         message,
-      });
+      });      
 
       return res.status(200).json({
         message: `Both parties approved. Checkout link sent to customer.`,
@@ -137,7 +138,7 @@ router.put("/finalOrder/approve", async (req, res) => {
 
     // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
-      const message = `💬 Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
+      const message = `🔄 Order reset due to bieng marked for further discussion by ${userType}. (Order ID: ${order.orderId})`;
 
       await vendorNotification.create({
         vendorId: order.vendorId,
@@ -147,11 +148,12 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
 
       await adminNotification.create({
+        adminId: order.adminId,
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         message,
-      });
+      });      
 
       await customerNotification.create({
         customerId: order.customerId,
@@ -193,11 +195,12 @@ router.put("/finalOrder/approve", async (req, res) => {
 
     // Notify Admin
     await adminNotification.create({
+      adminId: order.adminId,
       vendorId: order.vendorId,
       customerId: order.customerId,
       orderId: order.orderId,
       message,
-    });
+    });    
 
     // Optionally: Notify Customer too (depending on your UX design)
     await customerNotification.create({
