@@ -11,10 +11,13 @@ const djArtistSchema = Schema({
         completed: { type: Boolean, default: false }, // Flag for section completion
         name: { type: String, required: true },
         contact: { type: String, required: true },
-        description: { type: String, required: true},
-        address:{ type: String, required: true },
-        latitude: { type: Number},
-        longitude: { type: Number},    
+        description: { type: String, required: true},  
+        address: { type: String, required: true },  
+        serviceAreas: { type: [String], required: true },
+        location: {
+          lat: { type: Number, required: true },
+          lng: { type: Number, required: true },
+        }
     },
     serviceDetails:{
          eventTypes: { type: [String], required: true },
