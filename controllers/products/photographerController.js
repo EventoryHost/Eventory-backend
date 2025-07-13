@@ -2,6 +2,8 @@
 import Photographer from "../../models/photographers.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import { sendEmailToSlack } from "../sesController.js";
+
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -110,6 +112,11 @@ const createPhotographer = async (req, res) => {
 
     console.log(req.body);
 
+    // Log specifically for serviceAreas
+    console.log("Service Areas from request:", req.body.serviceAreas);
+    console.log("typeof serviceAreas:", typeof req.body.serviceAreas);
+    console.log("Service Areas keys:", Object.keys(req.body).filter(key => key.startsWith('serviceAreas')));
+
     const photosUrl = req.body.photos || [];
     const videosUrl = req.body.videos || [];
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
@@ -215,11 +222,13 @@ const createPhotographer = async (req, res) => {
       termsAndConditions: termsAndConditionsFileUrl,
     };
 
+    // Prepare basicDetails
     const basicDetails = {
       name: req.body.name,
       description: req.body.description,
       eventSize: parseRange(req.body.eventSize), // Updated to object
       eventTypes: req.body.eventTypes,
+      serviceAreas: req.body.serviceAreas || [], // Added serviceAreas
       profileCompletion, // Updated profile completion
       location: {
         lat: req.body.latitude, // Latitude
@@ -260,7 +269,11 @@ const createPhotographer = async (req, res) => {
 
     // Call to update section completion
     await updateSectionCompletion(newPhotographer.id);
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
 
+          name: saved.basicDetails.name,
+          type: saved.type,
+        })
     res.status(201).json({
       message: "Photographer created successfully",
       profileCompletion,

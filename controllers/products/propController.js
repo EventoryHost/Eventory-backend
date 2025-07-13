@@ -1,6 +1,8 @@
 import PropRental from "../../models/props.js";
 import propRental from "../../models/props.js";
 import { Vendor as User } from "../../models/users.js";
+import { sendEmailToSlack } from "../sesController.js";
+
 
 // Helper function to handle multiple files
 const getFileUrls = (files, fieldName) => {
@@ -156,7 +158,11 @@ const createProp = async (req, res) => {
 
     // Update section completion for prop rental
     await updateSectionCompletion(savedProp.id);
+    process.env.IS_DEV !== "true" && sendEmailToSlack({
 
+      name: savedProp.basicDetails.name,
+      type: savedProp.type,
+    })
     res.status(201).json(savedProp);
   } catch (error) {
     res.status(400).json({ error: error.message });

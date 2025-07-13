@@ -14,10 +14,10 @@ const makeupArtistSchema = Schema({
     eventSize: {
       ll: { type: Number, required: true },
       ul: { type: Number, required: true },
-    },
-    description: { type: String, required: true },
+    },    description: { type: String, required: true },
     eventTypes: { type: [String], required: true },
     typesOfMakeupArtists: { type: [String], required: true },
+    serviceAreas: { type: [String], required: true },
     address: { type: String, required: true },
     location: {
       lat: { type: Number, required: true },

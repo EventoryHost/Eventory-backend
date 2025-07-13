@@ -15,7 +15,7 @@ import productRoutes from "../routes/productRoutes.js"; // This includes bank-de
 import authRoutes from "../routes/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes/aboutEmailRoutes.js";
-import razorpayRoutes from "../routes/razorpayRoutes.js";
+import cashfreeRoutes from "../routes/cashfreeRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
 import updatePageRoutes from "../routes/updatePageRoutes.js";
@@ -91,7 +91,7 @@ app.use("/api", businessDetailsRoutes); // Redux routes for consistency feature
 app.use("/api", updatePageRoutes); // Route to update page number in consistency feature
 app.use("/api", vendorEditRoutes); // Route to update vendor details
 app.use("/api/products", productRoutes); // Handles the product and bank details routes
-app.use("/api/payment", razorpayRoutes);
+app.use("/api/payment", cashfreeRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
