@@ -8,7 +8,8 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
       throw new Error("Makeup Artist not found");
     }
 
-    // Check if basic details are complete    const basicDetailsComplete =
+    // Check if basic details are complete
+    const basicDetailsComplete =
       artist.basicDetails.name &&
       artist.basicDetails.eventSize &&
       artist.basicDetails.description &&
