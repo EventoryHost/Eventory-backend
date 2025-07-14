@@ -150,6 +150,7 @@
 // export default { createVenue, getAllVenues };
 
 import { Venue } from "../../models/venue.js";
+import VenueModel from "../../models/reduxStores/venue-provider.js";
 import { Vendor as User } from "../../models/users.js";
 import { Caterer } from "../../models/caterer.js";
 import { Decorator } from "../../models/decoraters.js";
@@ -242,6 +243,16 @@ const createVenue = async (req, res) => {
     console.log(JSON.parse(req.body.operatingHours));
     const operatingHours = JSON.parse(req.body.operatingHours);
     console.log("Hit");
+    
+    // Fetch agreement data from temporary venue collection
+    const tempVenueData = await VenueModel.findOne({ id: req.body.venId });
+    const agreementUrl = tempVenueData?.agreementUrl || null;
+    const agreementSignedAt = tempVenueData?.agreementSignedAt || null;
+    
+    if (agreementUrl) {
+      console.log("Found agreement data for venue:", agreementUrl);
+    }
+    
     const newVenue = new Venue({
       type: "venue",
       venId: req.body.venId,
@@ -296,6 +307,8 @@ const createVenue = async (req, res) => {
         termsAndConditions: termsAndConditionsFileUrl,
         cancellationPolicy: cancellationPolicyFileUrl,
         insurancePolicy: insurancePolicyFileUrl,
+        agreementUrl: agreementUrl,
+        agreementSignedAt: agreementSignedAt,
       },
 
       rating: 0, // Default rating

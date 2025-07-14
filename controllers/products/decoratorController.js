@@ -1,5 +1,6 @@
 import { set } from "mongoose";
 import { Decorator } from "../../models/decoraters.js";
+import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
@@ -126,6 +127,16 @@ const createDecorator = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
     console.log("decorator:", req.body);
+    
+    // Fetch agreement data from temporary decorator collection
+    const tempDecoratorData = await DecoratorModel.findOne({ id: req.body.venId });
+    const agreementUrl = tempDecoratorData?.agreementUrl || null;
+    const agreementSignedAt = tempDecoratorData?.agreementSignedAt || null;
+    
+    if (agreementUrl) {
+      console.log("Found agreement data for decorator:", agreementUrl);
+    }
+    
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
@@ -183,6 +194,8 @@ const createDecorator = async (req, res) => {
       policies: {
         cancellationPolicy: cancellationPolicyFileUrl,
         termsAndConditions: termsAndConditionsFileUrl,
+        agreementUrl: agreementUrl,
+        agreementSignedAt: agreementSignedAt,
       },
       id: req.body.id,
       venId: req.body.venId,
