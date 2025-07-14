@@ -26,20 +26,51 @@ router.get("/:vendor_id", async (req, res) => {
   }
 });
 
-// In your backend (vendorNotification route)
+// Get all notifications and count unread
 router.get("/:vendorId/vendorNotification", async (req, res) => {
   try {
     const { vendorId } = req.params;
 
-    const notifications = await vendorNotification.find({
-      vendorId,
-    }).sort({ timestamp: -1 });
+    const notifications = await vendorNotification.find({ vendorId }).sort({ timestamp: -1 });
+    const unreadCount = await vendorNotification.countDocuments({ vendorId, read: false });
 
-    res.status(200).json({ message: "Notifications fetched", data: notifications });
+    res.status(200).json({ 
+      message: "Notifications fetched", 
+      data: notifications,
+      unreadCount 
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch notifications", error: error.message });
   }
 });
+
+router.put("/:vendorId/vendorNotification/mark-read", async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    const result = await vendorNotification.updateMany(
+      { vendorId, read: false },
+      { $set: { read: true } }
+    );
+
+    res.status(200).json({ message: "Notifications marked as read", modifiedCount: result.modifiedCount });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to mark notifications as read", error: error.message });
+  }
+});
+
+// PATCH /api/vendors/:vendorId/vendorNotification/mark-as-read
+router.patch('/:vendorId/vendorNotification/mark-as-read', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    await vendorNotification.updateMany({ vendorId, read: false }, { $set: { read: true } });
+    res.json({ message: "Notifications marked as read" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to mark notifications", error: err.toString() });
+  }
+});
+
+
 
 
 export default router;

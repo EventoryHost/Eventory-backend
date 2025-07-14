@@ -12,7 +12,8 @@ import {
   getPinnedMessages,
   getBlockedChats,
   getCustomerNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  markAllCustomerNotificationsAsRead,
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -40,7 +41,7 @@ router.get("/blocked", getBlockedChats);
 router.get("/:customerId/customerNotifications" , getCustomerNotifications);
 router.patch("/notifications/read/:notificationId", markNotificationAsRead);
 
-
+router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
 
 
 export default router;

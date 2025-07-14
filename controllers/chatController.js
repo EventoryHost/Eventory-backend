@@ -518,7 +518,7 @@ export const markNotificationAsRead = async (req, res) => {
     }
 
     // Assuming you have a Notification model
-    const notification = await Notification.findById(notificationId);
+    const notification = await customerNotification.findById(notificationId);
     if (!notification) {
       return res.status(404).json({ error: "Notification not found" });
     }
@@ -532,6 +532,26 @@ export const markNotificationAsRead = async (req, res) => {
     return res.status(500).json({ error: "Failed to mark notification as read" });
   }
 }
+
+export const markAllCustomerNotificationsAsRead = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Customer ID is required" });
+    }
+
+    await customerNotification.updateMany(
+      { customerId, read: false },
+      { $set: { read: true } }
+    );
+
+    return res.status(200).json({ message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Error marking notifications as read:", error);
+    return res.status(500).json({ error: "Failed to mark notifications as read" });
+  }
+};
 
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
