@@ -1,4 +1,5 @@
 import MakeupArtist from "../../models/makeupArtists.js";
+import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
@@ -131,6 +132,15 @@ const createMakeupArtist = async (req, res) => {
     const eventSize = parseRange(req.body.eventSize);
     console.log("Service Areas received:", req.body.serviceAreas);
 
+    // Fetch agreement data from temporary makeup artist collection
+    const tempMakeupData = await MakeupArtistModel.findOne({ id: req.body.venId });
+    const agreementUrl = tempMakeupData?.agreementUrl || null;
+    const agreementSignedAt = tempMakeupData?.agreementSignedAt || null;
+    
+    if (agreementUrl) {
+      console.log("Found agreement data for makeup artist:", agreementUrl);
+    }
+
     const newMakeupArtist = new MakeupArtist({
       type: "makeupArtist",
       isVerified: false,
@@ -183,6 +193,8 @@ const createMakeupArtist = async (req, res) => {
         clientTestimonials: req.body.clientTestimonials
           ? req.body.clientTestimonials.split(",")
           : [],
+        agreementUrl: agreementUrl,
+        agreementSignedAt: agreementSignedAt,
       },
 
       venId: req.body.venId,
