@@ -10,11 +10,13 @@ import VenueModel from "../models/reduxStores/venue-provider.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import Photographer from "../models/photographers.js";
 import { Venue } from "../models/venue.js";
-import chromium from "@sparticuz/chromium";
+import { chromium } from "playwright";
+import { readFileSync } from "fs";
+import path from "path";
 
 dotenv.config();
 
-// Helper function to generate HTML from React component
+// Helper function to generate HTML from template
 const generateAgreementHTML = (agreementData) => {
   const {
     vendorData,
@@ -37,299 +39,70 @@ const generateAgreementHTML = (agreementData) => {
     new Date(new Date().setDate(new Date().getDate() + 7))
   );
 
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendor Agreement - ${vendorData.fullName}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h2 {
-            color: #2E3192;
-            margin-bottom: 10px;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .content {
-            margin-bottom: 20px;
-        }
-        .underline {
-            text-decoration: underline;
-        }
-        ul {
-            margin-left: 20px;
-        }
-        table {
-            width: 100%;
-            margin: 16px 0;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px 16px;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-        }
-        th {
-            background-color: #f3f4f6;
-        }
-        tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        .signature-section {
-            margin-top: 20px;
-        }
-        .signature-section div {
-            margin-bottom: 20px;
-        }
-        strong {
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h2>Vendor Agreement</h2>
-    </div>
+  try {
+    // Read template file
+    const templatePath = path.resolve("templates", "agreementTemplate.html");
+    let html = readFileSync(templatePath, "utf8");
 
-    <div class="content">
-        <p>
-            This Vendor Agreement ("<strong>Agreement</strong>") is entered into as of
-            <strong>${currentDate}</strong> between:
-        </p>
-        <br />
-        <p>
-            <strong>Eventory Tech Solutions Pvt. Ltd.</strong> ("<strong>Platform</strong>" or "<strong>Company</strong>"),<br />
-            having its principal place of business at:<br />
-            <strong>13-D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi-110001</strong><br />
-            and <br />
-            <strong>${vendorData?.fullName || "Vendor Name"}</strong> <br />
-            having its principal place of business at: <br />
-            <strong>${vendorData?.address || "Vendor Address"}</strong>.
-        </p>
-        <p>
-            Collectively referred to as the "<strong>Parties</strong>" and individually as a "<strong>Party</strong>."
-        </p>
-        <br />
-        
-        <p><strong class="underline">1. Definitions</strong></p>
-        <ul>
-            <li><strong>1.1 Platform:</strong> Eventory's online and offline event booking platform where services are offered to users.</li>
-            <li><strong>1.2 Vendor:</strong> The entity providing goods or services for events listed on the Platform.</li>
-            <li><strong>1.3 Users/Clients:</strong> Individuals or businesses that hire the Vendor via the Platform.</li>
-            <li><strong>1.4 Services:</strong> The services provided by the Vendor listed on the Platform (e.g., catering, photography, event planning, etc.).</li>
-            <li><strong>1.5 Booking Amount:</strong> The base price of the goods or services offered by the Vendor (inclusive of applicable taxes).</li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">2. Scope of Services</strong></p>
-        <ul>
-            <li>
-                <strong>2.1 Description of Services:</strong> The Vendor agrees to provide the following services as a:
-                <strong>
-                    ${
-                      vendorData?.category === "pav"
-                        ? "PHOTOGRAPHERS AND VIDEOGRAPHERS"
-                        : (vendorData?.category || "Service Type").toUpperCase()
-                    }
-                </strong>.
-            </li>
-            <li>
-                <strong>2.2 Service Standards:</strong> The Vendor agrees to deliver services in a professional manner, adhering to industry standards, and will comply with all legal and regulatory requirements.
-            </li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">3. Term and Termination</strong></p>
-        <ul>
-            <li>
-                <strong>3.1 Agreement Term:</strong> This Agreement is effective as of
-                <strong>${currentDate}</strong> and shall remain in effect until terminated by either Party as provided in this section.
-            </li>
-            <li>
-                <strong>3.2 Termination by Vendor:</strong> The Vendor may terminate this Agreement by providing a written notice to the platform within the 7 days of registration, i.e
-                <strong>${sevenDaysFromNow}</strong>
-            </li>
-            <li>
-                <strong>3.3 Termination by Platform:</strong> The Platform may terminate this Agreement immediately if the Vendor breaches any terms of this Agreement or fails to provide services up to required standards.
-            </li>
-            <li>
-                <strong>3.4 Effect of Termination:</strong> Upon termination, all pending transactions or bookings will be completed unless mutually agreed otherwise. The Vendor shall be responsible for all commitments made prior to the date of termination.
-            </li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">4. Payment and Commission</strong></p>
-        <ul>
-            <li>
-                <strong>4.1 Commission Structure:</strong> The Platform will retain commission based on the total transaction amount as follows:
-                <br />
-                <div style="margin-top: 16px; margin-bottom: 16px;">
-                    <strong style="font-size: 16px; padding-top: 16px;">Commission Rate Table</strong>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Amount Range</th>
-                            <th>Commission Rate</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${commissionData
-                          .map(
-                            (item) => `
-                            <tr>
-                                <td>${item.range}</td>
-                                <td>${item.rate}%</td>
-                            </tr>
-                        `
-                          )
-                          .join("")}
-                    </tbody>
-                </table>
-            </li>
-            <li>
-                <strong>4.2 Payment Schedule:</strong> Payments to the Vendor will be made either within 24 hours of the completion of the event or on the day of the event after the deduction of the Eventory's commission charges as per the commission table given in 4.1
-            </li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">5. Vendor Obligations</strong></p>
-        <ul>
-            <li><strong>5.1 Compliance with Laws:</strong> The Vendor agrees to comply with all applicable local, state, and national laws and regulations.</li>
-            <li><strong>5.2 Licenses and Permits:</strong> The Vendor is solely responsible for obtaining and maintaining any licenses, permits, and certifications required to perform the agreed-upon services.</li>
-            <li><strong>5.3 Insurance:</strong> The Vendor shall maintain sufficient liability insurance to cover risks associated with the provision of services under this Agreement. Proof of insurance must be provided upon request.</li>
-            <li><strong>5.4 Service Delivery:</strong> The Vendor guarantees timely delivery of services as per agreed-upon schedules, and any failure to deliver shall be considered a breach of this Agreement.</li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">6. Cancellation, Refund, and Booking Guarantee Policy</strong></p>
-        <ul>
-            <li>
-                <strong>6.1 Vendor Cancellation:</strong> When a Vendor cancels a booking, Eventory will charge a cancellation fee as a percentage of the booking amount based on how far in advance the cancellation occurs, as outlined in the cancellation table below:
-                <br />
-                <div style="margin-top: 16px; margin-bottom: 16px;">
-                    <strong style="font-size: 16px;">Vendor Cancellation Fee Table</strong>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Timeline</th>
-                            <th>Cancellation Fee</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${vendorCancellationData
-                          .map(
-                            (item) => `
-                            <tr>
-                                <td>${item.timeline}</td>
-                                <td>${item.fee}%</td>
-                            </tr>
-                        `
-                          )
-                          .join("")}
-                    </tbody>
-                </table>
-            </li>
-            <li>
-                <strong>6.2 Customer Cancellation:</strong> If a customer cancels a booking, they will be charged a percentage of the BOOKING AMOUNT as per the customer cancellation table below, and that amount will be transferred to the Vendor.
-                <br />
-                <div style="margin-top: 16px; margin-bottom: 16px;">
-                    <strong style="font-size: 16px;">Customer Cancellation Fee Table</strong>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Timeline</th>
-                            <th>Cancellation Fee</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${customerCancellationData
-                          .map(
-                            (item) => `
-                            <tr>
-                                <td>${item.timeline}</td>
-                                <td>${item.fee}%</td>
-                            </tr>
-                        `
-                          )
-                          .join("")}
-                    </tbody>
-                </table>
-            </li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">7. Vendor's Representation and Warranties</strong></p>
-        <ul>
-            <li><strong>7.1 Performance:</strong> The Vendor warrants that it has the necessary skills, experience, and resources to perform the services professionally and efficiently.</li>
-            <li><strong>7.2 Non-Infringement:</strong> The Vendor warrants that all services provided do not infringe on any third-party intellectual property rights.</li>
-            <li><strong>7.3 Compliance:</strong> The Vendor represents that it complies with all laws and regulations related to the performance of its services.</li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">8. Vendor Visibility, Booking Numbers, and ROI</strong></p>
-        <ul>
-            <li><strong>8.1 Visibility and Marketing:</strong> The Vendor's visibility on the Platform depends on factors such as quality of service, pricing competitiveness, and profile updates.</li>
-            <li><strong>8.2 No Guarantee of Bookings:</strong> The Platform does not guarantee a fixed number of bookings or orders to any Vendor. Success depends on several factors such as customer preferences and service quality.</li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">9. Dispute Resolution</strong></p>
-        <ul>
-            <li><strong>9.1 Disputes with Users:</strong> The Platform will act as an intermediary in any disputes between the Vendor and the user.</li>
-            <li><strong>9.2 Arbitration:</strong> Any disputes between the Vendor and Platform shall be settled by arbitration in accordance with the rules of [Arbitration Body].</li>
-        </ul>
-        <br />
-        
-        <p><strong class="underline">10. Governing Law</strong></p>
-        <p>This Agreement shall be governed by and construed in accordance with the laws of India.</p>
-        <br />
-        
-        <p><strong class="underline">11. Miscellaneous</strong></p>
-        <ul>
-            <li><strong>11.1 Amendments:</strong> This Agreement may only be amended in writing signed by both Parties.</li>
-            <li><strong>11.2 Entire Agreement:</strong> This Agreement constitutes the entire agreement between the Parties regarding its subject matter and supersedes any prior agreements.</li>
-            <li><strong>11.3 Entire Agreement:</strong> This Agreement constitutes the entire agreement between the Parties and supersedes all prior agreements and understandings.</li>
-        </ul>
-        <br />
-        
-        <p><strong style="margin-top: 30px;">IN WITNESS WHEREOF</strong></p>
-        <p><strong>The Parties have executed this Agreement as of the date written below:</strong></p>
-        <br />
-        
-        <div class="signature-section">
-            <div>
-                <p><strong>For Eventory:</strong></p>
-                <p><strong>Signature:</strong> Eventory</p>
-                <p><strong>Name:</strong> Eventory Tech Solutions Pvt. Ltd.</p>
-                <p><strong>Date:</strong> ${currentDate}</p>
-            </div>
-            
-            <div>
-                <p><strong>For Vendor:</strong></p>
-                <p><strong>Signature:</strong> ${signature}</p>
-                <p><strong>Date:</strong> ${currentDate}</p>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-  `;
+    // Generate commission table rows
+    const commissionTableRows = commissionData
+      .map(
+        (item) => `
+        <tr>
+            <td>${item.range}</td>
+            <td>${item.rate}%</td>
+        </tr>
+    `
+      )
+      .join("");
+
+    // Generate vendor cancellation table rows
+    const vendorCancellationTableRows = vendorCancellationData
+      .map(
+        (item) => `
+        <tr>
+            <td>${item.timeline}</td>
+            <td>${item.fee}%</td>
+        </tr>
+    `
+      )
+      .join("");
+
+    // Generate customer cancellation table rows
+    const customerCancellationTableRows = customerCancellationData
+      .map(
+        (item) => `
+        <tr>
+            <td>${item.timeline}</td>
+            <td>${item.fee}%</td>
+        </tr>
+    `
+      )
+      .join("");
+
+    // Format the vendor service type display name
+    const vendorServiceTypeFormatted = 
+      vendorData?.category === "pav" 
+        ? "PHOTOGRAPHERS AND VIDEOGRAPHERS" 
+        : (vendorData?.category || serviceType || "Service Type").toUpperCase();
+
+    // Replace placeholders in the template
+    html = html.replace(/{{vendorName}}/g, vendorData?.fullName || "Vendor");
+    html = html.replace(/{{currentDate}}/g, currentDate);
+    html = html.replace(/{{sevenDaysFromNow}}/g, sevenDaysFromNow);
+    html = html.replace(/{{vendorFullName}}/g, vendorData?.fullName || "Vendor Name");
+    html = html.replace(/{{vendorAddress}}/g, vendorData?.address || "Vendor Address");
+    html = html.replace(/{{vendorServiceType}}/g, vendorServiceTypeFormatted);
+    html = html.replace(/{{commissionTableRows}}/g, commissionTableRows);
+    html = html.replace(/{{vendorCancellationTableRows}}/g, vendorCancellationTableRows);
+    html = html.replace(/{{customerCancellationTableRows}}/g, customerCancellationTableRows);
+    html = html.replace(/{{signature}}/g, signature);
+
+    return html;
+  } catch (error) {
+    console.error("Error generating agreement HTML from template:", error);
+    throw error;
+  }
 };
 
 // Main function to generate agreement PDF
@@ -343,27 +116,12 @@ async function generateAgreementPDF(serviceType, vendorId, agreementData) {
     const html = generateAgreementHTML(agreementData);
     console.log("HTML generated, length:", html.length);
 
-    console.log("Importing puppeteer...");
-    // Dynamic import puppeteer
-    const puppeteer = process.env.IS_LOCAL === "true"
-      ? await import("puppeteer")
-      : await import("puppeteer-core");
-    console.log("Puppeteer imported successfully");
-
-    console.log("Launching browser...");
-    // Launch Puppeteer
-    browser = process.env.IS_LOCAL === "true"
-      ? await puppeteer.default.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox']
-        })
-      : await puppeteer.default.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-        });
-    console.log("Browser launched successfully");
+    console.log("Launching browser with Playwright...");
+    // Launch Playwright browser
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     console.log("Creating new page...");
     page = await browser.newPage();
