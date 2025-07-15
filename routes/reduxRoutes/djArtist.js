@@ -56,9 +56,7 @@ router.post("/", async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-    const { id } = req.params;
-    console.log("Finding DJ artist details for id:", id);
-    
+    const { id } = req.params;    
     try {
         console.log("Finding Dj artist details for id:", id);
         const djArtistDetails = await DjArtistModel.findOne({ id });
@@ -67,7 +65,7 @@ router.get('/:id', async (req, res) => {
             console.log("No dj artist details found for id:", id);
             return res.status(404).json({ message: "DJ artist details not found." });
         }
-        console.log("Found dj artist details:", djArtistDetails);
+        console.log("Found dj artist details:", djArtistDetails.address);
         res.status(200).json(djArtistDetails);
         
     } catch (error) {
