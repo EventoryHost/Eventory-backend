@@ -8,10 +8,12 @@ const djArtistSchema = Schema({
     type: { type: String, default: "djArtist" },
     isVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 0 },
-    completed: { type: Boolean, default: false }, // Flag for section completion
+    completed: { type: Boolean, default: false }, 
     name: { type: String, required: true },
     contact: { type: String, required: true },
     description: { type: String, required: true},
+    address: { type: String, required: true },
+    serviceAreas: { type: [String], required: true },
     eventTypes: { type: [String], required: true },
     musicGenres: { type: [String],},
     regionalSpecializations: { type: [String] },
