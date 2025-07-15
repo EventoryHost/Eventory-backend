@@ -294,7 +294,9 @@ const createPhotographer = async (req, res) => {
     res.status(201).json({
       message: "Photographer created successfully",
       profileCompletion,
-    });
+      serviceId: saved._id,
+      photographer: saved, // ✅ full created object
+    });    
   } catch (error) {
     console.error("Error creating photographer:", error);
     res.status(400).json({ error: error.message });

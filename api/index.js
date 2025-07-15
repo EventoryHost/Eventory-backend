@@ -108,7 +108,7 @@ app.use("/api", featuredVendorsRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/review", reviewRoutes);
-app.use("/webhook", waRoutes);
+app.use("/webhook", waRoutes);  
 app.use("/api", rmadminRoutes);
 app.use("/api", salesRoutes);
 app.use("/api/vendors", Vendor);
