@@ -1,16 +1,19 @@
 import express from "express";
 import Order from "../models/finalOrders.js";
+import customerNotification from "../models/customerNotification.js";
+import vendorNotification from "../models/vendorNotification.js";
+import adminNotification from "../models/adminNotification.js";
 
 const router = express.Router();
 
 router.post("/finalOrder", async (req, res) => {
   try {
-    const { orderId, ...rest } = req.body;
+    const { orderId, adminId , ...rest } = req.body;
 
     let order = await Order.findOneAndUpdate(
       { orderId },
-      rest,
-      { new: true, upsert: true }, // upsert = create if not found
+      { ...rest, adminId },
+      { new: true, upsert: true } // upsert = create if not found
     );
 
     res
@@ -38,6 +41,187 @@ router.get("/finalOrder", async (req, res) => {
   }
 });
 
+// backend route to find status of approvals using quotationId
+router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const order = await Order.findOne({ quotationId: id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    res.json(order);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Approve or mark as needs discussion
+router.put("/finalOrder/approve", async (req, res) => {
+  console.log("🔵 Approve Route HIT");
+
+  try {
+    const { orderId, userType, value } = req.body;
+
+    if (!orderId || !userType || typeof value !== "boolean") {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const updateField = {};
+    updateField[`approvals.${userType}`] = value;
+
+    // ✅ Also set lastAction info
+    updateField["lastAction"] = { by: userType, value };
+
+    // Update the approval field for the specific userType
+    const order = await Order.findOneAndUpdate(
+      { orderId },
+      { $set: updateField },
+      { new: true }
+    );
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    const { approvals } = order;
+
+    // ✅ CASE 1: Both parties approved
+    if (approvals.customer === true && approvals.vendor === true) {
+      const parsedFinalPrice = Number(
+        String(order.budget || order.finalPrice || 0).replace(/,/g, "")
+      );
+
+      const checkoutURL =
+        order.finalURL ||
+        `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
+
+        const message = `✅ Final Order Approved by both Vendor and Customer. (Order ID: ${order.orderId})`;
+
+      // Customer Notification
+      await customerNotification.findOneAndUpdate(
+        {
+          customerId: order.customerId,
+          orderId: order.orderId,
+          vendorId: order.vendorId,
+        },
+        {
+          $set: {
+            finalPrice: parsedFinalPrice,
+            checkoutURL,
+            message,
+          },
+        },
+        { new: true, upsert: true }
+      );
+
+      // Vendor Notification
+      await vendorNotification.create({
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });
+
+      // Admin Notification
+      await adminNotification.create({
+        adminId: order.adminId, // ✅ now added
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });      
+
+      return res.status(200).json({
+        message: `Both parties approved. Checkout link sent to customer.`,
+        data: order,
+        checkoutURL,
+      });
+    }
+
+    // ❌ Case: Rejected by any party
+    if (approvals.customer === false || approvals.vendor === false) {
+      const message = `🔄 Order reset due to bieng marked for further discussion by ${userType}. (Order ID: ${order.orderId})`;
+
+      await vendorNotification.create({
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });
+
+      await adminNotification.create({
+        adminId: order.adminId,
+        vendorId: order.vendorId,
+        customerId: order.customerId,
+        orderId: order.orderId,
+        message,
+      });      
+
+      await customerNotification.create({
+        customerId: order.customerId,
+        vendorId: order.vendorId,
+        orderId: order.orderId,
+        message,
+      });
+
+      const resetOrder = await Order.findOneAndUpdate(
+        { orderId },
+        {
+          $set: {
+            approvals: {
+              customer: null,
+              vendor: null,
+            },
+          },
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        message:
+          "Approval rejected by one party. Order reset for future approvals.",
+        data: resetOrder,
+      });
+    }
+
+    // 🟡 CASE 3: Only one party approved, waiting for the other
+    const message = `⏳ Final Order approved by ${userType}. Waiting for the other party. (Order ID: ${order.orderId})`;
+
+    // Notify Vendor
+    await vendorNotification.create({
+      vendorId: order.vendorId,
+      customerId: order.customerId,
+      orderId: order.orderId,
+      message,
+    });
+
+    // Notify Admin
+    await adminNotification.create({
+      adminId: order.adminId,
+      vendorId: order.vendorId,
+      customerId: order.customerId,
+      orderId: order.orderId,
+      message,
+    });    
+
+    // Optionally: Notify Customer too (depending on your UX design)
+    await customerNotification.create({
+      customerId: order.customerId,
+      vendorId: order.vendorId,
+      orderId: order.orderId,
+      message,
+    });
+
+    return res.status(200).json({
+      message: `Approval updated for ${userType}, waiting for other party.`,
+      data: order,
+    });
+  } catch (error) {
+    console.error("🔥 Approval update error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
+});
+
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
   try {
@@ -47,7 +231,7 @@ router.put("/finalOrder/:orderId", async (req, res) => {
     const updatedOrder = await Order.findOneAndUpdate(
       { orderId: orderId }, // Use orderId to find the order
       req.body, // Update with the request body
-      { new: true }, // Return the updated order
+      { new: true } // Return the updated order
     );
 
     if (!updatedOrder)

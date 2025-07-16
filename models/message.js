@@ -7,7 +7,7 @@ const messageSchema = new mongoose.Schema(
     contentType: {
       type: String,
       required: true,
-      enum: ["text", "image", "video", "pdf", "file"],
+      enum: ["text", "image", "video", "pdf", "file", "approval_request"],
     }, // Type of content
     content: { type: String, required: true },
     mediaUrl: { type: String, default: null }, // URL to media file if applicable

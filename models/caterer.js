@@ -84,6 +84,8 @@ const catererSchema = new Schema({
     cancellationPolicy: { type: String },
     termsAndConditions: { type: String },
     client_testimonials: { type: String },
+    agreementUrl: { type: String },
+    agreementSignedAt: { type: Date },
   },
   id: {
     type: String,

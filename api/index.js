@@ -36,6 +36,7 @@ import rmadminRoutes from "../routes/rmadminRoutes.js";
 import salesRoutes from "../routes/salesRoutes.js";
 import Vendor from "../routes/vendorRoutes.js";
 import finalOrders from "../routes/finalOrders.js";
+import agreementRoutes from "../routes/agreementRoutes.js";
 
 const app = express();
 const port = process.env.PORT;
@@ -107,11 +108,12 @@ app.use("/api", featuredVendorsRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/review", reviewRoutes);
-app.use("/webhook", waRoutes);
+app.use("/webhook", waRoutes);  
 app.use("/api", rmadminRoutes);
 app.use("/api", salesRoutes);
 app.use("/api/vendors", Vendor);
 app.use("/api", finalOrders);
+app.use("/api/agreements", agreementRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");

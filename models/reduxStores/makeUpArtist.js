@@ -29,6 +29,8 @@ const makeupArtistSchema = Schema({
   cancellationPolicy: { type: [String] },
   certificateOrAwards: { type: [String] },
   clientTestimonials: { type: [String] },
+  agreementUrl: { type: String }, // URL of the signed agreement PDF
+  agreementSignedAt: { type: Date }, // When the agreement was signed
   id: { type: String, default: generateUniqueId("mak") },
   venId: { type: String },
   vendorType: { type: String, default: "makeupArtist" },

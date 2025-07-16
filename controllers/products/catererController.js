@@ -1,4 +1,5 @@
 import { Caterer } from "../../models/caterer.js";
+import { CateringModel } from "../../models/reduxStores/catering.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
 import parseRange from "../../utils/parseRange.js";
@@ -126,6 +127,24 @@ const createCaterer = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
+    // Get agreement data from temporary catering data
+    let agreementUrl = null;
+    let agreementSignedAt = null;
+    
+    try {
+      const tempCateringData = await CateringModel.findOne({ id: req.body.venId });
+      if (tempCateringData && tempCateringData.agreementUrl) {
+        agreementUrl = tempCateringData.agreementUrl;
+        agreementSignedAt = tempCateringData.agreementSignedAt;
+        console.log("Found agreement data in temp catering:", {
+          agreementUrl,
+          agreementSignedAt
+        });
+      }
+    } catch (tempDataError) {
+      console.warn("Could not fetch agreement data from temporary catering:", tempDataError.message);
+    }
+
     // Create new caterer document
     const newCaterer = new Caterer({
       basicDetails: {
@@ -183,6 +202,8 @@ const createCaterer = async (req, res) => {
         cancellationPolicy: cancellationPolicyFileUrl,
         termsAndConditions: termsAndConditionsFileUrl,
         client_testimonials: clientTestimonialsUrl,
+        agreementUrl: agreementUrl,
+        agreementSignedAt: agreementSignedAt,
       },
     });
 

@@ -5,6 +5,7 @@ import Message from "../models/message.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
+import customerNotification from "../models/customerNotification.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -96,7 +97,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         const validSenders = ["cus", "ven", "rm"];
-        const validContentTypes = ["text", "image", "video", "pdf", "file"];
+        const validContentTypes = ["text", "image", "video", "pdf", "file", "approval_request"];
 
         if (!validSenders.includes(senderType)) {
           // Call the callback with error if provided
@@ -477,6 +478,78 @@ export const getBlockedChats = async (req, res) => {
   } catch (error) {
     console.error("Error fetching blocked chats:", error);
     return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// export const getCustomerNotifications = async (req, res) => {
+//   try {
+//     // your logic here
+//     return res.status(200).json({ message: "Notifications fetched successfully" });
+//   } catch (error) {
+//     console.error("Error in getCustomerNotifications:", error);
+//     return res.status(500).json({ error: "Failed to fetch notifications" });
+//   }
+// };
+export const getCustomerNotifications = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Customer ID is required" });
+    }
+
+    const notifications = await customerNotification
+      .find({ customerId })
+      .sort({ createdAt: -1 }); // Sort by most recent notifications
+
+    return res.status(200).json({ notifications });
+  } catch (error) {
+    console.error("Error fetching customer notifications:", error);
+    return res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+
+    if (!notificationId) {
+      return res.status(400).json({ error: "Notification ID is required" });
+    }
+
+    // Assuming you have a Notification model
+    const notification = await customerNotification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+
+    notification.read = true; // Mark as read
+    await notification.save();
+
+    return res.status(200).json({ message: "Notification marked as read" });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    return res.status(500).json({ error: "Failed to mark notification as read" });
+  }
+}
+
+export const markAllCustomerNotificationsAsRead = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Customer ID is required" });
+    }
+
+    await customerNotification.updateMany(
+      { customerId, read: false },
+      { $set: { read: true } }
+    );
+
+    return res.status(200).json({ message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Error marking notifications as read:", error);
+    return res.status(500).json({ error: "Failed to mark notifications as read" });
   }
 };
 
