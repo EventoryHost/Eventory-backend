@@ -144,6 +144,8 @@ const photographerSchema = Schema({
     termsAndConditions: {
       type: [String],
     },
+    agreementUrl: { type: String },
+    agreementSignedAt: { type: Date },
   },
 
   rating: { type: Number, default: 0 }, // Added rating field

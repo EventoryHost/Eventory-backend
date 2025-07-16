@@ -54,6 +54,10 @@ const CateringSchema = new mongoose.Schema(
     businessLicenses: { type: Boolean }, // Business licenses held
     foodSafety: { type: Boolean }, // Food safety certificates held
 
+    // Agreement fields for PDF storage
+    agreementUrl: { type: String }, // URL of the signed agreement PDF
+    agreementSignedAt: { type: Date }, // Timestamp when agreement was signed
+
     // Optionally you could add more specific fields related to your use case
   },
   { timestamps: true },
