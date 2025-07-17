@@ -3,6 +3,7 @@ dotenv.config();
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client } from "@aws-sdk/client-s3";
 import { SESClient } from "@aws-sdk/client-ses";
+import { SQSClient } from "@aws-sdk/client-sqs";
 
 const cognito = new CognitoIdentityProviderClient({
   region: process.env.AWS_REGION,
@@ -30,4 +31,13 @@ const ses = new SESClient({
   },
 });
 
-export { cognito, s3, ses };
+const sqs = new SQSClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET,
+  },
+});
+
+
+export { cognito, s3, ses, sqs };

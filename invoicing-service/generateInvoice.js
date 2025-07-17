@@ -1,14 +1,16 @@
+import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 import { readFileSync } from "fs";
 import path from "path";
-import { uploadInvoiceToS3 } from "../controllers/s3Controller.js";
-import { Vendor } from "../models/users.js";
 import { chromium } from "playwright";
+import { sendInvoiceEmail } from "./sendtoEmail.js";
+import { sendInvoiceToWhatsApp } from "./sendtoWA.js";
+import { uploadToS3 } from "./uploadToS3.js";
 
-async function generateInvoice(customer, paymentDetails) {
+async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   let browser = null;
   let page = null;
 
@@ -92,16 +94,33 @@ async function generateInvoice(customer, paymentDetails) {
       await browser.close();
     }
 
-    const invoiceUrl = await uploadInvoiceToS3(
+
+    const invoiceUrl = await uploadToS3(
       pdfBuffer,
       `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
     console.log("Invoice uploaded to S3:", invoiceUrl);
-    const vendor = await Vendor.findOne({ id: customer.id });
-    vendor.invoices.push(invoiceUrl);
-    await vendor.save();
 
-    console.log("Invoice URL saved to MongoDB");
+    await axios.post(
+      `https://api.eventory.in/api/add-vendor-invoice`,
+      {
+        vendorId: customer.id,
+        invoiceUrl,
+      },
+    );
+    if (customer.email)
+      await sendInvoiceEmail(
+        customer.email,
+        "Registration Successful!!!",
+        "Thank you for registering with Eventory. Your invoice is attached.",
+        pdfBuffer,
+        `invoice-${paymentDetails.invoiceNumber}.pdf`
+      )
+
+    await sendInvoiceToWhatsApp(
+      invoiceUrl,
+      customer.mobile,
+    )
     const result = {
       fileName: `invoice-${paymentDetails.invoiceNumber}.pdf`,
       pdf: pdfBuffer,
@@ -124,4 +143,4 @@ async function generateInvoice(customer, paymentDetails) {
   }
 }
 
-export default generateInvoice;
+export { generateVendorOnboardedInvoice };

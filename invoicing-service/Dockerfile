@@ -5,6 +5,6 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-RUN npx playwright install --with-deps
+RUN npx playwright install chromium --with-deps
 
 CMD ["node", "index.js"]

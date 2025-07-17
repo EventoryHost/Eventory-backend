@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import { Vendor } from "../models/users.js";
 import { sendEmailInvoice } from "./sesController.js";
 import { generatePaymentId } from "../utils/generateId.js";
+import { sqs } from "../config/awsConfig.js";
+import { SendMessageCommand } from "@aws-sdk/client-sqs";
 
 dotenv.config();
 
@@ -79,10 +81,17 @@ const verifyPayment = async (req, res) => {
     };
 
     const vendor = await Vendor.findOne({ id: ven_id });
-    const file = await generateInvoice(vendor, formattedDetails);
+    const sqsMessage = {
+      customer: vendor,
+      paymentDetails: formattedDetails,
+    };
 
-    if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
-    sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
+    await sqs.send(new SendMessageCommand({
+      QueueUrl: "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      MessageBody: JSON.stringify(sqsMessage),
+    }));
+
+
 
     return res.status(200).json({ message: "Payment verified" });
   } catch (error) {
