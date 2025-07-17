@@ -13,8 +13,11 @@
   <div class="invoice-container">
     <header>
       <img src="https://res.cloudinary.com/dnfv0h10u/image/upload/v1731161536/Frame_427319036_ls8nab.svg" alt="" />
+      <div class="invoice-header">
+        <h2><strong>INVOICE - {{invoiceNumber}}</strong></h2>
+      </div>
       <div class="company-details">
-        <p>Eventory Tech Solutions Pvt Ltd</p>
+        <p><strong>Eventory Tech Solutions Pvt Ltd</strong></p>
         <p>13-D, Atmaram House, 1-Tolstoy Marg,</p>
         <p>Connaught Place, New Delhi - 110001</p>
         <p>Phone: +91 8800725840</p>
@@ -22,56 +25,79 @@
         <p>GSTIN: 07AAICE2656F1ZO</p>
       </div>
     </header>
+    
+    <hr style="border: 1px solid #7731D8; margin: 20px 0;" />
+    
     <section class="billing-info">
       <div class="billed-to">
-        <h3>Billed to:</h3>
-        <p>{{customerName}}</p>
-        <p>{{customerBusinessName}}</p>
-        <p>{{customerAddress}}</p>
-        <p>{{gstin}}</p>
+        <h3><strong>Billed to:</strong></h3>
+        <div class="customer-info">
+          <p>{{customerName}}</p>
+          <p>{{customerBusinessName}}</p>
+          <p>{{customerAddress}}</p>
+          <p>{{panGstDisplay}}</p>
+        </div>
       </div>
-      <payment-id>
-        <p>Payment ID:</p>
-        <p>{{invoiceNumber}}</p>
-      </payment-id>
-      <paid-by>
-        <p>Paid by:</p>
-        <p>{{paymentMethod}}</p>
-      </paid-by>
-      <date>
-        <p>Invoice date:</p>
-        <p>{{invoiceDate}}</p>
-      </date>
-      <gst-in>
-        <p>Vendor id:</p>
-        <p>{{vendorId}}</p>
-      </gst-in>
-      <invoice-of>
-        <p>Invoice of:</p>
-        <p>₹ {{amount}}</p>
-      </invoice-of>
+      
+      <div class="payment-details">
+        <div class="payment-info">
+          <p><strong>Payment ID:</strong></p>
+          <p>{{invoiceNumber}}</p>
+        </div>
+        <div class="payment-info">
+          <p><strong>Paid by:</strong></p>
+          <p>{{paymentMethod}}</p>
+        </div>
+      </div>
+      
+      <div class="invoice-details">
+        <div class="invoice-info">
+          <p><strong>Invoice date:</strong></p>
+          <p>{{invoiceDate}}</p>
+        </div>
+        <div class="invoice-info">
+          <p><strong>Vendor id:</strong></p>
+          <p>{{vendorId}}</p>
+        </div>
+        <div class="invoice-info">
+          <p><strong>Invoice of:</strong></p>
+          <p>{{amount}}</p>
+        </div>
+      </div>
     </section>
+    
     <section class="item-details">
       <table>
         <thead>
           <tr>
-            <th>Item Detail</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>Amount</th>
+            <th>S.No.</th>
+            <th>Item Details</th>
+            <th>Type</th>
+            <th>Net Amount</th>
+            <th>Tax Rate</th>
+            <th>Tax Type</th>
+            <th>Tax Amount</th>
+            <th>Total Amount</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Vendor Registration</td>
-            <td>1</td>
-            <td>₹ {{subtotal}}</td>
-            <td>₹ {{subtotal}}</td>
-          </tr>
+          {{tableRows}}
+          {{totalRow}}
+          {{amountInWordsRow}}
+          <tr class="signature-row">
+  <td colspan="5" style="padding-top: 30px;">
+    <p style="margin: 0;"><strong>For EVENTORY TECH SOLUTIONS PVT LIMITED:</strong></p>
+  </td>
+  <td colspan="3" style="text-align: right; padding-top: 30px;">
+    <img src="https://d5b8uhuzdzhj3.cloudfront.net/assets/vendor_onboarding/sign.png" alt="Signature" style="width: 120px; height: 40px; margin-bottom: 10px;" />
+    <p style="margin: 0; font-size: 12px;"><strong>Authorized Signatory</strong></p>
+  </td>
+</tr>
+
         </tbody>
       </table>
     </section>
-    <section class="totals">{{taxSection}}</section>
+    
     <footer>
       <h4><a href="https://eventory.in/tnc">Terms & Conditions</a></h4>
       <p>
@@ -80,7 +106,6 @@
       </p>
     </footer>
   </div>
-  <script src="./taxCalc.js"></script>
 </body>
 
 </html>
