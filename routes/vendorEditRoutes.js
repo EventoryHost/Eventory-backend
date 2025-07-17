@@ -22,7 +22,7 @@ router.put("/update-service/:serviceId", async (req, res) => {
   const updateData = req.body;
 
   console.log(
-    `1..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
+    `1..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`
   );
 
   try {
@@ -58,8 +58,9 @@ router.put("/update-service/:serviceId", async (req, res) => {
         vendor.businessDetails.annualrevenue = fieldsToUpdate.annualrevenue;
       if (fieldsToUpdate.gstin)
         vendor.businessDetails.gstin = fieldsToUpdate.gstin;
-      if(fieldsToUpdate.bookingsPerMonth)
-        vendor.businessDetails.bookingsPerMonth = fieldsToUpdate.bookingsPerMonth;
+      if (fieldsToUpdate.bookingsPerMonth)
+        vendor.businessDetails.bookingsPerMonth =
+          fieldsToUpdate.bookingsPerMonth;
     }
 
     // Update the relevant service in the serviceIds array
@@ -98,99 +99,95 @@ router.post("/updateService/:serviceId", async (req, res) => {
   try {
     // Fetch the vendor document by serviceId
     const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
-    try {
-      // Fetch the vendor document by serviceId
-      const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
 
-      if (!vendor) {
-        return res.status(404).json({ message: "Vendor not found" });
-      }
-      if (!vendor) {
-        return res.status(404).json({ message: "Vendor not found" });
-      }
-
-      // Find the service details based on the serviceId
-      const service = vendor.serviceIds.find(
-        (service) => service.serId === serviceId
-      );
-
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-
-      // Dynamically select the service model based on the serviceType
-      let serviceDoc;
-      switch (service.serType) {
-        case "caterer":
-          serviceDoc = await Caterer.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        case "decorator":
-          serviceDoc = await Decorator.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        case "pav":
-        case "photographer": // Replace 'pav' with 'photographer'
-          serviceDoc = await Photographer.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        case "venue-provider":
-          serviceDoc = await Venue.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        case "prop-rental":
-          serviceDoc = await PropRental.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        case "makeupArtist":
-          serviceDoc = await MakeupArtist.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        case "djArtist":
-          serviceDoc = await DjArtist.findOne({
-            id: service.serId,
-            venId: vendor.id,
-          });
-          break;
-        default:
-          return res.status(400).json({ message: "Invalid service type" });
-      }
-
-      if (!serviceDoc) {
-        return res
-          .status(404)
-          .json({ message: `${service.serType} service not found` });
-      }
-
-      // Update the service document (e.g., description and company name)
-      serviceDoc.basicDetails.description = newDescription;
-      serviceDoc.basicDetails.name = newCompanyName;
-
-      // Save the updated document
-      await serviceDoc.save();
-
-      return res
-        .status(200)
-        .json({ message: "Service updated successfully", data: serviceDoc });
-    } catch (error) {
-      console.error("Error updating service:", error);
-      return res.status(500).json({ message: "Server error" });
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
     }
+
+    // Find the service details based on the serviceId
+    const service = vendor.serviceIds.find(
+      (service) => service.serId === serviceId
+    );
+
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    // Dynamically select the service model based on the serviceType
+    let serviceDoc;
+    switch (service.serType) {
+      case "caterer":
+        serviceDoc = await Caterer.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "decorator":
+        serviceDoc = await Decorator.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "pav":
+      case "photographer": // Replace 'pav' with 'photographer'
+        serviceDoc = await Photographer.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "venue-provider":
+        serviceDoc = await Venue.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "prop-rental":
+        serviceDoc = await PropRental.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "makeupArtist":
+        serviceDoc = await MakeupArtist.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      case "djArtist":
+        serviceDoc = await DjArtist.findOne({
+          id: service.serId,
+          venId: vendor.id,
+        });
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid service type" });
+    }
+
+    if (!serviceDoc) {
+      return res
+        .status(404)
+        .json({ message: `${service.serType} service not found` });
+    }
+
+    // Update the service document (e.g., description and company name)
+    const updateFields = {
+      "basicDetails.description": newDescription,
+      "basicDetails.name": newCompanyName,
+    };
+
+    // Use findOneAndUpdate to avoid full document validation
+    const updatedServiceDoc = await serviceDoc.constructor.findOneAndUpdate(
+      { _id: serviceDoc._id },
+      { $set: updateFields },
+      { new: true, runValidators: false }
+    );
+
+    return res
+      .status(200)
+      .json({
+        message: "Service updated successfully",
+        data: updatedServiceDoc,
+      });
   } catch (error) {
     console.error("Error updating service:", error);
     return res.status(500).json({ message: "Server error" });
@@ -203,7 +200,7 @@ const updateServiceDetails = async (req, res) => {
   const updateData = req.body;
 
   console.log(
-    `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
+    `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`
   );
 
   try {
@@ -216,9 +213,6 @@ const updateServiceDetails = async (req, res) => {
     const service = vendor.serviceIds.find(
       (service) => service.serId === serId
     );
-    if (!service) {
-      return res.status(404).json({ error: "Service not found" });
-    }
 
     const { serType } = service;
     let updatedService;
@@ -692,6 +686,7 @@ const checkVerification = (service, serType) => {
       ];
       break;
     // Add criteria for other service types as needed
+
     default:
       console.log(`Unknown service type: ${serType}`);
       return false;
