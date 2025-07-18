@@ -45,6 +45,7 @@ const OrderSchema = new mongoose.Schema(
         description: { type: String }, // <-- Add this line
       },
     ],    
+
     description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
