@@ -40,10 +40,12 @@ const OrderSchema = new mongoose.Schema(
     },
     finalizedContents: [
       {
-        name: String,
-        price: Number,
+        name: { type: String, required: true },
+        price: { type: Number, required: true },
+        description: { type: String }, // <-- Add this line
       },
-    ],
+    ],    
+
     description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
