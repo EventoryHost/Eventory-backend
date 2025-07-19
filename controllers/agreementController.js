@@ -7,8 +7,10 @@ import { DecoratorModel } from "../models/reduxStores/decorator.js";
 import MakeupArtistModel from "../models/reduxStores/makeUpArtist.js";
 import PAVModel from "../models/reduxStores/pav.js";
 import VenueModel from "../models/reduxStores/venue-provider.js";
+import DjArtistModel from "../models/reduxStores/djArtist.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import Photographer from "../models/photographers.js";
+import DjArtist from "../models/djArtist.js";
 import { Venue } from "../models/venue.js";
 import { chromium } from "playwright";
 import { readFileSync } from "fs";
@@ -84,6 +86,8 @@ const generateAgreementHTML = (agreementData) => {
     const vendorServiceTypeFormatted = 
       vendorData?.category === "pav" 
         ? "PHOTOGRAPHERS AND VIDEOGRAPHERS" 
+        : vendorData?.category === "dj" || vendorData?.category === "djartist" || vendorData?.category === "dj-artist"
+        ? "DJ ARTIST"
         : (vendorData?.category || serviceType || "Service Type").toUpperCase();
 
     // Replace placeholders in the template
@@ -244,7 +248,7 @@ async function updateServiceModelWithAgreement(serviceType, vendorId, agreementU
           if (existingCaterer) {
             console.log("Found existing caterer in main collection, updating...");
             
-            const catererUpdate = await Caterer.updateOne(
+            const catererUpdate = await Caterer.updateMany(
               { venId: vendorId },
               {
                 $set: {
@@ -257,7 +261,7 @@ async function updateServiceModelWithAgreement(serviceType, vendorId, agreementU
             console.log("Main caterer update result:", catererUpdate);
             
             if (catererUpdate.modifiedCount > 0) {
-              console.log("Main caterer model updated successfully");
+              console.log(`Main caterer model updated successfully - ${catererUpdate.modifiedCount} records updated`);
             }
           } else {
             console.log("No existing caterer found in main collection (normal for onboarding process)");
@@ -422,6 +426,70 @@ async function updateServiceModelWithAgreement(serviceType, vendorId, agreementU
         
         break;
 
+      case "dj":
+      case "djartist":
+      case "dj-artist":
+        console.log("Processing DJ artist case...");
+        
+        // Update the temporary DJ artist data
+        const tempDjUpdate = await DjArtistModel.findOneAndUpdate(
+          { id: vendorId },
+          {
+            $set: {
+              agreementUrl: agreementUrl,
+              agreementSignedAt: new Date()
+            }
+          },
+          { new: true, upsert: false }
+        );
+        
+        if (!tempDjUpdate) {
+          console.log("Temporary DJ artist data not found, creating new entry...");
+          const newTempDj = new DjArtistModel({
+            id: vendorId,
+            venId: vendorId,
+            agreementUrl: agreementUrl,
+            agreementSignedAt: new Date(),
+            pageNumber: 8, // Set to agreement page
+            serviceName: "DJ Service", // Adding required fields
+            name: "DJ Artist",
+            contact: "000-000-0000",
+            description: "DJ Artist Service",
+            address: "Address",
+            serviceAreas: ["Default"],
+            eventTypes: ["Default"],
+            servicesOffered: ["Default"],
+            photos: [],
+            videos: [],
+            priceStarts: 0
+          });
+          await newTempDj.save();
+          console.log("Created new temporary DJ artist data with agreement");
+        } else {
+          console.log("Temporary DJ artist data updated successfully");
+        }
+        
+        // Try to update main DJ artist model if it exists
+        try {
+          const djUpdate = await DjArtist.updateMany(
+            { venId: vendorId },
+            {
+              $set: {
+                "policies.agreementUrl": agreementUrl,
+                "policies.agreementSignedAt": new Date()
+              }
+            }
+          );
+          
+          if (djUpdate.modifiedCount > 0) {
+            console.log("Main DJ artist model updated successfully");
+          }
+        } catch (mainDjError) {
+          console.warn("Error updating main DJ artist model (expected during onboarding):", mainDjError.message);
+        }
+        
+        break;
+
       case "venue":
       case "venue-provider":
         console.log("Processing venue case...");
@@ -552,6 +620,14 @@ const generateAndStoreAgreement = async (req, res) => {
         const verifyTempPAVUpdate = await PAVModel.findOne({ id: vendorId });
         console.log("Verification - PAV agreement URL in temp data:", verifyTempPAVUpdate?.agreementUrl);
         console.log("Verification - PAV agreement signed at temp data:", verifyTempPAVUpdate?.agreementSignedAt);
+        break;
+
+      case "dj":
+      case "djartist":
+      case "dj-artist":
+        const verifyTempDjUpdate = await DjArtistModel.findOne({ id: vendorId });
+        console.log("Verification - DJ artist agreement URL in temp data:", verifyTempDjUpdate?.agreementUrl);
+        console.log("Verification - DJ artist agreement signed at temp data:", verifyTempDjUpdate?.agreementSignedAt);
         break;
 
       case "venue":
