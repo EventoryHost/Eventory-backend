@@ -65,6 +65,7 @@ const createDjArtist = async (req, res) => {
     const videos = getFileUrls(req.files, "videos");
 
     const fieldsToCheck = [
+      req.body.serviceName,
       req.body.name,
       req.body.contact,
       req.body.description,
@@ -94,6 +95,7 @@ const createDjArtist = async (req, res) => {
     const newDjArtist = new DjArtist({
       basicDetails: {
         profileCompletion,
+        serviceName: req.body.serviceName,
         name: req.body.name,
         contact: req.body.contact,
         description: req.body.description,

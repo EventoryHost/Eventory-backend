@@ -9,6 +9,7 @@ const djArtistSchema = Schema({
     isVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false }, 
+    serviceName: { type: String, required: true },
     name: { type: String, required: true },
     contact: { type: String, required: true },
     description: { type: String, required: true},
