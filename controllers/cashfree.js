@@ -21,8 +21,8 @@ const cashfree = process.env.IS_DEV === "true" ? new Cashfree(CFEnvironment.SAND
 
 
 const createOrder = async (req, res) => {
-  console.log("✅ [createOrder] API Hit:", req.method, req.originalUrl);
-  console.log("➡️ Request body:", req.body);
+  // console.log("✅ [createOrder] API Hit:", req.method, req.originalUrl);
+  // console.log("➡️ Request body:", req.body);
 
   var { amount, currency, customer_details } = req.body;
   amount = parseFloat(amount);
@@ -39,10 +39,10 @@ const createOrder = async (req, res) => {
       },
     };
 
-    console.log("📤 [createOrder] Sending to Cashfree:", request);
+    // console.log("📤 [createOrder] Sending to Cashfree:", request);
 
     const response = await cashfree.PGCreateOrder(request);
-    console.log("✅ [createOrder] Cashfree response:", response.data);
+    // console.log("✅ [createOrder] Cashfree response:", response.data);
 
     return res.json(response.data);
   } catch (error) {
@@ -210,11 +210,11 @@ const getPaymentSession = async (req, res) => {
 };
 
 const verifyCustomerPayment = async (req, res) => {
-  console.log("✅ [Server] verifyCustomerPayment endpoint hit");
+  // console.log("✅ [Server] verifyCustomerPayment endpoint hit");
   const { order_id, quotation_id } = req.body;
 
-  console.log("➡️ order_id:", order_id);
-  console.log("➡️ quotation_id:", quotation_id);
+  // console.log("➡️ order_id:", order_id);
+  // console.log("➡️ quotation_id:", quotation_id);
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -229,7 +229,7 @@ const verifyCustomerPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    console.log("✅ Customer Payment verified:", payment);
+    // console.log("✅ Customer Payment verified:", payment);
 
     return res.status(200).json({ message: "Customer payment verified", payment });
   } catch (error) {
