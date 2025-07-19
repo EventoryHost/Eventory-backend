@@ -23,15 +23,20 @@ header {
   margin-bottom: 20px;
 }
 
-.invoice-header {
-  flex: 1;
-  text-align: center;
+.left-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.invoice-header h2 {
+.invoice-number {
+  margin-top: 15px;
+}
+
+.invoice-number h2 {
   margin: 0;
-  color: #000000; /* Changed to black */
-  font-size: 24px;
+  color: #000000;
+  font-size: 22px;
   font-weight: bold;
 }
 
@@ -60,7 +65,7 @@ header {
 }
 
 .customer-info p {
-  margin: 6px 0; /* Better spacing */
+  margin: 6px 0;
   line-height: 1.4;
 }
 
@@ -86,15 +91,28 @@ header {
 .item-details th,
 .item-details td {
   border: 1px solid #ddd;
-  text-align: left;
+  text-align: center;
   padding: 10px;
   font-size: 12px;
-  vertical-align: top;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .item-details th {
   background: #f8f9fa;
   font-weight: bold;
+  text-align: center;
+}
+
+/* Left align only the Item Details column */
+.item-details td:nth-child(2) {
+  text-align: left;
+  white-space: normal;
+}
+
+/* Ensure total amount is centered */
+.item-details th:last-child,
+.item-details td:last-child {
   text-align: center;
 }
 
@@ -108,14 +126,33 @@ header {
   border-top: 1px solid #ddd !important;
   font-style: italic;
   padding: 15px 10px;
+  white-space: normal;
+  text-align: left;
 }
 
 .signature-row td {
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
   border-top: 1px solid #ddd !important;
+  border-bottom: 1px solid #ddd !important;
   padding: 20px 10px;
+}
+
+.signature-row td:first-child {
+  border-left: 1px solid #ddd !important;
+}
+
+.signature-row td:last-child {
+  border-right: 1px solid #ddd !important;
+}
+
+.table-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.table-container table {
+  border: none;
+  margin-bottom: 0;
 }
 
 footer {
@@ -141,7 +178,23 @@ footer a:hover {
   text-decoration: underline;
 }
 
-img {
+/* Header logo styling */
+header img {
   width: 96px;
   height: 96px;
+}
+
+/* Signature image styling */
+.signature-row img {
+  width: 120px !important;
+  height: 40px !important;
+  display: block !important;
+  margin: 0 0 10px auto !important;
+}
+
+/* Prevent company name from wrapping in signature */
+.signature-row p:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
