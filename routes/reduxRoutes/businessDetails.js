@@ -8,6 +8,7 @@ import { giftRoutes } from "./gifts.js";
 import { venueRoutes } from "./venue-provider.js";
 import { pavRoutes } from "./pav.js";
 import { makeupArtistRoutes } from "./makeUpArtist.js";
+import { djArtistRoutes } from "./djArtist.js";
 import { propRentalRoutes } from "./prop-rental.js";
 import { invitationRoutes } from "./invitation.js";
 
@@ -111,6 +112,7 @@ router.use("/pav-details", pavRoutes);
 router.use("/prop-rental-details", propRentalRoutes);
 router.use("/invitation-details", invitationRoutes);
 router.use("/makeup-artist-details", makeupArtistRoutes);
+router.use("/dj-artist-details", djArtistRoutes);
 
 /** CATERING DETAILS ROUTES **/
 
