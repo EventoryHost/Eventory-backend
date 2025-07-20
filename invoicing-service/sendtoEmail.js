@@ -4,7 +4,12 @@ import nodemailer from "nodemailer";
 
 dotenv.config();
 
-const ses = new SESClient({ region: "ap-south-1" });
+const ses = new SESClient({
+  region: "ap-south-1", credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET
+  }
+});
 
 export async function sendInvoiceEmail({ to, subject, text, pdfBuffer, pdfFileName }) {
   // Create a Nodemailer transporter using SES
@@ -14,7 +19,7 @@ export async function sendInvoiceEmail({ to, subject, text, pdfBuffer, pdfFileNa
 
   // Compose the email
   const mailOptions = {
-    from: "registrations@eventory.in", 
+    from: "registrations@eventory.in",
     to,
     subject,
     text,

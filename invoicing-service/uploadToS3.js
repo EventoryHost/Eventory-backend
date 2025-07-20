@@ -1,7 +1,13 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteIdentityCommand, SES, SESClient } from "@aws-sdk/client-ses";
 import dotenv from "dotenv";
 dotenv.config();
-const s3 = new S3Client({ region: "ap-south-1" });
+const s3 = new S3Client({
+    region: "ap-south-1", credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET
+    }
+});
 
 export async function uploadToS3(pdfBuffer, key) {
     const uploadParams = {
@@ -21,3 +27,25 @@ export async function uploadToS3(pdfBuffer, key) {
         throw err;
     }
 }
+
+export async function deleteSesObject(identity) {
+    const ses = new SESClient({
+        region: "ap-south-1", credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET,
+        }
+    });
+
+    const deleteCommand = new DeleteIdentityCommand({
+        identity: identity,
+    });
+    return ses.send(deleteCommand).then(() => {
+        console.log(`Deleted SES identity: ${identity}`);
+    }).catch((err) => {
+        
+    })
+    })
+    })
+}
+
+

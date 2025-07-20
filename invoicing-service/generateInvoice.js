@@ -102,7 +102,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     console.log("Invoice uploaded to S3:", invoiceUrl);
 
     await axios.post(
-      `https://api.eventory.in/api/add-vendor-invoice`,
+      `${process.env.URL}/api/add-vendor-invoice`,
       {
         vendorId: customer.id,
         invoiceUrl,
