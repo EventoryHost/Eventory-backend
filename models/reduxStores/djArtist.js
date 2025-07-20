@@ -28,6 +28,8 @@ const djArtistSchema = Schema({
     priceStarts : { type: Number, required: true },
     termsAndConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
+    agreementUrl: { type: String },
+    agreementSignedAt: { type: Date },
     id: { type: String, default: generateUniqueId("dj"), required: true },
     venId: { type: String, required: true },
     vendorType: { type: String, default: "djArtist" },
