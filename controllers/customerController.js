@@ -6,6 +6,7 @@ import PropRental from "../models/props.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
+import  customerNotification  from "../models/customerNotification.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -74,6 +75,61 @@ export const addFavourite = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+export const getCustomerNotifications = async (req, res) => {
+  const { customerId } = req.params;
+
+  try {
+    if (!customerId) {
+      return res.status(400).json({ message: "Customer ID is required" });
+    }
+
+    const notifications = await customerNotification.find({ customerId });
+
+    return res.status(200).json({
+      message: "Notifications retrieved successfully",
+      data: notifications,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching notifications:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch notifications", error: error.message });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  const { notificationId } = req.params;
+
+  console.log("Receieved from frontend ---> :", notificationId);
+
+  try {
+    if (!notificationId) {
+      return res.status(400).json({ message: "Notification ID is required" });
+    }
+
+    const updated = await customerNotification.findByIdAndUpdate(
+      notificationId,
+      { read: true },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    return res.status(200).json({
+      message: "Notification marked as read",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("❌ Error marking notification as read:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to mark notification as read", error: error.message });
+  }
+};
+
 
 // export const getFavoriteServices = async (req, res) => {
 //   try {

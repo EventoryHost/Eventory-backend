@@ -13,7 +13,9 @@ const OrderSchema = new mongoose.Schema(
         "Other",
       ],
     },
+    adminId : { type: String, required: true },// admin ID for tracking
     vendorId: { type: String, required: true },
+    quotationId: { type: String },
     orderId: { type: String, required: true, unique: true },
     customerId: { type: String },
     customerName: { type: String }, // maps from user_name
@@ -23,15 +25,28 @@ const OrderSchema = new mongoose.Schema(
     photos: { type: [String], default: [] }, // array of image URLs
     rating: { type: Number, default: 0 }, // added
     finalURL: { type: String }, // added
-    finalizedContents: {
-      type: [
-        {
-          name: { type: String, required: true },
-          price: { type: Number, required: true },
-        },
-      ],
+    advance_payment: { type: Number },
+    advance_payment_type: { type: String },
+    approvals: {
+      type: {
+        customer: { type: Boolean, default: null },
+        vendor: { type: Boolean, default: null },
+      },
+      default: () => ({ customer: null, vendor: null }),
     },
-    description: { type: String },
+    lastAction: {
+      by: { type: String, enum: ["customer", "vendor"], default: null },
+      value: { type: Boolean, default: null },
+    },
+    finalizedContents: [
+      {
+        name: { type: String, required: true },
+        price: { type: Number, required: true },
+        description: { type: String }, // <-- Add this line
+      },
+    ],    
+
+    description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy
     start_date: { type: String }, // added
@@ -74,7 +89,7 @@ const OrderSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export default mongoose.model("Order", OrderSchema);

@@ -64,6 +64,8 @@ const venueSchema = new Schema({
   clientTestimonials: { type: String },
   advanceBookingPeriod: { type: String },
   priceStarts: { type: String },
+  agreementUrl: { type: String }, // URL of the signed agreement PDF
+  agreementSignedAt: { type: Date }, // When the agreement was signed
 });
 
 const VenueModel = model("ReduxVenueProvider", venueSchema);

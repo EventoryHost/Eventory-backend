@@ -77,6 +77,8 @@ const decoratorSchema = Schema({
     completed: { type: Boolean, default: false }, // Flag for section completion
     cancellationPolicy: { type: String },
     termsAndConditions: { type: String },
+    agreementUrl: { type: String },
+    agreementSignedAt: { type: Date },
   },
   id: { type: String, default: () => generateUniqueId("dec"), required: true },
   venId: { type: String, required: true },
