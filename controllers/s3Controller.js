@@ -1,6 +1,6 @@
 import { s3 } from "../config/awsConfig.js";
 import dotenv from "dotenv";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import fs from "fs";
 dotenv.config();
 
@@ -45,4 +45,23 @@ const uploadAgreementToS3 = async (pdfBuffer, serviceType, vendorId) => {
   }
 };
 
-export { uploadInvoiceToS3, uploadAgreementToS3 };
+const getInvoiceCount = async () => {
+  try {
+    const params = {
+      Bucket: `${process.env.AWS_S3_BUCKET_NAME}`,
+      Prefix: "invoices/vendors/",
+    };
+
+    const command = new ListObjectsV2Command(params);
+    const response = await s3.send(command);
+    
+    console.log("S3 response:", response);
+    
+    return response.Contents ? response.Contents.length : 0;
+  } catch (error) {
+    console.error("Error getting invoice count from S3:", error);
+    return 0;
+  }
+};
+
+export { uploadInvoiceToS3, uploadAgreementToS3, getInvoiceCount };

@@ -59,7 +59,7 @@ const createOrder = async (req, res) => {
 
 
 const verifyPayment = async (req, res) => {
-  const { order_id, ven_id, discount } = req.body;
+  const { order_id, ven_id, discount, couponCode } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -83,6 +83,7 @@ const verifyPayment = async (req, res) => {
       amount: payment.order_amount,
       method: payment.order_meta.payment_methods !== null ? payment.order_meta.payment_methods : "UPI CC",
       discount: discount || 0,
+      couponCode: couponCode || null,
       id: ven_id,
     };
 
@@ -108,7 +109,7 @@ const verifyPayment = async (req, res) => {
 
 async function sendInvoice(req, res) {
   try {
-    const { ven_id, amount, discount } = req.body;
+    const { ven_id, amount, discount, couponCode } = req.body;
     const payment_id = generatePaymentId();
 
     const formattedDetails = {
@@ -116,6 +117,7 @@ async function sendInvoice(req, res) {
       invoiceDate: new Date().toLocaleDateString(),
       amount: amount,
       discount: discount,
+      couponCode: couponCode || null,
       method: "None",
       id: ven_id,
     };
