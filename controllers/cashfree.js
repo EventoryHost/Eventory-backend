@@ -6,6 +6,8 @@ import { Vendor } from "../models/users.js";
 import { Quotation } from "../models/quotation.js";
 import { sendEmailInvoice } from "./sesController.js";
 import { generatePaymentId } from "../utils/generateId.js";
+import { sqs } from "../config/awsConfig.js";
+import { SendMessageCommand } from "@aws-sdk/client-sqs";
 
 dotenv.config();
 
@@ -57,7 +59,7 @@ const createOrder = async (req, res) => {
 
 
 const verifyPayment = async (req, res) => {
-  const { order_id, ven_id, discount } = req.body;
+  const { order_id, ven_id, discount, couponCode } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -81,14 +83,22 @@ const verifyPayment = async (req, res) => {
       amount: payment.order_amount,
       method: payment.order_meta.payment_methods !== null ? payment.order_meta.payment_methods : "UPI CC",
       discount: discount || 0,
+      couponCode: couponCode || null,
       id: ven_id,
     };
 
     const vendor = await Vendor.findOne({ id: ven_id });
-    const file = await generateInvoice(vendor, formattedDetails);
+    const sqsMessage = {
+      customer: vendor,
+      paymentDetails: formattedDetails,
+    };
 
-    if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
-    sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
+    await sqs.send(new SendMessageCommand({
+      QueueUrl: "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      MessageBody: JSON.stringify(sqsMessage),
+    }));
+
+
 
     return res.status(200).json({ message: "Payment verified" });
   } catch (error) {
@@ -99,7 +109,7 @@ const verifyPayment = async (req, res) => {
 
 async function sendInvoice(req, res) {
   try {
-    const { ven_id, amount, discount } = req.body;
+    const { ven_id, amount, discount, couponCode } = req.body;
     const payment_id = generatePaymentId();
 
     const formattedDetails = {
@@ -107,6 +117,7 @@ async function sendInvoice(req, res) {
       invoiceDate: new Date().toLocaleDateString(),
       amount: amount,
       discount: discount,
+      couponCode: couponCode || null,
       method: "None",
       id: ven_id,
     };
