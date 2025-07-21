@@ -11,4 +11,6 @@ cashfreeRoutes.post(
 cashfreeRoutes.get("/payment-session/:order_id", cashfreeController.getPaymentSession);
 cashfreeRoutes.post("/webhook", cashfreeController.handleWebhook);
 
+cashfreeRoutes.post("/verify-customer-payment", cashfreeController.verifyCustomerPayment);
+
 export default cashfreeRoutes;

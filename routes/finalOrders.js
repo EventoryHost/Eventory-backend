@@ -93,7 +93,7 @@ router.put("/finalOrder/approve", async (req, res) => {
         order.finalURL ||
         `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
 
-        const message = `✅ Final Order Approved by both Vendor and Customer. (Order ID: ${order.orderId})`;
+      const message = `✅ Final Order Approved by both Vendor and Customer. (Order ID: ${order.orderId})`;
 
       // Customer Notification
       await customerNotification.findOneAndUpdate(
@@ -122,12 +122,11 @@ router.put("/finalOrder/approve", async (req, res) => {
 
       // Admin Notification
       await adminNotification.create({
-        adminId: order.adminId, // ✅ now added
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         message,
-      });      
+      });
 
       return res.status(200).json({
         message: `Both parties approved. Checkout link sent to customer.`,
@@ -138,7 +137,7 @@ router.put("/finalOrder/approve", async (req, res) => {
 
     // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
-      const message = `🔄 Order reset due to bieng marked for further discussion by ${userType}. (Order ID: ${order.orderId})`;
+      const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
 
       await vendorNotification.create({
         vendorId: order.vendorId,
@@ -148,12 +147,11 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
 
       await adminNotification.create({
-        adminId: order.adminId,
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         message,
-      });      
+      });
 
       await customerNotification.create({
         customerId: order.customerId,
@@ -182,8 +180,16 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
     }
 
-    // 🟡 CASE 3: Only one party approved, waiting for the other
-    const message = `⏳ Final Order approved by ${userType}. Waiting for the other party. (Order ID: ${order.orderId})`;
+    // 🟡 CASE 3: Only one party approved, temporarily allow checkout
+    const parsedFinalPrice = Number(
+      String(order.budget || order.finalPrice || 0).replace(/,/g, "")
+    );
+
+    const checkoutURL =
+      order.finalURL ||
+      `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
+
+    const message = `🟡 Final Order approved by ${userType}. Temporarily allowing checkout. (Order ID: ${order.orderId})`;
 
     // Notify Vendor
     await vendorNotification.create({
@@ -195,24 +201,33 @@ router.put("/finalOrder/approve", async (req, res) => {
 
     // Notify Admin
     await adminNotification.create({
-      adminId: order.adminId,
       vendorId: order.vendorId,
       customerId: order.customerId,
-      orderId: order.orderId,
-      message,
-    });    
-
-    // Optionally: Notify Customer too (depending on your UX design)
-    await customerNotification.create({
-      customerId: order.customerId,
-      vendorId: order.vendorId,
       orderId: order.orderId,
       message,
     });
 
+    // Notify Customer
+    await customerNotification.findOneAndUpdate(
+      {
+        customerId: order.customerId,
+        orderId: order.orderId,
+        vendorId: order.vendorId,
+      },
+      {
+        $set: {
+          finalPrice: parsedFinalPrice,
+          checkoutURL,
+          message,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
     return res.status(200).json({
-      message: `Approval updated for ${userType}, waiting for other party.`,
+      message: `Approval updated for ${userType}. Checkout link temporarily sent.`,
       data: order,
+      checkoutURL,
     });
   } catch (error) {
     console.error("🔥 Approval update error:", error.message);

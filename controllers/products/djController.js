@@ -1,4 +1,5 @@
 import DjArtist from "../../models/djArtist.js";
+import DjArtistModel from "../../models/reduxStores/djArtist.js";
 import { Vendor as User } from "../../models/users.js";
 
 const getFileUrls = (files, fieldName) => {
@@ -92,6 +93,15 @@ const createDjArtist = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
+    // Fetch agreement data from temporary DJ artist collection
+    const tempDjArtistData = await DjArtistModel.findOne({ id: req.body.venId });
+    const agreementUrl = tempDjArtistData?.agreementUrl || null;
+    const agreementSignedAt = tempDjArtistData?.agreementSignedAt || null;
+    
+    if (agreementUrl) {
+      console.log("Found agreement data for DJ artist:", agreementUrl);
+    }
+
     const newDjArtist = new DjArtist({
       basicDetails: {
         profileCompletion,
@@ -127,6 +137,8 @@ const createDjArtist = async (req, res) => {
         cancellationPolicy: req.body.cancellationPolicy?.split(",") || [],
         certificateOrAwards: req.body.certificateOrAwards?.split(",") || [],
         clientTestimonials: req.body.clientTestimonials?.split(",") || [],
+        agreementUrl: agreementUrl,
+        agreementSignedAt: agreementSignedAt,
       },
       venId: req.body.venId,
     });

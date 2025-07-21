@@ -10,6 +10,8 @@ import {
   getVendorBookings,
   deleteOfflineEvent,
   editOfflineEvent,
+  getBookingById,
+  getBookingsByCustomer
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
@@ -28,5 +30,9 @@ router.patch("/add-offline-booking", addOfflineEvent);
 router.patch("/delete-offline-booking", deleteOfflineEvent);
 router.patch("/edit-offline-booking", editOfflineEvent);
 router.get("/get-vendor-bookings", getVendorBookings);
+
+router.get('/:bookingId', getBookingById);
+
+router.get("/customer/:customerId", getBookingsByCustomer);
 
 export default router;
