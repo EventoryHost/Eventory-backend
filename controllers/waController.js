@@ -269,7 +269,7 @@ const sendWhatsAppTemplate = async (phoneNumber, WHATSAPP_API_URL) => {
     type: "template",
     template: {
       namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
-      name: "vendor_promotions_template_v3",
+      name: "vendor_promotions_template_v4",
       language: { code: "en" },
       components: [
         {
@@ -288,6 +288,12 @@ const sendWhatsAppTemplate = async (phoneNumber, WHATSAPP_API_URL) => {
           type: "button",
           sub_type: "quick_reply",
           index: "2",
+          parameters: [{ type: "payload", payload: "GET_SOCIALS" }],
+        },
+        {
+          type: "button",
+          sub_type: "quick_reply",
+          index: "3",
           parameters: [{ type: "payload", payload: "STOP_PROMOTIONS" }],
         },
       ],
@@ -385,7 +391,16 @@ const handlePromoResponse = async (req, res) => {
     else if (payload === 'STOP_PROMOTIONS') {
       await sendText(phone, "Thank you for giving us your time! We hope we'll serve you in future! If you still want to connect, call on +91 8800725840");
       await stopPromotionsForVendor(phone);
+    } else if (payload === 'GET_SOCIALS') {
+      const message = `
+      Stay connected with us on socials:  
+      📸 Instagram: https://instagram.com/eventory  
+      ▶️ Youtube: https://instagram.com/eventory  
+      🌐 Website: https://eventory.in`;
+
+      await sendText(phone, message);
     }
+
 
     return res.sendStatus(200);
   } catch (error) {
