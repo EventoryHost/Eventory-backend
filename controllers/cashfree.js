@@ -123,12 +123,15 @@ async function sendInvoice(req, res) {
     };
 
     const vendor = await Vendor.findOne({ id: ven_id });
-    const file = await generateInvoice(
-      vendor,
-      formattedDetails,
-    );
-    if (vendor.email) sendEmailInvoice(vendor.email, file.pdf, file.fileName);
-    sendInvoiceToWhatsApp(file.url, vendor.mobile, formattedDetails.amount);
+    const sqsMessage = {
+      customer: vendor,
+      paymentDetails: formattedDetails,
+    };
+
+    await sqs.send(new SendMessageCommand({
+      QueueUrl: "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      MessageBody: JSON.stringify(sqsMessage),
+    }));
 
     return res.json({ message: "Invoice sent" });
   } catch (error) {
