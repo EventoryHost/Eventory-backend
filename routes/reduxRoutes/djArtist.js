@@ -77,4 +77,35 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        console.log("Error: User ID is required.");
+        return res.status(400).json({ message: "User ID is required." });
+    }
+
+    try {
+        console.log("Deleting DJ artist details for id:", id);
+        const deletedDetails = await DjArtistModel.deleteMany({ id });
+
+        if (!deletedDetails) {
+            console.log("No dj artist details found for id:", id);
+            return res.status(404).json({ message: "DJ artist details not found." });
+        }
+        
+        console.log("Deleted dj artist details:", deletedDetails);
+        res.status(200).json({
+            message: "Dj artist details deleted successfully.",
+            data: deletedDetails,
+        });
+    } catch (error) {
+        console.error("Error deleting DJ artist details:", error);
+        res.status(500).json({
+            message: "Failed to delete DJ artist details.",
+            error: error.message,
+        });
+    }
+});
+
 export { router as djArtistRoutes };

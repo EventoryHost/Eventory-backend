@@ -37,6 +37,7 @@ import salesRoutes from "../routes/salesRoutes.js";
 import Vendor from "../routes/vendorRoutes.js";
 import finalOrders from "../routes/finalOrders.js";
 import agreementRoutes from "../routes/agreementRoutes.js";
+import couponRoutes from "../routes/couponRoutes.js"; 
 
 const app = express();
 const port = process.env.PORT;
@@ -114,6 +115,7 @@ app.use("/api", salesRoutes);
 app.use("/api/vendors", Vendor);
 app.use("/api", finalOrders);
 app.use("/api/agreements", agreementRoutes);
+app.use("/api/coupons", couponRoutes); 
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
