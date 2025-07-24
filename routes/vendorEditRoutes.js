@@ -59,8 +59,8 @@ router.put("/update-service/:serviceId", async (req, res) => {
       if (fieldsToUpdate.gstin)
         vendor.businessDetails.gstin = fieldsToUpdate.gstin;
       if (fieldsToUpdate.bookingsPerMonth)
-        vendor.businessDetails.bookingsPerMonth =
-          fieldsToUpdate.bookingsPerMonth;
+        vendor.businessDetails.bookingsPerMonth = fieldsToUpdate.bookingsPerMonth;
+
     }
 
     // Update the relevant service in the serviceIds array
@@ -715,5 +715,28 @@ const checkVerification = (service, serType) => {
 
   return allFieldsValid;
 };
+
+router.post("/add-vendor-invoice", async (req, res) => {
+
+  const { invoiceUrl, vendorId } = req.body;
+
+  const vendor = await Vendor.findOne({ id: vendorId });
+  if (!vendor) {
+    return res.status(404).json({ message: "Vendor not found" });
+  }
+
+  try {
+    vendor.invoices.push(invoiceUrl);
+    await vendor.save();
+    return res.status(200).json({
+      message: "Invoice added successfully",
+    });
+  }
+  catch (error) {
+    console.error("Error adding invoice:", error);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+
+})
 
 export default router;

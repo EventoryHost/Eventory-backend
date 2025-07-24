@@ -39,6 +39,8 @@ const djArtistSchema = Schema({
         completed: { type: Boolean, default: false }, // Flag for section completion
         termsAndConditions: { type: [String] },
         cancellationPolicy: { type: [String] },
+        agreementUrl: { type: String },
+        agreementSignedAt: { type: Date },
    },
     id: { type: String, default: generateUniqueId("dj"), required: true },
     venId: { type: String, required: true },

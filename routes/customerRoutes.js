@@ -15,6 +15,7 @@ import {
   markNotificationAsRead,
   markAllCustomerNotificationsAsRead,
 } from "../controllers/chatController.js";
+import { getCustomerById } from "../controllers/customerController.js";
 
 const router = express.Router();
 
@@ -42,6 +43,8 @@ router.get("/:customerId/customerNotifications" , getCustomerNotifications);
 router.patch("/notifications/read/:notificationId", markNotificationAsRead);
 
 router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
+
+router.get("/:id", getCustomerById);
 
 
 export default router;

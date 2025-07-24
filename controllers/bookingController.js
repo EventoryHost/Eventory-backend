@@ -8,6 +8,7 @@ import generateUniqueId from "../utils/generateId.js";
 
 export const createBooking = async (req, res) => {
   const {
+    customerId,
     venId,
     serviceId,
     type,
@@ -23,10 +24,14 @@ export const createBooking = async (req, res) => {
     paymentDetails,
     paymentStatus,
     capacity,
+    vendorBusinessDetails,  // <-- NEW
+    rating,                 // <-- NEW
+    finalizedContents       // <-- NEW
   } = req.body;
 
   try {
     const newBooking = new Booking({
+      customerId,
       venId,
       serviceId,
       type,
@@ -42,6 +47,9 @@ export const createBooking = async (req, res) => {
       paymentDetails,
       paymentStatus,
       capacity,
+      vendorBusinessDetails,
+      rating,
+      finalizedContents
     });
 
     const savedBooking = await newBooking.save();
@@ -423,5 +431,48 @@ export const getVendorBookings = async (req, res) => {
   } catch (error) {
     console.error("Error fetching bookings:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// GET /api/bookings/:bookingId
+export const getBookingById = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking ID is required" });
+    }
+
+    const booking = await Booking.findOne({ bookingid: bookingId });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.status(200).json({ booking });
+  } catch (error) {
+    console.error("Error fetching booking:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getBookingsByCustomer = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    if (!customerId) {
+      return res.status(400).json({ message: "Customer ID is required" });
+    }
+
+    const bookings = await Booking.find({ customerId });
+
+    if (!bookings || bookings.length === 0) {
+      return res.status(404).json({ message: "No bookings found for this customer" });
+    }
+
+    res.status(200).json({ bookings });
+  } catch (error) {
+    console.error("Error fetching bookings by customerId:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

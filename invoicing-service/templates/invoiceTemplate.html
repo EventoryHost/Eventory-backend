@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+
+  <body>
+    <div class="invoice-container">
+      <header>
+        <img
+          src="https://res.cloudinary.com/dnfv0h10u/image/upload/v1731161536/Frame_427319036_ls8nab.svg"
+          alt=""
+        />
+        <div class="company-details">
+          <p>Eventory Tech Solutions Pvt Ltd</p>
+          <p>13-D, Atmaram House, 1-Tolstoy Marg,</p>
+          <p>Connaught Place, New Delhi - 110001</p>
+          <p>Phone: +91 8800725840</p>
+          <p>Email: support@eventory.in</p>
+          <p>GSTIN: 07AAICE2656F1ZO</p>
+        </div>
+      </header>
+      <section class="billing-info">
+        <div class="billed-to">
+          <h3>Billed to:</h3>
+          <p>{{customerName}}</p>
+          <p>{{customerBusinessName}}</p>
+          <p>{{customerAddress}}</p>
+          <p>{{gstin}}</p>
+        </div>
+        <payment-id>
+          <p>Payment ID:</p>
+          <p>{{invoiceNumber}}</p>
+        </payment-id>
+        <paid-by>
+          <p>Paid by:</p>
+          <p>{{paymentMethod}}</p>
+        </paid-by>
+        <date>
+          <p>Invoice date:</p>
+          <p>{{invoiceDate}}</p>
+        </date>
+        <gst-in>
+          <p>Vendor id:</p>
+          <p>{{vendorId}}</p>
+        </gst-in>
+        <invoice-of>
+          <p>Invoice of:</p>
+          <p>₹ {{amount}}</p>
+        </invoice-of>
+      </section>
+      <section class="item-details">
+        <table>
+          <thead>
+            <tr>
+              <th>Item Detail</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Vendor Registration</td>
+              <td>1</td>
+              <td>₹ {{subtotal}}</td>
+              <td>₹ {{subtotal}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="totals">{{taxSection}}</section>
+      <footer>
+        <h4><a href="https://eventory.in/tnc">Terms & Conditions</a></h4>
+        <p>
+          Any dispute with respect to the invoice is to be reported to
+          <a href="mailto:support@eventory.in">support@eventory.in</a>
+        </p>
+      </footer>
+    </div>
+    <script src="./taxCalc.js"></script>
+  </body>
+</html>
