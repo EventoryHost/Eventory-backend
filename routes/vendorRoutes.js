@@ -5,6 +5,37 @@ import vendorNotification from "../models/vendorNotification.js";
 
 const router = express.Router();
 
+router.get("/all", async (req, res) => {
+  try {
+    // 1. Projection: Select only necessary fields for the directory table
+    // Fetch 'id', 'name', 'email', 'mobile', and specific fields from 'businessDetails'.
+    // Assuming 'businessDetails' subdocument contains 'address' and 'category'.
+    // If 'price' is a general price for the vendor, it should be added to the businessDetails schema.
+    // For now, we'll assume a placeholder for 'price' if it's not directly stored.
+    const vendors = await Vendor.find(
+      {},
+      'id name email mobile businessDetails.address businessDetails.category'
+    ).lean();
+
+    // 2. Data Transformation: Format the data as expected by the frontend
+    const transformedVendors = vendors.map(vendor => ({
+      id: vendor.id,
+      name: vendor.name,
+      email: vendor.email || 'N/A', // Provide default if null
+      mobile: vendor.mobile || 'N/A', // Provide default if null
+      address: vendor.businessDetails?.address || 'N/A',
+      category: vendor.businessDetails?.category || 'N/A',
+    }));
+
+    res.status(200).json({ success: true, data: transformedVendors });
+
+  } catch (error) {
+    console.error("Error fetching all vendors:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+});
+
+
 // Get vendor details by vendor_id
 router.get("/:vendor_id", async (req, res) => {
   const { vendor_id } = req.params;
