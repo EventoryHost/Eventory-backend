@@ -8,19 +8,23 @@ const router = express.Router();
 
 router.post("/finalOrder", async (req, res) => {
   try {
-    const { orderId, adminId , ...rest } = req.body;
+    const { orderId, ...updateData } = req.body; // Destructure orderId, put everything else in updateData
+
+    // Log the incoming request body for debugging
+    console.log("🔵 Received order data:", req.body);
 
     let order = await Order.findOneAndUpdate(
       { orderId },
-      { ...rest, adminId },
-      { new: true, upsert: true } // upsert = create if not found
+      // Use $set to ensure specific fields are updated/added
+      { $set: updateData }, // This will set/update all top-level fields from req.body
+      { new: true, upsert: true } // `new: true` returns the updated doc, `upsert: true` creates if not found
     );
 
     res
       .status(200)
       .json({ message: "Order processed successfully", data: order });
   } catch (error) {
-    console.log(error);
+    console.error("Failed to process order:", error); // Use console.error for errors
     res
       .status(400)
       .json({ message: "Failed to process booking", error: error.message });
