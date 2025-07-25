@@ -9,6 +9,7 @@ import { chromium } from "playwright";
 import { sendInvoiceEmail } from "./sendtoEmail.js";
 import { sendInvoiceToWhatsApp } from "./sendtoWA.js";
 import { uploadToS3 } from "./uploadToS3.js";
+import { getInvoiceCount } from "./getInvoiceCount.js";
 
 // Utility function to capitalize first letter of each word
 function capitalizeWords(str) {
@@ -153,6 +154,10 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
+    // Get invoice count for numbering
+    const invoiceCount = await getInvoiceCount();
+    const invoiceNumber = invoiceCount + 1;
+
     // Calculate amounts - Convert strings to numbers first
     const totalAmount = parseFloat(paymentDetails.amount) || 0;
     const discountAmount = parseFloat(paymentDetails.discount) || 0;
@@ -294,7 +299,8 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     `;
 
     // Replace placeholders with actual data
-    html = html.replace("{{invoiceNumber}}", paymentDetails.invoiceNumber);
+    html = html.replace("{{invoiceCount}}", invoiceNumber);
+    html = html.replace("{{paymentId}}", paymentDetails.invoiceNumber);
     html = html.replace("{{invoiceDate}}", invoiceDate);
     html = html.replace("{{paymentMethod}}", paymentMethod);
     html = html.replace("{{customerName}}", capitalizeWords(customer.name));
