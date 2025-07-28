@@ -28,24 +28,4 @@ export async function uploadToS3(pdfBuffer, key) {
     }
 }
 
-export async function deleteSesObject(identity) {
-    const ses = new SESClient({
-        region: "ap-south-1", credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET,
-        }
-    });
-
-    const deleteCommand = new DeleteIdentityCommand({
-        identity: identity,
-    });
-    return ses.send(deleteCommand).then(() => {
-        console.log(`Deleted SES identity: ${identity}`);
-    }).catch((err) => {
-        
-    })
-    })
-    })
-}
-
 
