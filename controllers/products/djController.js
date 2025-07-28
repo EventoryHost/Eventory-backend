@@ -62,8 +62,8 @@ const createDjArtist = async (req, res) => {
       return res.status(400).json({ message: "DJ Artist already exists" });
     }
 
-    const photos = getFileUrls(req.files, "photos");
-    const videos = getFileUrls(req.files, "videos");
+    const photos = req.body.photos || [];
+    const videos = req.body.videos || [];
 
     const fieldsToCheck = [
       req.body.serviceName,
@@ -124,8 +124,8 @@ const createDjArtist = async (req, res) => {
         servicesOffered: req.body.servicesOffered?.split(",") || [],
       },
       additionalDetails: {
-        photos,
-        videos,
+        photos: Array.isArray(photos) ? photos : [photos],
+        videos: Array.isArray(videos) ? videos : [videos],
         awards: req.body.awards,
         instagramUrl: req.body.instagramUrl,
         websiteUrl: req.body.websiteUrl,

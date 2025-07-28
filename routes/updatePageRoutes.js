@@ -26,6 +26,8 @@ const getModelByFlowType = (flowType) => {
       return MakeupArtistModel;
     case "djArtist":
       return DjArtistModel;
+    case "dj-artist":
+      return DjArtistModel; 
     default:
       return null;
   }
@@ -35,8 +37,7 @@ const getModelByFlowType = (flowType) => {
 router.put("/:flowType/updatePageNumber/:id", async (req, res) => {
   const { flowType, id } = req.params;
   const { pageNumber } = req.body;
-
-  console.log("recieved page number to update is " + pageNumber);
+  console.log("recieved page number to update is " + pageNumber , flowType, id);
 
   if (!pageNumber) {
     return res.status(400).json({ message: "Page number is required" });
