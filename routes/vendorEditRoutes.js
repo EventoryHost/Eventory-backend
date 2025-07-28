@@ -719,6 +719,9 @@ const checkVerification = (service, serType) => {
 router.post("/add-vendor-invoice", async (req, res) => {
 
   const { invoiceUrl, vendorId } = req.body;
+  console.log(
+    `Received request to add invoice for vendor ${vendorId} with URL ${invoiceUrl}`
+  );
 
   const vendor = await Vendor.findOne({ id: vendorId });
   if (!vendor) {
