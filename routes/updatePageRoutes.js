@@ -5,6 +5,7 @@ import PAVModel from "../models/reduxStores/pav.js";
 import VenueModel from "../models/reduxStores/venue-provider.js";
 import PropRentalModel from "../models/reduxStores/prop-rental.js";
 import MakeupArtistModel from "../models/reduxStores/makeUpArtist.js";
+import DjArtistModel from "../models/reduxStores/djArtist.js";
 
 const router = express.Router();
 
@@ -23,6 +24,10 @@ const getModelByFlowType = (flowType) => {
       return PropRentalModel;
     case "makeupArtist":
       return MakeupArtistModel;
+    case "djArtist":
+      return DjArtistModel;
+    case "dj-artist":
+      return DjArtistModel; 
     default:
       return null;
   }
@@ -32,8 +37,7 @@ const getModelByFlowType = (flowType) => {
 router.put("/:flowType/updatePageNumber/:id", async (req, res) => {
   const { flowType, id } = req.params;
   const { pageNumber } = req.body;
-
-  console.log("recieved page number to update is " + pageNumber);
+  console.log("recieved page number to update is " + pageNumber , flowType, id);
 
   if (!pageNumber) {
     return res.status(400).json({ message: "Page number is required" });

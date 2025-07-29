@@ -1,20 +1,15 @@
+import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 import { readFileSync } from "fs";
 import path from "path";
-import {
-  uploadInvoiceToS3,
-  getInvoiceCount,
-} from "../controllers/s3Controller.js";
-import { Vendor } from "../models/users.js";
-import chromium from "@sparticuz/chromium";
-
-const puppeteer =
-  process.env.IS_LOCAL === "true"
-    ? await import("puppeteer")
-    : await import("puppeteer-core");
+import { chromium } from "playwright";
+import { sendInvoiceEmail } from "./sendtoEmail.js";
+import { sendInvoiceToWhatsApp } from "./sendtoWA.js";
+import { uploadToS3 } from "./uploadToS3.js";
+import { getInvoiceCount } from "./getInvoiceCount.js";
 
 // Utility function to capitalize first letter of each word
 function capitalizeWords(str) {
@@ -149,7 +144,7 @@ function getVendorType(serviceIds) {
   return "Service Provider";
 }
 
-async function generateInvoice(customer, paymentDetails) {
+async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   let browser = null;
   let page = null;
 
@@ -167,6 +162,7 @@ async function generateInvoice(customer, paymentDetails) {
     const totalAmount = parseFloat(paymentDetails.amount) || 0;
     const discountAmount = parseFloat(paymentDetails.discount) || 0;
     const finalAmount = totalAmount - discountAmount;
+    
     // Calculate net amount and tax amount based on ORIGINAL total amount (before discount)
     const originalNetAmount = totalAmount / 1.18; // Net amount before discount
     const originalTaxAmount = totalAmount - originalNetAmount; // Tax amount before discount
@@ -178,7 +174,7 @@ async function generateInvoice(customer, paymentDetails) {
     }
 
     // Format invoice date
-    const invoiceDate = new Date().toLocaleDateString("en-GB"); // DD/MM/YYYY format
+    const invoiceDate = paymentDetails.invoiceDate || new Date().toLocaleDateString("en-GB"); // DD/MM/YYYY format
 
     // Get vendor type
     const vendorType = getVendorType(customer.serviceIds);
@@ -195,95 +191,95 @@ async function generateInvoice(customer, paymentDetails) {
     // Create table rows with tax logic
     let tableRows = "";
 
-if (isDelhiPincode) {
-  // Split into CGST and SGST rows for Delhi
-  const cgstAmount = originalTaxAmount / 2;
-  const sgstAmount = originalTaxAmount / 2;
-  
-  tableRows = `
-    <tr>
-      <td style="text-align: center;">1</td>
-      <td>Eventory Vendor Registration</td>
-      <td style="text-align: center;">${vendorType}</td>
-      <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
-      <td style="text-align: center;">9%</td>
-      <td style="text-align: center;">CGST</td>
-      <td style="text-align: center;">Rs ${cgstAmount.toFixed(2)}</td>
-      <td rowspan="2" style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
-    </tr>
-    <tr>
-      <td style="text-align: center;">&nbsp;</td>
-      <td>&nbsp;</td>
-      <td style="text-align: center;">&nbsp;</td>
-      <td style="text-align: center;">&nbsp;</td>
-      <td style="text-align: center;">9%</td>
-      <td style="text-align: center;">SGST</td>
-      <td style="text-align: center;">Rs ${sgstAmount.toFixed(2)}</td>
-    </tr>
-  `;
-} else {
-  // Single IGST row for other states
-  tableRows = `
-    <tr>
-      <td style="text-align: center;">1</td>
-      <td>Eventory Vendor Registration</td>
-      <td style="text-align: center;">${vendorType}</td>
-      <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
-      <td style="text-align: center;">18%</td>
-      <td style="text-align: center;">IGST</td>
-      <td style="text-align: center;">Rs ${originalTaxAmount.toFixed(2)}</td>
-      <td style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
-    </tr>
-  `;
-}
+    if (isDelhiPincode) {
+      // Split into CGST and SGST rows for Delhi
+      const cgstAmount = originalTaxAmount / 2;
+      const sgstAmount = originalTaxAmount / 2;
+      
+      tableRows = `
+        <tr>
+          <td style="text-align: center;">1</td>
+          <td>Eventory Vendor Registration</td>
+          <td style="text-align: center;">${vendorType}</td>
+          <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
+          <td style="text-align: center;">9%</td>
+          <td style="text-align: center;">CGST</td>
+          <td style="text-align: center;">Rs ${cgstAmount.toFixed(2)}</td>
+          <td rowspan="2" style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">&nbsp;</td>
+          <td>&nbsp;</td>
+          <td style="text-align: center;">&nbsp;</td>
+          <td style="text-align: center;">&nbsp;</td>
+          <td style="text-align: center;">9%</td>
+          <td style="text-align: center;">SGST</td>
+          <td style="text-align: center;">Rs ${sgstAmount.toFixed(2)}</td>
+        </tr>
+      `;
+    } else {
+      // Single IGST row for other states
+      tableRows = `
+        <tr>
+          <td style="text-align: center;">1</td>
+          <td>Eventory Vendor Registration</td>
+          <td style="text-align: center;">${vendorType}</td>
+          <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
+          <td style="text-align: center;">18%</td>
+          <td style="text-align: center;">IGST</td>
+          <td style="text-align: center;">Rs ${originalTaxAmount.toFixed(2)}</td>
+          <td style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
+        </tr>
+      `;
+    }
 
-// Apply the same logic to discount rows
-if (discountAmount > 0) {
-  const discountNetAmount = discountAmount / 1.18;
-  const discountTaxAmount = discountAmount - discountNetAmount;
-  
-  if (isDelhiPincode) {
-    // Split discount into CGST and SGST for Delhi
-    const discountCgstAmount = discountTaxAmount / 2;
-    const discountSgstAmount = discountTaxAmount / 2;
-    
-    tableRows += `
-      <tr>
-        <td style="text-align: center;">2</td>
-        <td>Eventory Discount</td>
-        <td style="text-align: center;">${couponCode}</td>
-        <td style="text-align: center;">Rs ${discountNetAmount.toFixed(2)}</td>
-        <td style="text-align: center;">9%</td>
-        <td style="text-align: center;">CGST</td>
-        <td style="text-align: center;">Rs ${discountCgstAmount.toFixed(2)}</td>
-        <td rowspan="2" style="text-align: center;">Rs ${discountAmount.toFixed(2)}</td>
-      </tr>
-      <tr>
-        <td style="text-align: center;">&nbsp;</td>
-        <td>&nbsp;</td>
-        <td style="text-align: center;">&nbsp;</td>
-        <td style="text-align: center;">&nbsp;</td>
-        <td style="text-align: center;">9%</td>
-        <td style="text-align: center;">SGST</td>
-        <td style="text-align: center;">Rs ${discountSgstAmount.toFixed(2)}</td>
-      </tr>
-    `;
-  } else {
-    // Single IGST discount row for other states
-    tableRows += `
-      <tr>
-        <td style="text-align: center;">2</td>
-        <td>Eventory Discount</td>
-        <td style="text-align: center;">${couponCode}</td>
-        <td style="text-align: center;">Rs ${discountNetAmount.toFixed(2)}</td>
-        <td style="text-align: center;">18%</td>
-        <td style="text-align: center;">IGST</td>
-        <td style="text-align: center;">Rs ${discountTaxAmount.toFixed(2)}</td>
-        <td style="text-align: center;">Rs ${discountAmount.toFixed(2)}</td>
-      </tr>
-    `;
-  }
-}
+    // Apply the same logic to discount rows
+    if (discountAmount > 0) {
+      const discountNetAmount = discountAmount / 1.18;
+      const discountTaxAmount = discountAmount - discountNetAmount;
+      
+      if (isDelhiPincode) {
+        // Split discount into CGST and SGST for Delhi
+        const discountCgstAmount = discountTaxAmount / 2;
+        const discountSgstAmount = discountTaxAmount / 2;
+        
+        tableRows += `
+          <tr>
+            <td style="text-align: center;">2</td>
+            <td>Eventory Discount</td>
+            <td style="text-align: center;">${couponCode}</td>
+            <td style="text-align: center;">Rs ${discountNetAmount.toFixed(2)}</td>
+            <td style="text-align: center;">9%</td>
+            <td style="text-align: center;">CGST</td>
+            <td style="text-align: center;">Rs ${discountCgstAmount.toFixed(2)}</td>
+            <td rowspan="2" style="text-align: center;">Rs ${discountAmount.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="text-align: center;">&nbsp;</td>
+            <td>&nbsp;</td>
+            <td style="text-align: center;">&nbsp;</td>
+            <td style="text-align: center;">&nbsp;</td>
+            <td style="text-align: center;">9%</td>
+            <td style="text-align: center;">SGST</td>
+            <td style="text-align: center;">Rs ${discountSgstAmount.toFixed(2)}</td>
+          </tr>
+        `;
+      } else {
+        // Single IGST discount row for other states
+        tableRows += `
+          <tr>
+            <td style="text-align: center;">2</td>
+            <td>Eventory Discount</td>
+            <td style="text-align: center;">${couponCode}</td>
+            <td style="text-align: center;">Rs ${discountNetAmount.toFixed(2)}</td>
+            <td style="text-align: center;">18%</td>
+            <td style="text-align: center;">IGST</td>
+            <td style="text-align: center;">Rs ${discountTaxAmount.toFixed(2)}</td>
+            <td style="text-align: center;">Rs ${discountAmount.toFixed(2)}</td>
+          </tr>
+        `;
+      }
+    }
 
     // Create total row
     const totalRow = `
@@ -303,7 +299,8 @@ if (discountAmount > 0) {
     `;
 
     // Replace placeholders with actual data
-    html = html.replaceAll("{{invoiceNumber}}", invoiceNumber.toString());
+    html = html.replace("{{invoiceCount}}", invoiceNumber);
+    html = html.replace("{{paymentId}}", paymentDetails.invoiceNumber);
     html = html.replace("{{invoiceDate}}", invoiceDate);
     html = html.replace("{{paymentMethod}}", paymentMethod);
     html = html.replace("{{customerName}}", capitalizeWords(customer.name));
@@ -330,17 +327,12 @@ if (discountAmount > 0) {
     html = html.replace("{{tableRows}}", tableRows);
     html = html.replace("{{totalRow}}", totalRow);
     html = html.replace("{{amountInWordsRow}}", amountInWordsRow);
-    // Launch Puppeteer and create PDF
 
-    browser =
-      process.env.IS_LOCAL === "true"
-        ? await puppeteer.launch()
-        : await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-          });
+    // Launch Playwright and create PDF
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     page = await browser.newPage();
 
@@ -359,18 +351,35 @@ if (discountAmount > 0) {
       await browser.close();
     }
 
-    const invoiceUrl = await uploadInvoiceToS3(
+
+    const invoiceUrl = await uploadToS3(
       pdfBuffer,
-      `vendors/${customer.id}/invoice-${invoiceNumber}.pdf`
+      `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
     console.log("Invoice uploaded to S3:", invoiceUrl);
-    const vendor = await Vendor.findOne({ id: customer.id });
-    vendor.invoices.push(invoiceUrl);
-    await vendor.save();
 
-    console.log("Invoice URL saved to MongoDB");
+    await axios.post(
+      `${process.env.URL}/api/add-vendor-invoice`,
+      {
+        vendorId: customer.id,
+        invoiceUrl,
+      },
+    );
+    if (customer.email)
+      await sendInvoiceEmail(
+        customer.email,
+        "Registration Successful!!!",
+        "Thank you for registering with Eventory. Your invoice is attached.",
+        pdfBuffer,
+        `invoice-${paymentDetails.invoiceNumber}.pdf`
+      )
+
+    await sendInvoiceToWhatsApp(
+      invoiceUrl,
+      customer.mobile,
+    )
     const result = {
-      fileName: `invoice-${invoiceNumber}.pdf`,
+      fileName: `invoice-${paymentDetails.invoiceNumber}.pdf`,
       pdf: pdfBuffer,
       url: invoiceUrl,
     };
@@ -391,4 +400,4 @@ if (discountAmount > 0) {
   }
 }
 
-export default generateInvoice;
+export { generateVendorOnboardedInvoice };

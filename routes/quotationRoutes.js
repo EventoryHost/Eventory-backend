@@ -215,4 +215,30 @@ router.patch("/", async (req, res) => {
 
 router.route("/myquotations").get(getQuotations);
 
+// ✅ Get a specific quotation by ID (quotationId)
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quotation = await Quotation.findOne({ id });
+
+    if (!quotation) {
+      return res.status(404).json({
+        message: "Quotation not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Quotation retrieved successfully!",
+      quotation,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving quotation",
+      error: error.message,
+    });
+  }
+});
+
+
 export default router;

@@ -1,0 +1,15 @@
+{
+    "name": "invoicing-service",
+    "version": "1.0.0",
+    "main": "index.js",
+    "type": "module",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.540.0",
+        "@aws-sdk/client-ses": "^3.540.0",
+        "@aws-sdk/client-sqs": "^3.540.0",
+        "axios": "^1.10.0",
+        "dotenv": "^16.0.0",
+        "nodemailer": "^6.9.0",
+        "playwright": "^1.44.0"
+    }
+}
