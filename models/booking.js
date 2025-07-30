@@ -49,6 +49,7 @@ const BookingSchema = new Schema({
 
   totalRatings: { type: Number, default: 0 }, // ✅ New field
 
+
   // ✅ New Fields
   vendorBusinessDetails: { type: BusinessDetailsSchema, required: false },
   rating: { type: Number, default: 0 },
