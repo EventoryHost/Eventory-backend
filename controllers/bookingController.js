@@ -476,3 +476,63 @@ export const getBookingsByCustomer = async (req, res) => {
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+export const getAllVendorServiceSchedules = async (req, res) => {
+  const { vendorId, services } = req.body;
+
+  if (!vendorId || !Array.isArray(services) || services.length === 0) {
+    return res.status(400).json({ message: "vendorId and services array are required" });
+  }
+
+  try {
+    const groupedByType = {};
+
+    for (const service of services) {
+      const { type, id: serviceId } = service;
+      const serviceType = type.toLowerCase();
+
+      let vendorModel;
+
+      switch (serviceType) {
+        case "venue-provider":
+          vendorModel = Venue;
+          break;
+        case "caterer":
+          vendorModel = Caterer;
+          break;
+        case "decorator":
+          vendorModel = Decorator;
+          break;
+        case "photographer":
+        case "pav":
+          vendorModel = Photographer;
+          break;
+        case "makeup-artist":
+        case "makeupartist":
+          vendorModel = MakeupArtist;
+          break;
+        default:
+          continue;
+      }
+
+      const vendorDoc = await vendorModel.findOne({ id: serviceId }, "schedule");
+      const onlineBookings = await Booking.find({ venId: vendorId, serviceId });
+
+      if (!groupedByType[serviceType]) {
+        groupedByType[serviceType] = {
+          type: serviceType,
+          offlineBookings: [],
+          onlineBookings: [],
+        };
+      }
+
+      // Append offline & online bookings for this type
+      groupedByType[serviceType].offlineBookings.push(...(vendorDoc?.schedule || []));
+      groupedByType[serviceType].onlineBookings.push(...onlineBookings);
+    }
+
+    return res.status(200).json({ services: Object.values(groupedByType) });
+  } catch (error) {
+    console.error("Error fetching all schedules:", error);
+    return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};

@@ -97,7 +97,7 @@ const catererSchema = new Schema({
   vendorType: { type: String, default: "caterer" },
   schedule: [eventSchema],
   rating: { type: Number, default: 0, min: 0, max: 5 }, // Aggregate rating of all reviews
-});
+}, { timestamps: true });
 
 const Caterer = model("Caterer", catererSchema);
 
