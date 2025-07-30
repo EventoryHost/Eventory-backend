@@ -24,6 +24,8 @@ export const createBooking = async (req, res) => {
     paymentDetails,
     paymentStatus,
     capacity,
+    totalRatings,
+
     vendorBusinessDetails,  // <-- NEW
     rating,                 // <-- NEW
     finalizedContents       // <-- NEW
@@ -47,6 +49,8 @@ export const createBooking = async (req, res) => {
       paymentDetails,
       paymentStatus,
       capacity,
+      totalRatings,
+
       vendorBusinessDetails,
       rating,
       finalizedContents
