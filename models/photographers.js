@@ -72,7 +72,7 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
-      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
+      enum: ["Google Drive Link", "Physical Prints", "Hard Drive", "Others"],
     },
   },
   Photography: {
@@ -88,7 +88,7 @@ const photographerSchema = Schema({
     },
     finalDeliveryMethods: {
       type: [String],
-      enum: ["Google Drive Link", "Physical Prints", "Hardware", "Others"],
+      enum: ["Google Drive Link", "Physical Prints", "Hard Drive", "Others"],
     },
   },
   consultationDetails: {
