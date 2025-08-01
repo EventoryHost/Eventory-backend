@@ -134,6 +134,71 @@ export const markNotificationAsRead = async (req, res) => {
   }
 };
 
+export const getFavoriteServices = async (req, res) => {
+  try {
+    const customerId = req.params.cusId;
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+
+    const customer = await Customer.findOne({ id: customerId });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const favoriteServiceIds = customer.favoriteServices || [];
+
+    const favoriteVendors = [];
+
+    for (const serviceId of favoriteServiceIds) {
+      let collection;
+
+      if (serviceId.startsWith("cat")) {
+        collection = Caterer;
+      } else if (serviceId.startsWith("veu")) {
+        collection = Venue;
+      } else if (serviceId.startsWith("pav")) {
+        collection = Photographer;
+      } else if (serviceId.startsWith("dec")) {
+        collection = Decorator;
+      } else if (serviceId.startsWith("prop")) {
+        collection = PropRental;
+      } else if (serviceId.startsWith("mak")) {
+        collection = MakeupArtist;
+      } else {
+        console.warn(`Unknown prefix: ${serviceId}`);
+        continue;
+      }
+
+      const vendor = await collection.findOne({ id: serviceId });
+
+      if (vendor) {
+        favoriteVendors.push(vendor);
+      }
+    }
+
+    // Total number of favorite vendors
+    const total = favoriteVendors.length;
+
+    // If valid page & limit provided, paginate the results
+    if (!isNaN(page) && !isNaN(limit)) {
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedVendors = favoriteVendors.slice(startIndex, endIndex);
+
+      return res.status(200).json({
+        vendors: paginatedVendors,
+        total: total,
+      });
+    }
+
+    // If no pagination, return full list
+    res.status(200).json(favoriteVendors);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export const getFavoriteServiceIds = async (req, res) => {
   try {
     const customerId = req.params.cusId;
