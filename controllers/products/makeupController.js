@@ -3,7 +3,7 @@ import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
-
+import { sendOnboardingTemplate } from '../waController.js'
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -136,7 +136,7 @@ const createMakeupArtist = async (req, res) => {
     const tempMakeupData = await MakeupArtistModel.findOne({ id: req.body.venId });
     const agreementUrl = tempMakeupData?.agreementUrl || null;
     const agreementSignedAt = tempMakeupData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for makeup artist:", agreementUrl);
     }
@@ -219,7 +219,8 @@ const createMakeupArtist = async (req, res) => {
       name: savedMakeupArtist.basicDetails.name,
       type: savedMakeupArtist.type,
     })
-    
+
+    await sendOnboardingTemplate(req.body.name, vendor.phoneNumber);
     res.status(201).json(savedMakeupArtist);
   } catch (error) {
     console.error("Error:", error);

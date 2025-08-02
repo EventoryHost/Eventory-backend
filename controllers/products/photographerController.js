@@ -4,7 +4,7 @@ import PAVModel from "../../models/reduxStores/pav.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
-
+import { sendOnboardingTemplate } from '../waController.js'
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -243,7 +243,7 @@ const createPhotographer = async (req, res) => {
     const tempPAVData = await PAVModel.findOne({ id: req.body.venId });
     const agreementUrl = tempPAVData?.agreementUrl || null;
     const agreementSignedAt = tempPAVData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for photographer:", agreementUrl);
     }
@@ -288,15 +288,18 @@ const createPhotographer = async (req, res) => {
     await updateSectionCompletion(newPhotographer.id);
     process.env.IS_DEV !== "true" && sendEmailToSlack({
 
-          name: saved.basicDetails.name,
-          type: saved.type,
-        })
+      name: saved.basicDetails.name,
+      type: saved.type,
+    })
+
+    await sendOnboardingTemplate(req.body.name, vendor.phoneNumber);
+
     res.status(201).json({
       message: "Photographer created successfully",
       profileCompletion,
       serviceId: saved._id,
       photographer: saved, // ✅ full created object
-    });    
+    });
   } catch (error) {
     console.error("Error creating photographer:", error);
     res.status(400).json({ error: error.message });

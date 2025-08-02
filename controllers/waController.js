@@ -308,7 +308,10 @@ const sendWhatsAppTemplate = async (phoneNumber, WHATSAPP_API_URL) => {
   });
 };
 
-const sendOnboardingTemplate = async (vendor_name, phoneNumber, WHATSAPP_API_URL) => {
+const sendOnboardingTemplate = async (vendor_name, phoneNumber) => {
+
+  const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
+
   const payload1 = {
     messaging_product: "whatsapp",
     to: phoneNumber,
@@ -553,5 +556,6 @@ export {
   sendPromotionTemplate,
   handlePromoResponse,
   getVendors,
-  sendText
+  sendText,
+  sendOnboardingTemplate
 };

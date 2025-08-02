@@ -158,7 +158,7 @@ import Photographer from "../../models/photographers.js";
 import PropRental from "../../models/props.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
-
+import { sendOnboardingTemplate } from '../waController.js'
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -377,6 +377,8 @@ const createVenue = async (req, res) => {
       name: savedVenue.basicDetails.name,
       type: savedVenue.type,
     })
+    await sendOnboardingTemplate(req.body.name, vendor.phoneNumber);
+
     res.status(201).json(savedVenue);
   } catch (error) {
     console.error(error);

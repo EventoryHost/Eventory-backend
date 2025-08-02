@@ -1,6 +1,7 @@
 import DjArtist from "../../models/djArtist.js";
 import DjArtistModel from "../../models/reduxStores/djArtist.js";
 import { Vendor as User } from "../../models/users.js";
+import { sendOnboardingTemplate } from '../waController.js'
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -97,7 +98,7 @@ const createDjArtist = async (req, res) => {
     const tempDjArtistData = await DjArtistModel.findOne({ id: req.body.venId });
     const agreementUrl = tempDjArtistData?.agreementUrl || null;
     const agreementSignedAt = tempDjArtistData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for DJ artist:", agreementUrl);
     }
@@ -159,6 +160,7 @@ const createDjArtist = async (req, res) => {
     await vendor.save();
 
     await updateSectionCompletion(savedDjArtist.id);
+    await sendOnboardingTemplate(req.body.name, vendor.phoneNumber);
 
     return res.status(201).json(savedDjArtist);
   } catch (error) {

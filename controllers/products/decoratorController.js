@@ -4,6 +4,7 @@ import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
+import { sendOnboardingTemplate } from '../waController.js'
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -127,16 +128,16 @@ const createDecorator = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
     console.log("decorator:", req.body);
-    
+
     // Fetch agreement data from temporary decorator collection
     const tempDecoratorData = await DecoratorModel.findOne({ id: req.body.venId });
     const agreementUrl = tempDecoratorData?.agreementUrl || null;
     const agreementSignedAt = tempDecoratorData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for decorator:", agreementUrl);
     }
-    
+
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
@@ -218,11 +219,14 @@ const createDecorator = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
+
     process.env.IS_DEV !== "true" && sendEmailToSlack({
 
       name: savedDecorator.basicDetails.name,
       type: savedDecorator.type,
     })
+
+    await sendOnboardingTemplate(req.body.name, vendor.phoneNumber);
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);
