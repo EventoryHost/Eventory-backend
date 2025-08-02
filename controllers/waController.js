@@ -394,9 +394,9 @@ const handlePromoResponse = async (req, res) => {
     } else if (payload === 'GET_SOCIALS') {
       const message = `
       Stay connected with us on socials:  
-      📸 Instagram: https://instagram.com/eventory  
-      ▶️ Youtube: https://instagram.com/eventory  
-      🌐 Website: https://eventory.in`;
+      📸 Instagram: https://instagram.com/eventoryofficial 
+      ▶️ Youtube: https://www.youtube.com/Eventory-platform 
+      🌐 Website: www.eventory.in/business`;
 
       await sendText(phone, message);
     }
@@ -504,4 +504,5 @@ export {
   sendPromotionTemplate,
   handlePromoResponse,
   getVendors,
+  sendText
 };
