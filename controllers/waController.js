@@ -308,6 +308,55 @@ const sendWhatsAppTemplate = async (phoneNumber, WHATSAPP_API_URL) => {
   });
 };
 
+const sendOnboardingTemplate = async (vendor_name, phoneNumber, WHATSAPP_API_URL) => {
+  const payload1 = {
+    messaging_product: "whatsapp",
+    to: phoneNumber,
+    type: "template",
+    template: {
+      namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+      name: "vendor_onboarding_message_1_v1",
+      language: { code: "en" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: vendor_name
+            }
+          ]
+        }
+      ]
+    }
+  };
+
+  const payload2 = {
+    messaging_product: "whatsapp",
+    to: phoneNumber,
+    type: "template",
+    template: {
+      namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+      name: "vendor_onboarding_message_2_v1",
+      language: { code: "en" },
+    },
+  };
+
+  await axios.post(WHATSAPP_API_URL, payload1, {
+    headers: {
+      Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  await axios.post(WHATSAPP_API_URL, payload2, {
+    headers: {
+      Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+  });
+};
+
 const handlePromoResponse = async (req, res) => {
   const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
