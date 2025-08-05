@@ -368,8 +368,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     if (customer.email)
       await sendInvoiceEmail(
         customer.email,
-        "Registration Successful!!!",
-        "Thank you for registering with Eventory. Your invoice is attached.",
+        customer.name,
         pdfBuffer,
         `invoice-${paymentDetails.invoiceNumber}.pdf`
       )
