@@ -40,9 +40,6 @@ const createOrder = async (req, res) => {
         customer_id: customer_details.id,
         customer_phone: customer_details.phone,
       },
-      order_meta: {
-        payment_methods: "dc,nb,upi,app",
-      },
     };
 
     // console.log("📤 [createOrder] Sending to Cashfree:", request);
