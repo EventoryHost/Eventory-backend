@@ -239,7 +239,7 @@ export const handleSearch = async (req, res) => {
 
 export const getServiceByServiceId = async (req, res) => {
   const { serviceType, serviceId } = req.params;
-  console.log("📥 Received:", serviceType, serviceId);
+  // console.log("📥 Received:", serviceType, serviceId);
 
   try {
     let serviceData;
