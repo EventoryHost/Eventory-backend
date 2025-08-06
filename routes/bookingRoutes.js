@@ -11,7 +11,8 @@ import {
   deleteOfflineEvent,
   editOfflineEvent,
   getBookingById,
-  getBookingsByCustomer
+  getBookingsByCustomer,
+  getAllVendorServiceSchedules
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
@@ -34,5 +35,8 @@ router.get("/get-vendor-bookings", getVendorBookings);
 router.get('/:bookingId', getBookingById);
 
 router.get("/customer/:customerId", getBookingsByCustomer);
+
+// route to fetch all the schedules of the vendor from the db from all services 
+router.post("/vendor/all-schedules", getAllVendorServiceSchedules);
 
 export default router;
