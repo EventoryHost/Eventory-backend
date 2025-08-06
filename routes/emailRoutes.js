@@ -4,9 +4,10 @@ import nodemailer from "nodemailer";
 
 const router = express.Router();
 
-router.post("/send-email", async (req, res) => {
-  const { fullName, email, message, services, city } = req.body;
+let currentYear = new Date().getFullYear();
 
+router.post("/send-email", async (req, res) => {
+  const { email, message, services, city } = req.body;
   try {
     let transporter = nodemailer.createTransport({
       service: "gmail",
@@ -15,7 +16,6 @@ router.post("/send-email", async (req, res) => {
         pass: process.env.EMAIL_PASS,
       },
     });
-
     let supportEmailBody = `
   <!DOCTYPE html>
   <html lang="en">
@@ -76,7 +76,6 @@ router.post("/send-email", async (req, res) => {
               New Business Query Received
           </div>
           <div class="content">
-              <p><strong>Sender's Name:</strong> ${fullName}</p>
               <p><strong>Email:</strong> ${email}</p>
               <p><strong>Services:</strong> ${services.join(", ")}</p>
               <p><strong>City:</strong> ${city}</p>
@@ -87,7 +86,7 @@ router.post("/send-email", async (req, res) => {
               <p>This is an automated notification of a new business query. Please review and respond as necessary.</p>
           </div>
           <div class="footer">
-              &copy; 2024 Eventory | <a href="mailto:vendor-support@eventory.in">Contact Support</a>
+              &copy; ${currentYear} Eventory | <a href="mailto:vendor-support@eventory.in">Contact Support</a>
           </div>
       </div>
   </body>
@@ -98,8 +97,8 @@ router.post("/send-email", async (req, res) => {
     let supportMailOptions = {
       from: `"Eventory Notifications" <${process.env.EMAIL_USER}>`,
       to: process.env.RECEIVER_EMAIL, // Internal support email
-      cc: `<${process.env.EMAIL_USER}>`, // CC to own account
-      subject: `New Business Query from ${fullName}`,
+      cc: `${process.env.CC_EMAIL}, ${process.env.RECEIVER_EMAIL}`,
+      subject: `New Business Query`,
       html: supportEmailBody, // HTML content
     };
 
@@ -167,7 +166,7 @@ router.post("/send-email", async (req, res) => {
                   Thank You for Your Query!
               </div>
               <div class="content">
-                  <p>Dear <strong>${fullName}</strong>,</p>
+                  <p>Dear Vendor,</p>
                   <p>Thank you so much for reaching out to us. We have received your message and someone from our team will get back to you shortly.</p>
                   <p>In the meantime, if you have any urgent queries, please feel free to contact us at:</p>
                   <p><strong>Phone:</strong> +91 8800725840</p>
@@ -179,7 +178,7 @@ router.post("/send-email", async (req, res) => {
                   <p>Thank you for your interest in Eventory! We look forward to assisting you.</p>
               </div>
               <div class="footer">
-                  &copy; 2024 Eventory | <a href="mailto:vendor-support@eventory.in">Contact Us</a>
+                  &copy; ${currentYear} Eventory | <a href="mailto:vendor-support@eventory.in">Contact Us</a>
               </div>
           </div>
       </body>
