@@ -4,7 +4,7 @@ import {
   getReviewsByVendor,
   updateReview,
   deleteReview,
-  getReviewCount,
+  // getReviewCount,
 } from "../controllers/reviewController.js";
 
 const reviewRoutes = express.Router();
@@ -17,6 +17,6 @@ reviewRoutes.put("/:reviewId", updateReview);
 
 reviewRoutes.delete("/:reviewId", deleteReview);
 
-reviewRoutes.get("/count/:serviceId", getReviewCount);
+// reviewRoutes.get("/count/:serviceId", getReviewCount);
 
 export default reviewRoutes;

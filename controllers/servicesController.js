@@ -236,3 +236,47 @@ export const handleSearch = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getServiceByServiceId = async (req, res) => {
+  const { serviceType, serviceId } = req.params;
+  console.log("📥 Received:", serviceType, serviceId);
+
+  try {
+    let serviceData;
+
+    // Match serviceType to the correct model
+    switch (serviceType) {
+      case "Caterer":
+        serviceData = await Caterer.findOne({ id: serviceId });
+        break;
+      case "Decorator":
+        serviceData = await Decorator.findOne({ id: serviceId });
+        break;
+      case "Venue Provider":
+        serviceData = await Venue.findOne({ id: serviceId });
+        break;
+      case "Prop Rental":
+        serviceData = await propRental.findOne({ id: serviceId });
+        break;
+      case "Photographers & Videographers":
+        serviceData = await Photographer.findOne({ id: serviceId });
+        break;
+      case "Makeup-Artist":
+        serviceData = await MakeupArtist.findOne({ id: serviceId });
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid service type" });
+    }
+
+    // Check if the service was found
+    if (!serviceData) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    // Respond with service data
+    return res.status(200).json(serviceData);
+  } catch (error) {
+    console.error("❌ Error fetching service:", error);
+    return res.status(500).json({ error: "An error occurred: " + error.message });
+  }
+};

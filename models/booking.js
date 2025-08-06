@@ -47,12 +47,20 @@ const BookingSchema = new Schema({
   paymentStatus: { type: String, required: true },
   capacity: { type: String, required: true },
 
-  totalRatings: { type: Number, default: 0 }, // ✅ New field
-
+  // totalRatings: { type: Number, default: 0 }, // ✅ New field
+  // serviceDetails: {}
   // ✅ New Fields
   vendorBusinessDetails: { type: BusinessDetailsSchema, required: false },
   rating: { type: Number, default: 0 },
   finalizedContents: [FinalizedContentSchema],
+
+  serviceName: { type: String, required: true },
+  serviceLocation: {
+    type: Object,
+    required: false,
+    default: {},
+  },
+  serviceAddress: { type: String, required: false },
 });
 
 const Booking = model("Bookings", BookingSchema);
