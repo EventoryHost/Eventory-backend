@@ -12,6 +12,7 @@ router.get("/all", async (req, res) => {
     ).lean();
 
     const filteredVendors = vendors.filter(vendor => {
+
       const hasInvoices = Array.isArray(vendor.invoices) && vendor.invoices.length > 0;
       const hasServices = Array.isArray(vendor.serviceIds) && vendor.serviceIds.length > 0;
 
