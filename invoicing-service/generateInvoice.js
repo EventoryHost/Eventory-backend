@@ -376,6 +376,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     await sendInvoiceToWhatsApp(
       invoiceUrl,
       customer.mobile,
+      customer.name 
     )
     const result = {
       fileName: `invoice-${paymentDetails.invoiceNumber}.pdf`,
