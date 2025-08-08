@@ -7,6 +7,9 @@ const adminNotificationSchema = new mongoose.Schema({
   vendorId: String,
   customerId: String,
   message: String,
+  quotationId: {
+    type: String,
+  },
   read: {
     type: Boolean,
     default: false, // unread by default

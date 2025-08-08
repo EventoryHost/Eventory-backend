@@ -26,6 +26,9 @@ const customerNotificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  quotationId: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
