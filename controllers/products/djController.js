@@ -189,4 +189,17 @@ const getAllDjArtist = async (req, res) => {
   }
 };
 
-export default { createDjArtist, getAllDjArtist }; // ✅ Proper export
+const getDjArtistById = async (req, res) => {
+  try {
+    const djArtist = await DjArtist.findOne({ id: req.params.id });
+    if (!djArtist) {
+      return res.status(404).json({ message: "DJ Artist not found" });
+    }
+    res.status(200).json(djArtist);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export default { createDjArtist, getAllDjArtist , getDjArtistById }; // ✅ Proper export

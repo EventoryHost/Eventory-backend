@@ -259,4 +259,17 @@ const getAllCaterers = async (req, res) => {
   }
 };
 
-export default { createCaterer, getAllCaterers };
+const getCatererById = async (req, res) => {
+  try {
+    const caterer = await Caterer.findOne({ id: req.params.id });
+    if (!caterer) {
+      return res.status(404).json({ message: "Caterer not found" });
+    }
+    res.status(200).json(caterer);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+
+export default { createCaterer, getAllCaterers , getCatererById };

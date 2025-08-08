@@ -1,16 +1,23 @@
 import { Router } from "express";
 import catererController from "../controllers/products/catererController.js";
+import getCatererById from "../controllers/products/catererController.js";
 import upload from "../middlewares/uploads.js";
 import venueController from "../controllers/products/venueController.js";
+
 import decoratorController from "../controllers/products/decoratorController.js";
+import getDecoratorById from "../controllers/products/decoratorController.js";
 import eventPlannerController from "../controllers/products/eventPlannerController.js";
 import transportController from "../controllers/products/transportController.js";
 import invitationController from "../controllers/products/invitationController.js";
 import makeupController from "../controllers/products/makeupController.js";
+import getMakeupArtistById from "../controllers/products/makeupController.js";
 import djController from "../controllers/products/djController.js";
+
 import giftController from "../controllers/products/giftController.js";
 import propController from "../controllers/products/propController.js";
+
 import photographerController from "../controllers/products/photographerController.js";
+import getPhotographerById from "../controllers/products/photographerController.js";
 import vendorController from "../controllers/products/vendorController.js";
 import { getAllServices } from "../controllers/servicesController.js";
 import searchProducts from "../controllers/productController.js";
@@ -700,5 +707,165 @@ router.post(
  *         description: Search query string
  */
 router.get("/search/", searchProducts);
+
+
+
+// Indivisual product routes to fetch any service by ID
+/**
+ * @swagger
+ * /caterer/{id}:
+ *   get:
+ *     summary: Get Caterer by ID
+ *     tags:
+ *       - Caterer
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The caterer ID to retrieve
+ *     responses:
+ *       200:
+ *         description: Caterer details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Caterer'
+ *       404:
+ *         description: Caterer not found
+*/
+router.get("/caterer/:id", catererController.getCatererById);
+
+/**
+ * @swagger
+ * /decorator/{id}:
+ *   get:
+ *     summary: Get Decorator by ID
+ *     tags:
+ *       - Decorator
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The decorator ID to retrieve
+ *     responses:
+ *       200:
+ *         description: Decorator details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Decorator'
+ *       404:
+ *         description: Decorator not found
+*/
+router.get("/decorator/:id", decoratorController.getDecoratorById);
+
+/**
+ * @swagger
+ * /pav/{id}:
+ *   get:
+ *     summary: Get Photographer by ID
+ *     tags:
+ *       - Photographer
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The photographer ID to retrieve
+ *     responses:
+ *       200:
+ *         description: Photographer details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Photographer'
+ *       404:
+ *         description: Photographer not found
+*/
+router.get("/pav/:id", photographerController.getPhotographerById);
+
+/**
+ * @swagger
+ * /makeup-artist/{id}:
+ *   get:
+ *     summary: Get Makeup Artist by ID
+ *     tags:
+ *       - Makeup Artist
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The makeup artist ID to retrieve
+ *     responses:
+ *       200:
+ *         description: Makeup artist details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MakeupArtist'
+ *       404:
+ *         description: Makeup artist not found
+*/
+router.get("/makeup-artist/:id", makeupController.getMakeupArtistById);
+
+/**
+ * @swagger
+ * /dj-artist/{id}:
+ *   get:
+ *     summary: Get DJ Artist by ID
+ *     tags:
+ *       - DJ Artist
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The DJ artist ID to retrieve
+ *     responses:
+ *       200:
+ *         description: DJ artist details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DjArtist'
+ *       404:
+ *         description: DJ artist not found
+ */
+router.get("/dj-artist/:id", djController.getDjArtistById);
+
+/**
+ * @swagger
+ * /venue/{id}:
+ *   get:
+ *     summary: Get Venue by ID
+ *     tags:
+ *       - Venue
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The venue ID to retrieve
+ *     responses:
+ *       200:
+ *         description: Venue details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Venue'
+ *       404:
+ *         description: Venue not found
+ */
+router.get("/venue/:id", venueController.getVenueById);
+
 
 export default router;
