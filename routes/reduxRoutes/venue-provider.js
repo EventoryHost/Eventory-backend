@@ -1,8 +1,50 @@
 // backend/routes/reduxRoutes/venue-provider.js
 import express from "express";
 const router = express.Router();
-import VenueModel from "../../models/reduxStores/venue-provider.js"; // Assuming the Venue schema/model is defined in this path
+import VenueModel from "../../models/reduxStores/venue-provider.js";
 
+/**
+ * @swagger
+ * tags:
+ *   name: VenueDetails
+ *   description: Manage venue provider details
+ */
+
+/**
+ * @swagger
+ * /api/venue-provider-details:
+ *   post:
+ *     summary: Save or update venue details
+ *     tags: [VenueDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id, venueData]
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: User ID
+ *               venueData:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 example:
+ *                   venueName: "The Grand Palace"
+ *                   location: "New Delhi"
+ *                   capacity: 500
+ *                   price: 150000
+ *     responses:
+ *       201:
+ *         description: Venue details saved successfully
+ *       200:
+ *         description: Venue details updated successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
 // POST or PUT route to save or update venue details
 router.post("/", async (req, res) => {
   const { id, venueData } = req.body;
@@ -46,6 +88,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/venue-provider-details/{id}:
+ *   get:
+ *     summary: Get venue details by user ID
+ *     tags: [VenueDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Venue details retrieved successfully
+ *       404:
+ *         description: Venue details not found
+ *       500:
+ *         description: Server error
+ */
 // GET route to retrieve venue details by user ID
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
@@ -67,10 +130,31 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// DELETE route to remove decorator details by user ID
+/**
+ * @swagger
+ * /api/venue-provider-details/{id}:
+ *   delete:
+ *     summary: Delete venue details by user ID
+ *     tags: [VenueDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Venue details deleted successfully
+ *       404:
+ *         description: Venue details not found for deletion
+ *       500:
+ *         description: Server error
+ */
+// DELETE route to remove venue details by user ID
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("🗑️ Deleting decorator details for ID:", id);
+  console.log("🗑️ Deleting venue details for ID:", id);
 
   if (!id) {
     return res
@@ -79,7 +163,6 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    // Use findOneAndDelete with a filter object
     const deletedDetails = await VenueModel.findOneAndDelete({ id });
 
     if (!deletedDetails) {
@@ -88,7 +171,7 @@ router.delete("/:id", async (req, res) => {
         .json({ message: "Venue details not found for deletion." });
     }
 
-    console.log("✅ Deleted decorator details:", deletedDetails);
+    console.log("✅ Deleted venue details:", deletedDetails);
     res.status(200).json({ message: "Venue details deleted successfully." });
   } catch (error) {
     console.error("❌ Error deleting Venue details:", error);

@@ -6,6 +6,40 @@ const router = express.Router();
 
 let currentYear = new Date().getFullYear();
 
+/**
+ * @swagger
+ * /send-email:
+ *   post:
+ *     summary: Send a business query email to Eventory support and a confirmation email to the user
+ *     tags: [Email]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: vendor@example.com
+ *               message:
+ *                 type: string
+ *                 example: I would like to discuss collaboration opportunities.
+ *               services:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["Photography", "Catering"]
+ *               city:
+ *                 type: string
+ *                 example: New Delhi
+ *     responses:
+ *       200:
+ *         description: Emails sent successfully to both Eventory support and the user
+ *       500:
+ *         description: Failed to send emails
+ */
 router.post("/send-email", async (req, res) => {
   const { email, message, services, city } = req.body;
   try {
@@ -96,13 +130,12 @@ router.post("/send-email", async (req, res) => {
     // Email to Eventory support
     let supportMailOptions = {
       from: `"Eventory Notifications" <${process.env.EMAIL_USER}>`,
-      to: process.env.RECEIVER_EMAIL, // Internal support email
+      to: process.env.RECEIVER_EMAIL,
       cc: `${process.env.CC_EMAIL}, ${process.env.RECEIVER_EMAIL}`,
       subject: `New Business Query`,
-      html: supportEmailBody, // HTML content
+      html: supportEmailBody,
     };
 
-    // Send email to Eventory support
     await transporter.sendMail(supportMailOptions);
 
     // Email to user
@@ -192,7 +225,6 @@ router.post("/send-email", async (req, res) => {
       html: userEmailBody,
     };
 
-    // Send email to the user
     await transporter.sendMail(userMailOptions);
 
     res.status(200).send("Emails sent successfully");
