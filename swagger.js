@@ -1,4 +1,3 @@
-// root/swagger.js
 import path from "path";
 import { fileURLToPath } from "url";
 import swaggerJSDoc from "swagger-jsdoc";
@@ -16,13 +15,16 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:4000", // Your base URL for local dev
+        url: "http://localhost:4000",
+      },
+      {
+        url: "https://api.eventory.in",
+        description: "Production server",
       },
     ],
   },
   apis: [
-    path.resolve(__dirname, "routes/**/*.js"), // scan everything in /routes recursively
-    path.resolve(__dirname, "models/*.js"),             // <- Your models (if annotated)
+    path.resolve(__dirname, "routes/**/*.js"),           
   ],
 };
 
