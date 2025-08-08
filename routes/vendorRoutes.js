@@ -8,7 +8,7 @@ const router = express.Router();
  * @swagger
  * /api/vendors/all:
  *   get:
- *     summary: Get all vendors with name, email, mobile, address, and category
+ *     summary: Get all vendors with name, email, mobile, address, serviceIds and category
  *     tags:
  *       - Vendors
  *     responses:
@@ -40,6 +40,7 @@ router.get("/all", async (req, res) => {
       mobile: vendor.mobile || "N/A",
       address: vendor.businessDetails?.address || "N/A",
       category: vendor.businessDetails?.category || "N/A",
+      serviceIds : vendor.serviceIds || [],
     }));
 
     res.status(200).json({ success: true, data: transformedVendors });

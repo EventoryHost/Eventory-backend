@@ -325,4 +325,16 @@ const getAllPav = async (req, res) => {
   }
 };
 
-export default { createPhotographer, getAllPav };
+const getPhotographerById = async (req, res) => {
+  try {
+    const photographer = await Photographer.findOne({ id: req.params.id });
+    if (!photographer) {
+      return res.status(404).json({ message: "Photographer not found" });
+    }
+    res.status(200).json(photographer);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createPhotographer, getAllPav , getPhotographerById };

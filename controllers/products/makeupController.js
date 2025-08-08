@@ -251,4 +251,16 @@ const getAllMakeupArtist = async (req, res) => {
   }
 };
 
-export default { createMakeupArtist, getAllMakeupArtist };
+const getMakeupArtistById = async (req, res) => {
+  try {
+    const makeupArtist = await MakeupArtist.findOne({ id: req.params.id });
+    if (!makeupArtist) {
+      return res.status(404).json({ message: "Makeup artist not found" });
+    }
+    res.status(200).json(makeupArtist);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createMakeupArtist, getAllMakeupArtist , getMakeupArtistById };
