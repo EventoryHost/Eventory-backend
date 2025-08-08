@@ -43,6 +43,9 @@ const app = express();
 const port = process.env.PORT;
 const router = Router();
 
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "../swagger.js";
+
 // HTTP server and Socket.IO server setup
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -116,6 +119,9 @@ app.use("/api/vendors", Vendor);
 app.use("/api", finalOrders);
 app.use("/api/agreements", agreementRoutes);
 app.use("/api/coupons", couponRoutes); 
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
