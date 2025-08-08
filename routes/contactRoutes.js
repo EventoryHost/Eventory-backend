@@ -7,12 +7,82 @@ dotenv.config();
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Contact
+ *   description: APIs for sending contact inquiries
+ */
+
 // Apply body-parser middleware only for this route
 router.use(
   "/send-contact-email",
   bodyParser.json(),
-  bodyParser.urlencoded({ extended: true }),
+  bodyParser.urlencoded({ extended: true })
 );
+
+/**
+ * @swagger
+ * /api/contact/send-contact-email:
+ *   post:
+ *     summary: Send contact inquiry email to support
+ *     tags: [Contact]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/x-www-form-urlencoded:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *               - mobileNumber
+ *               - eventType
+ *               - message
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 example: John Doe
+ *               mobileNumber:
+ *                 type: string
+ *                 example: 9876543210
+ *               eventType:
+ *                 type: string
+ *                 example: Wedding
+ *               message:
+ *                 type: string
+ *                 example: I would like to book a venue for a wedding.
+ *     responses:
+ *       200:
+ *         description: Email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Email sent successfully!
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: All fields are required
+ *       500:
+ *         description: Failed to send email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to send email
+ */
 
 router.post("/send-contact-email", async (req, res) => {
   const { fullName, mobileNumber, eventType, message } = req.body;

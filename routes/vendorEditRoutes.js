@@ -16,6 +16,56 @@ import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompl
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /update-service/{serviceId}:
+ *   put:
+ *     summary: Update basic vendor and service details
+ *     description: Updates vendor-level details (name, mobile, email, business details) and the specified service details for the given serviceId.
+ *     tags: [Vendors]
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the service to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               mobile:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               businessDetails:
+ *                 type: object
+ *                 properties:
+ *                   businessName: { type: string }
+ *                   category: { type: string }
+ *                   teamsize: { type: number }
+ *                   years: { type: number }
+ *                   businessAddress: { type: string }
+ *                   pinCode: { type: string }
+ *                   cities: { type: array, items: { type: string } }
+ *                   annualrevenue: { type: number }
+ *                   gstin: { type: string }
+ *                   bookingsPerMonth: { type: number }
+ *     responses:
+ *       200:
+ *         description: Vendor and service updated successfully
+ *       404:
+ *         description: Service not found
+ *       500:
+ *         description: Internal server error
+ */
+
+
 //1. Update API for basic vendor details such as name, mobile, email ((Full name and number))
 router.put("/update-service/:serviceId", async (req, res) => {
   const { serviceId } = req.params;
@@ -90,6 +140,42 @@ router.put("/update-service/:serviceId", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error });
   }
 });
+
+/**
+ * @swagger
+ * /updateService/{serviceId}:
+ *   post:
+ *     summary: Update service details (company name and description)
+ *     description: Updates basic details like company name and description for the service specified by serviceId.
+ *     tags: [Services]
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The service ID whose details will be updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newDescription:
+ *                 type: string
+ *               newCompanyName:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Service updated successfully
+ *       400:
+ *         description: Invalid service type
+ *       404:
+ *         description: Vendor or service not found
+ *       500:
+ *         description: Internal server error
+ */
 
 //2. API endpoint to update service details (company name and description)
 router.post("/updateService/:serviceId", async (req, res) => {
@@ -428,6 +514,38 @@ const serviceFields = {
   ],
 };
 
+/**
+ * @swagger
+ * /updateService/{serId}:
+ *   put:
+ *     summary: Update full service details
+ *     description: Updates a service's details for any supported service type and recalculates profile completion and verification.
+ *     tags: [Services]
+ *     parameters:
+ *       - in: path
+ *         name: serId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The service ID to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Service fields to update (varies per service type)
+ *     responses:
+ *       200:
+ *         description: Service details updated successfully
+ *       400:
+ *         description: Unsupported service type
+ *       404:
+ *         description: Vendor or service not found
+ *       500:
+ *         description: Internal server error
+ */
+
 // Define the route to update service details
 router.put("/updateService/:serId", updateServiceDetails);
 
@@ -715,6 +833,36 @@ const checkVerification = (service, serType) => {
 
   return allFieldsValid;
 };
+
+/**
+ * @swagger
+ * /add-vendor-invoice:
+ *   post:
+ *     summary: Add an invoice to a vendor
+ *     description: Associates an invoice URL with a vendor by their vendorId.
+ *     tags: [Vendors]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               invoiceUrl:
+ *                 type: string
+ *               vendorId:
+ *                 type: string
+ *             required:
+ *               - invoiceUrl
+ *               - vendorId
+ *     responses:
+ *       200:
+ *         description: Invoice added successfully
+ *       404:
+ *         description: Vendor not found
+ *       500:
+ *         description: Internal server error
+ */
 
 router.post("/add-vendor-invoice", async (req, res) => {
 

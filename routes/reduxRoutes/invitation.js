@@ -1,13 +1,52 @@
-// backend/routes/invitation.js
 import express from "express";
 const router = express.Router();
-import { InvitationModel } from "../../models/reduxStores/invitation.js"; // New Invitation model
+import { InvitationModel } from "../../models/reduxStores/invitation.js";
 
-// POST or PUT route to save or update invitation details
+/**
+ * @swagger
+ * tags:
+ *   name: InvitationDetails
+ *   description: Manage invitation service details
+ */
+
+/**
+ * @swagger
+ * /api/invitation-details:
+ *   post:
+ *     summary: Save or update invitation details
+ *     tags: [InvitationDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, invitationData]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: User ID
+ *               invitationData:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 example:
+ *                   invitationType: "Wedding Card"
+ *                   design: "Floral Theme"
+ *                   quantity: 200
+ *                   price: 5000
+ *     responses:
+ *       201:
+ *         description: Invitation details saved successfully
+ *       200:
+ *         description: Invitation details updated successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
 router.post("/", async (req, res) => {
   const { userId, invitationData } = req.body;
 
-  // Validate userId and invitationData
   if (!userId) {
     return res.status(400).json({ message: "User ID is required." });
   }
@@ -51,7 +90,27 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET route to retrieve invitation details by user ID
+/**
+ * @swagger
+ * /api/invitation-details/{userId}:
+ *   get:
+ *     summary: Get invitation details by user ID
+ *     tags: [InvitationDetails]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Invitation details retrieved successfully
+ *       404:
+ *         description: Invitation details not found
+ *       500:
+ *         description: Server error
+ */
 router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -72,5 +131,4 @@ router.get("/:userId", async (req, res) => {
   }
 });
 
-// Export the router
 export { router as invitationRoutes };

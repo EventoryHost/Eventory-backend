@@ -3,6 +3,46 @@ import express from "express";
 const router = express.Router();
 import GiftModel from "../../models/reduxStores/gifts.js";
 
+/**
+ * @swagger
+ * tags:
+ *   name: GiftDetails
+ *   description: Manage gift-related details
+ */
+
+/**
+ * @swagger
+ * /api/gifts-details:
+ *   post:
+ *     summary: Save or update gift details
+ *     tags: [GiftDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, giftsData]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               giftsData:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 example:
+ *                   giftName: "Gold-plated Photo Frame"
+ *                   category: "Home Decor"
+ *                   price: 2500
+ *     responses:
+ *       201:
+ *         description: Gift details saved successfully
+ *       200:
+ *         description: Gift details updated successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
 // POST or PUT route to save or update gift details
 router.post("/", async (req, res) => {
   const { userId, giftsData } = req.body;
@@ -46,6 +86,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/gifts-details/{userId}:
+ *   get:
+ *     summary: Get gift details by user ID
+ *     tags: [GiftDetails]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Gift details retrieved successfully
+ *       404:
+ *         description: Gift details not found
+ *       500:
+ *         description: Server error
+ */
 // GET route to retrieve gift details by user ID
 router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
