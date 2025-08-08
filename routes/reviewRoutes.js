@@ -4,7 +4,6 @@ import {
   getReviewsByVendor,
   updateReview,
   deleteReview,
-  // getReviewCount,
 } from "../controllers/reviewController.js";
 
 const reviewRoutes = express.Router();
@@ -113,25 +112,6 @@ reviewRoutes.put("/:reviewId", updateReview);
 reviewRoutes.delete("/:reviewId", deleteReview);
 
 
-/**
- * @swagger
- * /api/review/count/{serviceId}:
- *   get:
- *     summary: Get the number of reviews for a service
- *     tags: [Review]
- *     parameters:
- *       - in: path
- *         name: serviceId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the service
- *     responses:
- *       200:
- *         description: Review count retrieved successfully
- *       404:
- *         description: Service not found
- */
-reviewRoutes.get("/count/:serviceId", getReviewCount);
+
 
 export default reviewRoutes;
