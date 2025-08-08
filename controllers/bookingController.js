@@ -24,11 +24,13 @@ export const createBooking = async (req, res) => {
     paymentDetails,
     paymentStatus,
     capacity,
-    totalRatings,
-
+    // totalRatings,
     vendorBusinessDetails,  // <-- NEW
     rating,                 // <-- NEW
-    finalizedContents       // <-- NEW
+    finalizedContents,       // <-- NEW
+    serviceName,
+    serviceLocation,
+    serviceAddress,
   } = req.body;
 
   try {
@@ -49,11 +51,13 @@ export const createBooking = async (req, res) => {
       paymentDetails,
       paymentStatus,
       capacity,
-      totalRatings,
-
+      // totalRatings,
       vendorBusinessDetails,
       rating,
-      finalizedContents
+      finalizedContents,
+      serviceName,
+      serviceLocation,
+      serviceAddress,
     });
 
     const savedBooking = await newBooking.save();

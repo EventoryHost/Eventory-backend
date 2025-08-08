@@ -12,6 +12,7 @@ import { SendMessageCommand } from "@aws-sdk/client-sqs";
 dotenv.config();
 
 import { sendInvoiceToWhatsApp } from "./waController.js";
+import axios from "axios";
 
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
@@ -252,7 +253,49 @@ const verifyCustomerPayment = async (req, res) => {
   }
 };
 
+const getPaymentByOrderId = async (req, res) => {
+  const { order_id } = req.body;
 
+  if (!order_id) {
+    return res.status(400).json({ message: "Missing required field: order_id" });
+  }
+
+  try {
+    const clientId = process.env.CASHFREE_CLIENT_ID_PG;
+    const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
+    const apiVersion = "2025-01-01";
+
+    const headers = {
+      "x-client-id": clientId,
+      "x-client-secret": clientSecret,
+      "x-api-version": apiVersion,
+      "Content-Type": "application/json",
+    };
+
+    const url = process.env.IS_DEV === "true"
+      ? `https://sandbox.cashfree.com/pg/orders/${order_id}/payments`
+      : `https://api.cashfree.com/pg/orders/${order_id}/payments`;
+
+    const response = await axios.get(url, { headers });
+
+    const paymentData = response.data;
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Payment details fetched successfully",
+      order_id,
+      payments: paymentData,
+    });
+  } catch (error) {
+    console.error("❌ getPaymentByOrderId error:", error?.response?.data || error.message);
+
+    return res.status(500).json({
+      status: "FAILED",
+      message: "Failed to fetch payment details",
+      error: error?.response?.data || error.message,
+    });
+  }
+};
 
 export default {
   createOrder,
@@ -260,5 +303,6 @@ export default {
   sendInvoice,
   handleWebhook,
   getPaymentSession,
-  verifyCustomerPayment
+  verifyCustomerPayment,
+  getPaymentByOrderId
 };

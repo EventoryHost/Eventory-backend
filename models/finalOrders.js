@@ -13,7 +13,7 @@ const OrderSchema = new mongoose.Schema(
         "Other",
       ],
     },
-    adminId : { type: String, required: true },// admin ID for tracking
+    adminId: { type: String, required: true },// admin ID for tracking
     vendorId: { type: String, required: true },
     quotationId: { type: String },
     orderId: { type: String, required: true, unique: true },
@@ -44,8 +44,8 @@ const OrderSchema = new mongoose.Schema(
         price: { type: Number, required: true },
         description: { type: String }, // <-- Add this line
       },
-    ],    
-
+    ],
+    specificTerms: { type: [String], default: [] },
     description: { type: String }, // maps from requirements
     quoteNumber: { type: String },
     eventDate: { type: String }, // optional or legacy

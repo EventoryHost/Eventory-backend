@@ -150,4 +150,6 @@ cashfreeRoutes.post("/webhook", cashfreeController.handleWebhook);
 
 cashfreeRoutes.post("/verify-customer-payment", cashfreeController.verifyCustomerPayment);
 
+cashfreeRoutes.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
+
 export default cashfreeRoutes;

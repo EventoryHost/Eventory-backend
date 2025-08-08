@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   addReviews,
   getService,
+  getServiceByServiceId,
   getVendorLimit,
   handleSearch,
 } from "../controllers/servicesController.js";
@@ -118,5 +119,6 @@ serviceRouter.post("/review", addReviews);
  *         description: Missing or invalid query
  */
 serviceRouter.get("/search", handleSearch);
+serviceRouter.get("/get-service/:serviceType/:serviceId", getServiceByServiceId);
 
 export default serviceRouter;

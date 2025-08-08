@@ -4,7 +4,7 @@ import {
   getReviewsByVendor,
   updateReview,
   deleteReview,
-  getReviewCount,
+  // getReviewCount,
 } from "../controllers/reviewController.js";
 
 const reviewRoutes = express.Router();
@@ -111,6 +111,7 @@ reviewRoutes.put("/:reviewId", updateReview);
  *         description: Review not found
  */
 reviewRoutes.delete("/:reviewId", deleteReview);
+
 
 /**
  * @swagger
