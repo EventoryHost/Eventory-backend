@@ -228,6 +228,7 @@ router.put("/finalOrder/approve", async (req, res) => {
             finalPrice: parsedFinalPrice,
             checkoutURL,
             message,
+            quotationId: order.quotationId,
           },
         },
         { new: true, upsert: true }
@@ -238,6 +239,7 @@ router.put("/finalOrder/approve", async (req, res) => {
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
+        quotationId: order.quotationId,
         message,
       });
 
@@ -246,6 +248,7 @@ router.put("/finalOrder/approve", async (req, res) => {
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
+        quotationId: order.quotationId,
         message,
       });
 
@@ -264,6 +267,7 @@ router.put("/finalOrder/approve", async (req, res) => {
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
+        quotationId: order.quotationId,
         message,
       });
 
@@ -271,6 +275,7 @@ router.put("/finalOrder/approve", async (req, res) => {
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
+        quotationId: order.quotationId,
         message,
       });
 
@@ -278,6 +283,7 @@ router.put("/finalOrder/approve", async (req, res) => {
         customerId: order.customerId,
         vendorId: order.vendorId,
         orderId: order.orderId,
+        quotationId: order.quotationId,
         message,
       });
 
@@ -310,13 +316,14 @@ router.put("/finalOrder/approve", async (req, res) => {
       order.finalURL ||
       `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
 
-    const message = `🟡 Final Order approved by ${userType}. Temporarily allowing checkout. (Order ID: ${order.orderId})`;
+    const message = `🟡 Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.orderId})`;
 
     // Notify Vendor
     await vendorNotification.create({
       vendorId: order.vendorId,
       customerId: order.customerId,
       orderId: order.orderId,
+      quotationId: order.quotationId,
       message,
     });
 
@@ -325,6 +332,7 @@ router.put("/finalOrder/approve", async (req, res) => {
       vendorId: order.vendorId,
       customerId: order.customerId,
       orderId: order.orderId,
+      quotationId: order.quotationId,
       message,
     });
 
@@ -340,6 +348,7 @@ router.put("/finalOrder/approve", async (req, res) => {
           finalPrice: parsedFinalPrice,
           checkoutURL,
           message,
+          quotationId: order.quotationId,
         },
       },
       { new: true, upsert: true }
