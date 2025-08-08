@@ -1,12 +1,52 @@
 import express from "express";
 const router = express.Router();
-import PAVModel from "../../models/reduxStores/pav.js"; // Import the PAV model
+import PAVModel from "../../models/reduxStores/pav.js";
 
-// POST or PUT route to save or update PAV details
+/**
+ * @swagger
+ * tags:
+ *   name: PAVDetails
+ *   description: Manage PAV (Photography, Audio, Video) provider details
+ */
+
+/**
+ * @swagger
+ * /api/pav-details:
+ *   post:
+ *     summary: Save or update PAV details
+ *     tags: [PAVDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id, pavData]
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: User ID
+ *               pavData:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 example:
+ *                   serviceName: "Wedding Photography"
+ *                   location: "Mumbai"
+ *                   price: 45000
+ *                   availability: true
+ *     responses:
+ *       201:
+ *         description: PAV details saved successfully
+ *       200:
+ *         description: PAV details updated successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
 router.post("/", async (req, res) => {
   const { id, pavData } = req.body;
 
-  // Validate id and pavData
   if (!id) {
     return res.status(400).json({ message: "User ID is required." });
   }
@@ -45,7 +85,27 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET route to retrieve PAV details by user ID
+/**
+ * @swagger
+ * /api/pav-details/{id}:
+ *   get:
+ *     summary: Get PAV details by user ID
+ *     tags: [PAVDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: PAV details retrieved successfully
+ *       404:
+ *         description: PAV details not found
+ *       500:
+ *         description: Server error
+ */
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -66,10 +126,30 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// DELETE route to remove decorator details by user ID
+/**
+ * @swagger
+ * /api/pav-details/{id}:
+ *   delete:
+ *     summary: Delete PAV details by user ID
+ *     tags: [PAVDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: PAV details deleted successfully
+ *       404:
+ *         description: PAV details not found for deletion
+ *       500:
+ *         description: Server error
+ */
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("🗑️ Deleting decorator details for ID:", id);
+  console.log("🗑️ Deleting PAV details for ID:", id);
 
   if (!id) {
     return res
@@ -78,7 +158,6 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    // Use findOneAndDelete with a filter object
     const deletedDetails = await PAVModel.findOneAndDelete({ id });
 
     if (!deletedDetails) {
@@ -87,7 +166,7 @@ router.delete("/:id", async (req, res) => {
         .json({ message: "PAV details not found for deletion." });
     }
 
-    console.log("✅ Deleted decorator details:", deletedDetails);
+    console.log("✅ Deleted PAV details:", deletedDetails);
     res.status(200).json({ message: "PAV details deleted successfully." });
   } catch (error) {
     console.error("❌ Error deleting PAV details:", error);
@@ -98,5 +177,4 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Export the router
 export { router as pavRoutes };

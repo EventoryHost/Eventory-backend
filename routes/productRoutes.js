@@ -17,24 +17,185 @@ import searchProducts from "../controllers/productController.js";
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Products
+ *     description: Endpoints for retrieving product/service listings
+ *   - name: Vendors
+ *     description: Endpoints related to vendors and their details
+ */
+
+/**
+ * @swagger
+ * /caterer:
+ *   get:
+ *     summary: Get all caterers
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of caterers retrieved successfully
+ */
+
 router.get("/caterer", catererController.getAllCaterers);
+/**
+ * @swagger
+ * /decorator:
+ *   get:
+ *     summary: Get all decorators
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of decorators retrieved successfully
+ */
 router.get("/decorator", decoratorController.getAllDecorators);
+/**
+ * @swagger
+ * /event-planner:
+ *   get:
+ *     summary: Get all event planners
+ *     tags: [Products]
+ */
 router.get("/event-planner", eventPlannerController.getAllEventPlanner);
+/**
+ * @swagger
+ * /gift:
+ *   get:
+ *     summary: Get all gifts
+ *     tags: [Products]
+ */
 router.get("/gift", giftController.getAllGift);
+/**
+ * @swagger
+ * /invitation:
+ *   get:
+ *     summary: Get all invitations
+ *     tags: [Products]
+ */
 router.get("/invitation", invitationController.getAllInvitation);
+/**
+ * @swagger
+ * /makeup:
+ *   get:
+ *     summary: Get all makeup artists
+ *     tags: [Products]
+ */
 router.get("/makeup", makeupController.getAllMakeupArtist);
+/**
+ * @swagger
+ * /dj:
+ *   get:
+ *     summary: Get all DJ artists
+ *     tags: [Products]
+ */
 router.get("/dj", djController.getAllDjArtist);
+/**
+ * @swagger
+ * /pav:
+ *   get:
+ *     summary: Get all photographers
+ *     tags: [Products]
+ */
 router.get("/pav", photographerController.getAllPav);
+/**
+ * @swagger
+ * /prop-rental:
+ *   get:
+ *     summary: Get all prop rentals
+ *     tags: [Products]
+ */
 router.get("/prop-rental", propController.getAllProp);
+
+/**
+ * @swagger
+ * /venue:
+ *   get:
+ *     summary: Get all venues
+ *     tags: [Products]
+ */
 router.get("/venue", venueController.getAllVenues);
+
+/**
+ * @swagger
+ * /service:
+ *   get:
+ *     summary: Get all services
+ *     tags: [Products]
+ */
 router.get("/service", getAllServices);
 
+/**
+ * @swagger
+ * /{vendor}/{id}:
+ *   get:
+ *     summary: Get vendor details by category and ID
+ *     tags: [Vendors]
+ *     parameters:
+ *       - in: path
+ *         name: vendor
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vendor category (e.g., caterer, decorator)
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vendor ID
+ *     responses:
+ *       200:
+ *         description: Vendor details retrieved successfully
+ *       404:
+ *         description: Vendor not found
+ */
 // Adding vendor-specific routes
 router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 
+/**
+ * @swagger
+ * /vendor/{vendorId}/bank-details:
+ *   post:
+ *     summary: Add bank details for a vendor
+ *     tags: [Vendors]
+ *     parameters:
+ *       - in: path
+ *         name: vendorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bankName: { type: string }
+ *               accountNumber: { type: string }
+ *               ifscCode: { type: string }
+ *     responses:
+ *       200:
+ *         description: Bank details added successfully
+ */
 // Add Bank Details route
 router.post("/vendor/:vendorId/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+/**
+ * @swagger
+ * /vendor/{vendorId}/bank-details:
+ *   get:
+ *     summary: Get vendor's bank details
+ *     tags: [Vendors]
+ */
 router.get("/vendor/:vendorId/bank-details", vendorController.getBankDetails);
+
+/**
+ * @swagger
+ * /vendor/{vendorId}/delete-bank-details:
+ *   delete:
+ *     summary: Delete vendor's bank details
+ *     tags: [Vendors]
+ */
 // In your backend routes file (e.g., routes.js or similar)
 router.delete(
   "/vendor/:vendorId/delete-bank-details",
@@ -42,7 +203,41 @@ router.delete(
 );
 
 // Delete bank details via POST
-
+/**
+ * @swagger
+ * /add-caterer:
+ *   post:
+ *     summary: Add a new caterer
+ *     tags: [Vendors]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               menu:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *               food_safety_certificates:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *               cancellation_policy:
+ *                 type: string
+ *                 format: binary
+ *               terms_and_conditions:
+ *                 type: string
+ *                 format: binary
+ *               photos:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *               videos:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *               client_testimonials:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ */
 // Add vendor creation routes (for other types of vendors)
 router.post(
   "/add-caterer",
@@ -57,7 +252,43 @@ router.post(
   ]),
   catererController.createCaterer,
 );
-
+/**
+ * @swagger
+ * /add-venue:
+ *   post:
+ *     summary: Add a new venue
+ *     tags: [Venues]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: termsConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: insurancePolicy
+ *         type: file
+ *         description: Insurance policy document.
+ *       - in: formData
+ *         name: photos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Venue photos.
+ *       - in: formData
+ *         name: videos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Venue videos.
+ *     responses:
+ *       201:
+ *         description: Venue created successfully.
+ */
 router.post(
   "/add-venue",
   upload("Venues").fields([
@@ -69,6 +300,33 @@ router.post(
   ]),
   venueController.createVenue,
 );
+/**
+ * @swagger
+ * /add-event-planner:
+ *   post:
+ *     summary: Add a new event planner
+ *     tags: [Event Planners]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: termsConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: portfolio
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Event planner portfolio images or videos.
+ *     responses:
+ *       201:
+ *         description: Event planner created successfully.
+ */
 
 router.post(
   "/add-event-planner",
@@ -79,7 +337,51 @@ router.post(
   ]),
   eventPlannerController.createEventPlanner,
 );
-
+/**
+ * @swagger
+ * /add-decorator:
+ *   post:
+ *     summary: Add a new decorator
+ *     tags: [Decorators]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: termsAndConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: photos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Decorator photos.
+ *       - in: formData
+ *         name: videos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Decorator videos.
+ *       - in: formData
+ *         name: themephotos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Theme-based photos.
+ *       - in: formData
+ *         name: themevideos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Theme-based videos.
+ *     responses:
+ *       201:
+ *         description: Decorator created successfully.
+ */
 router.post(
   "/add-decorator",
   upload("Decorator").fields([
@@ -92,6 +394,33 @@ router.post(
   ]),
   decoratorController.createDecorator,
 );
+/**
+ * @swagger
+ * /add-transport:
+ *   post:
+ *     summary: Add a new transport service
+ *     tags: [Transport]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: termsConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: portfolio
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Transport service portfolio images or videos.
+ *     responses:
+ *       201:
+ *         description: Transport service created successfully.
+ */
 
 router.post(
   "/add-transport",
@@ -102,7 +431,39 @@ router.post(
   ]),
   transportController.createTransport,
 );
-
+/**
+ * @swagger
+ * /add-invitation:
+ *   post:
+ *     summary: Add a new invitation service
+ *     tags: [Invitations]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: clientTestimonials
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Client testimonial files.
+ *       - in: formData
+ *         name: cancellation_policy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: terms_and_conditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: portfolio
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Invitation portfolio images or videos.
+ *     responses:
+ *       201:
+ *         description: Invitation service created successfully.
+ */
 router.post(
   "/add-invitation",
   upload("Invitations").fields([
@@ -113,13 +474,63 @@ router.post(
   ]),
   invitationController.createInvitation,
 );
-
+/**
+ * @swagger
+ * /add-makeup-artist:
+ *   post:
+ *     summary: Add a new makeup artist
+ *     tags: [Makeup Artists]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: portfolio
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Makeup artist portfolio images.
+ *     responses:
+ *       201:
+ *         description: Makeup artist created successfully.
+ */
 router.post(
   "/add-makeup-artist",
   upload("Makeup Artists").fields([{ name: "portfolio", maxCount: 20 }]),
   makeupController.createMakeupArtist,
 );
-
+/**
+ * @swagger
+ * /add-dj-artist:
+ *   post:
+ *     summary: Add a new DJ artist
+ *     tags: [DJ Artists]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: termsAndConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: photos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: DJ artist photos.
+ *       - in: formData
+ *         name: videos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: DJ artist videos.
+ *     responses:
+ *       201:
+ *         description: DJ artist created successfully.
+ */
 router.post(
   "/add-dj-artist",
   upload("Dj Artists").fields([
@@ -130,6 +541,29 @@ router.post(
   ]),
   djController.createDjArtist,
 );
+/**
+ * @swagger
+ * /add-gift:
+ *   post:
+ *     summary: Add a new gift item
+ *     tags: [Gifts]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: giftImages
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Gift images.
+ *       - in: formData
+ *         name: termsAndConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *     responses:
+ *       201:
+ *         description: Gift created successfully.
+ */
 
 router.post(
   "/add-gift",
@@ -139,6 +573,59 @@ router.post(
   ]),
   giftController.createGift,
 );
+/**
+ * @swagger
+ * /add-prop-rental:
+ *   post:
+ *     summary: Add a new prop rental
+ *     tags: [Prop Rentals]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: furnitureAndDecorListUrl
+ *         type: file
+ *         description: Furniture and decor list document.
+ *       - in: formData
+ *         name: tentAndCanopyListUrl
+ *         type: file
+ *         description: Tent and canopy list document.
+ *       - in: formData
+ *         name: itemCatalogue
+ *         type: file
+ *         description: Item catalogue document.
+ *       - in: formData
+ *         name: audioVisualListUrl
+ *         type: file
+ *         description: Audio visual list document.
+ *       - in: formData
+ *         name: privacyPolicy
+ *         type: file
+ *         description: Privacy policy document.
+ *       - in: formData
+ *         name: termsAndConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: photos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Prop rental photos.
+ *       - in: formData
+ *         name: videos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Prop rental videos.
+ *     responses:
+ *       201:
+ *         description: Prop rental created successfully.
+ */
 
 router.post(
   "/add-prop-rental",
@@ -155,7 +642,39 @@ router.post(
   ]),
   propController.createProp,
 );
-
+/**
+ * @swagger
+ * /add-photographer:
+ *   post:
+ *     summary: Add a new photographer
+ *     tags: [Photographers]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: termsAndConditions
+ *         type: file
+ *         description: Terms and conditions document.
+ *       - in: formData
+ *         name: cancellationPolicy
+ *         type: file
+ *         description: Cancellation policy document.
+ *       - in: formData
+ *         name: photos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Photographer photos.
+ *       - in: formData
+ *         name: videos
+ *         type: array
+ *         items:
+ *           type: file
+ *         description: Photographer videos.
+ *     responses:
+ *       201:
+ *         description: Photographer created successfully.
+ */
 router.post(
   "/add-photographer",
   upload("Photographers").fields([
@@ -167,6 +686,19 @@ router.post(
   photographerController.createPhotographer,
 );
 
+/**
+ * @swagger
+ * /search:
+ *   get:
+ *     summary: Search products/services
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search query string
+ */
 router.get("/search/", searchProducts);
 
 export default router;

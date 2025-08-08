@@ -6,6 +6,59 @@ import adminNotification from "../models/adminNotification.js";
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/finalOrder:
+ *   post:
+ *     summary: Create or update a final order
+ *     tags:
+ *       - Final Orders
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *                 example: "ORD123456"
+ *               finalPrice:
+ *                 type: string
+ *                 example: "4999"
+ *               vendorId:
+ *                 type: string
+ *                 example: "ven20250807122031748"
+ *               customerName:
+ *                 type: string
+ *                 example: "John Doe"
+ *               customerContact:
+ *                 type: string
+ *                 example: "+91-9876543210"
+ *               serviceDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-09-15"
+ *               services:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["DJ", "Photography"]
+ *               paymentStatus:
+ *                 type: string
+ *                 enum: [pending, completed, failed]
+ *                 example: "completed"
+ *               notes:
+ *                 type: string
+ *                 example: "Please arrive an hour early."
+ *     responses:
+ *       200:
+ *         description: Order processed successfully
+ *       400:
+ *         description: Failed to process booking
+ */
+
+
 router.post("/finalOrder", async (req, res) => {
   try {
     const { orderId, ...updateData } = req.body; // Destructure orderId, put everything else in updateData
@@ -31,6 +84,19 @@ router.post("/finalOrder", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/finalOrder:
+ *   get:
+ *     summary: Get all final orders
+ *     tags:
+ *       - Final Orders
+ *     responses:
+ *       200:
+ *         description: Orders retrieved successfully
+ *       500:
+ *         description: Server error
+ */
 // Fetch all current finalOrders without any identifying field
 router.get("/finalOrder", async (req, res) => {
   try {
@@ -45,6 +111,27 @@ router.get("/finalOrder", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/finalOrder/byQuotationId/{id}:
+ *   get:
+ *     summary: Get order by quotation ID
+ *     tags:
+ *       - Final Orders
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Order found
+ *       404:
+ *         description: Order not found
+ */
+
+
 // backend route to find status of approvals using quotationId
 router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
   const { id } = req.params;
@@ -58,6 +145,36 @@ router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+/**
+ * @swagger
+ * /api/finalOrder/approve:
+ *   put:
+ *     summary: Approve or reject final order
+ *     tags:
+ *       - Final Orders
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *               userType:
+ *                 type: string
+ *               value:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Approval updated
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
+
 
 // Approve or mark as needs discussion
 router.put("/finalOrder/approve", async (req, res) => {
@@ -241,6 +358,33 @@ router.put("/finalOrder/approve", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/finalOrder/{orderId}:
+ *   put:
+ *     summary: Update final order by ID
+ *     tags:
+ *       - Final Orders
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Booking updated successfully
+ *       404:
+ *         description: Booking not found
+ */
+
+
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
   try {
@@ -266,6 +410,27 @@ router.put("/finalOrder/:orderId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/finalOrder/vendor/{vendorId}:
+ *   get:
+ *     summary: Get bookings for a vendor
+ *     tags:
+ *       - Final Orders
+ *     parameters:
+ *       - in: path
+ *         name: vendorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bookings retrieved
+ *       404:
+ *         description: No bookings found
+ */
+
+
 // Fetch all bookings for a vendor (by vendorId)
 router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
   try {
@@ -284,6 +449,27 @@ router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
       .json({ message: "Failed to fetch bookings", error: error.message });
   }
 });
+
+/**
+ * @swagger
+ * /api/finalOrder/customer/{customerId}:
+ *   get:
+ *     summary: Get bookings for a customer
+ *     tags:
+ *       - Final Orders
+ *     parameters:
+ *       - in: path
+ *         name: customerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bookings retrieved
+ *       404:
+ *         description: No bookings found
+ */
+
 
 // Fetch all bookings for a customer (by customerId)
 router.get("/finalOrder/customer/:customerId", async (req, res) => {
@@ -304,6 +490,27 @@ router.get("/finalOrder/customer/:customerId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/finalOrder/{orderId}:
+ *   get:
+ *     summary: Get booking by order ID
+ *     tags:
+ *       - Final Orders
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booking retrieved
+ *       404:
+ *         description: Booking not found
+ */
+
+
 // Fetch a specific booking by orderId
 router.get("/finalOrder/:orderId", async (req, res) => {
   try {
@@ -323,6 +530,26 @@ router.get("/finalOrder/:orderId", async (req, res) => {
       .json({ message: "Failed to fetch booking", error: error.message });
   }
 });
+
+/**
+ * @swagger
+ * /api/finalOrder/{orderId}:
+ *   delete:
+ *     summary: Delete booking by order ID
+ *     tags:
+ *       - Final Orders
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booking deleted
+ *       404:
+ *         description: Booking not found
+ */
 
 // Delete a booking (by orderId)
 router.delete("/finalOrder/:orderId", async (req, res) => {

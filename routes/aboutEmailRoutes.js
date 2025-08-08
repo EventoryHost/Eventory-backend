@@ -4,7 +4,35 @@ import nodemailer from "nodemailer";
 
 const router = express.Router();
 
-// New route specifically for About page email submissions
+/**
+ * @swagger
+ * /send-about-email:
+ *   post:
+ *     summary: Send a query from the About page to Eventory support
+ *     tags: [Emails]
+ *     description: Sends an email containing the sender's name, phone number, and message to the Eventory support team from the About page contact form.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 example: Jane Doe
+ *               phone:
+ *                 type: string
+ *                 example: "+91 9876543210"
+ *               message:
+ *                 type: string
+ *                 example: I would like to know more about your services and pricing.
+ *     responses:
+ *       200:
+ *         description: Email sent successfully to Eventory support
+ *       500:
+ *         description: Failed to send email
+ */
 router.post("/send-about-email", async (req, res) => {
   const { fullName, phone, message } = req.body;
 
@@ -79,7 +107,7 @@ router.post("/send-about-email", async (req, res) => {
               </div>
               <div class="content">
                   <p><strong>Sender's Name:</strong> ${fullName}</p>
-                  <p><strong>phone:</strong> ${phone}</p>
+                  <p><strong>Phone:</strong> ${phone}</p>
                   <p><strong>Message Details:</strong></p>
                   <div class="message-box">
                       <p>${message}</p>
@@ -104,7 +132,6 @@ router.post("/send-about-email", async (req, res) => {
     // Send email to Eventory support
     await transporter.sendMail(supportMailOptions);
 
-    // Send confirmation to the user (optional)
     res.status(200).send("About Page Email Sent Successfully");
   } catch (error) {
     console.error("Error sending email:", error);
