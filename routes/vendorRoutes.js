@@ -8,25 +8,23 @@ router.get("/all", async (req, res) => {
   try {
     const vendors = await Vendor.find(
       {},
-      'id name email mobile businessDetails.address businessDetails.category'
+      "id name email mobile businessDetails.address businessDetails.category invoices serviceIds"
     ).lean();
 
     const filteredVendors = vendors.filter(vendor => {
-      const rawCategory = vendor.businessDetails?.category;
-      return (
-        rawCategory &&
-        rawCategory.trim().toLowerCase() !== 'na' &&
-        rawCategory.trim() !== ''
-      );
+      const hasInvoices = Array.isArray(vendor.invoices) && vendor.invoices.length > 0;
+      const hasServices = Array.isArray(vendor.serviceIds) && vendor.serviceIds.length > 0;
+
+      return hasInvoices && hasServices;
     });
 
     const transformedVendors = filteredVendors.map(vendor => ({
       id: vendor.id,
       name: vendor.name,
-      email: vendor.email || 'N/A',
-      mobile: vendor.mobile || 'N/A',
-      address: vendor.businessDetails?.address || 'N/A',
-      category: vendor.businessDetails?.category || 'N/A',
+      email: vendor.email || "N/A",
+      mobile: vendor.mobile || "N/A",
+      address: vendor.businessDetails?.address || "N/A",
+      category: vendor.businessDetails?.category || "N/A",
     }));
 
     res.status(200).json({ success: true, data: transformedVendors });
