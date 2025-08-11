@@ -21,9 +21,7 @@ async function pollSQS() {
     const data = await sqs.send(command);
 
     if (data.Messages) {
-      console.log("Received messages:", data.Messages);
       for (const message of data.Messages) {
-
         const body = JSON.parse(message.Body);
 
         try {
