@@ -180,7 +180,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
 
     // Get vendor type
     const vendorType = getVendorType(customer.serviceIds);
-
     // Determine coupon code for discount row
     let couponCode = "DISCOUNT";
     if (paymentDetails.couponCode) {
