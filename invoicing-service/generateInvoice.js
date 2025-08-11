@@ -174,11 +174,12 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     }
 
     // Format invoice date
-    const invoiceDate = paymentDetails.invoiceDate || new Date().toLocaleDateString("en-GB"); // DD/MM/YYYY format
+    const invoiceDate = paymentDetails.invoiceDate
+  ? new Date(paymentDetails.invoiceDate).toLocaleDateString("en-GB")
+  : new Date().toLocaleDateString("en-GB");
 
     // Get vendor type
     const vendorType = getVendorType(customer.serviceIds);
-
     // Determine coupon code for discount row
     let couponCode = "DISCOUNT";
     if (paymentDetails.couponCode) {
