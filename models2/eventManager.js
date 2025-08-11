@@ -85,65 +85,6 @@ const eventManagerSchema = new Schema({
 // Indexes for better performance
 eventManagerSchema.index({ contact_number: 1 });
 
-// Instance methods for managing arrays
-eventManagerSchema.methods.assignEvent = function(eventId) {
-  if (!this.eventory_events.includes(eventId)) {
-    this.eventory_events.push(eventId);
-    return this.save();
-  }
-  return Promise.resolve(this);
-};
-
-eventManagerSchema.methods.assignOrder = function(orderId) {
-  if (!this.eventory_orders.includes(orderId)) {
-    this.eventory_orders.push(orderId);
-    return this.save();
-  }
-  return Promise.resolve(this);
-};
-
-eventManagerSchema.methods.assignChat = function(chatId) {
-  if (!this.eventory_chats.includes(chatId)) {
-    this.eventory_chats.push(chatId);
-    return this.save();
-  }
-  return Promise.resolve(this);
-};
-
-eventManagerSchema.methods.removeEvent = function(eventId) {
-  this.eventory_events = this.eventory_events.filter(id => id !== eventId);
-  return this.save();
-};
-
-eventManagerSchema.methods.removeOrder = function(orderId) {
-  this.eventory_orders = this.eventory_orders.filter(id => id !== orderId);
-  return this.save();
-};
-
-eventManagerSchema.methods.removeChat = function(chatId) {
-  this.eventory_chats = this.eventory_chats.filter(id => id !== chatId);
-  return this.save();
-};
-
-// Basic static methods
-eventManagerSchema.statics.findByEMId = function(emId) {
-  return this.findOne({ em_id: emId });
-};
-
-eventManagerSchema.statics.getEMStats = function(emId) {
-  return this.findOne({ em_id: emId }).then(em => {
-    if (!em) return null;
-    
-    return {
-      em_id: em.em_id,
-      user_name: em.user_name,
-      total_events: em.eventory_events.length,
-      total_orders: em.eventory_orders.length,
-      active_chats: em.eventory_chats.length
-    };
-  });
-};
-
 // Pre-save middleware
 eventManagerSchema.pre('save', function(next) {
   // Ensure contact_number doesn't have any spaces or special characters

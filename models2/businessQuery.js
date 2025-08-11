@@ -35,11 +35,10 @@ const businessQuerySchema = new Schema({
       message: 'Invalid email format'
     }
   },
-  sender_services: {
-    type: [String],
-    required: false,
-    default: []
-  },
+  sender_services: [{
+    type: String,
+    required: false
+  }],
   sender_city: {
     type: String,
     required: true

@@ -35,11 +35,23 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
       required: true
     }
   }],
-  service_location: {
-    lat: String,
-    lon: String,
-    service_pincode: Number,
-    google_map_link: String
+  service_location_decorator: { // Changed to match ERD field name
+    lat: {
+      type: String,
+      required: false
+    },
+    lon: {
+      type: String,
+      required: false
+    },
+    service_pincode: {
+      type: Number,
+      required: false
+    },
+    google_map_link: {
+      type: String,
+      required: false
+    }
   }
 }, { _id: false });
 
@@ -113,12 +125,12 @@ const decoratorAdditionalDetailsSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-    ig_socials_link: {
+  ig_socials_link: {
     type: String,
     required: false
   },
   web_social_link: {
-    type: String, 
+    type: String,
     required: false
   },
   is_theme_proposals_provided: {
@@ -166,7 +178,7 @@ const decoratorSchema = new mongoose.Schema({
   vendor_id: {
     type: String,
     required: true,
-    ref: 'Vendor2'
+    ref: 'Vendor'
   },
   service_type: {
     type: String,
@@ -175,9 +187,9 @@ const decoratorSchema = new mongoose.Schema({
   },
   is_active: {
     type: Boolean,
-    default: true // Fixed: should be true by default
+    default: true
   },
-  profile_completion_score: {
+  profile_completion_score: { // Corrected typo: "completition" → "completion"
     type: Number,
     default: 0,
     min: 0,
@@ -189,8 +201,8 @@ const decoratorSchema = new mongoose.Schema({
   },
   ratings: {
     type: Number,
-    default: 0,
-    min: 0,
+    default: 1, // Changed from 0 to 1 to match ERD (min-1, max-5)
+    min: 1,
     max: 5
   },
   // Embedded bank and business details using common schemas
@@ -225,38 +237,6 @@ const decoratorSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   collection: 'decorators'
-});
-
-// Method to calculate profile completion score
-decoratorSchema.methods.calculateProfileCompletion = function() {
-  let score = 0;
-  const sections = [
-    'bank_details',
-    'business_details', 
-    'basic_details',
-    'theme_details',
-    'additional_details',
-    'policies'
-  ];
-  
-  const completedSections = sections.filter(section => {
-    if (section === 'bank_details' || section === 'business_details') {
-      // Check if reference exists (these are references to separate models)
-      return this[section] && this[section] !== null;
-    }
-    return this[section] && this[section].is_completed;
-  });
-  
-  score = Math.round((completedSections.length / sections.length) * 100);
-  
-  this.profile_completion_score = score;
-  return score;
-};
-
-// Pre-save middleware to calculate profile completion
-decoratorSchema.pre('save', function(next) {
-  this.calculateProfileCompletion();
-  next();
 });
 
 const Decorator = mongoose.model('Decorator', decoratorSchema);

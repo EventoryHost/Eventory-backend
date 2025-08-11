@@ -35,8 +35,8 @@ const quotationsSchema = new Schema({
   },
   customer_contact_number: {
     type: String,
-    required: true,
-    comment: "Not visible to Vendor, Only for EMs"
+    required: true
+    // Not visible to Vendor, Only for EMs
   },
   event_start: {
     type: Date,
@@ -90,60 +90,6 @@ quotationsSchema.index({ vendor_id: 1, quote_status: 1 });
 quotationsSchema.index({ service_id: 1 });
 quotationsSchema.index({ quotation_created_at: -1 });
 quotationsSchema.index({ event_start: 1 });
-
-// Virtual for quote duration
-quotationsSchema.virtual('quoteDuration').get(function() {
-  if (this.event_start && this.event_end) {
-    const diff = this.event_end - this.event_start;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-    
-    if (days > 0) {
-      return `${days} day(s) ${hours % 24} hour(s)`;
-    }
-    return `${hours} hour(s)`;
-  }
-  return null;
-});
-
-// Instance methods
-quotationsSchema.methods.updateStatus = function(newStatus, note = '') {
-  this.quote_status = newStatus;
-  this.quotation_updated_at = new Date();
-  return this.save();
-};
-
-quotationsSchema.methods.isExpired = function() {
-  // Consider quote expired if event date has passed and status is still pending
-  return this.event_start < new Date() && this.quote_status === 'Pending';
-};
-
-// Static methods
-quotationsSchema.statics.getQuotesByStatus = function(status) {
-  return this.find({ quote_status: status }).sort({ quotation_created_at: -1 });
-};
-
-quotationsSchema.statics.getQuotesByVendor = function(vendorId, status = null) {
-  const query = { vendor_id: vendorId };
-  if (status) query.quote_status = status;
-  
-  return this.find(query).sort({ quotation_created_at: -1 });
-};
-
-quotationsSchema.statics.getQuotesByCustomer = function(customerId, status = null) {
-  const query = { customer_id: customerId };
-  if (status) query.quote_status = status;
-  
-  return this.find(query).sort({ quotation_created_at: -1 });
-};
-
-quotationsSchema.statics.getUpcomingEvents = function() {
-  const now = new Date();
-  return this.find({
-    event_start: { $gte: now },
-    quote_status: { $in: ['Accepted', 'In_Progress', 'In_Booking'] }
-  }).sort({ event_start: 1 });
-};
 
 // Pre-save middleware
 quotationsSchema.pre('save', function(next) {

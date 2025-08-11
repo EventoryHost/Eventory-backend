@@ -210,66 +210,6 @@ ordersSchema.index({ event_start: 1 });
 ordersSchema.index({ event_end: 1 });
 ordersSchema.index({ order_created_at: -1 });
 
-// Virtual for getting time until event
-ordersSchema.virtual('timeUntilEvent').get(function() {
-  const now = new Date();
-  const diff = this.event_start - now;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
-  if (days < 0) return 'Event has passed';
-  if (days === 0) return 'Event is today';
-  if (days === 1) return 'Event is tomorrow';
-  return `Event in ${days} days`;
-});
-
-// Instance methods
-ordersSchema.methods.isFullyApproved = function() {
-  return this.vendor_approval && this.customer_approval;
-};
-
-ordersSchema.methods.canStartEvent = function() {
-  return this.isFullyApproved() && this.order_status === 'approved';
-};
-
-ordersSchema.methods.getTotalAmount = function() {
-  return this.final_order_items.reduce((total, item) => {
-    return total + (item.price * item.quantity);
-  }, 0);
-};
-
-// Static methods
-ordersSchema.statics.findByStatus = function(status) {
-  return this.find({ order_status: status });
-};
-
-ordersSchema.statics.findByVendor = function(vendorId) {
-  return this.find({ vendor_id: vendorId });
-};
-
-ordersSchema.statics.findByEM = function(emId) {
-  return this.find({ em_id: emId });
-};
-
-ordersSchema.statics.findUpcomingEvents = function(days = 7) {
-  const now = new Date();
-  const futureDate = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000));
-  
-  return this.find({
-    event_start: { $gte: now, $lte: futureDate },
-    order_status: 'approved'
-  }).sort({ event_start: 1 });
-};
-
-ordersSchema.statics.getPendingApprovals = function() {
-  return this.find({
-    $or: [
-      { vendor_approval: false },
-      { customer_approval: false }
-    ],
-    order_status: { $in: ['pending', 'semi-approved'] }
-  });
-};
-
 // Pre-save middleware
 ordersSchema.pre('save', function(next) {
   // Update order status based on approvals

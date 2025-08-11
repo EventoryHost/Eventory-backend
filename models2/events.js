@@ -232,15 +232,6 @@ eventsSchema.pre('save', function(next) {
   next();
 });
 
-// Instance methods (keeping only essential calculations)
-eventsSchema.methods.getDuration = function() {
-  return Math.abs(this.event_end - this.event_start) / (1000 * 60 * 60); // Duration in hours
-};
-
-eventsSchema.methods.getRemainingAmount = function() {
-  return this.final_amount - this.already_paid_amount;
-};
-
 const Events = mongoose.model('Events', eventsSchema);
 
 export { Events, eventsSchema, cartItemSchema };

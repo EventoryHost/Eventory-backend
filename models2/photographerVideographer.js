@@ -31,11 +31,23 @@ const serviceLocationPAVSchema = new Schema({
   }
 }, { _id: false });
 
+// Event Types Captured Schema
+const eventTypesCapturedSchema = new Schema({
+  event_name: {
+    type: String,
+    required: true
+  },
+  event_type: {
+    type: String,
+    required: true // Removed enum to match ERD which shows "String event type"
+  }
+}, { _id: false });
+
 // PAV Service Types Details Schema
 const pavServiceTypesDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
-    default: false
+    default: false // Changed from "Y/N" to boolean to match ERD
   },
   type_of_service: {
     type: String,
@@ -71,8 +83,7 @@ const pavBasicDetailsSchema = new Schema({
   },
   service_contact_number: {
     type: String,
-    required: false,
-    default: ""
+    required: true // Changed to required to match ERD
   },
   description: {
     type: String,
@@ -80,31 +91,26 @@ const pavBasicDetailsSchema = new Schema({
   },
   min_booking_capacity: {
     type: Number,
-    required: false,
-    min: 1,
-    default: 1
+    required: true, // Changed to required to match ERD
+    min: 1
   },
   max_booking_capacity: {
     type: Number,
-    required: false,
-    min: 1,
-    default: 100
+    required: true, // Changed to required to match ERD
+    min: 1
   },
+  service_type_details: [{
+    type: pavServiceTypesDetailsSchema, // Array of service type details
+    required: true
+  }],
   event_types_captured: [{
-    event_name: {
-      type: String,
-      required: true
-    },
-    event_type: {
-      type: String,
-      enum: ['common', 'wedding', 'corporate', 'seasonal'],
-      required: true
-    }
+    type: eventTypesCapturedSchema,
+    required: true
   }],
   service_location_pav: serviceLocationPAVSchema
 }, { _id: false });
 
-// PAV Service Details Schema
+// PAV Service Details Schema (keeping for structure consistency)
 const pavServiceDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
@@ -122,22 +128,25 @@ const pavAdditionalDetailsSchema = new Schema({
     type: Boolean,
     default: false
   },
-  min_booking_period: {
-    type: Number,
-    required: false,
-    default: 1
-  },
-  max_booking_period: {
-    type: Number,
-    required: false,
-    default: 365
-  },
   asset_images: [{
     type: String
   }],
   asset_videos: [{
     type: String
   }],
+  min_booking_period: {
+    type: Number,
+    required: true // Changed to required to match ERD
+  },
+  max_booking_period: {
+    type: Number,
+    required: true // Changed to required to match ERD
+  },
+  prices_starts_from: {
+    type: Number,
+    required: true, // Changed to required to match ERD
+    min: 0
+  },
   ig_socials_link: {
     type: String,
     required: false
@@ -145,11 +154,6 @@ const pavAdditionalDetailsSchema = new Schema({
   web_social_link: {
     type: String,
     required: false
-  },
-  prices_starts_from: {
-    type: Number,
-    required: false,
-    min: 0
   }
 }, { _id: false });
 
@@ -162,31 +166,31 @@ const pavConsultationsDetailsSchema = new Schema({
   service_offering_type: {
     type: String,
     enum: ['Customize', 'Standard', 'Both'],
-    required: false
+    required: true // Changed to required to match ERD
   },
   send_proposals_to_clients: {
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
   do_initial_customer_consultation: {
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
   do_destination_events: {
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
   do_advance_setup: {
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
   do_post_production_services: {
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
   delivery_timeline: {
     type: String,
-    required: false
+    required: true // Changed to required to match ERD
   }
 }, { _id: false });
 
@@ -205,21 +209,20 @@ const photographerVideographerSchema = new Schema({
   service_type: {
     type: String,
     required: true,
-    default: "Photographer"
+    default: "Photographer-Videographer" // Changed to match ERD exactly
   },
   is_active: {
     type: Boolean,
-    default: false
+    default: true // Changed to true to match ERD default
   },
-  profile_completition_score: {
+  profile_completion_score: { // Fixed typo: "completition" → "completion"
     type: Number,
     default: 0,
     min: 0,
     max: 100
   },
   service_areas: [{
-    type: String,
-    default: []
+    type: String
   }],
   ratings: {
     type: Number,
@@ -247,18 +250,18 @@ const photographerVideographerSchema = new Schema({
     type: pavServiceDetailsSchema,
     default: () => ({})
   },
-  additional_details: {
-    type: pavAdditionalDetailsSchema,
-    default: () => ({})
-  },
   consultation_services: {
     type: pavConsultationsDetailsSchema,
+    default: () => ({})
+  },
+  additional_details: {
+    type: pavAdditionalDetailsSchema,
     default: () => ({})
   },
   policies: {
     type: policiesSchema,
     default: () => ({})
-  },
+  }
 }, {
   timestamps: true,
   collection: 'photographer-videographers'
@@ -269,97 +272,7 @@ photographerVideographerSchema.index({ vendor_id: 1 });
 photographerVideographerSchema.index({ service_areas: 1 });
 photographerVideographerSchema.index({ is_active: 1 });
 photographerVideographerSchema.index({ ratings: -1 });
-photographerVideographerSchema.index({ profile_completition_score: -1 });
-
-// Instance methods
-photographerVideographerSchema.methods.calculateProfileCompletion = function() {
-  let score = 0;
-  const sections = [
-    'bank_details',
-    'business_details',
-    'basic_details',
-    'service_details', 
-    'consultation_services',
-    'policies'
-  ];
-  
-  const completedSections = sections.filter(section => {
-    if (section === 'bank_details' || section === 'business_details') {
-      // Check if reference exists (these are references to separate models)
-      return this[section] && this[section] !== null;
-    }
-    return this[section] && this[section].is_completed;
-  });
-  
-  this.profile_completition_score = Math.round((completedSections.length / sections.length) * 100);
-  return this.profile_completition_score;
-};
-
-photographerVideographerSchema.methods.updateRating = async function(newRating) {
-  this.ratings = newRating;
-  return this.save();
-};
-
-photographerVideographerSchema.methods.hasPhotographyService = function() {
-  return this.service_details?.service_type_details?.some(service => 
-    service.type_of_service === 'photography'
-  );
-};
-
-photographerVideographerSchema.methods.hasVideographyService = function() {
-  return this.service_details?.service_type_details?.some(service => 
-    service.type_of_service === 'videography'
-  );
-};
-
-// Static methods
-photographerVideographerSchema.statics.findByVendorId = function(vendorId) {
-  return this.find({ vendor_id: vendorId });
-};
-
-photographerVideographerSchema.statics.findActiveServices = function() {
-  return this.find({ is_active: true });
-};
-
-photographerVideographerSchema.statics.findByServiceArea = function(area) {
-  return this.find({ 
-    service_areas: { $in: [area] },
-    is_active: true 
-  });
-};
-
-photographerVideographerSchema.statics.findByRating = function(minRating = 1) {
-  return this.find({ 
-    ratings: { $gte: minRating },
-    is_active: true 
-  }).sort({ ratings: -1 });
-};
-
-photographerVideographerSchema.statics.searchServices = function(filters = {}) {
-  const query = { is_active: true };
-  
-  if (filters.vendor_id) query.vendor_id = filters.vendor_id;
-  if (filters.service_areas?.length) query.service_areas = { $in: filters.service_areas };
-  if (filters.min_rating) query.ratings = { $gte: filters.min_rating };
-  if (filters.event_type) {
-    query['basic_details.event_types_captured.event_type'] = filters.event_type;
-  }
-  
-  return this.find(query).sort({ ratings: -1, profile_completition_score: -1 });
-};
-
-// Pre-save middleware
-photographerVideographerSchema.pre('save', function(next) {
-  // Auto-calculate profile completion score
-  this.calculateProfileCompletion();
-  
-  // Ensure service_type is set correctly
-  if (!this.service_type) {
-    this.service_type = "Photographer";
-  }
-  
-  next();
-});
+photographerVideographerSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
 
 // Check if model already exists to prevent OverwriteModelError
 const PhotographerVideographer = mongoose.models.PhotographerVideographer || 

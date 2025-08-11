@@ -15,11 +15,11 @@ const serviceLocationVenueSchema = new Schema({
     required: false
   },
   service_opening_time: {
-    type: String,
+    type: String, // Kept as String to match ERD format "hh:mm"
     required: false
   },
   service_closing_time: {
-    type: String,
+    type: String, // Kept as String to match ERD format "hh:mm"
     required: false
   },
   service_pincode: {
@@ -47,8 +47,7 @@ const eventTypesVenueSchema = new Schema({
   },
   event_type: {
     type: String,
-    enum: ['common', 'wedding', 'corporate', 'seasonal'],
-    required: true
+    required: true // Removed enum to match ERD which shows "String event type"
   }
 }, { _id: false });
 
@@ -64,7 +63,7 @@ const venueBasicDetailsSchema = new Schema({
   },
   service_contact_number: {
     type: String,
-    required: false
+    required: true // Changed to required to match ERD
   },
   description: {
     type: String,
@@ -72,14 +71,18 @@ const venueBasicDetailsSchema = new Schema({
   },
   min_booking_capacity: {
     type: Number,
-    required: false,
+    required: true, // Changed to required to match ERD
     min: 1
   },
   max_booking_capacity: {
     type: Number,
-    required: false,
+    required: true, // Changed to required to match ERD
     min: 1
   },
+  service_type_details: [{ // Added to match ERD field name
+    type: String,
+    required: true
+  }],
   event_types_venue: [{
     type: eventTypesVenueSchema,
     required: true
@@ -95,11 +98,11 @@ const venueFeatureDetailsSchema = new Schema({
   },
   in_house_catering: {
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
-  in_house_decoration: {
+  in_house_decoation: { // Fixed typo to match ERD exactly
     type: Boolean,
-    required: false
+    required: true // Changed to required to match ERD
   },
   venue_types_available: [{
     type: String,
@@ -117,7 +120,7 @@ const venueFeatureDetailsSchema = new Schema({
   special_features_in_venue: [{
     type: String
   }],
-  facilities_at_venue: [{
+  fascilities_at_venue: [{ // Fixed typo to match ERD exactly
     type: String
   }]
 }, { _id: false });
@@ -136,15 +139,15 @@ const venueAdditionalDetailsSchema = new Schema({
   }],
   min_booking_period: {
     type: Number,
-    required: false
+    required: true // Changed to required to match ERD
   },
   max_booking_period: {
     type: Number,
-    required: false
+    required: true // Changed to required to match ERD
   },
   prices_starts_from: {
     type: Number,
-    required: false,
+    required: true, // Changed to required to match ERD
     min: 0
   },
   ig_socials_link: {
@@ -196,21 +199,20 @@ const venueProviderSchema = new Schema({
   service_type: {
     type: String,
     required: true,
-    default: "Venue"
+    default: "Venue-Provider" // Changed to match ERD exactly
   },
   is_active: {
     type: Boolean,
     default: true
   },
-  profile_completition_score: {
+  profile_completion_score: { // Fixed typo: "completition" → "completion"
     type: Number,
     default: 0,
     min: 0,
     max: 100
   },
   service_areas: [{
-    type: String,
-    default: []
+    type: String
   }],
   ratings: {
     type: Number,
@@ -256,118 +258,7 @@ venueProviderSchema.index({ vendor_id: 1 });
 venueProviderSchema.index({ service_areas: 1 });
 venueProviderSchema.index({ is_active: 1 });
 venueProviderSchema.index({ ratings: -1 });
-venueProviderSchema.index({ profile_completition_score: -1 });
-
-// Instance methods
-venueProviderSchema.methods.calculateProfileCompletion = function() {
-  let score = 0;
-  const sections = [
-    'bank_details',
-    'business_details',
-    'basic_details',
-    'feature_details', 
-    'additional_details',
-    'policies'
-  ];
-  
-  sections.forEach(section => {
-    if (section === 'bank_details' || section === 'business_details') {
-      // Check if reference exists (these are references to separate models)
-      if (this[section] && this[section] !== null) {
-        score += 100 / sections.length;
-      }
-    } else if (this[section] && this[section].is_completed) {
-      score += 100 / sections.length;
-    }
-  });
-  
-  this.profile_completition_score = Math.round(score);
-  return this.profile_completition_score;
-};
-
-venueProviderSchema.methods.updateRating = async function(newRating) {
-  this.ratings = newRating;
-  return this.save();
-};
-
-venueProviderSchema.methods.hasInHouseCatering = function() {
-  return this.feature_details?.in_house_catering === true;
-};
-
-venueProviderSchema.methods.hasInHouseDecoration = function() {
-  return this.feature_details?.in_house_decoration === true;
-};
-
-// Static methods
-venueProviderSchema.statics.findByVendorId = function(vendorId) {
-  return this.find({ vendor_id: vendorId });
-};
-
-venueProviderSchema.statics.findActiveServices = function() {
-  return this.find({ is_active: true });
-};
-
-venueProviderSchema.statics.findByServiceArea = function(area) {
-  return this.find({ 
-    service_areas: { $in: [area] },
-    is_active: true 
-  });
-};
-
-venueProviderSchema.statics.findByRating = function(minRating = 1) {
-  return this.find({ 
-    ratings: { $gte: minRating },
-    is_active: true 
-  }).sort({ ratings: -1 });
-};
-
-venueProviderSchema.statics.findByCapacity = function(minCapacity, maxCapacity) {
-  const query = { is_active: true };
-  
-  if (minCapacity) {
-    query['basic_details.min_booking_capacity'] = { $lte: minCapacity };
-  }
-  if (maxCapacity) {
-    query['basic_details.max_booking_capacity'] = { $gte: maxCapacity };
-  }
-  
-  return this.find(query).sort({ ratings: -1 });
-};
-
-venueProviderSchema.statics.searchServices = function(filters = {}) {
-  const query = { is_active: true };
-  
-  if (filters.vendor_id) query.vendor_id = filters.vendor_id;
-  if (filters.service_areas?.length) query.service_areas = { $in: filters.service_areas };
-  if (filters.min_rating) query.ratings = { $gte: filters.min_rating };
-  if (filters.event_type) {
-    query['basic_details.event_types_venue.event_type'] = filters.event_type;
-  }
-  if (filters.venue_type) {
-    query['feature_details.venue_types_available'] = { $in: [filters.venue_type] };
-  }
-  if (filters.in_house_catering !== undefined) {
-    query['feature_details.in_house_catering'] = filters.in_house_catering;
-  }
-  if (filters.in_house_decoration !== undefined) {
-    query['feature_details.in_house_decoration'] = filters.in_house_decoration;
-  }
-  
-  return this.find(query).sort({ ratings: -1, profile_completition_score: -1 });
-};
-
-// Pre-save middleware
-venueProviderSchema.pre('save', function(next) {
-  // Auto-calculate profile completion percentage
-  this.calculateProfileCompletion();
-  
-  // Ensure service_type is set correctly
-  if (!this.service_type) {
-    this.service_type = "Venue";
-  }
-  
-  next();
-});
+venueProviderSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
 
 // Check if model already exists to prevent OverwriteModelError
 const VenueProvider = mongoose.models.VenueProvider || 

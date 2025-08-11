@@ -39,18 +39,18 @@ const customerSchema = new mongoose.Schema({
     required: false
   },
   pincode: {
-    type: Number,
+    type: String, // Changed from Number to String to match ERD
     required: false,
     validate: {
       validator: function(v) {
-        if (v === undefined || v === null) return true;
-        return /^\d{6}$/.test(String(v));
+        if (!v) return true;
+        return /^\d{6}$/.test(v);
       },
       message: props => `${props.value} is not a valid 6-digit pincode!`
     }
   },
   wishlisted_services: [{
-    type: String // Array of service_id's - removed ref for flexibility
+    type: String // Array of service_id's
   }]
 }, {
   timestamps: true,
@@ -62,11 +62,6 @@ customerSchema.index({ contact_number: 1 });
 customerSchema.index({ email_address: 1 });
 customerSchema.index({ pincode: 1 });
 
-// Instance methods (keeping only essential ones)
-customerSchema.methods.getWishlistCount = function() {
-  return this.whishlisted_services.length;
-};
-
-const Customer = mongoose.model('Customer2', customerSchema);
+const Customer = mongoose.model('Customer', customerSchema);
 
 export { Customer, customerSchema };

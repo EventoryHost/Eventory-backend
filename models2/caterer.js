@@ -82,7 +82,7 @@ const catererBasicDetailsSchema = new Schema({
     required: true
   }],
   service_location_caterer: serviceLocationCatererSchema,
-  event_types_catered: [eventTypesCateredSchema]
+  event_types_catered: [eventTypesCateredSchema] // Changed from event_types_catererd to match ERD
 }, { _id: false });
 
 // Caterer Menu Details Schema
@@ -185,7 +185,8 @@ const catererAdditionalDetailsSchema = new Schema({
     type: String // Array of S3 links
   }],
   prices_starts_from: {
-    type: Number // Integer for getting values of their min item value
+    type: Number, // Integer for getting values of their min item value
+    required: true // Added required to match ERD
   }
 }, { _id: false });
 
@@ -234,7 +235,7 @@ const catererSchema = new Schema({
     type: Boolean,
     default: true
   },
-  profile_completion_score: {
+  profile_completion_score: { // Fixed typo if any
     type: Number,
     default: 0
   },

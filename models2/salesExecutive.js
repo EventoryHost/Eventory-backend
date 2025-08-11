@@ -63,24 +63,6 @@ const salesExecutiveSchema = new Schema({
 // Basic indexes for ERD fields
 salesExecutiveSchema.index({ contact_number: 1 });
 
-// Basic instance methods for managing search history
-salesExecutiveSchema.methods.addSearchHistory = function(vendorType, place) {
-  const searchEntry = place ? `${vendorType}_${place}` : vendorType;
-  this.vendor_search_history.push(searchEntry);
-  
-  // Keep only last 100 searches to prevent bloat
-  if (this.vendor_search_history.length > 100) {
-    this.vendor_search_history = this.vendor_search_history.slice(-100);
-  }
-  
-  return this.save();
-};
-
-// Basic static methods
-salesExecutiveSchema.statics.findBySalesExId = function(salesExId) {
-  return this.findOne({ sales_ex_id: salesExId });
-};
-
 // Pre-save middleware
 salesExecutiveSchema.pre('save', function(next) {
   // Ensure contact_number doesn't have any spaces or special characters

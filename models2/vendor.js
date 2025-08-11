@@ -5,15 +5,22 @@ const Schema = _Schema;
 
 // Common Bank Details Schema for reuse across all service models
 const bankDetailsSchema = new Schema({
+  vendor_id: {
+    type: String,
+    required: true // Added to match ERD
+  },
+  service_id: {
+    type: String,
+    required: true // Added to match ERD
+  },
   bank_name: {
     type: String,
     required: false
   },
   account_type: {
     type: String,
-    required: false,
-    enum: ['Savings', 'Current'],
-    default: null
+    required: true, // Changed to required to match ERD
+    enum: ['Savings', 'Current']
   },
   account_number: {
     type: String,
@@ -29,10 +36,6 @@ const bankDetailsSchema = new Schema({
       },
       message: 'IFSC code must be in the format: 4 letters, 0, and 6 alphanumeric characters'
     }
-  },
-  is_completed: {
-    type: Boolean,
-    default: false
   }
 }, { _id: false });
 
@@ -94,7 +97,7 @@ const businessDetailsSchema = new Schema({
     required: false
   },
   pincode: {
-    type: Number,
+    type: Number, // Changed from Long to Number to match ERD
     required: true,
     validate: {
       validator: function(v) {
@@ -112,7 +115,7 @@ const businessDetailsSchema = new Schema({
     required: false
   },
   annual_bookings: {
-    type: Number,
+    type: Number, // Changed from Int to Number
     required: true,
     min: 0
   }
@@ -148,7 +151,7 @@ const vendorSchema = new Schema({
     required: false
   }],
   highest_discount_ever_applied: {
-    type: Number,
+    type: Number, // Changed from Int to Number
     required: false,
     default: 0,
     min: 0
@@ -207,55 +210,6 @@ const policiesSchema = new Schema({
     required: false
   }
 }, { _id: false });
-
-// Instance methods
-vendorSchema.methods.addService = function(serviceId) {
-  if (!this.services.includes(serviceId)) {
-    this.services.push(serviceId);
-  }
-  return this.save();
-};
-
-vendorSchema.methods.removeService = function(serviceId) {
-  this.services = this.services.filter(id => id !== serviceId);
-  return this.save();
-};
-
-vendorSchema.methods.addCompletedService = function(serviceId) {
-  if (!this.completed_services.includes(serviceId)) {
-    this.completed_services.push(serviceId);
-  }
-  return this.save();
-};
-
-vendorSchema.methods.removeCompletedService = function(serviceId) {
-  this.completed_services = this.completed_services.filter(id => id !== serviceId);
-  return this.save();
-};
-
-vendorSchema.methods.addUsedCoupon = function(couponCode) {
-  if (!this.coupons_used.includes(couponCode)) {
-    this.coupons_used.push(couponCode);
-  }
-  return this.save();
-};
-
-vendorSchema.methods.updateHighestDiscount = function(discountAmount) {
-  if (discountAmount > this.highest_discount_ever_applied) {
-    this.highest_discount_ever_applied = discountAmount;
-    return this.save();
-  }
-  return this;
-};
-
-// Static methods
-vendorSchema.statics.findByWAMobile = function(waMobile) {
-  return this.findOne({ wa_mobile: waMobile });
-};
-
-vendorSchema.statics.findByServiceId = function(serviceId) {
-  return this.find({ services: { $in: [serviceId] } });
-};
 
 const Vendor = model("Vendor", vendorSchema);
 

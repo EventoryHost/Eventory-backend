@@ -74,4 +74,3 @@ couponsSchema.pre('save', function(next) {
 const Coupons = mongoose.models.Coupons || mongoose.model('Coupons', couponsSchema);
 
 export default Coupons;
-export { couponsSchema };

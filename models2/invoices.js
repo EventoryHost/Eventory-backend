@@ -95,21 +95,6 @@ invoicesSchema.pre('save', async function(next) {
   }
 });
 
-// Method to get formatted invoice number
-invoicesSchema.methods.getFormattedInvoiceNumber = function() {
-  return `INV-${String(this.invoice_no).padStart(6, '0')}`;
-};
-
-// Static methods
-invoicesSchema.statics.findByInvoiceNumber = function(invoiceNo) {
-  return this.findOne({ invoice_no: invoiceNo });
-};
-
-invoicesSchema.statics.getLatestInvoiceNumber = async function() {
-  const latestInvoice = await this.findOne().sort({ invoice_no: -1 });
-  return latestInvoice ? latestInvoice.invoice_no : 0;
-};
-
 const Invoices = mongoose.model('Invoices', invoicesSchema);
 
 export { Invoices, invoicesSchema, Counter };
