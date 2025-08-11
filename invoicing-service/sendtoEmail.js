@@ -1,16 +1,7 @@
-import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
 dotenv.config();
-
-const ses = new SESClient({
-  region: "ap-south-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET,
-  },
-});
 
 const generateEmailHtml = (name) => `
 <!DOCTYPE html>
@@ -48,12 +39,17 @@ const generateEmailHtml = (name) => `
 
 export async function sendInvoiceEmail({ to, name, pdfBuffer, pdfFileName }) {
   const transporter = nodemailer.createTransport({
-    SES: { ses, aws: { SendRawEmailCommand } },
+    service : "gmail",
+    auth : {
+      user : process.env.EMAIL_USER ,
+      pass : process.env.INVOICING_EMAIL_PASS, 
+    }
   });
 
   const mailOptions = {
     from: "registrations@eventory.in",
     to,
+    cc: ["event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com", "payments@eventory.in"],
     subject: "Welcome to Eventory!",
     html: generateEmailHtml(name), 
     attachments: [
@@ -67,4 +63,3 @@ export async function sendInvoiceEmail({ to, name, pdfBuffer, pdfFileName }) {
 
   await transporter.sendMail(mailOptions);
 }
-

@@ -3,7 +3,6 @@ import { Decorator } from "../../models/decoraters.js";
 import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -218,11 +217,6 @@ const createDecorator = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
-
-      name: savedDecorator.basicDetails.name,
-      type: savedDecorator.type,
-    })
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);
