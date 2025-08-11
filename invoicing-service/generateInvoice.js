@@ -183,7 +183,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
 
     // Determine coupon code for discount row
     let couponCode = "DISCOUNT";
-    if (paymentDetails.couponCode) {S
+    if (paymentDetails.couponCode) {
       couponCode = paymentDetails.couponCode.toUpperCase();
     }
 
