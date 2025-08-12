@@ -301,4 +301,4 @@ venueProviderSchema.index({ vendor_id: 1 });
 venueProviderSchema.index({ service_areas: 1 });
 venueProviderSchema.index({ is_active: 1 });
 venueProviderSchema.index({ ratings: -1 });
-venueProviderSchema.index({ profile
+venueProviderSchema.index({ profile_completion_score: -1 });
