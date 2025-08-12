@@ -53,9 +53,17 @@ const invoicesSchema = new mongoose.Schema({
   event_id: {
     type: String,
     required: false // Event_id for any event. null in case of registration
+  },
+  invoice_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, {
-  timestamps: true,
   collection: 'invoices'
 });
 
@@ -66,6 +74,7 @@ invoicesSchema.index({ service_id: 1 });
 invoicesSchema.index({ customer_id: 1 });
 invoicesSchema.index({ event_id: 1 });
 invoicesSchema.index({ type: 1 });
+invoicesSchema.index({ invoice_created_at: -1 });
 
 // Pre-save middleware
 invoicesSchema.pre('save', async function(next) {

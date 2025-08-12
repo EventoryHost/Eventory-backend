@@ -215,11 +215,80 @@ const decoratorSchema = new mongoose.Schema({
   policies: {
     type: decoratorPoliciesSchema,
     default: () => ({})
+  },
+  decorator_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  decorator_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, {
-  timestamps: true,
   collection: 'decorators'
 });
+
+// Pre-save middleware to update decorator_updated_at on every save
+decoratorSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.decorator_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  // Update nested document timestamps if they exist and are modified
+  if (this.isModified('bank_details') && this.bank_details) {
+    this.bank_details.bank_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  if (this.isModified('business_details') && this.business_details) {
+    this.business_details.business_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  next();
+});
+
+// Pre-update middleware to update decorator_updated_at on updates
+decoratorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + istOffset);
+  
+  this.set({ decorator_updated_at: istTime });
+  
+  // Update nested document timestamps if they are being updated
+  const update = this.getUpdate();
+  
+  if (update.bank_details || update['bank_details']) {
+    this.set({ 'bank_details.bank_updated_at': istTime });
+  }
+  
+  if (update.business_details || update['business_details']) {
+    this.set({ 'business_details.business_updated_at': istTime });
+  }
+  
+  next();
+});
+
+// Indexes for better performance
+decoratorSchema.index({ vendor_id: 1 });
+decoratorSchema.index({ is_active: 1 });
+decoratorSchema.index({ service_areas: 1 });
+decoratorSchema.index({ decorator_created_at: -1 });
+decoratorSchema.index({ decorator_updated_at: -1 });
+decoratorSchema.index({ service_id: 1 });
 
 const Decorator = mongoose.model('Decorator', decoratorSchema);
 

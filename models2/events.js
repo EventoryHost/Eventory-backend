@@ -92,8 +92,21 @@ const eventsSchema = new mongoose.Schema({
   },
   event_created_at: {
     type: Date,
-    required: true,
-    default: Date.now
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  event_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   },
   final_guest_count: {
     type: Number,
@@ -193,22 +206,18 @@ const eventsSchema = new mongoose.Schema({
   },
   final_order_items: [cartItemSchema] // Array of cart items
 }, {
-  timestamps: true,
   collection: 'events'
 });
 
-// Indexes for better performance
-eventsSchema.index({ customer_id: 1 });
-eventsSchema.index({ vendor_id: 1 });
-eventsSchema.index({ service_id: 1 });
-eventsSchema.index({ event_status: 1 });
-eventsSchema.index({ event_start: 1 });
-eventsSchema.index({ event_end: 1 });
-eventsSchema.index({ payment_status: 1 });
-eventsSchema.index({ event_start: 1, event_end: 1 }); // Compound index for date range queries
-
-// Pre-save middleware (minimal - only for basic validation)
+// Pre-save middleware to update event_updated_at on every save
 eventsSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.event_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
   // Basic validation only
   if (this.already_paid_amount > this.final_amount) {
     return next(new Error('Already paid amount cannot exceed final amount'));
@@ -220,6 +229,28 @@ eventsSchema.pre('save', function(next) {
   
   next();
 });
+
+// Pre-update middleware to update event_updated_at on updates
+eventsSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  this.set({ event_updated_at: new Date(now.getTime() + istOffset) });
+  next();
+});
+
+// Indexes for better performance
+eventsSchema.index({ customer_id: 1 });
+eventsSchema.index({ vendor_id: 1 });
+eventsSchema.index({ service_id: 1 });
+eventsSchema.index({ event_status: 1 });
+eventsSchema.index({ event_start: 1 });
+eventsSchema.index({ event_end: 1 });
+eventsSchema.index({ payment_status: 1 });
+eventsSchema.index({ event_start: 1, event_end: 1 }); // Compound index for date range queries
+eventsSchema.index({ event_created_at: -1 });
+eventsSchema.index({ event_updated_at: -1 });
+eventsSchema.index({ event_id: 1 });
 
 const Events = mongoose.model('Events', eventsSchema);
 

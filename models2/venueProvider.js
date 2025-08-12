@@ -229,10 +229,71 @@ const venueProviderSchema = new Schema({
   policies: {
     type: venuePoliciesSchema,
     default: () => ({})
+  },
+  venue_provider_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  venue_provider_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, {
-  timestamps: true,
   collection: 'venue_providers'
+});
+
+// Pre-save middleware to update venue_provider_updated_at on every save
+venueProviderSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.venue_provider_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  // Update nested document timestamps if they exist and are modified
+  if (this.isModified('bank_details') && this.bank_details) {
+    this.bank_details.bank_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  if (this.isModified('business_details') && this.business_details) {
+    this.business_details.business_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  next();
+});
+
+// Pre-update middleware to update venue_provider_updated_at on updates
+venueProviderSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + istOffset);
+  
+  this.set({ venue_provider_updated_at: istTime });
+  
+  // Update nested document timestamps if they are being updated
+  const update = this.getUpdate();
+  
+  if (update.bank_details || update['bank_details']) {
+    this.set({ 'bank_details.bank_updated_at': istTime });
+  }
+  
+  if (update.business_details || update['business_details']) {
+    this.set({ 'business_details.business_updated_at': istTime });
+  }
+  
+  next();
 });
 
 // Indexes for better performance
@@ -240,10 +301,4 @@ venueProviderSchema.index({ vendor_id: 1 });
 venueProviderSchema.index({ service_areas: 1 });
 venueProviderSchema.index({ is_active: 1 });
 venueProviderSchema.index({ ratings: -1 });
-venueProviderSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
-
-// Check if model already exists to prevent OverwriteModelError
-const VenueProvider = mongoose.models.VenueProvider || 
-  model('VenueProvider', venueProviderSchema);
-
-export default VenueProvider;
+venueProviderSchema.index({ profile

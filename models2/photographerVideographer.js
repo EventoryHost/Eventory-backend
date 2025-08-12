@@ -31,7 +31,6 @@ const serviceLocationPAVSchema = new Schema({
   }
 }, { _id: false });
 
-
 // PAV Service Types Details Schema
 const pavServiceTypesDetailsSchema = new Schema({
   is_completed: {
@@ -298,10 +297,71 @@ const photographerVideographerSchema = new Schema({
   policies: {
     type: policiesSchema,
     default: () => ({})
+  },
+  pav_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  pav_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, {
-  timestamps: true,
   collection: 'photographer-videographers'
+});
+
+// Pre-save middleware to update pav_updated_at on every save
+photographerVideographerSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.pav_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  // Update nested document timestamps if they exist and are modified
+  if (this.isModified('bank_details') && this.bank_details) {
+    this.bank_details.bank_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  if (this.isModified('business_details') && this.business_details) {
+    this.business_details.business_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  next();
+});
+
+// Pre-update middleware to update pav_updated_at on updates
+photographerVideographerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + istOffset);
+  
+  this.set({ pav_updated_at: istTime });
+  
+  // Update nested document timestamps if they are being updated
+  const update = this.getUpdate();
+  
+  if (update.bank_details || update['bank_details']) {
+    this.set({ 'bank_details.bank_updated_at': istTime });
+  }
+  
+  if (update.business_details || update['business_details']) {
+    this.set({ 'business_details.business_updated_at': istTime });
+  }
+  
+  next();
 });
 
 // Indexes for better performance
@@ -310,9 +370,22 @@ photographerVideographerSchema.index({ service_areas: 1 });
 photographerVideographerSchema.index({ is_active: 1 });
 photographerVideographerSchema.index({ ratings: -1 });
 photographerVideographerSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
+photographerVideographerSchema.index({ pav_created_at: -1 });
+photographerVideographerSchema.index({ pav_updated_at: -1 });
+photographerVideographerSchema.index({ service_id: 1 });
 
 // Check if model already exists to prevent OverwriteModelError
 const PhotographerVideographer = mongoose.models.PhotographerVideographer || 
   model('PhotographerVideographer', photographerVideographerSchema);
 
 export default PhotographerVideographer;
+
+export {
+  PhotographerVideographer,
+  pavBasicDetailsSchema,
+  pavServiceDetailsSchema,
+  pavAdditionalDetailsSchema,
+  pavConsultationsDetailsSchema,
+  pavServiceTypesDetailsSchema,
+  serviceLocationPAVSchema
+};

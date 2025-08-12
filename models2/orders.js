@@ -82,12 +82,34 @@ const ordersSchema = new Schema({
   },
   event_start: {
     type: Date,
-    required: true
+    required: true,
+    set: function(value) {
+      if (value instanceof Date) {
+        // Convert to IST (UTC+5:30) if it's a Date object
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        return new Date(value.getTime() + istOffset);
+      }
+      return value;
+    }
     // When the event will start
   },
   event_end: {
     type: Date,
-    required: true
+    required: true,
+    set: function(value) {
+      if (value instanceof Date) {
+        // Convert to IST (UTC+5:30) if it's a Date object
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        return new Date(value.getTime() + istOffset);
+      }
+      return value;
+    },
+    validate: {
+      validator: function(v) {
+        return v instanceof Date && !isNaN(v) && v > this.event_start;
+      },
+      message: 'Event end date must be after event start date'
+    }
     // When the event will get over
   },
   event_type: {
@@ -192,13 +214,54 @@ const ordersSchema = new Schema({
   }],
   order_created_at: {
     type: Date,
-    default: Date.now,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    },
     required: true
     // Order created Date time
+  },
+  order_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, {
-  timestamps: true,
   collection: 'orders'
+});
+
+// Pre-save middleware to update order_updated_at on every save
+ordersSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.order_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  // Update order status based on approvals
+  if (this.vendor_approval && this.customer_approval) {
+    this.order_status = 'approved';
+  } else if (this.vendor_approval || this.customer_approval) {
+    this.order_status = 'semi-approved';
+  }
+  
+  next();
+});
+
+// Pre-update middleware to update order_updated_at on updates
+ordersSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  this.set({ order_updated_at: new Date(now.getTime() + istOffset) });
+  next();
 });
 
 // Indexes for better performance
@@ -210,18 +273,7 @@ ordersSchema.index({ order_status: 1 });
 ordersSchema.index({ event_start: 1 });
 ordersSchema.index({ event_end: 1 });
 ordersSchema.index({ order_created_at: -1 });
-
-// Pre-save middleware
-ordersSchema.pre('save', function(next) {
-  // Update order status based on approvals
-  if (this.vendor_approval && this.customer_approval) {
-    this.order_status = 'approved';
-  } else if (this.vendor_approval || this.customer_approval) {
-    this.order_status = 'semi-approved';
-  }
-  
-  next();
-});
+ordersSchema.index({ order_updated_at: -1 });
 
 // Check if model already exists to prevent OverwriteModelError
 const Orders = mongoose.models.Orders || mongoose.model('Orders', ordersSchema);
