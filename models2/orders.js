@@ -19,8 +19,7 @@ const orderCartSchema = new Schema({
     min: 1
   },
   description: {
-    type: String,
-    required: false
+    type: String
   },
   price: {
     type: Number,
@@ -118,8 +117,7 @@ const ordersSchema = new Schema({
     // Name of The Event
   },
   final_guest_count: {
-    type: Number,
-    required: false
+    type: Number
     // Guest count for which booking took place (optional)
   },
   location_type: {
@@ -140,13 +138,11 @@ const ordersSchema = new Schema({
     // Total Final amount - Vendor's base + Eventory Commission + convenience + TAX
   },
   final_checkout_url: {
-    type: String,
-    required: false
+    type: String
     // Checkout URL
   },
   advance_amount_requested: {
     type: Number,
-    required: false,
     min: 0
     // Advance amount requested
   },
@@ -161,13 +157,11 @@ const ordersSchema = new Schema({
     // Yes/No, default No
   },
   original_ask_by_customer: {
-    type: String,
-    required: false
+    type: String
     // Requirements of the customer (optional)
   },
   last_approval: {
-    type: lastApprovalSchema,
-    required: false
+    type: lastApprovalSchema
   },
   order_status: {
     type: String,

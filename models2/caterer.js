@@ -1,6 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId2.js";
-import { bankDetailsSchema, businessDetailsSchema } from "./vendor.js";
+import { bankDetailsSchema } from "./bankDetails.js";
+import { businessDetailsSchema } from "./businessDetails.js";
 
 const Schema = _Schema;
 
@@ -214,7 +215,6 @@ const catererSchema = new Schema({
   }],
   bank_details: {
     type: bankDetailsSchema,
-    required: false,
     default: function() {
       return {};
     }

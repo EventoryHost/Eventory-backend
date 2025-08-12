@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import { bankDetailsSchema, businessDetailsSchema } from "./vendor.js";
+import { bankDetailsSchema } from "./bankDetails.js";
+import { businessDetailsSchema } from "./businessDetails.js";
 import generateUniqueId from "../utils/generateId2.js";
 
 // Decorator Basic Details Schema
@@ -37,19 +38,15 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
   service_location_decorator: { // Changed to match ERD field name
     lat: {
       type: String,
-      required: false
     },
     lon: {
-      type: String,
-      required: false
+      type: String
     },
     service_pincode: {
-      type: Number,
-      required: false
+      type: Number
     },
     google_map_link: {
-      type: String,
-      required: false
+      type: String
     }
   }
 }, { _id: false });
@@ -116,12 +113,10 @@ const decoratorAdditionalDetailsSchema = new mongoose.Schema({
     required: true
   },
   ig_socials_link: {
-    type: String,
-    required: false
+    type: String
   },
   web_social_link: {
-    type: String,
-    required: false
+    type: String
   },
   is_theme_proposals_provided: {
     type: Boolean
@@ -138,12 +133,10 @@ const decoratorPoliciesSchema = new mongoose.Schema({
     default: false
   },
   cancellation_policy: {
-    type: String,
-    required: false
+    type: String
   },
   terms_and_conditions: {
-    type: String,
-    required: false
+    type: String
   },
   agreement_url: {
     type: String,
@@ -190,7 +183,6 @@ const decoratorSchema = new mongoose.Schema({
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,
-    required: false,
     default: function() {
       return {};
     }

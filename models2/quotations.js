@@ -48,7 +48,6 @@ const quotationsSchema = new Schema({
   },
   guest_count: {
     type: Number,
-    required: false,
     min: 1
   },
   event_type: {

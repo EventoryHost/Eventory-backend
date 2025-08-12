@@ -24,7 +24,6 @@ const customerSchema = new mongoose.Schema({
   },
   email_address: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true; // Allow empty email
@@ -35,11 +34,9 @@ const customerSchema = new mongoose.Schema({
   },
   customer_address: {
     type: String,
-    required: false
   },
   pincode: {
     type: String, // Changed from Number to String to match ERD
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true;

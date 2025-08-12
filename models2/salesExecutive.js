@@ -21,7 +21,6 @@ const salesExecutiveSchema = new Schema({
   },
   profile_photo: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true;
@@ -42,7 +41,6 @@ const salesExecutiveSchema = new Schema({
   },
   contact_number: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true;

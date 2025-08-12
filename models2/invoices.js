@@ -47,12 +47,10 @@ const invoicesSchema = new mongoose.Schema({
     required: true
   },
   customer_id: {
-    type: String,
-    required: false // Will be null when type=registration
+    type: String // Will be null when type=registration
   },
   event_id: {
-    type: String,
-    required: false // Event_id for any event. null in case of registration
+    type: String // Event_id for any event. null in case of registration
   },
   invoice_created_at: {
     type: Date,

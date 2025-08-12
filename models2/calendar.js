@@ -54,7 +54,6 @@ const calendarSchema = new mongoose.Schema({
   },
   event_highlight: {
     type: String,
-    required: false,
     enum: ['teal', 'orange', 'indigo', 'blue', 'purple'],
     default: 'blue'
   },

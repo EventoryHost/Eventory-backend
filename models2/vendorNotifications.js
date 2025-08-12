@@ -9,16 +9,13 @@ const vendorNotificationsSchema = new Schema({
     required: true
   },
   event_id: {
-    type: String,
-    required: false
+    type: String
   },
   order_id: {
-    type: String,
-    required: false
+    type: String
   },
   chat_id: {
-    type: String,
-    required: false
+    type: String
   },
   vendor_id: {
     type: String,

@@ -53,8 +53,7 @@ const eventsSchema = new mongoose.Schema({
     type: String
   },
   event_type: {
-    type: String,
-    required: false // Name of the event (Wedding, Corporate, Birthday, etc.)
+    type: String
   },
   location_type: {
     type: String,
@@ -110,7 +109,6 @@ const eventsSchema = new mongoose.Schema({
   },
   final_guest_count: {
     type: Number,
-    required: false, // Optional as specified in ERD
     min: 1
   },
   final_amount: {
@@ -131,8 +129,7 @@ const eventsSchema = new mongoose.Schema({
     default: 'booked'
   },
   vendor_manager_name: {
-    type: String,
-    required: false // Manager responsible for the event from vendor's side
+    type: String
   },
   customer_name: {
     type: String,
@@ -140,7 +137,6 @@ const eventsSchema = new mongoose.Schema({
   },
   vendor_manager_contact_number: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true; // Allow empty
@@ -151,7 +147,6 @@ const eventsSchema = new mongoose.Schema({
   },
   vendor_manager_contact_email: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true;
@@ -162,7 +157,6 @@ const eventsSchema = new mongoose.Schema({
   },
   customer_contact_number: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true; // Allow empty
@@ -173,7 +167,6 @@ const eventsSchema = new mongoose.Schema({
   },
   customer_contact_email: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true;
@@ -201,8 +194,7 @@ const eventsSchema = new mongoose.Schema({
     default: 'advance_paid',
   },
   payment_method: {
-    type: String,
-    required: false
+    type: String
   },
   final_order_items: [cartItemSchema] // Array of cart items
 }, {

@@ -32,8 +32,7 @@ is_promotions_stopped: {
   default: false
 },
   promotions_stopped_at: {
-    type: Date,
-    required: false
+    type: Date
     // Separate field as per ERD
   },
   call_request: {
@@ -41,8 +40,7 @@ is_promotions_stopped: {
     default: false
   },
   call_requested_at: {
-    type: Date,
-    required: false
+    type: Date
     // Separate field as per ERD
   },
   req_to_join_wa_community: {
@@ -50,8 +48,7 @@ is_promotions_stopped: {
     default: false
   },
   join_community_req_at: {
-    type: Date,
-    required: false
+    type: Date
     // Separate field as per ERD
   },
   last_sent_at: {

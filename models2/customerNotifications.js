@@ -16,11 +16,9 @@ const customerNotificationSchema = new mongoose.Schema({
   },
   event_id: {
     type: String,
-    required: false
   },
   chat_id: {
-    type: String,
-    required: false
+    type: String
     // Chat ID
   },
   notification_type: {
@@ -34,11 +32,9 @@ const customerNotificationSchema = new mongoose.Schema({
   },
   final_amount: {
     type: Number, // Long -> Number in mongoose (Final Bill for the customer)
-    required: false
   },
   checkout_url: {
-    type: String,
-    required: false // Link to redirect to checkout (embedded in a button)
+    type: String, // Link to redirect to checkout (embedded in a button)
   },
   read: {
     type: Boolean,

@@ -1,5 +1,6 @@
 import mongoose, { Schema as _Schema, model } from "mongoose";
-import { bankDetailsSchema, businessDetailsSchema } from "./vendor.js";
+import { bankDetailsSchema } from "./bankDetails.js";
+import { businessDetailsSchema } from "./businessDetails.js";
 import generateUniqueId from "../utils/generateId2.js";
 
 const Schema = _Schema;
@@ -7,24 +8,19 @@ const Schema = _Schema;
 // Service Location Schema for Venue Provider
 const serviceLocationVenueSchema = new Schema({
   lat: {
-    type: String,
-    required: false
+    type: String
   },
   lon: {
-    type: String,
-    required: false
+    type: String
   },
   service_opening_time: {
-    type: String, // Kept as String to match ERD format "hh:mm"
-    required: false
+    type: String // Kept as String to match ERD format "hh:mm"
   },
   service_closing_time: {
-    type: String, // Kept as String to match ERD format "hh:mm"
-    required: false
+    type: String // Kept as String to match ERD format "hh:mm"
   },
   service_pincode: {
     type: Number,
-    required: false,
     validate: {
       validator: function(v) {
         if (v === undefined || v === null) return true;
@@ -34,8 +30,7 @@ const serviceLocationVenueSchema = new Schema({
     }
   },
   google_map_link: {
-    type: String,
-    required: false
+    type: String
   }
 }, { _id: false });
 
@@ -139,12 +134,10 @@ const venueAdditionalDetailsSchema = new Schema({
     min: 0
   },
   ig_socials_link: {
-    type: String,
-    required: false
+    type: String
   },
   web_social_link: {
-    type: String,
-    required: false
+    type: String
   }
 }, { _id: false });
 
@@ -155,20 +148,16 @@ const venuePoliciesSchema = new Schema({
     default: false
   },
   cancellation_policy: {
-    type: String,
-    required: false
+    type: String
   },
   terms_and_conditions: {
-    type: String,
-    required: false
+    type: String
   },
   agreement_url: {
-    type: String,
-    required: false
+    type: String
   },
   agreement_signed_at: {
-    type: Date,
-    required: false
+    type: Date
   }
 }, { _id: false });
 
@@ -205,7 +194,6 @@ const venueProviderSchema = new Schema({
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,
-    required: false,
     default: function() {
       return {};
     }

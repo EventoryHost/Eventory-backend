@@ -21,7 +21,6 @@ const eventManagerSchema = new Schema({
   },
   profile_photo: {
     type: String,
-    required: false,
     validate: {
       validator: function(v) {
         if (!v) return true;

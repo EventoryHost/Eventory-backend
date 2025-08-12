@@ -1,5 +1,6 @@
 import mongoose, { Schema as _Schema, model } from "mongoose";
-import { serviceLocationSchema, policiesSchema, bankDetailsSchema, businessDetailsSchema } from "./vendor.js";
+import { bankDetailsSchema } from "./bankDetails.js";
+import { businessDetailsSchema } from "./businessDetails.js";
 import generateUniqueId from "../utils/generateId2.js";
 
 const Schema = _Schema;
@@ -7,16 +8,13 @@ const Schema = _Schema;
 // Service Location Schema for PAV
 const serviceLocationPAVSchema = new Schema({
   lat: {
-    type: String,
-    required: false
+    type: String
   },
   lon: {
-    type: String,
-    required: false
+    type: String
   },
   service_pincode: {
     type: Number,
-    required: false,
     validate: {
       validator: function(v) {
         if (v === undefined || v === null) return true;
@@ -26,8 +24,7 @@ const serviceLocationPAVSchema = new Schema({
     }
   },
   google_map_link: {
-    type: String,
-    required: false
+    type: String
   }
 }, { _id: false });
 
@@ -190,12 +187,10 @@ const pavAdditionalDetailsSchema = new Schema({
     min: 0
   },
   ig_socials_link: {
-    type: String,
-    required: false
+    type: String
   },
   web_social_link: {
-    type: String,
-    required: false
+    type: String
   }
 }, { _id: false });
 
@@ -236,6 +231,28 @@ const pavConsultationsDetailsSchema = new Schema({
   }
 }, { _id: false });
 
+// Policies Schema for photographer videographers
+const policiesSchema = new Schema({
+  is_completed: {
+    type: Boolean,
+    default: false
+  },
+  cancellation_policy: {
+    type: String
+  },
+  terms_and_conditions: {
+    type: String
+  },
+  agreement_url: {
+    type: String,
+    required: true
+  },
+  agreement_signed_at: {
+    type: Date,
+    required: true
+  }
+}, { _id: false });
+
 // Main Photographer and Videographer Schema
 const photographerVideographerSchema = new Schema({
   service_id: {
@@ -269,7 +286,6 @@ const photographerVideographerSchema = new Schema({
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,
-    required: false,
     default: function() {
       return {};
     }

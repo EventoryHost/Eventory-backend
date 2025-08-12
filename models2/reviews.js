@@ -38,12 +38,10 @@ const reviewsSchema = new Schema({
     maxlength: 1000
   },
   media_photo: {
-    type: String,
-    required: false
+    type: String
   },
   media_video: {
-    type: String,
-    required: false
+    type: String
   },
   feedback_submitted_at: {
     type: Date,

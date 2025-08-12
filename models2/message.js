@@ -29,8 +29,7 @@ const messageSchema = new Schema({
     required: true
   },
   attachment_url: {
-    type: String,
-    required: false
+    type: String
   },
   message_sent_at: {
     type: Date,
@@ -39,8 +38,7 @@ const messageSchema = new Schema({
   },
   parent_message_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message',
-    required: false
+    ref: 'Message'
   }
 }, {
   timestamps: true,

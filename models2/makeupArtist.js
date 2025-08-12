@@ -1,5 +1,6 @@
 import mongoose, { Schema as _Schema, model } from "mongoose";
-import { serviceLocationSchema, policiesSchema, bankDetailsSchema, businessDetailsSchema } from "./vendor.js";
+import { bankDetailsSchema } from "./bankDetails.js";
+import { businessDetailsSchema } from "./businessDetails.js";
 import generateUniqueId from "../utils/generateId2.js";
 
 const Schema = _Schema;
@@ -129,6 +130,30 @@ const makeupAdditionalDetailsSchema = new Schema({
   web_social_link: {
     type: String,
     required: false
+  }
+}, { _id: false });
+
+// Policies Schema for makeup artists
+const policiesSchema = new Schema({
+  is_completed: {
+    type: Boolean,
+    default: false
+  },
+  cancellation_policy: {
+    type: String,
+    required: false
+  },
+  terms_and_conditions: {
+    type: String,
+    required: false
+  },
+  agreement_url: {
+    type: String,
+    required: true
+  },
+  agreement_signed_at: {
+    type: Date,
+    required: true
   }
 }, { _id: false });
 

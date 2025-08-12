@@ -16,7 +16,6 @@ const emNotificationsSchema = new Schema({
   },
   event_id: {
     type: String,
-    required: false
   },
   chat_id: {
     type: String,
