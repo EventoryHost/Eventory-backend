@@ -36,7 +36,7 @@ const invoicesSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['registration', 'advance_booking', 'booking']
+    enum: ['registration', 'advance_booking', 'booking', 'payment']
   },
   vendor_id: {
     type: String,

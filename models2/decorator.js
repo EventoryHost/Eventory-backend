@@ -31,7 +31,6 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
     },
     event_type: {
       type: String,
-      enum: ['common', 'wedding', 'corporate', 'seasonal'],
       required: true
     }
   }],
@@ -66,36 +65,28 @@ const decoratorThemeDetailsSchema = new mongoose.Schema({
     required: true
   },
   is_prop_selection_available: {
-    type: Boolean,
-    required: true
+    type: Boolean
   },
   any_custom_design_process: {
-    type: String,
-    required: true
+    type: String
   },
   is_colour_scheme_assistance_provided: {
-    type: Boolean,
-    required: true
+    type: Boolean
   },
   is_theme_customization_allowed: {
-    type: Boolean,
-    required: true
+    type: Boolean
   },
   is_venue_adaptability: {
-    type: Boolean,
-    required: true
+    type: Boolean
   },
   theme_elements_available: {
-    type: [String],
-    required: true
+    type: [String]
   },
   theme_portfolio_images: {
-    type: [String],
-    required: true
+    type: [String]
   },
   theme_portfolio_videos: {
-    type: [String],
-    required: true
+    type: [String]
   }
 }, { _id: false });
 
@@ -118,8 +109,7 @@ const decoratorAdditionalDetailsSchema = new mongoose.Schema({
     required: true
   },
   max_booking_period: {
-    type: Number,
-    required: true
+    type: Number
   },
   prices_starts_from: {
     type: Number,
@@ -134,12 +124,10 @@ const decoratorAdditionalDetailsSchema = new mongoose.Schema({
     required: false
   },
   is_theme_proposals_provided: {
-    type: Boolean,
-    required: true
+    type: Boolean
   },
   is_proposal_revision_possible: {
-    type: Boolean,
-    required: true
+    type: Boolean
   }
 }, { _id: false });
 
@@ -159,11 +147,11 @@ const decoratorPoliciesSchema = new mongoose.Schema({
   },
   agreement_url: {
     type: String,
-    required: false
+    required: true
   },
   agreement_signed_at: {
     type: Date,
-    required: false
+    required: true
   }
 }, { _id: false });
 
@@ -198,12 +186,6 @@ const decoratorSchema = new mongoose.Schema({
   service_areas: {
     type: [String],
     default: []
-  },
-  ratings: {
-    type: Number,
-    default: 1, // Changed from 0 to 1 to match ERD (min-1, max-5)
-    min: 1,
-    max: 5
   },
   // Embedded bank and business details using common schemas
   bank_details: {

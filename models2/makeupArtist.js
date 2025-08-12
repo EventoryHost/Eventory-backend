@@ -39,17 +39,6 @@ const serviceLocationMakeupSchema = new Schema({
   }
 }, { _id: false });
 
-// Event Types Makeup Schema
-const eventTypesMakeupSchema = new Schema({
-  event_name: {
-    type: String,
-    required: true
-  },
-  event_type: {
-    type: String,
-    required: true // Removed enum to match ERD which shows "String event type"
-  }
-}, { _id: false });
 
 // Makeup Artist Basic Details Schema
 const makeupBasicDetailsSchema = new Schema({
@@ -80,7 +69,7 @@ const makeupBasicDetailsSchema = new Schema({
     required: true
   },
   event_types_makeup: [{
-    type: eventTypesMakeupSchema,
+    type: String,
     required: true
   }],
   types_of_makeup_artists_available: [{
@@ -101,8 +90,7 @@ const makeupServiceDetailsSchema = new Schema({
     required: true // Changed to required to match ERD
   },
   is_customization_possible: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
+    type: Boolean
   },
   service_types: [{
     type: String,
@@ -160,7 +148,7 @@ const makeupArtistSchema = new Schema({
   service_type: {
     type: String,
     required: true,
-    default: "Make-up-artist" // Changed to match ERD exactly
+    default: "Makeup-Artist" // Changed to match ERD exactly
   },
   is_active: {
     type: Boolean,
@@ -175,12 +163,6 @@ const makeupArtistSchema = new Schema({
   service_areas: [{
     type: String
   }],
-  ratings: {
-    type: Number,
-    default: 1,
-    min: 1,
-    max: 5
-  },
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,

@@ -22,13 +22,14 @@ const couponsSchema = new Schema({
   coupon_family: {
     type: String,
     required: true,
-    enum: ['SALE', 'SMM', 'EM', 'EVTY'],
+    enum: ['SALES', 'SMM', 'EM', 'EVTY'],
     uppercase: true
   },
   coupon_value: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
+    max: 100
   },
   is_active: {
     type: Boolean,

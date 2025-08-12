@@ -35,7 +35,6 @@ const reviewsSchema = new Schema({
   },
   review: {
     type: String,
-    required: true,
     maxlength: 1000
   },
   media_photo: {

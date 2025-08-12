@@ -10,8 +10,7 @@ const customerSchema = new mongoose.Schema({
     default: () => generateUniqueId("CUST")
   },
   customer_name: {
-    type: String,
-    required: true
+    type: String
   },
   contact_number: {
     type: String,

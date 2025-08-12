@@ -24,13 +24,12 @@ const chatSchema = new Schema({
     required: true
   },
   em_id: {
-    type: String,
-    required: false
+    type: String
   },
   chat_status: {
     type: String,
-    enum: ['active', 'blocked', 'finished'],
-    default: 'active',
+    enum: ['ACTIVE', 'BLOCKED', 'FINISHED'],
+    default: 'ACTIVE',
     required: true
   },
   pinned_chat_messages: {
@@ -38,6 +37,10 @@ const chatSchema = new Schema({
     default: []
   },
   last_message_updated_at: {
+    type: Date,
+    default: Date.now
+  },
+  chat_started_at: {
     type: Date,
     default: Date.now
   }

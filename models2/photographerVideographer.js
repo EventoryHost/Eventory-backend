@@ -31,17 +31,6 @@ const serviceLocationPAVSchema = new Schema({
   }
 }, { _id: false });
 
-// Event Types Captured Schema
-const eventTypesCapturedSchema = new Schema({
-  event_name: {
-    type: String,
-    required: true
-  },
-  event_type: {
-    type: String,
-    required: true // Removed enum to match ERD which shows "String event type"
-  }
-}, { _id: false });
 
 // PAV Service Types Details Schema
 const pavServiceTypesDetailsSchema = new Schema({
@@ -51,7 +40,7 @@ const pavServiceTypesDetailsSchema = new Schema({
   },
   type_of_service: {
     type: String,
-    enum: ["photography", "videography"],
+    enum: ["photography", "videography", "Both"],
     required: true
   },
   types_of_equipment_available: [{
@@ -68,7 +57,32 @@ const pavServiceTypesDetailsSchema = new Schema({
   final_delivery_methods: [{
     type: String,
     required: true
-  }]
+  }],
+  service_offering_type: {
+    type: String,
+    enum: ['Customize', 'Standard', 'Both'],
+    required: true // Changed to required to match ERD
+  },
+  send_proposals_to_clients: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_initial_customer_consultation: {
+    type: Boolean
+  },
+  do_destination_events: {
+    type: Boolean
+  },
+  do_advance_setup: {
+    type: Boolean
+  },
+  do_post_production_services: {
+    type: Boolean
+  },
+  delivery_timeline: {
+    type: String,
+    required: true // Changed to required to match ERD
+  }
 }, { _id: false });
 
 // PAV Basic Details Schema
@@ -92,19 +106,19 @@ const pavBasicDetailsSchema = new Schema({
   min_booking_capacity: {
     type: Number,
     required: true, // Changed to required to match ERD
-    min: 1
+    min: 0
   },
   max_booking_capacity: {
     type: Number,
     required: true, // Changed to required to match ERD
-    min: 1
+    min: 0
   },
   service_type_details: [{
     type: pavServiceTypesDetailsSchema, // Array of service type details
     required: true
   }],
   event_types_captured: [{
-    type: eventTypesCapturedSchema,
+    type: String,
     required: true
   }],
   service_location_pav: serviceLocationPAVSchema
@@ -119,7 +133,36 @@ const pavServiceDetailsSchema = new Schema({
   service_type_details: [{
     type: pavServiceTypesDetailsSchema,
     required: true
-  }]
+  }],
+  service_offering_type: {
+    type: String,
+    enum: ['Customize', 'Standard', 'Both'],
+    required: true // Changed to required to match ERD
+  },
+  send_proposals_to_clients: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_initial_customer_consultation: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_destination_events: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_advance_setup: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_post_production_services: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  delivery_timeline: {
+    type: String,
+    required: true // Changed to required to match ERD
+  }
 }, { _id: false });
 
 // PAV Additional Details Schema
@@ -224,12 +267,6 @@ const photographerVideographerSchema = new Schema({
   service_areas: [{
     type: String
   }],
-  ratings: {
-    type: Number,
-    default: 1,
-    min: 1,
-    max: 5
-  },
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,

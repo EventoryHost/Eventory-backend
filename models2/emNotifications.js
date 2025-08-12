@@ -14,14 +14,17 @@ const emNotificationsSchema = new Schema({
     required: true,
     unique: true
   },
+  event_id: {
+    type: String,
+    required: false
+  },
   chat_id: {
     type: String,
     required: true
   },
   message: {
     type: String,
-    required: true,
-    maxlength: 1000
+    required: true
   },
   read: {
     type: Boolean,

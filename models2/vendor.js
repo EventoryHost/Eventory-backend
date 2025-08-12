@@ -14,30 +14,38 @@ const bankDetailsSchema = new Schema({
     required: true // Added to match ERD
   },
   bank_name: {
-    type: String,
-    required: false
+    type: String
   },
   account_type: {
     type: String,
-    required: true, // Changed to required to match ERD
-    enum: ['Savings', 'Current']
+    required: true
   },
   account_number: {
-    type: String,
-    required: false
+    type: String
   },
   ifsc: {
-    type: String,
-    required: false,
-    validate: {
-      validator: function(v) {
-        if (!v) return true; // Allow empty/null values
-        return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v);
-      },
-      message: 'IFSC code must be in the format: 4 letters, 0, and 6 alphanumeric characters'
+    type: String
+  },
+  bank_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  bank_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
     }
   }
 }, { _id: false });
+
 
 // Common Business Details Schema for reuse across all service models
 const businessDetailsSchema = new Schema({
@@ -48,8 +56,7 @@ const businessDetailsSchema = new Schema({
   },
   service_type: {
     type: String,
-    required: true,
-    enum: ['Venue', 'Caterer', 'Decorator', 'Photographer', 'Makeup_Artist']
+    required: true
   },
   category: {
     type: Number,
@@ -75,7 +82,7 @@ const businessDetailsSchema = new Schema({
   verification_type: {
     type: String,
     required: true,
-    enum: ['gst', 'pan']
+    enum: ['GSTIN', 'PAN']
   },
   team_size: {
     type: Number,
@@ -118,8 +125,27 @@ const businessDetailsSchema = new Schema({
     type: Number, // Changed from Int to Number
     required: true,
     min: 0
+  },
+  business_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  business_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, { _id: false });
+
 
 // Vendor Model based on ERD
 const vendorSchema = new Schema({
@@ -129,36 +155,85 @@ const vendorSchema = new Schema({
     unique: true,
     default: () => generateUniqueId("VEN")
   },
-  wa_mobile: {
+  vendor_mobile: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   email_address: {
-    type: String,
-    required: false
+    type: String
   },
   profile_picture: {
-    type: String,
-    required: false
+    type: String
   },
   services: [{
-    type: String,
-    required: false
+    type: String
   }],
   coupons_used: [{
-    type: String,
-    required: false
+    type: String
   }],
   highest_discount_ever_applied: {
-    type: Number, // Changed from Int to Number
-    required: false,
+    type: Number,
     default: 0,
     min: 0
+  },
+  vendor_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  vendor_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  last_coupon_used_at: {
+    type: Date,
+    required: false,
+    default: null
   }
 }, {
-  timestamps: true
+  collection: 'vendors'
 });
+
+// Pre-save middleware to update vendor_updated_at on every save
+vendorSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.vendor_updated_at = new Date(now.getTime() + istOffset);
+  }
+  next();
+});
+
+// Pre-update middleware to update vendor_updated_at on updates
+vendorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  this.set({ vendor_updated_at: new Date(now.getTime() + istOffset) });
+  next();
+});
+
+// Method to update last_coupon_used_at when a coupon is used
+vendorSchema.methods.useCoupon = function(couponCode) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  
+  this.coupons_used.push(couponCode);
+  this.last_coupon_used_at = new Date(now.getTime() + istOffset);
+  
+  return this.save();
+};
 
 // Service Location Schema for reuse across different service models
 const serviceLocationSchema = new Schema({
@@ -203,13 +278,20 @@ const policiesSchema = new Schema({
   },
   agreement_url: {
     type: String,
-    required: false
+    required: true
   },
   agreement_signed_at: {
     type: Date,
-    required: false
+    required: true
   }
 }, { _id: false });
+
+// Add indexes for the new timestamp fields
+vendorSchema.index({ vendor_created_at: -1 });
+vendorSchema.index({ vendor_updated_at: -1 });
+vendorSchema.index({ last_coupon_used_at: -1 });
+vendorSchema.index({ vendor_mobile: 1 });
+vendorSchema.index({ email_address: 1 });
 
 const Vendor = model("Vendor", vendorSchema);
 

@@ -68,14 +68,6 @@ const eventManagerSchema = new Schema({
   eventory_events: [{
     type: String
     // Array of event_ids
-  }],
-  eventory_orders: [{
-    type: String
-    // Array of order_ids
-  }],
-  eventory_chats: [{
-    type: String
-    // Array of chat_ids
   }]
 }, {
   timestamps: true,

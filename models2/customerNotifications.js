@@ -14,6 +14,10 @@ const customerNotificationSchema = new mongoose.Schema({
     unique: true
     // Order ID for which the notification is created
   },
+  event_id: {
+    type: String,
+    required: false
+  },
   chat_id: {
     type: String,
     required: false

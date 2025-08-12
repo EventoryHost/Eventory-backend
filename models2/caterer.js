@@ -4,31 +4,16 @@ import { bankDetailsSchema, businessDetailsSchema } from "./vendor.js";
 
 const Schema = _Schema;
 
-// Event Types Catered Schema
-const eventTypesCateredSchema = new Schema({
-  event_name: {
-    type: String,
-    required: true
-  },
-  event_type: {
-    type: String,
-    required: true
-  }
-}, { _id: false });
-
 // Service Location Schema for Caterers
 const serviceLocationCatererSchema = new Schema({
   lat: {
-    type: String,
-    required: false
+    type: String
   },
   lon: {
-    type: String,
-    required: false
+    type: String
   },
   service_pincode: {
     type: Number,
-    required: false,
     validate: {
       validator: function(v) {
         if (v === undefined || v === null) return true;
@@ -38,16 +23,14 @@ const serviceLocationCatererSchema = new Schema({
     }
   },
   google_map_link: {
-    type: String,
-    required: false
+    type: String
   }
 }, { _id: false });
 
 // Caterer Basic Details Schema
 const catererBasicDetailsSchema = new Schema({
   is_completed: {
-    type: Boolean,
-    default: false
+    type: Boolean
   },
   point_of_contact: {
     type: String,
@@ -81,8 +64,7 @@ const catererBasicDetailsSchema = new Schema({
     type: String,
     required: true
   }],
-  service_location_caterer: serviceLocationCatererSchema,
-  event_types_catered: [eventTypesCateredSchema] // Changed from event_types_catererd to match ERD
+  service_location_caterer: serviceLocationCatererSchema
 }, { _id: false });
 
 // Caterer Menu Details Schema
@@ -92,8 +74,7 @@ const catererMenuDetailsSchema = new Schema({
     default: false
   },
   menu: [{
-    type: String, // Array of S3 links
-    required: true
+    type: String
   }],
   veg_or_nonveg: {
     type: String,
@@ -133,15 +114,7 @@ const catererEventDetailsSchema = new Schema({
   }],
   additional_services_for_any_event: [{
     type: String // Array of additional things vendor provides/can provide
-  }]
-}, { _id: false });
-
-// Caterer Staff and Equipment Details Schema
-const catererStaffEquipmentDetailsSchema = new Schema({
-  is_completed: {
-    type: Boolean,
-    default: false
-  },
+  }],
   staff_provided: [{
     type: String,
     required: true
@@ -162,8 +135,7 @@ const catererAdditionalDetailsSchema = new Schema({
     required: true
   },
   max_booking_period: {
-    type: Number, // Maximum advance Booking Period
-    required: true
+    type: Number
   },
   asset_images: [{
     type: String, // Array of S3 links of Photos
@@ -197,20 +169,18 @@ const catererPoliciesSchema = new Schema({
     default: false
   },
   cancellation_policy: {
-    type: String,
-    required: false
+    type: String
   },
   terms_and_conditions: {
-    type: String,
-    required: false
+    type: String
   },
   agreement_url: {
     type: String,
-    required: false
+    required: true
   },
   agreement_signed_at: {
     type: Date,
-    required: false
+    required: true
   }
 }, { _id: false });
 
@@ -233,9 +203,9 @@ const catererSchema = new Schema({
   },
   is_active: {
     type: Boolean,
-    default: true
+    default: false
   },
-  profile_completion_score: { // Fixed typo if any
+  profile_completion_score: { 
     type: Number,
     default: 0
   },
@@ -256,23 +226,80 @@ const catererSchema = new Schema({
   basic_details: catererBasicDetailsSchema,
   menu_details: catererMenuDetailsSchema,
   event_details: catererEventDetailsSchema,
-  staff_and_equipment_details: catererStaffEquipmentDetailsSchema,
   additional_details: catererAdditionalDetailsSchema,
   policies: catererPoliciesSchema,
-  ratings: {
-    type: Number,
-    min: 1,
-    max: 5,
-    default: 1
+  caterer_created_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
+  },
+  caterer_updated_at: {
+    type: Date,
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   }
 }, {
-  timestamps: true
+  collection: 'caterers'
+});
+
+// Pre-save middleware to update caterer_updated_at on every save
+catererSchema.pre('save', function(next) {
+  if (!this.isNew) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.caterer_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  // Update nested document timestamps if they exist and are modified
+  if (this.isModified('bank_details') && this.bank_details) {
+    this.bank_details.bank_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  if (this.isModified('business_details') && this.business_details) {
+    this.business_details.business_updated_at = new Date(now.getTime() + istOffset);
+  }
+  
+  next();
+});
+
+// Pre-update middleware to update caterer_updated_at on updates
+catererSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Convert to IST (UTC+5:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + istOffset);
+  
+  this.set({ caterer_updated_at: istTime });
+  
+  // Update nested document timestamps if they are being updated
+  const update = this.getUpdate();
+  
+  if (update.bank_details || update['bank_details']) {
+    this.set({ 'bank_details.bank_updated_at': istTime });
+  }
+  
+  if (update.business_details || update['business_details']) {
+    this.set({ 'business_details.business_updated_at': istTime });
+  }
+  
+  next();
 });
 
 // Indexes for better performance
 catererSchema.index({ vendor_id: 1 });
 catererSchema.index({ is_active: 1 });
 catererSchema.index({ service_areas: 1 });
+catererSchema.index({ caterer_created_at: -1 });
+catererSchema.index({ caterer_updated_at: -1 });
 
 const Caterer = model("Caterers", catererSchema);
 
@@ -283,9 +310,7 @@ export {
   catererBasicDetailsSchema,
   catererMenuDetailsSchema,
   catererEventDetailsSchema,
-  catererStaffEquipmentDetailsSchema,
   catererAdditionalDetailsSchema,
   catererPoliciesSchema,
-  serviceLocationCatererSchema,
-  eventTypesCateredSchema
+  serviceLocationCatererSchema
 };

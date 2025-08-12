@@ -39,18 +39,6 @@ const serviceLocationVenueSchema = new Schema({
   }
 }, { _id: false });
 
-// Event Types Venue Schema
-const eventTypesVenueSchema = new Schema({
-  event_name: {
-    type: String,
-    required: true
-  },
-  event_type: {
-    type: String,
-    required: true // Removed enum to match ERD which shows "String event type"
-  }
-}, { _id: false });
-
 // Venue Provider Basic Details Schema
 const venueBasicDetailsSchema = new Schema({
   is_completed: {
@@ -84,7 +72,7 @@ const venueBasicDetailsSchema = new Schema({
     required: true
   }],
   event_types_venue: [{
-    type: eventTypesVenueSchema,
+    type: String,
     required: true
   }],
   service_location_venue: serviceLocationVenueSchema
@@ -214,12 +202,6 @@ const venueProviderSchema = new Schema({
   service_areas: [{
     type: String
   }],
-  ratings: {
-    type: Number,
-    default: 1,
-    min: 1,
-    max: 5
-  },
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,

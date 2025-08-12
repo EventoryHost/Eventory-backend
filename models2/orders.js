@@ -10,7 +10,8 @@ const orderCartSchema = new Schema({
     required: true
   },
   service_asset: [{
-    type: String // Array of S3 URLs (images/videos)
+    type: String, // Array of S3 URLs (images/videos)
+    required: true
   }],
   quantity: {
     type: Number,

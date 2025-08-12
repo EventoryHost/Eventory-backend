@@ -8,7 +8,8 @@ const cartItemSchema = new mongoose.Schema({
     required: true
   },
   service_asset: [{
-    type: String // Array of S3 URLs (images/videos)
+    type: String, // Array of S3 URLs (images/videos)
+    required: true
   }],
   quantity: {
     type: Number,
@@ -16,8 +17,7 @@ const cartItemSchema = new mongoose.Schema({
     min: 1
   },
   description: {
-    type: String,
-    required: false
+    type: String
   },
   price: {
     type: Number,
@@ -32,7 +32,7 @@ const eventsSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    default: () => generateUniqueId("EVT")
+    default: () => generateUniqueId("EVTY")
   },
   customer_id: {
     type: String,
@@ -49,6 +49,9 @@ const eventsSchema = new mongoose.Schema({
     required: true
     // Reference to service - removed ref for flexibility
   },
+  em_id :{
+    type: String
+  },
   event_type: {
     type: String,
     required: false // Name of the event (Wedding, Corporate, Birthday, etc.)
@@ -56,12 +59,12 @@ const eventsSchema = new mongoose.Schema({
   location_type: {
     type: String,
     required: true,
-    enum: ['indoor', 'outdoor'],
+    enum: ['INDOOR', 'OUTDOOR'],
     validate: {
       validator: function(v) {
-        return ['indoor', 'outdoor'].includes(v);
+        return ['INDOOR', 'OUTDOOR'].includes(v);
       },
-      message: 'Location type must be either indoor (vendor visits customer) or outdoor (customer visits vendor)'
+      message: 'Location type must be either INDOOR (vendor visits customer) or OUTDOOR (customer visits vendor)'
     }
   },
   event_location: {
@@ -80,7 +83,6 @@ const eventsSchema = new mongoose.Schema({
   },
   event_end: {
     type: Date,
-    required: true,
     validate: {
       validator: function(v) {
         return v instanceof Date && !isNaN(v) && v > this.event_start;
@@ -184,19 +186,6 @@ const eventsSchema = new mongoose.Schema({
     required: true,
     enum: ['advance_paid', 'fully_paid', 'refunded'],
     default: 'advance_paid',
-    validate: {
-      validator: function(v) {
-        // Business logic validation
-        if (this.event_status === 'completed' && v !== 'fully_paid') {
-          return false;
-        }
-        if (this.event_status === 'cancelled' && v !== 'refunded') {
-          return false;
-        }
-        return true;
-      },
-      message: 'Payment status must align with event status'
-    }
   },
   payment_method: {
     type: String,

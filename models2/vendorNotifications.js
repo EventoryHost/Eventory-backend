@@ -8,6 +8,10 @@ const vendorNotificationsSchema = new Schema({
     type: String,
     required: true
   },
+  event_id: {
+    type: String,
+    required: false
+  },
   order_id: {
     type: String,
     required: false
@@ -16,7 +20,7 @@ const vendorNotificationsSchema = new Schema({
     type: String,
     required: false
   },
-  message: {
+  vendor_id: {
     type: String,
     required: true
   },
