@@ -3,6 +3,46 @@ import express from "express";
 const router = express.Router();
 import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 
+/**
+ * @swagger
+ * tags:
+ *   name: DecoratorDetails
+ *   description: Manage decorator-related details
+ */
+
+/**
+ * @swagger
+ * /api/decorator-details:
+ *   post:
+ *     summary: Save or update decorator details
+ *     tags: [DecoratorDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id, decoratorData]
+ *             properties:
+ *               id:
+ *                 type: string
+ *               decoratorData:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 example:
+ *                   companyName: "Elegant Weddings"
+ *                   yearsInBusiness: 5
+ *                   servicesOffered: ["Stage Decoration", "Lighting", "Floral Arrangements"]
+ *     responses:
+ *       201:
+ *         description: Decorator details saved successfully
+ *       200:
+ *         description: Decorator details updated successfully
+ *       400:
+ *         description: Missing data
+ *       500:
+ *         description: Server error
+ */
 // POST or PUT route to save or update decorator details
 router.post("/", async (req, res) => {
   const { id, decoratorData } = req.body;
@@ -46,6 +86,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/decorator-details/{id}:
+ *   get:
+ *     summary: Get decorator details by user ID
+ *     tags: [DecoratorDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Decorator details found
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 // GET route to retrieve decorator details by user ID
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
@@ -67,6 +128,29 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/decorator-details/{id}:
+ *   delete:
+ *     summary: Delete decorator details by user ID
+ *     tags: [DecoratorDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Decorator details deleted successfully
+ *       404:
+ *         description: Not found
+ *       400:
+ *         description: Missing user ID
+ *       500:
+ *         description: Server error
+ */
 // DELETE route to remove decorator details by user ID
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

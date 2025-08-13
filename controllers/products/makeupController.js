@@ -2,7 +2,6 @@ import MakeupArtist from "../../models/makeupArtists.js";
 import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
 
 
 const getFileUrls = (files, fieldName) => {
@@ -214,12 +213,6 @@ const createMakeupArtist = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
-
-      name: savedMakeupArtist.basicDetails.name,
-      type: savedMakeupArtist.type,
-    })
-    
     res.status(201).json(savedMakeupArtist);
   } catch (error) {
     console.error("Error:", error);
@@ -251,4 +244,16 @@ const getAllMakeupArtist = async (req, res) => {
   }
 };
 
-export default { createMakeupArtist, getAllMakeupArtist };
+const getMakeupArtistById = async (req, res) => {
+  try {
+    const makeupArtist = await MakeupArtist.findOne({ id: req.params.id });
+    if (!makeupArtist) {
+      return res.status(404).json({ message: "Makeup artist not found" });
+    }
+    res.status(200).json(makeupArtist);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createMakeupArtist, getAllMakeupArtist , getMakeupArtistById };

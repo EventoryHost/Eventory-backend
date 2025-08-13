@@ -40,7 +40,9 @@
     "playwright": "^1.54.1",
     "puppeteer": "^23.8.0",
     "puppeteer-core": "^24.13.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

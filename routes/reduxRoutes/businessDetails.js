@@ -12,6 +12,62 @@ import { djArtistRoutes } from "./djArtist.js";
 import { propRentalRoutes } from "./prop-rental.js";
 import { invitationRoutes } from "./invitation.js";
 
+
+/**
+ * @swagger
+ * /api/business-details:
+ *   post:
+ *     summary: Save or update business details
+ *     tags: [BusinessDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id, businessDetails2]
+ *             properties:
+ *               id:
+ *                 type: string
+ *               businessDetails2:
+ *                 type: object
+ *                 properties:
+ *                   businessName:
+ *                     type: string
+ *                   category:
+ *                     type: string
+ *                   gstin:
+ *                     type: string
+ *                   panNo:
+ *                     type: string
+ *                   years:
+ *                     type: string
+ *                   businessAddress:
+ *                     type: string
+ *                   teamsize:
+ *                     type: string
+ *                   annualrevenue:
+ *                     type: string
+ *                   pinCode:
+ *                     type: string
+ *                   cities:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   bookingsPerMonth:
+ *                     type: string
+ *     responses:
+ *       201:
+ *         description: Business details saved
+ *       200:
+ *         description: Business details updated
+ *       400:
+ *         description: Missing data
+ *       500:
+ *         description: Server error
+ */
+
+
 // POST or PUT route to save or update business details
 router.post("/business-details", async (req, res) => {
   const { id, businessDetails2 } = req.body;
@@ -87,6 +143,27 @@ router.post("/business-details", async (req, res) => {
       .json({ message: "Failed to save or update business details.", error: error.message });
   }
 });
+/**
+ * @swagger
+ * /api/business-details/{id}:
+ *   get:
+ *     summary: Get business details by user ID
+ *     tags: [BusinessDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Business details found
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 
 // Route to fetch business details by id
 router.get("/business-details/:id", async (req, res) => {
@@ -115,6 +192,31 @@ router.use("/makeup-artist-details", makeupArtistRoutes);
 router.use("/dj-artist-details", djArtistRoutes);
 
 /** CATERING DETAILS ROUTES **/
+
+/**
+ * @swagger
+ * /api/catering-details:
+ *   post:
+ *     summary: Save or update catering details
+ *     tags: [CateringDetails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id, cateringData]
+ *             properties:
+ *               id: { type: string }
+ *               cateringData:
+ *                 type: object
+ *                 additionalProperties: true
+ *     responses:
+ *       201: { description: Catering details saved }
+ *       200: { description: Catering details updated }
+ *       400: { description: Missing ID or data }
+ *       500: { description: Server error }
+ */
 
 // POST or PUT route to save or update catering details
 router.post("/catering-details", async (req, res) => {
@@ -164,6 +266,24 @@ router.post("/catering-details", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/catering-details/{id}:
+ *   get:
+ *     summary: Get catering details by user ID
+ *     tags: [CateringDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: User ID
+ *     responses:
+ *       200: { description: Catering details found }
+ *       404: { description: Not found }
+ *       500: { description: Server error }
+ */
+
 // GET route to retrieve catering details by user ID
 router.get("/catering-details/:id", async (req, res) => {
   const { id } = req.params;
@@ -184,6 +304,25 @@ router.get("/catering-details/:id", async (req, res) => {
     });
   }
 });
+
+/**
+ * @swagger
+ * /api/catering-details/{id}:
+ *   delete:
+ *     summary: Delete catering details by user ID
+ *     tags: [CateringDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: User ID
+ *     responses:
+ *       200: { description: Catering details deleted }
+ *       400: { description: Missing ID }
+ *       404: { description: Not found }
+ *       500: { description: Server error }
+ */
 
 // DELETE route to remove catering details by user ID
 router.delete("/catering-details/:id", async (req, res) => {

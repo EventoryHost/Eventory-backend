@@ -3,7 +3,6 @@ import { CateringModel } from "../../models/reduxStores/catering.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -225,11 +224,6 @@ const createCaterer = async (req, res) => {
       serId: savedCaterer.id,
     });
     await vendor.save();
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
-
-      name: savedCaterer.basicDetails.name,
-      type: savedCaterer.type,
-    })
     res.status(201).json(savedCaterer);
   } catch (error) {
     console.error(error);
@@ -259,4 +253,17 @@ const getAllCaterers = async (req, res) => {
   }
 };
 
-export default { createCaterer, getAllCaterers };
+const getCatererById = async (req, res) => {
+  try {
+    const caterer = await Caterer.findOne({ id: req.params.id });
+    if (!caterer) {
+      return res.status(404).json({ message: "Caterer not found" });
+    }
+    res.status(200).json(caterer);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+
+export default { createCaterer, getAllCaterers , getCatererById };

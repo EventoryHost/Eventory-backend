@@ -4,6 +4,35 @@ import adminNotification from "../models/adminNotification.js";
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/rmauth:
+ *   post:
+ *     summary: Authenticate RM admin user
+ *     tags:
+ *       - RM Admin
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User authenticated successfully
+ *       400:
+ *         description: Missing username or password
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+
 // POST route for checking if a user exists
 router.post("/rmauth", async (req, res) => {
   const { username, password } = req.body; // Destructure the request body
@@ -43,6 +72,29 @@ router.post("/rmauth", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/{adminId}/adminNotifications:
+ *   get:
+ *     summary: Get notifications for an admin
+ *     tags:
+ *       - RM Admin
+ *     parameters:
+ *       - in: path
+ *         name: adminId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the admin
+ *     responses:
+ *       200:
+ *         description: Notifications fetched successfully
+ *       400:
+ *         description: adminId is required
+ *       500:
+ *         description: Server error
+ */
+
 // GET route to fetch notifications by adminId
 router.get("/:adminId/adminNotifications", async (req, res) => {
   const { adminId } = req.params;
@@ -71,6 +123,32 @@ router.get("/:adminId/adminNotifications", async (req, res) => {
     });
   }
 });
+
+
+/**
+ * @swagger
+ * /api/adminNotifications/markAsRead:
+ *   put:
+ *     summary: Mark all unread notifications as read
+ *     tags:
+ *       - RM Admin
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               adminId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Notifications marked as read
+ *       400:
+ *         description: adminId is required
+ *       500:
+ *         description: Server error
+ */
 
 // PUT /api/adminNotifications/markAsRead
 router.put("/adminNotifications/markAsRead", async (req, res) => {

@@ -3,7 +3,6 @@ import { Decorator } from "../../models/decoraters.js";
 import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -218,11 +217,6 @@ const createDecorator = async (req, res) => {
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
-
-      name: savedDecorator.basicDetails.name,
-      type: savedDecorator.type,
-    })
     res.status(201).json(savedDecorator);
   } catch (error) {
     console.log(error);
@@ -252,4 +246,17 @@ const getAllDecorators = async (req, res) => {
   }
 };
 
-export default { createDecorator, getAllDecorators };
+const getDecoratorById = async (req, res) => {
+  try {
+    const decorator = await Decorator.findOne({ id: req.params.id });
+    if (!decorator) {
+      return res.status(404).json({ message: "Decorator not found" });
+    }
+    res.status(200).json(decorator);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+
+export default { createDecorator, getAllDecorators , getDecoratorById };

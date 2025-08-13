@@ -174,11 +174,10 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     }
 
     // Format invoice date
-    const invoiceDate = paymentDetails.invoiceDate || new Date().toLocaleDateString("en-GB"); // DD/MM/YYYY format
+    const invoiceDate = new Date().toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
 
     // Get vendor type
     const vendorType = getVendorType(customer.serviceIds);
-
     // Determine coupon code for discount row
     let couponCode = "DISCOUNT";
     if (paymentDetails.couponCode) {
@@ -365,13 +364,15 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
         invoiceUrl,
       },
     );
+
     if (customer.email)
-      await sendInvoiceEmail(
-        customer.email,
-        customer.name,
+      await sendInvoiceEmail({
+        to: customer.email,
+        name: customer.name,
         pdfBuffer,
-        `invoice-${paymentDetails.invoiceNumber}.pdf`
-      )
+        pdfFileName: `invoice-${paymentDetails.invoiceNumber}.pdf`
+      });
+
 
     await sendInvoiceToWhatsApp(
       invoiceUrl,

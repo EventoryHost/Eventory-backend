@@ -3,7 +3,6 @@ import Photographer from "../../models/photographers.js";
 import PAVModel from "../../models/reduxStores/pav.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
 
 
 const getFileUrls = (files, fieldName) => {
@@ -286,11 +285,6 @@ const createPhotographer = async (req, res) => {
 
     // Call to update section completion
     await updateSectionCompletion(newPhotographer.id);
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
-
-          name: saved.basicDetails.name,
-          type: saved.type,
-        })
     res.status(201).json({
       message: "Photographer created successfully",
       profileCompletion,
@@ -325,4 +319,16 @@ const getAllPav = async (req, res) => {
   }
 };
 
-export default { createPhotographer, getAllPav };
+const getPhotographerById = async (req, res) => {
+  try {
+    const photographer = await Photographer.findOne({ id: req.params.id });
+    if (!photographer) {
+      return res.status(404).json({ message: "Photographer not found" });
+    }
+    res.status(200).json(photographer);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createPhotographer, getAllPav , getPhotographerById };

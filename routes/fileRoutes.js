@@ -2,12 +2,22 @@ import { Router } from "express";
 import fetch from "node-fetch";
 const router = Router();
 
+/**
+ * Extracts file name from a given URL
+ * @param {string} url
+ * @returns {string} file name
+ */
 function getFileNameFromUrl(url) {
   const decodedUrl = decodeURIComponent(url);
   const pathParts = decodedUrl.split("/");
   return pathParts[pathParts.length - 1];
 }
 
+/**
+ * Fetches file size from a given URL using HTTP HEAD request
+ * @param {string} url
+ * @returns {Promise<number>} file size in bytes
+ */
 async function getFileSizeFromUrl(url) {
   try {
     const response = await fetch(url, { method: "HEAD" });
@@ -18,6 +28,43 @@ async function getFileSizeFromUrl(url) {
   }
 }
 
+/**
+ * @swagger
+ * /get-file-info:
+ *   post:
+ *     summary: Get file name and size from a given file URL
+ *     tags: [Files]
+ *     description: Returns the file name and size (in bytes) for a given URL.  
+ *                  Works for publicly accessible URLs.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 example: "https://example.com/files/sample.pdf"
+ *     responses:
+ *       200:
+ *         description: File information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 fileName:
+ *                   type: string
+ *                   example: "sample.pdf"
+ *                 fileSize:
+ *                   type: integer
+ *                   example: 24567
+ *       400:
+ *         description: URL is required
+ *       500:
+ *         description: Failed to fetch file information
+ */
 router.post("/get-file-info", async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: "URL is required" });
@@ -32,81 +79,3 @@ router.post("/get-file-info", async (req, res) => {
 });
 
 export default router;
-
-// import { Router } from "express";
-// import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
-// import "dotenv/config.js";
-
-// const router = Router();
-
-// // Initialize S3 client with AWS SDK v3
-// const s3Client = new S3Client({
-//   region: process.env.AWS_REGION,
-//   credentials: {
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET,
-//   },
-// });
-
-// function getFileNameFromUrl(url) {
-//   const decodedUrl = decodeURIComponent(url);
-//   const comIndex = decodedUrl.indexOf(".com");
-
-//   if (comIndex === -1) {
-//     return null;
-//   }
-
-//   const substringAfterCom = decodedUrl.substring(comIndex + 4);
-
-//   const dashIndex = substringAfterCom.indexOf("-");
-
-//   if (dashIndex !== -1) {
-//     return substringAfterCom.substring(dashIndex + 1); // No splitting to keep the extension
-//   }
-
-//   return null;
-// }
-
-// // Function to get the file size from S3 using AWS SDK v3
-// async function getFileSizeFromS3(url) {
-//   const decodedUrl = decodeURIComponent(url);
-
-//   const bucketName = "eventory-bucket"; // replace with your S3 bucket name
-//   const key = decodedUrl.split(".com/")[1]; // Extract the key from the URL
-
-//   const params = {
-//     Bucket: bucketName,
-//     Key: key,
-//   };
-
-//   try {
-//     const command = new HeadObjectCommand(params); // Create HeadObjectCommand instance
-//     const data = await s3Client.send(command); // Send the command using the client
-//     return data.ContentLength || 0; // Returns file size in bytes
-//   } catch (error) {
-//     throw new Error(`Error fetching file size: ${error.message}`);
-//   }
-// }
-
-// // Define the route
-// router.post("/get-file-info", async (req, res) => {
-//   const { url } = req.body;
-
-//   if (!url) {
-//     return res.status(400).json({ error: "URL is required" });
-//   }
-
-//   try {
-//     const fileName = getFileNameFromUrl(url);
-//     const fileSize = await getFileSizeFromS3(url);
-
-//     return res.json({
-//       fileName,
-//       fileSize, // in bytes
-//     });
-//   } catch (error) {
-//     return res.status(500).json({ error: error.message });
-//   }
-// });
-
-// export default router;
