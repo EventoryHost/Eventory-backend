@@ -26,14 +26,8 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
     required: true
   },
   event_types_decorated: [{
-    event_name: {
-      type: String,
-      required: true
-    },
-    event_type: {
-      type: String,
-      required: true
-    }
+    type: String,
+    required: true
   }],
   service_location_decorator: { // Changed to match ERD field name
     lat: {
