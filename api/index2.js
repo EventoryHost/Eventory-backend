@@ -8,6 +8,7 @@ import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import MainRoutes from "../routes2/routes.js";
+import authRoutes from "../routes2/authRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -48,6 +49,7 @@ app.use(
 // Migration routes
 app.use("/", router);
 app.use("/api", MainRoutes);
+// app.use("/api", businessDetailsRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory Migration APIs are running...");

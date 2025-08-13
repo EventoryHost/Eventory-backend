@@ -1,8 +1,8 @@
 import { Router } from "express";
 
 // Import all your route files here
-import productRoutes from "../routes/productRoutes.js";
-import authRoutes from "../routes/authRoutes.js";
+import productRoutes from "../routes2/productRoutes.js";
+import authRoutes from "../routes2/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes2/aboutEmailRoutes.js";
 import cashfreeRoutes from "../routes/cashfreeRoutes.js";
@@ -32,8 +32,9 @@ import couponRoutes from "../routes2/couponRoutes.js";
 const MainRoutes = Router();
 
 // // Attach all routes here
-// router.use("/products", productRoutes);
+MainRoutes.use("/products", productRoutes);
 // router.use("/payment", cashfreeRoutes);
+MainRoutes.use("/auth", authRoutes);
 // router.use("/auth", authRoutes);
 // router.use("/query", queryRoutes);
 // router.use("/email", emailRoutes);
@@ -59,5 +60,6 @@ MainRoutes.use("/coupons", couponRoutes);
 // router.use("/update-page", updatePageRoutes);
 // router.use("/vendor-edit", vendorEditRoutes);
 // router.use("/webhook", waRoutes); 
+
 
 export default MainRoutes;
