@@ -158,6 +158,35 @@ const pavServiceDetailsSchema = new Schema({
   delivery_timeline: {
     type: String,
     required: true // Changed to required to match ERD
+  },
+    service_offering_type: {
+    type: String,
+    enum: ['Customize', 'Standard', 'Both'],
+    required: true // Changed to required to match ERD
+  },
+  send_proposals_to_clients: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_initial_customer_consultation: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_destination_events: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_advance_setup: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_post_production_services: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  delivery_timeline: {
+    type: String,
+    required: true // Changed to required to match ERD
   }
 }, { _id: false });
 
@@ -191,43 +220,6 @@ const pavAdditionalDetailsSchema = new Schema({
   },
   web_social_link: {
     type: String
-  }
-}, { _id: false });
-
-// PAV Consultations Details Schema
-const pavConsultationsDetailsSchema = new Schema({
-  is_completed: {
-    type: Boolean,
-    default: false
-  },
-  service_offering_type: {
-    type: String,
-    enum: ['Customize', 'Standard', 'Both'],
-    required: true // Changed to required to match ERD
-  },
-  send_proposals_to_clients: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_initial_customer_consultation: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_destination_events: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_advance_setup: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_post_production_services: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  delivery_timeline: {
-    type: String,
-    required: true // Changed to required to match ERD
   }
 }, { _id: false });
 
@@ -300,10 +292,6 @@ const photographerVideographerSchema = new Schema({
   },
   service_details: {
     type: pavServiceDetailsSchema,
-    default: () => ({})
-  },
-  consultation_services: {
-    type: pavConsultationsDetailsSchema,
     default: () => ({})
   },
   additional_details: {
@@ -401,7 +389,6 @@ export {
   pavBasicDetailsSchema,
   pavServiceDetailsSchema,
   pavAdditionalDetailsSchema,
-  pavConsultationsDetailsSchema,
   pavServiceTypesDetailsSchema,
   serviceLocationPAVSchema
 };
