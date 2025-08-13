@@ -130,24 +130,3 @@ export const deleteReview = async (req, res) => {
   }
 };
 
-// export const getReviewCount = async (req, res) => {
-//   try {
-//     const { serviceId } = req.params;
-
-//     if (!serviceId) {
-//       return res.status(400).json({ error: "Missing serviceId parameter" });
-//     }
-
-//     const count = await Review.countDocuments({ serviceId });
-
-//     return res.status(200).json({
-//       serviceId,
-//       count,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       error: "Internal Server Error",
-//       details: error.message,
-//     });
-//   }
-// };

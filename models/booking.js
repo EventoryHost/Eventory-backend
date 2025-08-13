@@ -20,6 +20,7 @@ const BusinessDetailsSchema = new Schema({
 const FinalizedContentSchema = new Schema({
   name: String,
   price: Number,
+  description: String,
   _id: String,
 }, { _id: false });
 
@@ -47,9 +48,7 @@ const BookingSchema = new Schema({
   paymentStatus: { type: String, required: true },
   capacity: { type: String, required: true },
 
-  // totalRatings: { type: Number, default: 0 }, // ✅ New field
-  // serviceDetails: {}
-  // ✅ New Fields
+  
   vendorBusinessDetails: { type: BusinessDetailsSchema, required: false },
   rating: { type: Number, default: 0 },
   finalizedContents: [FinalizedContentSchema],

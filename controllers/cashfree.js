@@ -45,7 +45,7 @@ const createOrder = async (req, res) => {
     // console.log("📤 [createOrder] Sending to Cashfree:", request);
 
     const response = await cashfree.PGCreateOrder(request);
-    // console.log("✅ [createOrder] Cashfree response:", response.data);
+    console.log("✅ [createOrder] Cashfree response:", response.data); 
 
     return res.json(response.data);
   } catch (error) {
@@ -244,7 +244,7 @@ const verifyCustomerPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    // console.log("✅ Customer Payment verified:", payment);
+    console.log("✅ Customer Payment verified:", payment);
 
     return res.status(200).json({ message: "Customer payment verified", payment });
   } catch (error) {
