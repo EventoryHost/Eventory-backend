@@ -157,8 +157,7 @@ import { Decorator } from "../../models/decoraters.js";
 import Photographer from "../../models/photographers.js";
 import PropRental from "../../models/props.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
-
+import { sendEmailToSlack } from "../../controllers2/sesController.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -204,10 +203,10 @@ const updateSectionCompletion = async (venId) => {
 
     venue.basicDetails.completed = checkCompletion(venue.basicDetails || {});
     venue.featureDetails.completed = checkCompletion(
-      venue.featureDetails || {},
+      venue.featureDetails || {}
     );
     venue.additionalDetails.completed = checkCompletion(
-      venue.additionalDetails || {},
+      venue.additionalDetails || {}
     );
     venue.policies.completed = checkCompletion(venue.policies || {});
 
@@ -243,16 +242,16 @@ const createVenue = async (req, res) => {
     console.log(JSON.parse(req.body.operatingHours));
     const operatingHours = JSON.parse(req.body.operatingHours);
     console.log("Hit");
-    
+
     // Fetch agreement data from temporary venue collection
     const tempVenueData = await VenueModel.findOne({ id: req.body.venId });
     const agreementUrl = tempVenueData?.agreementUrl || null;
     const agreementSignedAt = tempVenueData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for venue:", agreementUrl);
     }
-    
+
     const newVenue = new Venue({
       type: "venue",
       venId: req.body.venId,
@@ -372,11 +371,11 @@ const createVenue = async (req, res) => {
 
     await vendor.save();
 
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
-
-      name: savedVenue.basicDetails.name,
-      type: savedVenue.type,
-    })
+    process.env.IS_DEV !== "true" &&
+      sendEmailToSlack({
+        name: savedVenue.basicDetails.name,
+        type: savedVenue.type,
+      });
     res.status(201).json(savedVenue);
   } catch (error) {
     console.error(error);

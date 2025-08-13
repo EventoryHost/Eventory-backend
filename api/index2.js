@@ -49,7 +49,6 @@ app.use(
 // Migration routes
 app.use("/", router);
 app.use("/api", MainRoutes);
-app.use("/auth", authRoutes);
 // app.use("/api", businessDetailsRoutes);
 
 app.get("/", (req, res) => {

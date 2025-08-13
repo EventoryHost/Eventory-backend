@@ -20,27 +20,27 @@ import { Customer } from "../models/customer.js";
 
 // EMAIL ADDRESS LOGIC CHANGED
 
-// const createVendor = async (req, res) => {
-//   try {
-//     const { email_address } = req.body;
+const createVendor = async (req, res) => {
+  try {
+    const { email_address } = req.body;
 
-//     const userExists = await Vendor.findOne({ email_address });
+    const userExists = await Vendor.findOne({ email_address });
 
-//     if (userExists) {
-//       return res.status(400).json({ message: "User already exists" });
-//     }
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-//     const newUser = new Vendor({
-//       name,
-//       email,
-//     });
+    const newUser = new Vendor({
+      name,
+      email,
+    });
 
-//     const user = await newUser.save();
-//     res.status(200).json(user);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
+    const user = await newUser.save();
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 const updateVendor = async (req, res) => {
   try {
@@ -142,13 +142,6 @@ const getVendor = async (req, res) => {
 
 const signUp = async (req, res) => {
   const { mobile } = req.body;
-  console.log(mobile);
-  console.log("AWS REGION:", process.env.AWS_REGION);
-  console.log("USER POOL:", process.env.COGNITO_USER_POOL_ID);
-  console.log(
-    "ACCESS KEY:",
-    process.env.AWS_ACCESS_KEY_ID?.slice(0, 4) + "..."
-  );
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
