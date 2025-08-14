@@ -26,14 +26,8 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
     required: true
   },
   event_types_decorated: [{
-    event_name: {
-      type: String,
-      required: true
-    },
-    event_type: {
-      type: String,
-      required: true
-    }
+    type: String,
+    required: true
   }],
   service_location_decorator: { // Changed to match ERD field name
     lat: {
@@ -52,7 +46,7 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
 }, { _id: false });
 
 // Decorator Theme Details Schema
-const decoratorThemeDetailsSchema = new mongoose.Schema({
+const decoratorServiceDetailsSchema = new mongoose.Schema({
   is_completed: {
     type: Boolean,
     default: false
@@ -197,7 +191,7 @@ const decoratorSchema = new mongoose.Schema({
     default: () => ({})
   },
   theme_details: {
-    type: decoratorThemeDetailsSchema,
+    type: decoratorServiceDetailsSchema,
     default: () => ({})
   },
   additional_details: {
@@ -287,7 +281,7 @@ const Decorator = mongoose.model('Decorator', decoratorSchema);
 export { 
   Decorator,
   decoratorBasicDetailsSchema,
-  decoratorThemeDetailsSchema,
+  decoratorServiceDetailsSchema,
   decoratorAdditionalDetailsSchema,
   decoratorPoliciesSchema
 };

@@ -68,12 +68,26 @@ const catererBasicDetailsSchema = new Schema({
   service_location_caterer: serviceLocationCatererSchema
 }, { _id: false });
 
-// Caterer Menu Details Schema
-const catererMenuDetailsSchema = new Schema({
+// Caterer Event Details Schema
+const catererEventDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
     default: false
   },
+  event_types_catered: [{
+    type: String, // Array of Events where this vendor has given/gives
+    required: true
+  }],
+  additional_services_for_any_event: [{
+    type: String // Array of additional things vendor provides/can provide
+  }],
+  staff_provided: [{
+    type: String,
+    required: true
+  }],
+  equipment_provided: [{
+    type: String
+  }],
   menu: [{
     type: String
   }],
@@ -101,28 +115,6 @@ const catererMenuDetailsSchema = new Schema({
     type: Boolean,
     default: false
   }
-}, { _id: false });
-
-// Caterer Event Details Schema
-const catererEventDetailsSchema = new Schema({
-  is_completed: {
-    type: Boolean,
-    default: false
-  },
-  event_types_catered: [{
-    type: String, // Array of Events where this vendor has given/gives
-    required: true
-  }],
-  additional_services_for_any_event: [{
-    type: String // Array of additional things vendor provides/can provide
-  }],
-  staff_provided: [{
-    type: String,
-    required: true
-  }],
-  equipment_provided: [{
-    type: String
-  }]
 }, { _id: false });
 
 // Caterer Additional Details Schema
@@ -224,7 +216,6 @@ const catererSchema = new Schema({
     required: true
   },
   basic_details: catererBasicDetailsSchema,
-  menu_details: catererMenuDetailsSchema,
   event_details: catererEventDetailsSchema,
   additional_details: catererAdditionalDetailsSchema,
   policies: catererPoliciesSchema,
@@ -312,7 +303,6 @@ export {
   Caterer, 
   catererSchema,
   catererBasicDetailsSchema,
-  catererMenuDetailsSchema,
   catererEventDetailsSchema,
   catererAdditionalDetailsSchema,
   catererPoliciesSchema,

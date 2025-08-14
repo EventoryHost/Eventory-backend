@@ -74,7 +74,7 @@ const venueBasicDetailsSchema = new Schema({
 }, { _id: false });
 
 // Venue Provider Feature Details Schema
-const venueFeatureDetailsSchema = new Schema({
+const venueServiceDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
     default: false
@@ -207,7 +207,7 @@ const venueProviderSchema = new Schema({
     default: () => ({})
   },
   feature_details: {
-    type: venueFeatureDetailsSchema,
+    type: venueServiceDetailsSchema,
     default: () => ({})
   },
   additional_details: {
@@ -237,7 +237,7 @@ const venueProviderSchema = new Schema({
     }
   }
 }, {
-  collection: 'venue_providers'
+  collection: 'venue-providers'
 });
 
 // Pre-save middleware to update venue_provider_updated_at on every save
@@ -290,3 +290,9 @@ venueProviderSchema.index({ service_areas: 1 });
 venueProviderSchema.index({ is_active: 1 });
 venueProviderSchema.index({ ratings: -1 });
 venueProviderSchema.index({ profile_completion_score: -1 });
+
+const VenueProvider = mongoose.models.VenueProvider || 
+  model('VenueProvider', venueProviderSchema);
+
+export default VenueProvider;
+
