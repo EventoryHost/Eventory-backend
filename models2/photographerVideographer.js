@@ -28,59 +28,6 @@ const serviceLocationPAVSchema = new Schema({
   }
 }, { _id: false });
 
-// PAV Service Types Details Schema
-const pavServiceTypesDetailsSchema = new Schema({
-  is_completed: {
-    type: Boolean,
-    default: false // Changed from "Y/N" to boolean to match ERD
-  },
-  type_of_service: {
-    type: String,
-    enum: ["photography", "videography", "Both"],
-    required: true
-  },
-  types_of_equipment_available: [{
-    type: String,
-    required: true
-  }],
-  types_of_styles_offered: [{
-    type: String,
-    required: true
-  }],
-  add_ons_upgrade_available: [{
-    type: String
-  }],
-  final_delivery_methods: [{
-    type: String,
-    required: true
-  }],
-  service_offering_type: {
-    type: String,
-    enum: ['Customize', 'Standard', 'Both'],
-    required: true // Changed to required to match ERD
-  },
-  send_proposals_to_clients: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_initial_customer_consultation: {
-    type: Boolean
-  },
-  do_destination_events: {
-    type: Boolean
-  },
-  do_advance_setup: {
-    type: Boolean
-  },
-  do_post_production_services: {
-    type: Boolean
-  },
-  delivery_timeline: {
-    type: String,
-    required: true // Changed to required to match ERD
-  }
-}, { _id: false });
-
 // PAV Basic Details Schema
 const pavBasicDetailsSchema = new Schema({
   is_completed: {
@@ -109,14 +56,26 @@ const pavBasicDetailsSchema = new Schema({
     required: true, // Changed to required to match ERD
     min: 0
   },
-  service_type_details: [{
-    type: pavServiceTypesDetailsSchema, // Array of service type details
-    required: true
-  }],
   event_types_captured: [{
     type: String,
     required: true
   }],
+  send_proposals_to_clients: {
+    type: Boolean,
+    required: true // Changed to required to match ERD
+  },
+  do_initial_customer_consultation: {
+    type: Boolean
+  },
+  do_destination_events: {
+    type: Boolean
+  },
+  do_advance_setup: {
+    type: Boolean
+  },
+  do_post_production_services: {
+    type: Boolean
+  },
   service_location_pav: serviceLocationPAVSchema
 }, { _id: false });
 
@@ -126,62 +85,29 @@ const pavServiceDetailsSchema = new Schema({
     type: Boolean,
     default: false
   },
-  service_type_details: [{
-    type: pavServiceTypesDetailsSchema,
+  type_of_service: {
+    type: String,
+    enum: ["photography", "videography", "both"],
+    required: true
+  },
+  types_of_equipment_available: [{
+    type: String,
+    required: true
+  }],
+  types_of_styles_offered: [{
+    type: String,
+    required: true
+  }],
+  add_ons_upgrade_available: [{
+    type: String
+  }],
+  final_delivery_methods: [{
+    type: String,
     required: true
   }],
   service_offering_type: {
     type: String,
     enum: ['Customize', 'Standard', 'Both'],
-    required: true // Changed to required to match ERD
-  },
-  send_proposals_to_clients: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_initial_customer_consultation: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_destination_events: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_advance_setup: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_post_production_services: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  delivery_timeline: {
-    type: String,
-    required: true // Changed to required to match ERD
-  },
-    service_offering_type: {
-    type: String,
-    enum: ['Customize', 'Standard', 'Both'],
-    required: true // Changed to required to match ERD
-  },
-  send_proposals_to_clients: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_initial_customer_consultation: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_destination_events: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_advance_setup: {
-    type: Boolean,
-    required: true // Changed to required to match ERD
-  },
-  do_post_production_services: {
-    type: Boolean,
     required: true // Changed to required to match ERD
   },
   delivery_timeline: {
@@ -389,6 +315,5 @@ export {
   pavBasicDetailsSchema,
   pavServiceDetailsSchema,
   pavAdditionalDetailsSchema,
-  pavServiceTypesDetailsSchema,
   serviceLocationPAVSchema
 };
