@@ -83,7 +83,7 @@ const venueServiceDetailsSchema = new Schema({
     type: Boolean,
     required: true // Changed to required to match ERD
   },
-  in_house_decoation: { // Fixed typo to match ERD exactly
+  in_house_decoration: { // Fixed typo to match ERD exactly
     type: Boolean,
     required: true // Changed to required to match ERD
   },
