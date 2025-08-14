@@ -1,7 +1,7 @@
 import { Caterer } from "../../models2/caterer.js";
-// import { CateringModel } from "../../models/reduxStores/catering.js";
 import { Vendor } from "../../models2/vendor.js";
-import calculateProfileCompletion from "../../utils/calculateCompletion.js";
+
+import generateUniqueId from "../../utils/generateId2.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
 
@@ -54,6 +54,9 @@ const updateSectionCompletion = async (vendorId) => {
       caterer.additional_details || {}
     );
     caterer.policies.is_completed = checkCompletion(caterer.policies || {});
+    caterer.business_details.is_completed = checkCompletion(
+      caterer.business_details || {}
+    );
 
     await caterer.save();
   } catch (error) {
@@ -74,9 +77,6 @@ const createCaterer = async (req, res) => {
       return res.status(400).json({ message: "Caterer already exists" });
     }
 
-    const cancellationPolicyFileUrl = req.body.cancellation_policy || "";
-    const termsAndConditionsFileUrl = req.body.terms_and_conditions || "";
-    // const clientTestimonialsUrl = req.body.client_testimonials_url || "";
 
     // Handle file uploads and array conversions
     const menu = req.body.menu || [];
@@ -129,6 +129,23 @@ const createCaterer = async (req, res) => {
       req.body.terms_and_conditions, // string
       req.body.agreement_url, // required string
       req.body.agreement_signed_at,
+
+      // Business Details
+      req.body.category,
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.pan || null,
+      req.body.verification_type,
+      req.body.team_size ,
+      req.body.years_of_operation,
+      req.body.business_address ,
+      req.body.landmark,
+      req.body.pincode,
+      req.body.operational_cities,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
+      req.body.account_type,
+      req.body.vendor_id
     ];
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
@@ -140,7 +157,7 @@ const createCaterer = async (req, res) => {
     let agreementSignedAt = null;
 
     try {
-      const tempCateringData = await CateringModel.findOne({
+      const tempCateringData = await Caterer.findOne({
         id: req.body.venId,
       });
       if (tempCateringData && tempCateringData.agreementUrl) {
@@ -158,14 +175,15 @@ const createCaterer = async (req, res) => {
       );
     }
 
+    const service_id = generateUniqueId("CAT");
+
     // Create new caterer document
     const newCaterer = new Caterer({
       vendor_id: req.body.vendor_id, // matches schema
       service_areas: req.body.service_areas || [],
-      business_details: req.body.business_details || {},
 
       basic_details: {
-        is_completed: profileCompletion?.basic_details || false,
+        is_completed: profile_completion_score?.basic_details || false,
         point_of_contact: req.body.point_of_contact,
         service_contact_number: req.body.service_contact_number,
         min_booking_capacity: parseInt(req.body.min_booking_capacity, 10),
@@ -183,7 +201,7 @@ const createCaterer = async (req, res) => {
       },
 
       menu_details: {
-        is_completed: profileCompletion?.menu_details || false,
+        is_completed: profile_completion_score?.menu_details || false,
         menu: Array.isArray(req.body.menu)
           ? req.body.menu
           : [req.body.menu].filter(Boolean),
@@ -199,7 +217,7 @@ const createCaterer = async (req, res) => {
       },
 
       event_details: {
-        is_completed: profileCompletion?.event_details || false,
+        is_completed: profile_completion_score?.event_details || false,
         event_types_catered: req.body.event_types_catered || [],
         additional_services_for_any_event:
           req.body.additional_services_for_any_event || [],
@@ -208,7 +226,7 @@ const createCaterer = async (req, res) => {
       },
 
       additional_details: {
-        is_completed: profileCompletion?.additional_details || false,
+        is_completed: profile_completion_score?.additional_details || false,
         min_booking_period: parseInt(req.body.min_booking_period, 10),
         max_booking_period:
           parseInt(req.body.max_booking_period, 10) || undefined,
@@ -233,7 +251,7 @@ const createCaterer = async (req, res) => {
       },
 
       policies: {
-        is_completed: profileCompletion?.policies || false,
+        is_completed: profile_completion_score?.policies || false,
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
         agreement_url: req.body.agreement_url,
@@ -242,30 +260,59 @@ const createCaterer = async (req, res) => {
           : undefined,
       },
 
-      profile_completion_score: profileCompletion?.score || 0,
+        business_details: {
+          is_completed: profile_completion_score?.policies || false,
+          
+          service_id: service_id,
+          service_type: req.body.service_type ,
+          category: req.body.category,
+          business_registration_name: req.body.business_registration_name,
+          gst: req.body.gst,
+          pan: req.body.pan || null,
+          verification_type: req.body.verification_type,
+          team_size: req.body.team_size ,
+          years_of_operation: req.body.years_of_operation,
+          business_address: req.body.business_address ,
+          landmark: req.body.landmark,
+          pincode: req.body.pincode,
+          operational_cities: req.body.operational_cities,
+          annual_revenue: req.body.annual_revenue,
+          annual_bookings: req.body.annual_bookings,
+          },
+
+          bank_details: {
+            account_type: req.body.account_type,
+            service_id: service_id,
+            vendor_id: req.body.vendor_id
+          },
+
+      profile_completion_score: profile_completion_score || 0,
     });
 
     const savedCaterer = await newCaterer.save();
 
-    // Update section completion and profile completion
-    await updateSectionCompletion(savedCaterer.id);
+
 
     // Associate with vendor
     const vendor = await Vendor.findOne({ id: req.body.venId });
     if (!vendor) {
-      await Caterer.findByIdAndDelete(savedCaterer.id);
+      await Caterer.findByIdAndDelete(savedCaterer.vendor_id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.serviceIds.push({
-      serType: "caterer",
-      serId: savedCaterer.id,
-    });
+  
+    vendor.services.push(
+      savedCaterer.vendor_id,
+    );
     await vendor.save();
+    
+    // Update section completion and profile completion
+    await updateSectionCompletion(savedCaterer.vendor_id);
+
     process.env.IS_DEV !== "true" &&
       sendEmailToSlack({
-        name: savedCaterer.basicDetails.name,
-        type: savedCaterer.type,
+        name: savedCaterer.basic_details.point_of_contact,
+        type: savedCaterer.service_type,
       });
     res.status(201).json(savedCaterer);
   } catch (error) {
