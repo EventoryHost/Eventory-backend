@@ -4,6 +4,7 @@ import { Decorator } from "../../models2/decorator.js";
 import { Vendor } from "../../models2/vendor.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
+import generateUniqueId from "../../utils/generateId2.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
