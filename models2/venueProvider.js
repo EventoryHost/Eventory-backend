@@ -62,6 +62,10 @@ const venueBasicDetailsSchema = new Schema({
     required: true, // Changed to required to match ERD
     min: 1
   },
+  venue_name: {
+    type: String,
+    required: true
+  },
   service_type_details: [{ // Added to match ERD field name
     type: String,
     required: true
