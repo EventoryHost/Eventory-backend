@@ -6,8 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon api/index.js",
+    "dev-migration": "nodemon api/index2.js",
     "format": "npx prettier --write . --end-of-line crlf --log-level silent",
-    "start": "node api/index.js"
+    "start": "node api/index.js",
+    "start-migration": "node api/index2.js"
   },
   "keywords": [],
   "author": "",
