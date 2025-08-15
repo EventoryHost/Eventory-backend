@@ -36,16 +36,17 @@ const checkCompletion = (section) => {
 const updateSectionCompletion = async (id) => {
   try {
     const decorator = await Decorator.findOne({ id });
-
+    console.log(`id is ${id}`);
+    console.log(`decorator is ${decorator}`);
     if (!decorator) {
       throw new Error("Decorator not found");
     }
 
-    decorator.basicDetails.completed = checkCompletion(
-      decorator.basicDetails || {},
+    decorator.basicDetails.is_completed = checkCompletion(
+      decorator.basicDetails || {}
     );
-    decorator.serviceDetails.completed = checkCompletion(
-      decorator.serviceDetails || {},
+    decorator.service_details.is_completed = checkCompletion(
+      decorator.serviceDetails || {}
     );
     // decorator.themesOffered.completed = checkCompletion(
     //   decorator.themesOffered || {},
@@ -53,10 +54,10 @@ const updateSectionCompletion = async (id) => {
     // decorator.themesElement.completed = checkCompletion(
     //   decorator.themesElement || {},
     // );
-    decorator.additionalDetails.completed = checkCompletion(
-      decorator.additionalDetails || {},
+    decorator.additionalDetails.is_completed = checkCompletion(
+      decorator.additionalDetails || {}
     );
-    decorator.policies.completed = checkCompletion(decorator.policies || {});
+    decorator.policies.is_completed = checkCompletion(decorator.policies || {});
 
     await decorator.save();
   } catch (error) {
@@ -99,7 +100,7 @@ const createDecorator = async (req, res) => {
       service_id: service_id,
       service_type: service_type || "Decorator",
       service_areas: service_areas || [],
-      
+
       basic_details: {
         point_of_contact: point_of_contact,
         service_contact_number: restOfBody.service_contact_number,
@@ -113,12 +114,14 @@ const createDecorator = async (req, res) => {
           google_map_link: restOfBody.google_map_link,
         },
       },
-      theme_details: {
+      service_details: {
         themes_offered: restOfBody.themes_offered || [],
         is_prop_selection_available: restOfBody.is_prop_selection_available,
         any_custom_design_process: restOfBody.any_custom_design_process,
-        is_colour_scheme_assistance_provided: restOfBody.is_colour_scheme_assistance_provided,
-        is_theme_customization_allowed: restOfBody.is_theme_customization_allowed,
+        is_colour_scheme_assistance_provided:
+          restOfBody.is_colour_scheme_assistance_provided,
+        is_theme_customization_allowed:
+          restOfBody.is_theme_customization_allowed,
         is_venue_adaptability: restOfBody.is_venue_adaptability,
         theme_elements_available: restOfBody.theme_elements_available || [],
         theme_portfolio_images: restOfBody.theme_portfolio_images || [],
@@ -148,21 +151,17 @@ const createDecorator = async (req, res) => {
     const savedDecorator = await newDecorator.save();
 
     // Associate with vendor
-    const vendor = await Vendor.findOne({ id: vendor_id });
+    const vendor = await Vendor.findOne({ vendor_id: vendor_id });
     if (!vendor) {
-      await Decorator.findByIdAndDelete(savedDecorator._id);
+      await Decorator.findByIdAndDelete(savedDecorator.service_id);
       return res.status(404).json({ message: "Vendor not found" });
     }
-
+    vendor.services.push(savedDecorator.service_id);
     // Add the new service ID to the vendor's services array
-    vendor.serviceIds.push({
-      serType: "decorator",
-      serId: savedDecorator.service_id,
-    });
     await vendor.save();
 
     // Update section completion
-    await updateSectionCompletion(vendor_id);
+    await updateSectionCompletion(savedDecorator.vendor_id);
 
     process.env.IS_DEV !== "true" &&
       sendEmailToSlack({
