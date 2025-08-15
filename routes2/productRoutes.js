@@ -2,7 +2,7 @@ import { Router } from "express";
 import catererController from "../controllers2/products/catererController.js";
 import upload from "../middlewares/uploads.js";
 // import venueController from "../controllers/products/venueController.js";
-// import decoratorController from "../controllers/products/decoratorController.js";
+import decoratorController from "../controllers2/products/decoratorController.js";
 // import eventPlannerController from "../controllers/products/eventPlannerController.js";
 // import transportController from "../controllers/products/transportController.js";
 // import invitationController from "../controllers/products/invitationController.js";
@@ -80,18 +80,18 @@ router.post(
 //   eventPlannerController.createEventPlanner,
 // );
 
-// router.post(
-//   "/add-decorator",
-//   upload("Decorator").fields([
-//     { name: "termsAndConditions", maxCount: 1 },
-//     { name: "cancellationPolicy", maxCount: 1 },
-//     { name: "photos", maxCount: 20 },
-//     { name: "videos", maxCount: 20 },
-//     { name: "themephotos", maxCount: 20 },
-//     { name: "themevideos", maxCount: 20 },
-//   ]),
-//   decoratorController.createDecorator,
-// );
+router.post(
+  "/add-decorator",
+  upload("Decorator").fields([
+    { name: "termsAndConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+    { name: "themephotos", maxCount: 20 },
+    { name: "themevideos", maxCount: 20 },
+  ]),
+  decoratorController.createDecorator,
+);
 
 // router.post(
 //   "/add-transport",
