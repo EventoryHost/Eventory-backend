@@ -87,6 +87,6 @@ const ReduxDecoratorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const ReduxDecoratorModel = mongoose.model("ReduxDecorator", ReduxDecoratorSchema);
+const ReduxDecoratorModel = mongoose.model("ReduxDecorators", ReduxDecoratorSchema);
 
 export { ReduxDecoratorModel };
