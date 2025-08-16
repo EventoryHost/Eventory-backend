@@ -183,7 +183,10 @@ const decoratorSchema = new mongoose.Schema({
   },
   business_details: {
     type: businessDetailsSchema,
-    required: true
+    required: true,
+    default: function() {
+      return {};
+    }
   },
   // Embedded schemas
   basic_details: {

@@ -18,7 +18,7 @@ import decoratorController from "../controllers2/products/decoratorController.js
 const router = Router();
 
 router.get("/caterer", catererController.getAllCaterers);
-// router.get("/decorator", decoratorController.getAllDecorators);
+router.get("/decorator", decoratorController.getAllDecorators);
 // router.get("/event-planner", eventPlannerController.getAllEventPlanner);
 // router.get("/gift", giftController.getAllGift);
 // router.get("/invitation", invitationController.getAllInvitation);
