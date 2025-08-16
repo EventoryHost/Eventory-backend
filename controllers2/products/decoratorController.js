@@ -33,54 +33,47 @@ const checkCompletion = (section) => {
   });
 };
 
-const updateSectionCompletion = async (id) => {
+const updateSectionCompletion = async (vendorId) => {
   try {
-    const decorator = await Decorator.findOne({ id });
-    console.log(`id is ${id}`);
-    console.log(`decorator is ${decorator}`);
+    const decorator = await Decorator.findOne({ vendor_id: vendorId });
+
     if (!decorator) {
       throw new Error("Decorator not found");
     }
 
-    decorator.basicDetails.is_completed = checkCompletion(
-      decorator.basicDetails || {}
+    // Match schema field names
+    decorator.basic_details.is_completed = checkCompletion(
+      decorator.basic_details || {}
     );
-    decorator.service_details.is_completed = checkCompletion(
-      decorator.serviceDetails || {}
+
+    decorator.theme_details.is_completed = checkCompletion(
+      decorator.theme_details || {}
     );
-    // decorator.themesOffered.completed = checkCompletion(
-    //   decorator.themesOffered || {},
-    // );
-    // decorator.themesElement.completed = checkCompletion(
-    //   decorator.themesElement || {},
-    // );
-    decorator.additionalDetails.is_completed = checkCompletion(
-      decorator.additionalDetails || {}
+
+    decorator.additional_details.is_completed = checkCompletion(
+      decorator.additional_details || {}
     );
-    decorator.policies.is_completed = checkCompletion(decorator.policies || {});
+
+    decorator.policies.is_completed = checkCompletion(
+      decorator.policies || {}
+    );
+
+    decorator.business_details.is_completed = checkCompletion(
+      decorator.business_details || {}
+    );
 
     await decorator.save();
   } catch (error) {
-    console.error("Error in update section completion:", error);
+    console.error("Error in updateSectionCompletion:", error);
     throw error;
   }
 };
 
 const createDecorator = async (req, res) => {
   try {
-    const {
-      vendor_id,
-      point_of_contact,
-      business_details,
-      bank_details,
-      service_type,
-      service_areas,
-      ...restOfBody
-    } = req.body;
-
-    // Check for existing decorator using the correct schema fields
+    // Check for existing decorator
     const alreadyExists = await Decorator.findOne({
-      vendor_id,
+      vendor_id: req.body.vendor_id,
     });
     if (alreadyExists) {
       return res.status(400).json({ message: "Decorator already exists" });
@@ -88,76 +81,184 @@ const createDecorator = async (req, res) => {
 
     const service_id = generateUniqueId("DECO");
 
-    // Fetch agreement data from a temporary model if needed, otherwise use request body.
-    let agreementUrl = restOfBody.agreement_url || null;
-    let agreementSignedAt = restOfBody.agreement_signed_at
-      ? new Date(restOfBody.agreement_signed_at)
+    // Agreement data
+    let agreementUrl = req.body.agreement_url || null;
+    let agreementSignedAt = req.body.agreement_signed_at
+      ? new Date(req.body.agreement_signed_at)
       : null;
 
-    // Build the new Decorator document with data mapped to the new schema structure
+    // -------------------------------
+    // Profile completion check
+    // -------------------------------
+    const fieldsToCheck = [
+  // IDs & Core
+  req.body.vendor_id,
+  req.body.service_id,
+  req.body.service_type,
+  req.body.service_areas,
+
+  // Business details
+  req.body.category,
+  req.body.business_registration_name,
+  req.body.gst,
+  req.body.pan,
+  req.body.verification_type,
+  req.body.team_size,
+  req.body.years_of_operation,
+  req.body.business_address,
+  req.body.landmark,
+  req.body.pincode,
+  req.body.operational_cities,
+  req.body.annual_revenue,
+  req.body.annual_bookings,
+
+  // Bank details
+  req.body.account_holder_name,
+  req.body.account_type,
+  req.body.account_number,
+  req.body.ifsc_code,
+  req.body.bank_name,
+  req.body.branch_name,
+
+  // Decorator details
+  req.body.point_of_contact,
+  req.body.service_contact_number,
+  req.body.avg_setup_duration,
+  req.body.description,
+  req.body.event_types_decorated,
+  req.body.themes_offered,
+  req.body.is_prop_selection_available,
+  req.body.any_custom_design_process,
+  req.body.is_colour_scheme_assistance_provided,
+  req.body.is_theme_customization_allowed,
+  req.body.is_venue_adaptability,
+  req.body.theme_elements_available,
+  req.body.theme_portfolio_images,
+  req.body.theme_portfolio_videos,
+  req.body.asset_images,
+  req.body.asset_videos,
+  req.body.min_booking_period,
+  req.body.prices_starts_from,
+  req.body.ig_socials_link,
+  req.body.web_social_link,
+  req.body.is_theme_proposals_provided,
+  req.body.is_proposal_revision_possible,
+
+  // Location details
+  req.body.lat,
+  req.body.lon,
+  req.body.service_pincode,
+  req.body.google_map_link,
+
+  // Policies & agreements
+  req.body.cancellation_policy,
+  req.body.terms_and_conditions,
+  req.body.agreement_url,
+  req.body.agreement_signed_at
+];
+
+
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profile_completion_score =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+    // -------------------------------
+    // Create new decorator document
+    // -------------------------------
     const newDecorator = new Decorator({
-      vendor_id: vendor_id,
+      vendor_id: req.body.vendor_id,
       service_id: service_id,
-      service_type: service_type || "Decorator",
-      service_areas: service_areas || [],
+      service_type: req.body.service_type || "Decorator",
+      service_areas: req.body.service_areas || [],
 
       basic_details: {
-        point_of_contact: point_of_contact,
-        service_contact_number: restOfBody.service_contact_number,
-        avg_setup_duration: restOfBody.avg_setup_duration,
-        description: restOfBody.description,
-        event_types_decorated: restOfBody.event_types_decorated || [],
+        is_completed: profile_completion_score?.basic_details || false,
+        point_of_contact: req.body.point_of_contact,
+        service_contact_number: req.body.service_contact_number,
+        avg_setup_duration: req.body.avg_setup_duration,
+        description: req.body.description,
+        event_types_decorated: req.body.event_types_decorated || [],
         service_location_decorator: {
-          lat: restOfBody.lat,
-          lon: restOfBody.lon,
-          service_pincode: restOfBody.service_pincode,
-          google_map_link: restOfBody.google_map_link,
+          lat: req.body.lat,
+          lon: req.body.lon,
+          service_pincode: req.body.service_pincode,
+          google_map_link: req.body.google_map_link,
         },
       },
-      service_details: {
-        themes_offered: restOfBody.themes_offered || [],
-        is_prop_selection_available: restOfBody.is_prop_selection_available,
-        any_custom_design_process: restOfBody.any_custom_design_process,
+
+      theme_details: {
+        is_completed: profile_completion_score?.theme_details || false,
+        themes_offered: req.body.themes_offered || [],
+        is_prop_selection_available: req.body.is_prop_selection_available,
+        any_custom_design_process: req.body.any_custom_design_process,
         is_colour_scheme_assistance_provided:
-          restOfBody.is_colour_scheme_assistance_provided,
-        is_theme_customization_allowed:
-          restOfBody.is_theme_customization_allowed,
-        is_venue_adaptability: restOfBody.is_venue_adaptability,
-        theme_elements_available: restOfBody.theme_elements_available || [],
-        theme_portfolio_images: restOfBody.theme_portfolio_images || [],
-        theme_portfolio_videos: restOfBody.theme_portfolio_videos || [],
+          req.body.is_colour_scheme_assistance_provided,
+        is_theme_customization_allowed: req.body.is_theme_customization_allowed,
+        is_venue_adaptability: req.body.is_venue_adaptability,
+        theme_elements_available: req.body.theme_elements_available || [],
+        theme_portfolio_images: req.body.theme_portfolio_images || [],
+        theme_portfolio_videos: req.body.theme_portfolio_videos || [],
       },
+
       additional_details: {
-        asset_images: restOfBody.asset_images || [],
-        asset_videos: restOfBody.asset_videos || [],
-        min_booking_period: restOfBody.min_booking_period,
-        max_booking_period: restOfBody.max_booking_period,
-        prices_starts_from: restOfBody.prices_starts_from,
-        ig_socials_link: restOfBody.ig_socials_link,
-        web_social_link: restOfBody.web_social_link,
-        is_theme_proposals_provided: restOfBody.is_theme_proposals_provided,
-        is_proposal_revision_possible: restOfBody.is_proposal_revision_possible,
+        is_completed: profile_completion_score?.additional_details || false,
+        asset_images: req.body.asset_images || [],
+        asset_videos: req.body.asset_videos || [],
+        min_booking_period: req.body.min_booking_period,
+        max_booking_period: req.body.max_booking_period,
+        prices_starts_from: req.body.prices_starts_from,
+        ig_socials_link: req.body.ig_socials_link,
+        web_social_link: req.body.web_social_link,
+        is_theme_proposals_provided: req.body.is_theme_proposals_provided,
+        is_proposal_revision_possible: req.body.is_proposal_revision_possible,
       },
+
       policies: {
-        cancellation_policy: restOfBody.cancellation_policy,
-        terms_and_conditions: restOfBody.terms_and_conditions,
+        is_completed: profile_completion_score?.policies || false,
+        cancellation_policy: req.body.cancellation_policy,
+        terms_and_conditions: req.body.terms_and_conditions,
         agreement_url: agreementUrl,
         agreement_signed_at: agreementSignedAt,
       },
-      business_details: business_details,
-      bank_details: bank_details,
+
+      business_details: {
+        is_completed: profile_completion_score?.business_details || false,
+        service_id: service_id,
+        service_type: req.body.service_type,
+        category: req.body.category,
+        business_registration_name: req.body.business_registration_name,
+        gst: req.body.gst,
+        pan: req.body.pan || null,
+        verification_type: req.body.verification_type,
+        team_size: req.body.team_size,
+        years_of_operation: req.body.years_of_operation,
+        business_address: req.body.business_address,
+        landmark: req.body.landmark,
+        pincode: req.body.pincode,
+        operational_cities: req.body.operational_cities,
+        annual_revenue: req.body.annual_revenue,
+        annual_bookings: req.body.annual_bookings,
+      },
+
+      bank_details: {
+        account_type: req.body.account_type,
+        service_id: service_id,
+        vendor_id: req.body.vendor_id
+      },
+
+      profile_completion_score: profile_completion_score || 0,
     });
 
     const savedDecorator = await newDecorator.save();
 
-    // Associate with vendor
-    const vendor = await Vendor.findOne({ vendor_id: vendor_id });
+    // Vendor association
+    const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      await Decorator.findByIdAndDelete(savedDecorator.service_id);
+      await Decorator.findByIdAndDelete(savedDecorator._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
+
     vendor.services.push(savedDecorator.service_id);
-    // Add the new service ID to the vendor's services array
     await vendor.save();
 
     // Update section completion
