@@ -89,6 +89,6 @@ const ReduxVenueProviderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const ReduxVenueProviderModel = mongoose.model("ReduxVenueProvider", ReduxVenueProviderSchema);
+const ReduxVenueProviderModel = mongoose.model("ReduxVenueProviders", ReduxVenueProviderSchema);
 
 export { ReduxVenueProviderModel };

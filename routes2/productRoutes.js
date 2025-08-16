@@ -1,7 +1,7 @@
 import { Router } from "express";
 import catererController from "../controllers2/products/catererController.js";
 import upload from "../middlewares/uploads.js";
-// import venueController from "../controllers/products/venueController.js";
+import venueController from "../controllers2/products/venueController.js";
 import decoratorController from "../controllers2/products/decoratorController.js";
 // import eventPlannerController from "../controllers/products/eventPlannerController.js";
 // import transportController from "../controllers/products/transportController.js";
@@ -26,7 +26,7 @@ router.get("/caterer", catererController.getAllCaterers);
 // router.get("/dj", djController.getAllDjArtist);
 // router.get("/pav", photographerController.getAllPav);
 // router.get("/prop-rental", propController.getAllProp);
-// router.get("/venue", venueController.getAllVenues);
+router.get("/venue_provider", venueController.getAllVenues);
 // router.get("/service", getAllServices);
 
 // Adding vendor-specific routes
@@ -58,17 +58,17 @@ router.post(
   catererController.createCaterer,
 );
 
-// router.post(
-//   "/add-venue",
-//   upload("Venues").fields([
-//     { name: "termsConditions", maxCount: 1 },
-//     { name: "cancellationPolicy", maxCount: 1 },
-//     { name: "insurancePolicy", maxCount: 1 },
-//     { name: "photos", maxCount: 20 },
-//     { name: "videos", maxCount: 20 },
-//   ]),
-//   venueController.createVenue,
-// );
+router.post(
+  "/add-venue_provider",
+  upload("Venues").fields([
+    { name: "termsConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "insurancePolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+  ]),
+  venueController.createVenue,
+);
 
 // router.post(
 //   "/add-event-planner",

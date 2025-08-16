@@ -17,7 +17,6 @@ const bankDetailsSchema = new Schema({
   },
   account_type: {
     type: String,
-    required: true
   },
   account_number: {
     type: String
