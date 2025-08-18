@@ -1,4 +1,5 @@
 import { Caterer } from "../../models2/caterer.js";
+import { ReduxCatererModel } from "../../models2/reduxModels/caterer.js";
 import { Vendor } from "../../models2/vendor.js";
 
 import generateUniqueId from "../../utils/generateId2.js";
@@ -71,7 +72,7 @@ const createCaterer = async (req, res) => {
     //ser2: ankit caterer
     const alreadyExists = await Caterer.findOne({
       point_of_contact: req.body.name,
-      id: req.body.venId,
+      vendor_id: req.body.vendor_id,
     });
     if (alreadyExists) {
       return res.status(400).json({ message: "Caterer already exists" });
@@ -83,6 +84,17 @@ const createCaterer = async (req, res) => {
     const asset_images = req.body.asset_images || [];
     const asset_videos = req.body.asset_videos || [];
     const food_safety_certificates = req.body.food_safety_certificates || [];
+
+    const tempCatererData = await ReduxCatererModel.findOne({
+          vendor_id: req.body.vendor_id,
+        });
+        const agreementUrl = tempCatererData?.agreement_url || " ";
+      const agreementSignedAt = tempCatererData?.agreement_signed_at || new Date();
+    
+        if (agreementUrl) {
+          console.log("Found agreement data for venue:", agreementUrl);
+        }
+    
 
     // Profile completion check
     const fieldsToCheck = [
@@ -127,8 +139,6 @@ const createCaterer = async (req, res) => {
       // Policies
       req.body.cancellation_policy, // string
       req.body.terms_and_conditions, // string
-      req.body.agreement_url, // required string
-      req.body.agreement_signed_at,
 
       // Business Details
       req.body.category,
@@ -152,13 +162,9 @@ const createCaterer = async (req, res) => {
     const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-    // Get agreement data from temporary catering data
-    let agreementUrl = null;
-    let agreementSignedAt = null;
-
     try {
       const tempCateringData = await Caterer.findOne({
-        id: req.body.venId,
+        vendor_id: req.body.vendor_id,
       });
       if (tempCateringData && tempCateringData.agreementUrl) {
         agreementUrl = tempCateringData.agreementUrl;
@@ -243,10 +249,8 @@ const createCaterer = async (req, res) => {
         is_completed: profile_completion_score?.policies || false,
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
-        agreement_url: req.body.agreement_url,
-        agreement_signed_at: req.body.agreement_signed_at
-          ? new Date(req.body.agreement_signed_at)
-          : undefined,
+        agreement_url: agreementUrl,
+        agreement_signed_at: agreementSignedAt
       },
     
       business_details: {
@@ -277,10 +281,7 @@ const createCaterer = async (req, res) => {
       profile_completion_score: profile_completion_score || 0,
     });
     
-
     const savedCaterer = await newCaterer.save();
-
-
 
     // Associate with vendor
     const vendor = await Vendor.findOne({ id: req.body.venId });

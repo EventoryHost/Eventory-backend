@@ -82,10 +82,10 @@ const createVenue = async (req, res) => {
     const operatingHours = req.body.basic_details?.service_location_venue; // Fetch agreement data from temporary venue collection
 
     const tempVenueData = await ReduxVenueProviderModel.findOne({
-      id: req.body.venId,
+      id: req.body.vendor_id,
     });
-    const agreementUrl = tempVenueData?.agreementUrl || null;
-    const agreementSignedAt = tempVenueData?.agreementSignedAt || null;
+    const agreementUrl = tempVenueData?.agreement_url || null;
+    const agreementSignedAt = tempVenueData?.agreement_signed_at || null;
 
     if (agreementUrl) {
       console.log("Found agreement data for venue:", agreementUrl);
@@ -236,8 +236,8 @@ const createVenue = async (req, res) => {
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
         insurancePolicy: insurancePolicyFileUrl,
-        agreementUrl: agreementUrl,
-        agreementSignedAt: agreementSignedAt,
+        agreement_url: agreementUrl,
+        agreement_signed_at: agreementSignedAt,
       },
       profile_completion_score: 0,
     }); // Calculate profile completion

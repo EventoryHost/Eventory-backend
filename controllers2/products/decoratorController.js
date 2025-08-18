@@ -5,6 +5,7 @@ import { Vendor } from "../../models2/vendor.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
 import generateUniqueId from "../../utils/generateId2.js";
+import { ReduxDecoratorModel } from "../../models2/reduxModels/decorator.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -81,11 +82,16 @@ const createDecorator = async (req, res) => {
 
     const service_id = generateUniqueId("DECO");
 
-    // Agreement data
-    let agreementUrl = req.body.agreement_url || null;
-    let agreementSignedAt = req.body.agreement_signed_at
-      ? new Date(req.body.agreement_signed_at)
-      : null;
+    const tempVenueData = await ReduxDecoratorModel.findOne({
+      vendor_id: req.body.vendor_id,
+    });
+    const agreementUrl = tempVenueData?.agreement_url || " ";
+    const agreementSignedAt = tempVenueData?.agreement_signed_at || new Date();
+
+    if (agreementUrl) {
+      console.log("Found agreement data for venue:", agreementUrl);
+    }
+
 
     // -------------------------------
     // Profile completion check
@@ -153,8 +159,6 @@ const createDecorator = async (req, res) => {
   // Policies & agreements
   req.body.cancellation_policy,
   req.body.terms_and_conditions,
-  req.body.agreement_url,
-  req.body.agreement_signed_at
 ];
 
 
