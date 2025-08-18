@@ -3,6 +3,9 @@ import generateUniqueId from "../utils/generateId2.js";
 
 // Event Cart Schema according to ERD
 const cartItemSchema = new mongoose.Schema({
+  entity: {
+    type: String
+  },
   name_of_service: {
     type: String,
     required: true
@@ -23,6 +26,18 @@ const cartItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0
+  },
+  tax_rate: {
+    type: Number
+  },
+  tax_type: {
+    type: String
+  },
+  tax_amount: {
+    type: Number
+  },
+  total_amount: {
+    type: Number
   }
 }, { _id: false });
 

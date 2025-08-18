@@ -5,6 +5,9 @@ const Schema = mongoose.Schema;
 
 // Order Cart Schema (embedded in Orders)
 const orderCartSchema = new Schema({
+  entity: {
+    type: String // Customer or vendor
+  },
   name_of_service: {
     type: String,
     required: true
@@ -25,6 +28,18 @@ const orderCartSchema = new Schema({
     type: Number,
     required: true,
     min: 0
+  },
+  tax_rate: {
+    type: Number // Tax in %
+  },
+  tax_type: {
+    type: String // GST/CGST/IGST
+  },
+  tax_amount: {
+    type: Number
+  },
+  total_amount: {
+    type: Number
   }
 }, { _id: false });
 
@@ -202,10 +217,7 @@ const ordersSchema = new Schema({
     }
     // Email of customer (ONLY VISIBLE TO EM AND VENDOR if access given by EM)
   },
-  final_order_items: [{
-    type: orderCartSchema,
-    required: true
-  }],
+  final_order_items: [orderCartSchema], // Array of cart items
   order_created_at: {
     type: Date,
     default: () => {
