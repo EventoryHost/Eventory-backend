@@ -7,6 +7,9 @@ const Schema = _Schema;
 
 // Service Location Schema for Makeup Artist
 const serviceLocationMakeupSchema = new Schema({
+  service_address:{
+    type: String
+  },
   lat: {
     type: String,
     required: false

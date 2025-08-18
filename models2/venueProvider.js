@@ -8,6 +8,9 @@ const Schema = _Schema;
 // Service Location Schema for Venue Provider
 const serviceLocationVenueSchema = new Schema(
   {
+    service_address: {
+      type: String
+    },
     lat: {
       type: String,
     },

@@ -21,6 +21,7 @@ const ReduxMakeupArtistSchema = new mongoose.Schema(
     types_of_makeup_artists_available: { type: [String] },
 
     // Service Location (flattened from service_location_make_up)
+    service_address: { type: String },
     service_lat: { type: String },
     service_lon: { type: String },
     service_opening_time: { type: String },

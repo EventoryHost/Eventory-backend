@@ -25,6 +25,7 @@ const ReduxPhotographerVideographerSchema = new mongoose.Schema(
     do_post_production_services: { type: Boolean },
 
     // Service Location (flattened from service_location_pav)
+    service_address: { type: String },
     service_lat: { type: String },
     service_lon: { type: String },
     service_pincode: { type: Number },
