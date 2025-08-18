@@ -10,7 +10,7 @@ import decoratorController from "../controllers2/products/decoratorController.js
 // import djController from "../controllers/products/djController.js";
 // import giftController from "../controllers/products/giftController.js";
 // import propController from "../controllers/products/propController.js";
-// import photographerController from "../controllers/products/photographerController.js";
+import photographerController from "../controllers2/products/photographerController.js";
 // import vendorController from "../controllers/products/vendorController.js";
 // import { getAllServices } from "../controllers/servicesController.js";
 // import searchProducts from "../controllers/productController.js";
@@ -24,7 +24,7 @@ router.get("/decorator", decoratorController.getAllDecorators);
 // router.get("/invitation", invitationController.getAllInvitation);
 // router.get("/makeup", makeupController.getAllMakeupArtist);
 // router.get("/dj", djController.getAllDjArtist);
-// router.get("/pav", photographerController.getAllPav);
+router.get("/photographer", photographerController.getAllPav);
 // router.get("/prop-rental", propController.getAllProp);
 router.get("/venue_provider", venueController.getAllVenues);
 // router.get("/service", getAllServices);
@@ -156,16 +156,16 @@ router.post(
 //   propController.createProp,
 // );
 
-// router.post(
-//   "/add-photographer",
-//   upload("Photographers").fields([
-//     { name: "termsAndConditions", maxCount: 1 },
-//     { name: "cancellationPolicy", maxCount: 1 },
-//     { name: "photos", maxCount: 20 },
-//     { name: "videos", maxCount: 20 },
-//   ]),
-//   photographerController.createPhotographer,
-// );
+router.post(
+  "/add-photographer",
+  upload("Photographers").fields([
+    { name: "termsAndConditions", maxCount: 1 },
+    { name: "cancellationPolicy", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
+    { name: "videos", maxCount: 20 },
+  ]),
+  photographerController.createPhotographer,
+);
 
 // router.get("/search/", searchProducts);
 

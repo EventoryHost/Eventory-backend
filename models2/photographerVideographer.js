@@ -249,29 +249,31 @@ const photographerVideographerSchema = new Schema({
 }, {
   collection: 'photographer-videographers'
 });
-
 // Pre-save middleware to update pav_updated_at on every save
 photographerVideographerSchema.pre('save', function(next) {
+  // Declare variables at the top to make them accessible to the entire function
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + istOffset);
+
   if (!this.isNew) {
-    // Convert to IST (UTC+5:30)
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    this.pav_updated_at = new Date(now.getTime() + istOffset);
+    this.pav_updated_at = istTime;
   }
   
   // Update nested document timestamps if they exist and are modified
   if (this.isModified('bank_details') && this.bank_details) {
-    this.bank_details.bank_updated_at = new Date(now.getTime() + istOffset);
+    this.bank_details.bank_updated_at = istTime;
   }
   
   if (this.isModified('business_details') && this.business_details) {
-    this.business_details.business_updated_at = new Date(now.getTime() + istOffset);
+    this.business_details.business_updated_at = istTime;
   }
   
   next();
 });
 
 // Pre-update middleware to update pav_updated_at on updates
+// This function is already correct and doesn't need to be changed.
 photographerVideographerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
