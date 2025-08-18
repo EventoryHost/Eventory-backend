@@ -29,6 +29,10 @@ import finalOrders from "../routes/finalOrders.js";
 import agreementRoutes from "../routes/agreementRoutes.js";
 import couponRoutes from "../routes2/couponRoutes.js";
 import catererPersistenceRoutes from "../routes2/reduxRoutes/caterer.js";
+import decoratorPersistenceRoutes from "../routes2/reduxRoutes/decorator.js";
+import makeupArtistPersistenceRoutes from "../routes2/reduxRoutes/makeUpArtist.js";
+import photographerPersistenceRoutes from "../routes2/reduxRoutes/photographers.js";
+import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provider.js";
 
 const MainRoutes = Router();
 
@@ -57,6 +61,10 @@ MainRoutes.use("/about-email", aboutEmailRoutes);
 // router.use("/agreements", agreementRoutes);
 MainRoutes.use("/coupons", couponRoutes);
 MainRoutes.use("/catering-details", catererPersistenceRoutes);
+MainRoutes.use("/decorator-details", decoratorPersistenceRoutes);
+MainRoutes.use("/makeup-artist-details", makeupArtistPersistenceRoutes);
+MainRoutes.use("/photographer-details", photographerPersistenceRoutes);
+MainRoutes.use("/venue-provider-details", venueProviderPersistenceRoutes);
 // MainRoutes.use("/business-details", businessDetailsRoutes);
 // router.use("/update-page", updatePageRoutes);
 // router.use("/vendor-edit", vendorEditRoutes);

@@ -2,6 +2,7 @@
 import express from "express";
 const router = express.Router();
 // import { BusinessDetailsModel } from "../../models/reduxStores/businessDetails.js";
+// import { CateringModel } from "../../models/reduxStores/catering.js";
 // import { decoratorRoutes } from "./decorator.js";
 // import { giftRoutes } from "./gifts.js";
 // import { venueRoutes } from "./venue-provider.js";
@@ -87,7 +88,7 @@ const router = express.Router();
 //   }
 // });
 
-// Route to fetch business details by id
+// // Route to fetch business details by id
 // router.get("/business-details/:id", async (req, res) => {
 //   const { id } = req.params;
 
@@ -112,6 +113,106 @@ const router = express.Router();
 // router.use("/invitation-details", invitationRoutes);
 // router.use("/makeup-artist-details", makeupArtistRoutes);
 // router.use("/dj-artist-details", djArtistRoutes);
+
+/** CATERING DETAILS ROUTES **/
+
+// POST or PUT route to save or update catering details
+// router.post("/catering-details", async (req, res) => {
+//   const { id, cateringData } = req.body; // Extracting cateringData from the nested structure
+
+//   console.log("id", id);
+
+//   // Validate id and cateringData
+//   if (!id) {
+//     return res.status(400).json({ message: "User ID is required." });
+//   }
+
+//   if (!cateringData || Object.keys(cateringData).length === 0) {
+//     return res.status(400).json({ message: "Catering details are required." });
+//   }
+
+//   try {
+//     // Check if the catering details already exist
+//     const existingDetails = await CateringModel.findOne({ id });
+
+//     if (existingDetails) {
+//       // Update existing catering details
+//       const updatedDetails = await CateringModel.findOneAndUpdate(
+//         { id },
+//         { $set: cateringData }, // Explicitly set the fields to update
+//         { new: true, upsert: false }, // No need for upsert here since it already exists
+//       );
+//       return res.status(200).json({
+//         message: "Catering details updated successfully.",
+//         data: updatedDetails,
+//       });
+//     } else {
+//       // Create new catering details
+//       const newCateringDetails = new CateringModel({ id, ...cateringData });
+//       await newCateringDetails.save();
+//       return res.status(201).json({
+//         message: "Catering details saved successfully.",
+//         data: newCateringDetails,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error saving/updating catering details:", error);
+//     res.status(500).json({
+//       message: "Failed to save or update catering details.",
+//       error: error.message,
+//     });
+//   }
+// });
+
+// GET route to retrieve catering details by user ID
+// router.get("/catering-details/:id", async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//     const cateringDetails = await CateringModel.findOne({ id: id.trim() });
+
+//     if (!cateringDetails) {
+//       return res.status(404).json({ message: "Catering details not found." });
+//     }
+
+//     res.status(200).json(cateringDetails);
+//   } catch (error) {
+//     console.error("Error retrieving catering details:", error);
+//     res.status(500).json({
+//       message: "Failed to retrieve catering details.",
+//       error: error.message,
+//     });
+//   }
+// });
+
+// DELETE route to remove catering details by user ID
+// router.delete("/catering-details/:id", async (req, res) => {
+//   const { id } = req.params;
+
+//   console.log("Deleting catering details for ID:", id);
+
+//   // Corrected validation: Check if 'id' is missing or empty after trimming
+//   if (!id || id.trim() === '') {
+//     return res.status(400).json({ message: "User ID is required for deletion." });
+//   }
+
+//   try {
+//     const deletedDetails = await CateringModel.findOneAndDelete({ id: id }); 
+
+//     if (!deletedDetails) {
+//       return res.status(404).json({ message: "Catering details not found for deletion." });
+//     }
+
+//     res.status(200).json({ message: "Catering details deleted successfully." });
+
+//   } catch (error) {
+//     console.error("Error deleting catering details:", error);
+//     res.status(500).json({
+//       message: "Failed to delete catering details.",
+//       error: error.message,
+//     });
+//   }
+// });
 
 // Export the router
 export { router as businessDetailsRoutes };

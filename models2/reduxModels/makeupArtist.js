@@ -84,6 +84,6 @@ const ReduxMakeupArtistSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const ReduxMakeupArtistModel = mongoose.model("ReduxMakeupArtist", ReduxMakeupArtistSchema);
+const ReduxMakeupArtistModel = mongoose.model("ReduxMakeupArtists", ReduxMakeupArtistSchema);
 
 export { ReduxMakeupArtistModel };
