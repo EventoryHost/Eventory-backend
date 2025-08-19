@@ -112,40 +112,51 @@ const updateVendor = async (req, res) => {
 
 const getVendor = async (req, res) => {
   try {
+    console.log("📥 Incoming request body:", req.body);
+
     let { email, vendorId, mobile } = req.body;
 
     if (!email && !mobile && !vendorId) {
-      return res
-        .status(400)
-        .json({ message: "Please provide at least one detail to get vendor." });
+      return res.status(400).json({ message: "Please provide at least one detail to get vendor." });
     }
 
-    let user;
+    let vendor;
     if (vendorId) {
-      user = await User.findOne({ id: vendorId });
+      console.log("🔎 Searching by vendor_id:", vendorId);
+      vendor = await Vendor.findOne({ vendor_id: vendorId });
     } else if (email) {
-      user = await User.findOne({ email });
+      console.log("🔎 Searching by email_address:", email);
+      vendor = await Vendor.findOne({ email_address: email });
     } else if (mobile) {
       mobile = "+91" + mobile;
-      user = await User.findOne({ mobile });
+      console.log("🔎 Searching by vendor_mobile:", mobile);
+      vendor = await Vendor.findOne({ vendor_mobile: mobile });
     }
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
+    if (!vendor) {
+      console.log("❌ Vendor not found:", { email, vendorId, mobile });
+      return res.status(404).json({ message: "Vendor not found." });
     }
 
-    res.status(200).json(user);
+    console.log("✅ Vendor found:", vendor);
+    res.status(200).json(vendor);
+
   } catch (error) {
+    console.error("🔥 Error in getVendor:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 const signUp = async (req, res) => {
+  console.log("==== BACKEND SIGNUP API HIT ====");
+  console.log("Request Body:", req.body);
+
   const { mobile } = req.body;
+  console.log("Mobile received:", mobile);
+
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
-
     Username: `+91${mobile}`,
     Password: "123456",
     UserAttributes: [
@@ -155,53 +166,68 @@ const signUp = async (req, res) => {
   };
 
   try {
+    console.log("Checking if user exists in Cognito...");
     var user = await userExists(`+91${mobile}`);
+    console.log("userExists() result:", user);
 
     if (user !== null) {
+      console.log("❌ User already exists, aborting signup");
       return res.status(400).json({ message: "User already exists" });
     }
 
+    console.log("Checking if user is flagged as NEW user...");
     user = await isNewUser(mobile);
+    console.log("isNewUser() result:", user);
 
     if (user) {
+      console.log("⚠️ User found as NEW, attempting deletion...");
+
       const deleteCommand = new AdminDeleteUserCommand({
         UserPoolId: process.env.COGNITO_USER_POOL_ID,
         Username: `+91${mobile}`,
       });
-      console.log("deleteeeeeeeee", deleteCommand);
-      const res = await cognito.send(deleteCommand);
+      console.log("Delete Command created:", deleteCommand);
+
       try {
-        console.log("ressss", res);
-      } catch (error) {
-        console.log("err", error);
+        const delRes = await cognito.send(deleteCommand);
+        console.log("✅ User deleted successfully:", delRes);
+      } catch (deleteErr) {
+        console.log("❌ Error deleting user:", deleteErr);
       }
     }
 
+    console.log("Proceeding to create new Cognito user...");
     const command = new SignUpCommand(params);
-    await cognito.send(command);
+    const signUpRes = await cognito.send(command);
+    console.log("✅ SignUp response:", signUpRes);
 
     const signUpParams = {
       AuthFlow: "CUSTOM_AUTH",
       ClientId: process.env.COGNITO_APP_CLIENT_ID,
       UserPoolId: process.env.COGNITO_USER_POOL_ID,
       Username: `+91${mobile}`,
-
       AuthParameters: {
         USERNAME: `+91${mobile}`,
       },
     };
-    console.log(signUpParams);
+    console.log("Initiating Auth with params:", signUpParams);
+
     const signUpCommand = new AdminInitiateAuthCommand(signUpParams);
     const data = await cognito.send(signUpCommand);
+    console.log("✅ AdminInitiateAuth response:", data);
+
     return res.status(200).json({ message: "OTP sent", data });
   } catch (error) {
+    console.log("❌ Error in signUp handler:", error);
+
     if (error.name === "UserNotFoundException") {
-      console.log("New User");
-    } else {
-      res.status(400).json({ error: error.message });
+      console.log("⚠️ User not found in Cognito (new user case)");
     }
+
+    return res.status(400).json({ error: error.message });
   }
 };
+
 const CustomerSignUp = async (req, res) => {
   const { mobile } = req.body;
 
@@ -260,29 +286,49 @@ const CustomerSignUp = async (req, res) => {
 };
 
 const login = async (req, res) => {
+  console.log("---- Login API called ----");
+  console.log("Request body:", req.body);
+
   const { mobile } = req.body;
+  console.log("Extracted mobile:", mobile);
+
   const params = {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
     Username: `+91${mobile}`,
-
     AuthParameters: {
       USERNAME: `+91${mobile}`,
     },
   };
 
+  console.log("Generated Cognito params:", params);
+
   try {
+    console.log("Checking if user exists in DB...");
     const user = await userExists(`+91${mobile}`);
+    console.log("User exists result:", user);
+
     if (user) {
+      console.log("User found, initiating auth with Cognito...");
       const command = new AdminInitiateAuthCommand(params);
+      console.log("Cognito command created:", command);
+
       const data = await cognito.send(command);
+      console.log("Cognito response:", data);
+
+      console.log("OTP successfully sent to user.");
       return res.status(200).json({ message: "OTP sent", data });
     }
+
+    console.log("User not found in DB, returning 404.");
     return res.status(404).json({ message: "User does not exist" });
+
   } catch (error) {
-    console.log(error);
+    console.error("Error during login process:", error);
     res.status(400).json({ error: error.message });
+  } finally {
+    console.log("---- Login API execution finished ----");
   }
 };
 
@@ -316,13 +362,15 @@ const CustomerLogin = async (req, res) => {
 };
 
 const verifyLoginOtp = async (req, res) => {
-  const { mobile, code, session, service_name } = req.body;
+  console.log("✅ Backend verifyLoginOtp API hit");
+  console.log("📩 Request body:", req.body);
 
-  if (!mobile || !code || !session) {
-    return res
-      .status(400)
-      .json({ message: "Mobile, code, and session are required." });
-  }
+  const { mobile, code, session } = req.body;
+
+  console.log("👉 Extracted values:");
+  console.log("   Mobile:", mobile);
+  console.log("   Code:", code);
+  console.log("   Session:", session);
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -337,39 +385,40 @@ const verifyLoginOtp = async (req, res) => {
     Session: session,
   };
 
-  try {
-    // Verify the OTP with Cognito
-    await cognito.send(new AdminRespondToAuthChallengeCommand(params)); // Find the user in your database
+  console.log("🛠️ Params prepared for Cognito:", JSON.stringify(params, null, 2));
 
-    let user = await Vendor.findOne({ vendor_mobile: `+91${mobile}` }); // If the user is new (not found in DB), create the profile
+  try {
+    console.log("📡 Sending AdminRespondToAuthChallengeCommand to Cognito...");
+    const command = new AdminRespondToAuthChallengeCommand(params);
+    var data = await cognito.send(command); // Throws error if OTP invalid
+    console.log("✅ Cognito response received:", JSON.stringify(data, null, 2));
+
+    console.log("🔍 Searching vendor in DB with mobile:", `+91${mobile}`);
+    let user = await Vendor.findOne({ vendor_mobile: `+91${mobile}` });
 
     if (!user) {
-      if (!service_name) {
-        return res.status(400).json({
-          message: "Service name is required to complete new vendor sign up.",
-        });
-      }
-      user = new Vendor({
-        vendor_mobile: `+91${mobile}`,
-        service_types: [
-          {
-            service_name: service_name,
-            service_status: "Incomplete",
-          },
-        ],
-      });
+      console.log("⚠️ User not found in DB. Creating new Vendor...");
+      user = new Vendor({ vendor_mobile: `+91${mobile}` });
       await user.save();
-    } // Generate JWT token
+      console.log("✅ New Vendor created:", user);
+      data = { ...data, user };
+    } else {
+      console.log("✅ Vendor found in DB:", user);
+    }
 
+    console.log("🔑 Generating JWT token...");
     const token = jwt.sign(
-      { id: user.vendor_id, mobile: user.vendor_mobile },
+      { id: user.vendor_id, mobile: user.vendor_mobile, email: user.email_address },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
-    ); // Return the user object, which contains the service_types array
+    );
 
-    res.status(200).json({ message: "Login successful", token, user });
+    console.log("✅ JWT token generated:", token);
+
+    console.log("🚀 Sending success response to client...");
+    res.status(200).json({ message: "Login Success", token, user });
   } catch (error) {
-    console.error("Error in verifyLoginOtp:", error);
+    console.error("❌ Error during OTP verification:", error);
     res.status(400).json({ error: error.message });
   }
 };
