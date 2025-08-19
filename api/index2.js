@@ -9,6 +9,10 @@ import { Server } from "socket.io";
 import dotenv from "dotenv";
 import MainRoutes from "../routes2/routes.js";
 import authRoutes from "../routes2/authRoutes.js";
+import productRoutes from "../routes2/productRoutes.js";
+import {businessDetailsRoutes}  from "../routes2/reduxRoutes/businessDetails.js";
+import caterer from "../routes2/reduxRoutes/caterer.js";
+import verificationRoutes from "../routes2/verificationRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -49,6 +53,10 @@ app.use(
 // Migration routes
 app.use("/", router);
 app.use("/api", MainRoutes);
+app.use("/api", businessDetailsRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api", caterer);
+app.use("/api/verification", verificationRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory Migration APIs are running...");
