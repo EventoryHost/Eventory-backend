@@ -36,9 +36,10 @@ const vendorSchema = new Schema({
     },
     service_status: {
       type: String,
-      required: true
+      required: true,
+      default : "Inactive"
   }
-  }],
+  }, {_id: false}],
   coupons_used: [{
     type: String
   }],

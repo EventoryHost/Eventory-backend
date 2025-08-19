@@ -316,7 +316,13 @@ const CustomerLogin = async (req, res) => {
 };
 
 const verifyLoginOtp = async (req, res) => {
-  const { mobile, code, session } = req.body;
+  const { mobile, code, session, service_name } = req.body;
+
+  if (!mobile || !code || !session) {
+    return res
+      .status(400)
+      .json({ message: "Mobile, code, and session are required." });
+  }
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -332,28 +338,38 @@ const verifyLoginOtp = async (req, res) => {
   };
 
   try {
-    const command = new AdminRespondToAuthChallengeCommand(params);
-    var data = await cognito.send(command); // Throws error if OTP not valid
+    // Verify the OTP with Cognito
+    await cognito.send(new AdminRespondToAuthChallengeCommand(params)); // Find the user in your database
 
-    let user = await Vendor.findOne({ mobile: `+91${mobile}` });
+    let user = await Vendor.findOne({ vendor_mobile: `+91${mobile}` }); // If the user is new (not found in DB), create the profile
+
     if (!user) {
-      user = new Vendor({ vendor_mobile: `+91${mobile}` });
-      await user.save();
-      data = { ...data, user };
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, mobile: user.mobile, name: user.name },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "24h",
+      if (!service_name) {
+        return res.status(400).json({
+          message: "Service name is required to complete new vendor sign up.",
+        });
       }
-    );
+      user = new Vendor({
+        vendor_mobile: `+91${mobile}`,
+        service_types: [
+          {
+            service_name: service_name,
+            service_status: "Incomplete",
+          },
+        ],
+      });
+      await user.save();
+    } // Generate JWT token
 
-    res.status(200).json({ message: "Login Success", token, user });
+    const token = jwt.sign(
+      { id: user.vendor_id, mobile: user.vendor_mobile },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    ); // Return the user object, which contains the service_types array
+
+    res.status(200).json({ message: "Login successful", token, user });
   } catch (error) {
-    console.log(error);
+    console.error("Error in verifyLoginOtp:", error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -472,8 +488,9 @@ const googleCallback = async (req, res) => {
 };
 
 const userExists = async (credential) => {
+  console.log(credential);
   const user = await Vendor.findOne({
-    $or: [{ email_address: credential }, { vendor_mobile: credential }],
+    vendor_mobile: credential,
   });
   return user;
 };
