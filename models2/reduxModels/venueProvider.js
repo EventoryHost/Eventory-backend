@@ -22,6 +22,7 @@ const ReduxVenueProviderSchema = new mongoose.Schema(
     event_types_venue: { type: [String] },
 
     // Service Location (flattened from service_location_venue)
+    service_address: { type: String },
     service_lat: { type: String },
     service_lon: { type: String },
     service_opening_time: { type: String },

@@ -19,6 +19,7 @@ const ReduxDecoratorSchema = new mongoose.Schema(
     event_types_decorated: { type: [String] },
 
     // Service Location (flattened from service_location_decorator)
+    service_address: { type: String },
     service_lat: { type: String },
     service_lon: { type: String },
     service_pincode: { type: Number },

@@ -7,6 +7,9 @@ const Schema = _Schema;
 
 // Service Location Schema for Caterers
 const serviceLocationCatererSchema = new Schema({
+  service_address:{
+    type: String
+  },
   lat: {
     type: String
   },

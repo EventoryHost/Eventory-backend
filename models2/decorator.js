@@ -30,6 +30,9 @@ const decoratorBasicDetailsSchema = new mongoose.Schema({
     required: true
   }],
   service_location_decorator: { // Changed to match ERD field name
+    service_address: {
+      type: String
+    },
     lat: {
       type: String,
     },
