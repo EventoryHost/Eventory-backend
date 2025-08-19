@@ -25,6 +25,21 @@ const vendorSchema = new Schema({
   services: [{
     type: String
   }],
+  // Stores data of service types provided by the vendor
+  service_types: [{
+    service_name: {
+      type: String,
+      required: true
+    },
+    service_id: {
+      type: String,
+    },
+    service_status: {
+      type: String,
+      required: true,
+      default : "Inactive"
+  }
+  }, {_id: false}],
   coupons_used: [{
     type: String
   }],
