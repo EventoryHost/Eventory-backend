@@ -1,5 +1,5 @@
 import express from "express";
-import { ReduxMakeupArtistModel } from "../../models2/reduxModels/makeUpArtist.js";
+import { MakeupArtistModel } from "../../models2/reduxModels/makeUpArtist.js";
 
 const router = express.Router();
 
@@ -28,7 +28,7 @@ router.post("/", async (req, res) => {
 
         // Find and update the existing document. The `upsert: true` option
         // will create a new document if one isn't found.
-        const updatedDetails = await ReduxMakeupArtistModel.findOneAndUpdate(
+        const updatedDetails = await MakeupArtistModel.findOneAndUpdate(
           { vendor_id },
           dataToSave,
           { new: true, upsert: true }

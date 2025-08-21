@@ -1,7 +1,6 @@
 import MakeupArtist from "../../models/makeupArtists.js";
-import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
 import { Vendor } from "../../models/users.js";
-import { ReduxMakeupArtistModel } from "../../models2/reduxModels/makeupArtist.js";
+import { MakeupArtistModel } from "../../models2/reduxModels/makeupArtist.js";
 import parseRange from "../../utils/parseRange.js";
 
 
@@ -81,7 +80,7 @@ const createMakeupArtist = async (req, res) => {
     const asset_images = req.body.asset_images || [];
     const asset_videos = req.body.asset_videos || [];
 
-    const tempCatererData = await ReduxMakeupArtistModel.findOne({
+    const tempCatererData = await MakeupArtistModel.findOne({
               vendor_id: req.body.vendor_id,
             });
             const agreementUrl = tempCatererData?.agreement_url || " ";
