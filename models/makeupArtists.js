@@ -85,5 +85,5 @@ const makeupArtistSchema = Schema({
 
 // const MakeupArtist = model("MakeupArtist", makeupArtistSchema);
 
-const MakeupArtist = model("MakeupArtist", makeupArtistSchema);
+const MakeupArtist = model("MakeupArtists", makeupArtistSchema);
 export default MakeupArtist; // ✅ Proper export
