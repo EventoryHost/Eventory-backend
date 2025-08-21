@@ -56,7 +56,6 @@ app.use("/api", MainRoutes);
 app.use("/api", businessDetailsRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api", caterer);
-app.use("/api/verification", verificationRoutes);
 
 app.get("/", (req, res) => {
   res.status(201).send("Eventory Migration APIs are running...");

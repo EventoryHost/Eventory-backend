@@ -1,7 +1,7 @@
 import axios from "axios";
 import dotenv from "dotenv";
 import { generateSignature } from "../utils/generateId.js";
-import { Vendor as User } from "../models/users.js";
+import { Vendor } from "../models2/vendor.js";
 
 dotenv.config();
 
@@ -96,7 +96,7 @@ const verifyGSTIN = async (req, res) => {
 
 const verifyPAN = async (req, res) => {
   const { panNo } = req.params;
-  const userId = req.query.userId; // Get userId from query params if provided
+  const vendor_id = req.query.vendor_id; // Get vendor_id from query params if provided
 
   if (!panNo) {
     return res.status(400).json({ message: "Please provide a PAN card number" });
@@ -159,35 +159,35 @@ const verifyPAN = async (req, res) => {
       if (gstinResponse.data && gstinResponse.data.gstin_list) {
         gstinList = gstinResponse.data.gstin_list;
 
-        // If userId is provided, store the first active GSTIN in the user's profile
-        if (userId && gstinList.length > 0) {
+        // If vendor_id is provided, store the first active GSTIN in the vendor's profile
+        if (vendor_id && gstinList.length > 0) {
           try {
-            // Find the user
-            const user = await User.findOne({ id: userId });
+            // Find the vendor
+            const vendor = await Vendor.findOne({ vendor_id: vendor_id });
 
-            if (user) {
+            if (vendor) {
               // Find the first active GSTIN
               const activeGstin = gstinList.find(g => g.status === "ACTIVE");
 
               if (activeGstin) {
-                // Update the user's businessDetails
-                if (!user.businessDetails) {
-                  user.businessDetails = {};
+                // Update the vendor's businessDetails
+                if (!vendor.businessDetails) {
+                  vendor.businessDetails = {};
                 }
 
                 // Store both PAN and GSTIN
-                user.businessDetails.panNo = panNo;
-                user.businessDetails.gstin = activeGstin.gstin;
+                vendor.businessDetails.panNo = panNo;
+                vendor.businessDetails.gstin = activeGstin.gstin;
 
                 // Save the changes
-                await user.save();
-                console.log(`Updated user ${userId} with GSTIN ${activeGstin.gstin} from PAN verification`);
+                await vendor.save();
+                console.log(`Updated Vendor ${vendor_id} with GSTIN ${activeGstin.gstin} from PAN verification`);
               }
             } else {
-              console.log(`User not found with ID: ${userId}`);
+              console.log(`Vendor not found with ID: ${vendor_id}`);
             }
-          } catch (userError) {
-            console.error("Error updating user with GSTIN:", userError);
+          } catch (vendorError) {
+            console.error("Error updating vendor with GSTIN:", vendorError);
             // Don't fail the API response if this part fails
           }
         }

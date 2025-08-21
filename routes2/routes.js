@@ -11,7 +11,7 @@ import { businessDetailsRoutes } from "../routes2/reduxRoutes/businessDetails.js
 import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import quotationRoutes from "../routes/quotationRoutes.js";
-import verificationRoutes from "../routes/verificationRoutes.js";
+import verificationRoutes from "../routes2/verificationRoutes.js";
 import BookingRoutes from "../routes/bookingRoutes.js";
 import vendorEditRoutes from "../routes/vendorEditRoutes.js";
 import serviceRouter from "../routes/servicesRoutes.js";
@@ -46,7 +46,7 @@ MainRoutes.use("/about-email", aboutEmailRoutes);
 // router.use("/files", fileRoutes);
 // router.use("/quotations", quotationRoutes);
 // router.use("/chats", chatRoutes);
-// router.use("/verification", verificationRoutes);
+MainRoutes.use("/verification", verificationRoutes);
 // router.use("/bookings", BookingRoutes);
 // router.use("/service", serviceRouter);
 // router.use("/venue", venueRouter);

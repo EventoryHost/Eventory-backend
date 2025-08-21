@@ -40,8 +40,8 @@ const checkCompletion = (section) => {
 
 const updateSectionCompletion = async (id) => {
   try {
-    console.log("vendorrrrrrrrrrrrrrrrrrrrr",id)
-    const makeupArtist = await MakeupArtist.findOne({ vendor_id : id });
+    console.log("vendorrrrrrrrrrrrrrrrrrrrr", id);
+    const makeupArtist = await MakeupArtist.findOne({ vendor_id: id });
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
     makeupArtist.basic_details.is_completed = checkCompletion(
@@ -91,7 +91,10 @@ const createMakeupArtist = async (req, res) => {
     const asset_videos = req.body.asset_videos || [];
 
     // Find temporary makeup data
-    console.log("Searching for tempMakeupData with vendor_id:", req.body.vendor_id);
+    console.log(
+      "Searching for tempMakeupData with vendor_id:",
+      req.body.vendor_id
+    );
     const tempMakeupData = await MakeupArtistModel.findOne({
       vendor_id: req.body.vendor_id,
     });
@@ -106,12 +109,60 @@ const createMakeupArtist = async (req, res) => {
 
     // Determine profile completion
     const fieldsToCheck = [
-      // ... (fields to check for completion)
+      // basic_details fields
+      req.body.point_of_contact,
+      req.body.service_contact_number,
+      req.body.min_booking_capacity,
+      req.body.max_booking_capacity,
+      req.body.description,
+      req.body.event_types_makeup?.length > 0,
+      req.body.types_of_makeup_artists_available?.length > 0,
+      req.body.service_location_make_up?.lat,
+      req.body.service_location_make_up?.lon,
+      req.body.service_location_make_up?.service_pincode,
+      req.body.service_location_make_up?.google_map_link,
+
+      // service_details fields
+      req.body.is_onsite_makeup_available,
+      req.body.is_customization_possible,
+      req.body.service_types?.length > 0,
+
+      // additional_details fields
+      asset_images.length > 0,
+      asset_videos.length > 0,
+      req.body.min_booking_period,
+      req.body.max_booking_period,
+      req.body.prices_starts_from,
+      req.body.ig_socials_link, // ✅ matches schema
+      req.body.web_social_link, // ✅ matches schema
+
+      // policies fields
+      req.body.cancellation_policy, // ✅ snake_case
+      req.body.terms_and_conditions, // ✅ snake_case
+
+      // business_details fields
+      req.body.category,
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.pan,
+      req.body.verification_type,
+      req.body.team_size,
+      req.body.years_of_operation,
+      req.body.business_address,
+      req.body.landmark,
+      req.body.pincode,
+      req.body.operational_cities,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
     ];
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
-    const profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-    console.log("Calculated profile completion score:", profile_completion_score);
+    const profile_completion_score =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+    console.log(
+      "Calculated profile completion score:",
+      profile_completion_score
+    );
 
     // Construct the new document
     console.log("Constructing new MakeupArtist document...");
@@ -126,8 +177,12 @@ const createMakeupArtist = async (req, res) => {
         min_booking_capacity: req.body.min_booking_capacity,
         max_booking_capacity: req.body.max_booking_capacity,
         description: req.body.description,
-        event_types_makeup: req.body.event_types ? req.body.event_types.split(",") : [],
-        types_of_makeup_artists_available: req.body.types_of_makeup_artists ? req.body.types_of_makeup_artists.split(",") : [],
+        event_types_makeup: req.body.event_types
+          ? req.body.event_types.split(",")
+          : [],
+        types_of_makeup_artists_available: req.body.types_of_makeup_artists
+          ? req.body.types_of_makeup_artists.split(",")
+          : [],
         service_location_make_up: {
           service_address: req.body.address,
           lat: req.body.latitude,
@@ -196,7 +251,9 @@ const createMakeupArtist = async (req, res) => {
     console.log("Searching for vendor with vendor_id:", req.body.vendor_id);
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      console.log("Error: Vendor not found. Deleting new MakeupArtist document.");
+      console.log(
+        "Error: Vendor not found. Deleting new MakeupArtist document."
+      );
       await MakeupArtist.findByIdAndDelete(savedMakeupArtist.vendor_id);
       return res.status(404).json({ message: "Vendor not found" });
     }
@@ -205,7 +262,9 @@ const createMakeupArtist = async (req, res) => {
     console.log(`MAKEUP ARTIST ID (Vendor ID): ${savedMakeupArtist.vendor_id}`);
     console.log("Attempting to push document ID into vendor services array...");
     vendor.services.push(savedMakeupArtist.vendor_id); // Changed to push _id, as this is the likely fix
-    console.log("Successfully pushed new service ID. Saving vendor document...");
+    console.log(
+      "Successfully pushed new service ID. Saving vendor document..."
+    );
     await vendor.save();
     console.log("Vendor document saved successfully.");
 
@@ -256,7 +315,9 @@ const getAllMakeupArtist = async (req, res) => {
 
 const getMakeupArtistById = async (req, res) => {
   try {
-    const makeupArtist = await MakeupArtist.findOne({ vendor_id: req.params.vendor_id });
+    const makeupArtist = await MakeupArtist.findOne({
+      vendor_id: req.params.vendor_id,
+    });
     if (!makeupArtist) {
       return res.status(404).json({ message: "Makeup artist not found" });
     }
