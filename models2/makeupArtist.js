@@ -291,8 +291,7 @@ makeupArtistSchema.index({ makeup_artist_updated_at: -1 });
 makeupArtistSchema.index({ service_id: 1 });
 
 // Check if model already exists to prevent OverwriteModelError
-const MakeupArtist = mongoose.models.MakeupArtist || 
-  model('MakeupArtist', makeupArtistSchema);
+const MakeupArtist = mongoose.model('MakeupArtist', makeupArtistSchema);
 
 export default MakeupArtist;
 

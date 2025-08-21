@@ -1,6 +1,6 @@
 import MakeupArtist from "../../models2/makeupArtist.js";
 import { Vendor } from "../../models2/vendor.js";
-import { MakeupArtistModel } from "../../models2/reduxModels/makeupArtist.js";
+import { MakeupArtistModel } from "../../models2/reduxModels/makeUpArtist.js";
 import generateUniqueId from "../../utils/generateId2.js";
 import parseRange from "../../utils/parseRange.js";
 
@@ -40,22 +40,27 @@ const checkCompletion = (section) => {
 
 const updateSectionCompletion = async (id) => {
   try {
-    const makeupArtist = await MakeupArtist.findOne({ id });
+    console.log("vendorrrrrrrrrrrrrrrrrrrrr",id)
+    const makeupArtist = await MakeupArtist.findOne({ vendor_id : id });
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
     makeupArtist.basic_details.is_completed = checkCompletion(
-      makeupArtist.basicDetails
+      makeupArtist.basic_details
     );
 
     makeupArtist.service_details.is_completed = checkCompletion(
-      makeupArtist.serviceDetails
+      makeupArtist.service_details
     );
 
     makeupArtist.additional_details.is_completed = checkCompletion(
-      makeupArtist.additionalDetails
+      makeupArtist.additional_details
     );
 
     makeupArtist.policies.is_completed = checkCompletion(makeupArtist.policies);
+
+    makeupArtist.business_details.is_completed = checkCompletion(
+      makeupArtist.business_details
+    );
 
     await makeupArtist.save();
   } catch (error) {
@@ -71,7 +76,6 @@ const createMakeupArtist = async (req, res) => {
 
     // Check if artist already exists
     const alreadyExists = await MakeupArtist.findOne({
-      point_of_contact: req.body.point_of_contact,
       vendor_id: req.body.vendor_id,
     });
 
@@ -140,8 +144,8 @@ const createMakeupArtist = async (req, res) => {
       },
       additional_details: {
         is_completed: profile_completion_score?.additional_details || false,
-        asset_images: req.body.photos,
-        asset_videos: req.body.videos,
+        asset_images: asset_images,
+        asset_videos: asset_videos,
         min_booking_period: req.body.min_booking_period,
         max_booking_period: req.body.max_booking_period,
         prices_starts_from: req.body.prices_starts_from,
@@ -200,7 +204,7 @@ const createMakeupArtist = async (req, res) => {
 
     console.log(`MAKEUP ARTIST ID (Vendor ID): ${savedMakeupArtist.vendor_id}`);
     console.log("Attempting to push document ID into vendor services array...");
-    vendor.services.push(savedMakeupArtist._id); // Changed to push _id, as this is the likely fix
+    vendor.services.push(savedMakeupArtist.vendor_id); // Changed to push _id, as this is the likely fix
     console.log("Successfully pushed new service ID. Saving vendor document...");
     await vendor.save();
     console.log("Vendor document saved successfully.");
