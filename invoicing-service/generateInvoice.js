@@ -1,5 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
+import { writeFileSync, mkdirSync } from "fs";
 
 dotenv.config();
 
@@ -144,11 +145,10 @@ function getVendorType(serviceIds) {
   return "Service Provider";
 }
 
-async function generateVendorOnboardedInvoice(customer, paymentDetails) {
+async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDetails) {
   let browser = null;
   let page = null;
 
-  console.log(paymentDetails);
   try {
     const templatePath = path.resolve("templates", "invoiceTemplate.html");
     let html = readFileSync(templatePath, "utf8");
@@ -162,7 +162,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     const totalAmount = parseFloat(paymentDetails.amount) || 0;
     const discountAmount = parseFloat(paymentDetails.discount) || 0;
     const finalAmount = totalAmount - discountAmount;
-    
+
     // Calculate net amount and tax amount based on ORIGINAL total amount (before discount)
     const originalNetAmount = totalAmount / 1.18; // Net amount before discount
     const originalTaxAmount = totalAmount - originalNetAmount; // Tax amount before discount
@@ -188,18 +188,21 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     const isDelhiPincode = customer.businessDetails.pinCode.toString().startsWith("1");
 
     // Create table rows with tax logic
-    let tableRows = "";
+    let tableRows = [];
+
+    const items = orderDetails.items || [];
 
     if (isDelhiPincode) {
       // Split into CGST and SGST rows for Delhi
       const cgstAmount = originalTaxAmount / 2;
       const sgstAmount = originalTaxAmount / 2;
-      
-      tableRows = `
+
+      for (let i = 0; i < items.length; i++) {
+
+        tableRows[i] = `
         <tr>
           <td style="text-align: center;">1</td>
-          <td>Eventory Vendor Registration</td>
-          <td style="text-align: center;">${vendorType}</td>
+          <td>${items[i].name}</td>
           <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
           <td style="text-align: center;">9%</td>
           <td style="text-align: center;">CGST</td>
@@ -216,9 +219,11 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
           <td style="text-align: center;">Rs ${sgstAmount.toFixed(2)}</td>
         </tr>
       `;
+      }
     } else {
       // Single IGST row for other states
-      tableRows = `
+      for (let i = 0; i < items.length; i++) {
+        tableRows = `
         <tr>
           <td style="text-align: center;">1</td>
           <td>Eventory Vendor Registration</td>
@@ -230,18 +235,19 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
           <td style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
         </tr>
       `;
+      }
     }
 
     // Apply the same logic to discount rows
     if (discountAmount > 0) {
       const discountNetAmount = discountAmount / 1.18;
       const discountTaxAmount = discountAmount - discountNetAmount;
-      
+
       if (isDelhiPincode) {
         // Split discount into CGST and SGST for Delhi
         const discountCgstAmount = discountTaxAmount / 2;
         const discountSgstAmount = discountTaxAmount / 2;
-        
+
         tableRows += `
           <tr>
             <td style="text-align: center;">2</td>
@@ -377,7 +383,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     await sendInvoiceToWhatsApp(
       invoiceUrl,
       customer.mobile,
-      customer.name 
+      customer.name
     )
     const result = {
       fileName: `invoice-${paymentDetails.invoiceNumber}.pdf`,
@@ -401,4 +407,272 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   }
 }
 
-export { generateVendorOnboardedInvoice };
+// ...existing code...
+
+async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = {}) {
+  let browser = null;
+  let page = null;
+
+  try {
+    // Use the booking payment template
+    const templatePath = path.resolve("invoicing-service/templates", "bookingPaymentInvoice.html");
+    let html = readFileSync(templatePath, "utf8");
+    const css = readFileSync(path.resolve("invoicing-service/templates", "style.css"), "utf8");
+
+    const invoiceCount = await getInvoiceCount();
+    const invoiceNumber = invoiceCount + 1;
+
+    const items = Array.isArray(paymentDetails.items) ? paymentDetails.items : [];
+
+    // If overall amount not provided, derive from items
+    let totalAmount = parseFloat(paymentDetails.amount) || 0;
+
+
+    const discountAmount = parseFloat(paymentDetails.discount) || 0;
+    const finalAmount = Math.max(totalAmount, 0);
+    const convinienceFee = parseFloat(paymentDetails.convinienceFee) || 0;
+    const commissionFee = parseFloat(paymentDetails.commissionFee) || 0;
+    const paymentMethod = discountAmount >= totalAmount
+      ? "Eventory-Coupon-Code"
+      : (paymentDetails.method || "Online");
+
+    const invoiceDate = new Date().toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+
+    const isDelhiPincode = customer?.pinCode?.toString().startsWith("1");
+    console.log("Is Delhi Pincode:", isDelhiPincode);
+
+    let runningSerial = 1;
+    let tableRows = "";
+
+    // Build item rows
+    items.forEach((item) => {
+      const gross = parseFloat(item.amount) || 0;
+      const net = gross / 1.18;
+      const tax = gross - net;
+
+      if (isDelhiPincode) {
+        const half = tax / 2;
+        tableRows += `
+          <tr>
+            <td style="text-align:center;" rowspan="2">${runningSerial}</td>
+            <td rowspan="2">${item.name || "Item"}</td>
+            <td rowspan="2" style="text-align:center;">${item.type || "-"}</td>
+            <td rowspan="2" style="text-align:center;">Rs ${net.toFixed(2)}</td>
+            <td style="text-align:center;">9%</td>
+            <td style="text-align:center;">CGST</td>
+            <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
+            <td rowspan="2" style="text-align:center;">Rs ${gross.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">9%</td>
+            <td style="text-align:center;">SGST</td>
+            <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
+          </tr>
+        `;
+      } else {
+        tableRows += `
+          <tr>
+            <td style="text-align:center;">${runningSerial}</td>
+            <td>${item.name || "Item"}</td>
+            <td style="text-align:center;">${item.type || "-"}</td>
+            <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
+            <td style="text-align:center;">18%</td>
+            <td style="text-align:center;">IGST</td>
+            <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
+            <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
+          </tr>
+        `;
+      }
+      runningSerial++;
+    });
+
+    // Discount row (if any)
+    if (discountAmount > 0) {
+
+      const couponCode = (paymentDetails.couponCode || "DISCOUNT").toUpperCase();
+
+      tableRows += `
+          <tr>
+            <td style="text-align:center;">${runningSerial}</td>
+            <td>Discount</td>
+            <td style="text-align:center;">${couponCode}</td>
+            <td style="text-align:center;"></td>
+            <td style="text-align:center;"></td>
+            <td style="text-align:center;"></td>
+            <td style="text-align:center;"></td>
+            <td style="text-align:center;">- Rs ${discountAmount.toFixed(2)}</td>
+          </tr>
+        `;
+
+    }
+
+    var totalRow = `
+    <tr class="total-row">
+        <td colspan="7" style="text-align:right;font-weight:bold;border-top: 2px solid #000">Convinience Fee:</td>
+        <td style="font-weight:bold;border-top: 2px solid #000">Rs ${convinienceFee.toFixed(2)}</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="7" style="text-align:right;font-weight:bold;">Total Paid:</td>
+        <td style="font-weight:bold;">Rs ${finalAmount.toFixed(2)}</td>
+      </tr>
+    `;
+
+    const amountInWordsRow = `
+      <tr class="amount-words-row">
+        <td colspan="8" style="text-align:left;font-style:italic;padding-top:10px;">
+          <strong>Amount in Words:</strong> ${formatAmountInWords(finalAmount)}
+        </td>
+      </tr>
+    `;
+
+    // Build userDetails block (adjust as needed)
+    const userDetails = `
+      <p><strong>${capitalizeWords(customer.name || "")}</strong></p>
+      <p>${customer.address || ""}</p>
+      <p>${customer.pincode || ""}</p>
+      <p>${customer.email || ""}</p>
+      <p>${customer.mobile || ""}</p>
+    `;
+
+    const vendorDetails = `
+      <p><strong>${capitalizeWords(vendor.businessDetails?.businessName || "")}</strong></p>
+      <p>${vendor.businessDetails?.businessAddress || ""}</p>
+      <p>${vendor.businessDetails?.pinCode || ""}</p>
+      <p>${vendor.businessDetails?.email || ""}</p>
+      <p>${vendor.businessDetails?.mobile || ""}</p>
+      <p>${vendor.businessDetails?.panNo ? `PAN: ${vendor.businessDetails.panNo}` : ""}</p>
+      <p>${vendor.businessDetails?.gstin ? `GST: ${vendor.businessDetails.gstin}` : ""}</p>
+    `;
+
+    const advanceDetails = paymentDetails.advanceAmount
+      ? `<p><strong>Advance:</strong> Rs ${Number(paymentDetails.advanceAmount).toFixed(2)}</p>`
+      : "";
+    const dueDetails = paymentDetails.dueAmount
+      ? `<p><strong>Due:</strong> Rs ${Number(paymentDetails.dueAmount).toFixed(2)}</p>`
+      : "";
+
+    var id = "";
+
+    id = `<p><strong>Vendor ID:</strong></p>
+       <p>${customer.id}</p>`;
+
+
+    html = html
+      .replace("{{invoiceCount}}", invoiceNumber)
+      .replace("{{paymentId}}", paymentDetails.invoiceNumber || paymentDetails.paymentId || "-")
+      .replace("{{paymentMethod}}", paymentMethod)
+      .replace("{{invoiceDate}}", invoiceDate)
+      .replace("{{amount}}", `Rs ${finalAmount.toFixed(2)}`)
+      .replace("{{userId}}", id)
+      .replace("{{userDetails}}", userDetails)
+      .replace("{{vendorDetails}}", vendorDetails)
+      .replace("{{advanceDetails}}", advanceDetails)
+      .replace("{{dueDetails}}", dueDetails)
+      .replace("{{tableRows}}", tableRows)
+      .replace("{{totalRow}}", totalRow)
+      .replace("{{amountInWordsRow}}", amountInWordsRow);
+
+    browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
+    await page.addStyleTag({ content: css });
+
+    var pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+
+    if (page && !page.isClosed()) await page.close();
+    if (browser) await browser.close();
+
+    // const invoiceUrl = await uploadToS3(
+    //   pdfBuffer,
+    //   `users/${customer.id}/booking-invoice-${paymentDetails.invoiceNumber || Date.now()}.pdf`
+    // );
+
+    // if (customer.email) {
+    //   await sendInvoiceEmail({
+    //     to: customer.email,
+    //     name: customer.name,
+    //     pdfBuffer,
+    //     pdfFileName: `booking-invoice-${paymentDetails.invoiceNumber || "invoice"}.pdf`
+    //   });
+    // }
+
+    // if (customer.mobile) {
+    //   await sendInvoiceToWhatsApp(invoiceUrl, customer.mobile, customer.name);
+    // }
+
+    // return {
+    //   fileName: `booking-invoice-${paymentDetails.invoiceNumber || "invoice"}.pdf`,
+    //   pdf: pdfBuffer,
+    //   url: invoiceUrl
+    // };
+
+    var outDir = path.resolve("invoicing-service", "output");
+    mkdirSync(outDir, { recursive: true });
+    var fileName = `booking-invoice-${paymentDetails.invoiceNumber || invoiceNumber}.pdf`;
+    var pdfPath = path.join(outDir, fileName);
+    writeFileSync(pdfPath, pdfBuffer);
+
+
+    // vendor invoice
+
+    id = `<p><strong>Vendor ID:</strong></p>
+       <p>${vendor.id}</p>`;
+
+    totalRow = `
+    <tr class="total-row">
+        <td colspan="7" style="text-align:right;font-weight:bold;border-top: 2px solid #000">Vendor Commission:</td>
+        <td style="font-weight:bold;border-top: 2px solid #000">Rs ${commissionFee.toFixed(2)}</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="7" style="text-align:right;font-weight:bold;">Total Paid:</td>
+        <td style="font-weight:bold;">Rs ${finalAmount.toFixed(2)}</td>
+      </tr>
+    `;
+
+
+
+    html = html
+      .replace("{{invoiceCount}}", invoiceNumber)
+      .replace("{{paymentId}}", paymentDetails.invoiceNumber || paymentDetails.paymentId || "-")
+      .replace("{{paymentMethod}}", paymentMethod)
+      .replace("{{invoiceDate}}", invoiceDate)
+      .replace("{{amount}}", `Rs ${finalAmount.toFixed(2)}`)
+      .replace("{{userId}}", id)
+      .replace("{{userDetails}}", userDetails)
+      .replace("{{vendorDetails}}", vendorDetails)
+      .replace("{{advanceDetails}}", advanceDetails)
+      .replace("{{dueDetails}}", dueDetails)
+      .replace("{{tableRows}}", tableRows)
+      .replace("{{totalRow}}", totalRow)
+      .replace("{{amountInWordsRow}}", amountInWordsRow);
+
+    browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
+    await page.addStyleTag({ content: css });
+
+    pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+
+    if (page && !page.isClosed()) await page.close();
+    if (browser) await browser.close();
+
+    outDir = path.resolve("invoicing-service", "output");
+    mkdirSync(outDir, { recursive: true });
+    // fileName = `booking-invoice-${paymentDetails.invoiceNumber || invoiceNumber}.pdf`;
+    fileName = `vendor-invoice-${paymentDetails.invoiceNumber || invoiceNumber}.pdf`;
+    pdfPath = path.join(outDir, fileName);
+    writeFileSync(pdfPath, pdfBuffer);
+  } catch (err) {
+    console.error("Error generating booking invoice:", err);
+    try {
+      if (page && !page.isClosed()) await page.close();
+      if (browser) await browser.close();
+    } catch { }
+    throw err;
+  }
+}
+
+
+
+
+export { generateVendorOnboardedInvoice, generateBookingPaymentInvoice };
