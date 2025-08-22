@@ -5,7 +5,7 @@ import productRoutes from "../routes2/productRoutes.js";
 import authRoutes from "../routes2/authRoutes.js";
 import emailRoutes from "../routes/emailRoutes.js";
 import aboutEmailRoutes from "../routes2/aboutEmailRoutes.js";
-import cashfreeRoutes from "../routes/cashfreeRoutes.js";
+import cashfreeRoutes from "../routes2/cashfreeRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes2/reduxRoutes/businessDetails.js";
 import updatePageRoutes from "../routes/updatePageRoutes.js";
@@ -38,7 +38,7 @@ const MainRoutes = Router();
 
 // // Attach all routes here
 MainRoutes.use("/products", productRoutes);
-// router.use("/payment", cashfreeRoutes);
+router.use("/payment", cashfreeRoutes);
 MainRoutes.use("/auth", authRoutes);
 // router.use("/query", queryRoutes);
 // router.use("/email", emailRoutes);
