@@ -38,7 +38,7 @@ const MainRoutes = Router();
 
 // // Attach all routes here
 MainRoutes.use("/products", productRoutes);
-router.use("/payment", cashfreeRoutes);
+MainRoutes.use("/payment", cashfreeRoutes);
 MainRoutes.use("/auth", authRoutes);
 // router.use("/query", queryRoutes);
 // router.use("/email", emailRoutes);
