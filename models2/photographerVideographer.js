@@ -307,7 +307,7 @@ photographerVideographerSchema.index({ ratings: -1 });
 photographerVideographerSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
 photographerVideographerSchema.index({ pav_created_at: -1 });
 photographerVideographerSchema.index({ pav_updated_at: -1 });
-photographerVideographerSchema.index({ service_id: 1 });
+// Removed duplicate service_id index - it's already created by unique: true constraint
 
 // Check if model already exists to prevent OverwriteModelError
 const PhotographerVideographer = mongoose.models.PhotographerVideographer || 

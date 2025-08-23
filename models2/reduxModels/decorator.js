@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const ReduxDecoratorSchema = new mongoose.Schema(
   {
     // Basic Service Information
-    service_id: { type: String, unique: true },
+    service_id: { type: String },
     vendor_id: { type: String },
     service_type: { type: String, default: "Decorator" },
     pageNumber: { type: Number, default: 1 },

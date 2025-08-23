@@ -288,7 +288,6 @@ makeupArtistSchema.index({ ratings: -1 });
 makeupArtistSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
 makeupArtistSchema.index({ makeup_artist_created_at: -1 });
 makeupArtistSchema.index({ makeup_artist_updated_at: -1 });
-makeupArtistSchema.index({ service_id: 1 });
 
 // Check if model already exists to prevent OverwriteModelError
 const MakeupArtist = mongoose.model('MakeupArtist', makeupArtistSchema);

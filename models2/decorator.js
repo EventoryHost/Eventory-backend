@@ -280,7 +280,7 @@ decoratorSchema.index({ is_active: 1 });
 decoratorSchema.index({ service_areas: 1 });
 decoratorSchema.index({ decorator_created_at: -1 });
 decoratorSchema.index({ decorator_updated_at: -1 });
-decoratorSchema.index({ service_id: 1 });
+// Removed duplicate service_id index - it's already created by unique: true constraint
 
 const Decorator = mongoose.model('Decorators', decoratorSchema);
 
