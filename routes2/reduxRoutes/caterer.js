@@ -7,7 +7,7 @@ const router = express.Router();
 
 // POST or PUT route to save or update catering details
 // Route: /catering-details/
-router.post("/catering-details", async (req, res) => {
+router.post("/", async (req, res) => {
     // We'll use the top-level vendor_id as the canonical source
     const { vendor_id, cateringData } = req.body; 
   
