@@ -8,47 +8,48 @@ const router = express.Router();
 // POST or PUT route to save or update makeup artist details
 // Route: /makeup-artist-details/
 router.post("/", async (req, res) => {
-    // We'll use the top-level vendor_id as the canonical source
-    const { vendor_id, makeupArtistData } = req.body; 
-  
-    if (!vendor_id) {
-      return res.status(400).json({ message: "Vendor ID is required." });
-    }
-  
-    if (!makeupArtistData || Object.keys(makeupArtistData).length === 0) {
-      return res.status(400).json({ message: "Makeup artist details are required." });
-    }
+  const { vendor_id, makeupArtistData } = req.body;
 
-    try {
-        // Create a new data object for the update/create operation.
-        const dataToSave = { 
-            vendor_id, 
-            ...makeupArtistData 
-        };
+  // Validate vendor_id
+  if (!vendor_id) {
+    return res.status(400).json({ message: "Vendor ID is required." });
+  }
 
-        // Find and update the existing document. The `upsert: true` option
-        // will create a new document if one isn't found.
-        const updatedDetails = await ReduxMakeupArtistModel.findOneAndUpdate(
-          { vendor_id },
-          dataToSave,
-          { new: true, upsert: true }
-        );
-        
-        // This response works for both creation and update
-        const message = updatedDetails.isNew ? "Makeup artist details saved successfully." : "Makeup artist details updated successfully.";
+  // Validate makeupArtistData
+  if (!makeupArtistData || Object.keys(makeupArtistData).length === 0) {
+    return res.status(400).json({ message: "Makeup artist details are required." });
+  }
 
-        return res.status(200).json({
-          message,
-          data: updatedDetails,
-        });
+  try {
+    // Prepare data
+    const dataToSave = {
+      vendor_id,
+      ...makeupArtistData
+    };
 
-    } catch (error) {
-      console.error("Error saving/updating makeup artist details:", error);
-      res.status(500).json({
-        message: "Failed to save or update makeup artist details.",
-        error: error.message,
-      });
-    }
+    // Perform DB upsert
+    const updatedDetails = await ReduxMakeupArtistModel.findOneAndUpdate(
+      { vendor_id },
+      dataToSave,
+      { new: true, upsert: true }
+    );
+
+    // Message based on whether new or updated
+    const message = updatedDetails
+      ? "Makeup artist details saved/updated successfully."
+      : "New makeup artist created.";
+
+    return res.status(200).json({
+      message,
+      data: updatedDetails,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to save or update makeup artist details.",
+      error: error.message,
+    });
+  }
 });
   
 // GET route to retrieve makeup artist details by vendor ID
