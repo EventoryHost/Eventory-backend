@@ -88,7 +88,7 @@ const addVendorAgreement = async (req, res) => {
     const { ReduxCatererModel } = await import("../models2/reduxModels/caterer.js");
     const { ReduxDecoratorModel } = await import("../models2/reduxModels/decorator.js");
     // const { ReduxDJModel } = await import("../models2/reduxModels/dj.js");
-    const { MakeupArtistModel  } = await import("../models2/reduxModels/makeupArtist.js");
+    // const { MakeupArtistModel  } = await import("../models2/reduxModels/makeupArtist.js");
     const { ReduxPhotographerVideographerModel } = await import("../models2/reduxModels/photographerVideographer.js");
     const { ReduxVenueProviderModel } = await import("../models2/reduxModels/venueProvider.js");
     const { Caterer } = await import("../models2/caterer.js");

@@ -1,6 +1,6 @@
 import MakeupArtist from "../../models2/makeupArtist.js";
 import { Vendor } from "../../models2/vendor.js";
-import { MakeupArtistModel } from "../../models2/reduxModels/makeUpArtist.js";
+import { MakeupArtistModel } from "../../models2/reduxModels/makeupArtist.js";
 import generateUniqueId from "../../utils/generateId2.js";
 import parseRange from "../../utils/parseRange.js";
 
