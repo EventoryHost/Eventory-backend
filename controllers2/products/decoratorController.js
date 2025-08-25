@@ -75,6 +75,7 @@ const createDecorator = async (req, res) => {
     // Check for existing decorator
     const alreadyExists = await Decorator.findOne({
       vendor_id: req.body.vendor_id,
+      point_of_contact: req.body.point_of_contact,
     });
     if (alreadyExists) {
       return res.status(400).json({ message: "Decorator already exists" });
@@ -183,6 +184,7 @@ const createDecorator = async (req, res) => {
         description: req.body.description,
         event_types_decorated: req.body.event_types_decorated || [],
         service_location_decorator: {
+          service_address: req.body.address, 
           lat: req.body.lat,
           lon: req.body.lon,
           service_pincode: req.body.service_pincode,

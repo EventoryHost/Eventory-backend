@@ -6,7 +6,7 @@ import decoratorController from "../controllers2/products/decoratorController.js
 // import eventPlannerController from "../controllers/products/eventPlannerController.js";
 // import transportController from "../controllers/products/transportController.js";
 // import invitationController from "../controllers/products/invitationController.js";
-// import makeupController from "../controllers/products/makeupController.js";
+import makeupController from "../controllers2/products/makeupController.js";
 // import djController from "../controllers/products/djController.js";
 // import giftController from "../controllers/products/giftController.js";
 // import propController from "../controllers/products/propController.js";
@@ -22,7 +22,7 @@ router.get("/decorator", decoratorController.getAllDecorators);
 // router.get("/event-planner", eventPlannerController.getAllEventPlanner);
 // router.get("/gift", giftController.getAllGift);
 // router.get("/invitation", invitationController.getAllInvitation);
-// router.get("/makeup", makeupController.getAllMakeupArtist);
+router.get("/makeup", makeupController.getAllMakeupArtist);
 // router.get("/dj", djController.getAllDjArtist);
 router.get("/photographer", photographerController.getAllPav);
 // router.get("/prop-rental", propController.getAllProp);
@@ -61,11 +61,11 @@ router.post(
 router.post(
   "/add-venue_provider",
   upload("Venues").fields([
-    { name: "termsConditions", maxCount: 1 },
-    { name: "cancellationPolicy", maxCount: 1 },
-    { name: "insurancePolicy", maxCount: 1 },
-    { name: "photos", maxCount: 20 },
-    { name: "videos", maxCount: 20 },
+    { name: "terms_and_conditions", maxCount: 1 },
+    { name: "cancellation_policy", maxCount: 1 },
+    { name: "insurance_policy", maxCount: 1 },
+    { name: "asset_images", maxCount: 20 },
+    { name: "asset_videos", maxCount: 20 },
   ]),
   venueController.createVenue,
 );
@@ -83,10 +83,10 @@ router.post(
 router.post(
   "/add-decorator",
   upload("Decorator").fields([
-    { name: "termsAndConditions", maxCount: 1 },
-    { name: "cancellationPolicy", maxCount: 1 },
-    { name: "photos", maxCount: 20 },
-    { name: "videos", maxCount: 20 },
+    { name: "terms_and_conditions", maxCount: 1 },
+    { name: "cancellation_policy", maxCount: 1 },
+    { name: "asset_images", maxCount: 20 },
+    { name: "asset_videos", maxCount: 20 },
     { name: "themephotos", maxCount: 20 },
     { name: "themevideos", maxCount: 20 },
   ]),
@@ -114,11 +114,11 @@ router.post(
 //   invitationController.createInvitation,
 // );
 
-// router.post(
-//   "/add-makeup-artist",
-//   upload("Makeup Artists").fields([{ name: "portfolio", maxCount: 20 }]),
-//   makeupController.createMakeupArtist,
-// );
+router.post(
+  "/add-makeup-artist",
+  upload("Makeup Artists").fields([{ name: "portfolio", maxCount: 20 }]),
+  makeupController.createMakeupArtist,
+);
 
 // router.post(
 //   "/add-dj-artist",
@@ -159,10 +159,10 @@ router.post(
 router.post(
   "/add-photographer",
   upload("Photographers").fields([
-    { name: "termsAndConditions", maxCount: 1 },
-    { name: "cancellationPolicy", maxCount: 1 },
-    { name: "photos", maxCount: 20 },
-    { name: "videos", maxCount: 20 },
+    { name: "terms_and_conditions", maxCount: 1 },
+    { name: "cancellation_policy", maxCount: 1 },
+    { name: "asset_images", maxCount: 20 },
+    { name: "asset_videos", maxCount: 20 },
   ]),
   photographerController.createPhotographer,
 );

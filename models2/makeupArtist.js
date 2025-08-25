@@ -239,48 +239,44 @@ const makeupArtistSchema = new Schema({
 }, {
   collection: 'makeup-artists'
 });
-
 // Pre-save middleware to update makeup_artist_updated_at on every save
 makeupArtistSchema.pre('save', function(next) {
   if (!this.isNew) {
-    // Convert to IST (UTC+5:30)
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     this.makeup_artist_updated_at = new Date(now.getTime() + istOffset);
   }
-  
+
   // Update nested document timestamps if they exist and are modified
   if (this.isModified('bank_details') && this.bank_details) {
-    this.bank_details.bank_updated_at = new Date(now.getTime() + istOffset);
+    this.bank_details.bank_updated_at = this.makeup_artist_updated_at;
   }
-  
+
   if (this.isModified('business_details') && this.business_details) {
-    this.business_details.business_updated_at = new Date(now.getTime() + istOffset);
+    this.business_details.business_updated_at = this.makeup_artist_updated_at;
   }
-  
+
   next();
 });
 
 // Pre-update middleware to update makeup_artist_updated_at on updates
 makeupArtistSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
-  // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);
-  
+
   this.set({ makeup_artist_updated_at: istTime });
-  
-  // Update nested document timestamps if they are being updated
+
   const update = this.getUpdate();
-  
+
   if (update.bank_details || update['bank_details']) {
     this.set({ 'bank_details.bank_updated_at': istTime });
   }
-  
+
   if (update.business_details || update['business_details']) {
     this.set({ 'business_details.business_updated_at': istTime });
   }
-  
+
   next();
 });
 
@@ -292,11 +288,9 @@ makeupArtistSchema.index({ ratings: -1 });
 makeupArtistSchema.index({ profile_completion_score: -1 }); // Fixed field name in index
 makeupArtistSchema.index({ makeup_artist_created_at: -1 });
 makeupArtistSchema.index({ makeup_artist_updated_at: -1 });
-makeupArtistSchema.index({ service_id: 1 });
 
 // Check if model already exists to prevent OverwriteModelError
-const MakeupArtist = mongoose.models.MakeupArtist || 
-  model('MakeupArtist', makeupArtistSchema);
+const MakeupArtist = mongoose.model('MakeupArtist', makeupArtistSchema);
 
 export default MakeupArtist;
 

@@ -67,7 +67,7 @@ const createPhotographer = async (req, res) => {
     try {
       const service_id = generateUniqueId("PAV");
     const alreadyExists = await PhotographerVideographer.findOne({
-      vendor_id: req.body.venId,
+      vendor_id: req.body.vendor_id,
     });
     if (alreadyExists) {
       return res
@@ -180,6 +180,7 @@ const createPhotographer = async (req, res) => {
         do_advance_setup,
         do_post_production_services,
         service_location_pav: {
+          service_address: req.body.address, 
           lat: service_lat,
           lon: service_lon,
           service_pincode,
@@ -268,7 +269,7 @@ const createPhotographer = async (req, res) => {
 
     vendor.services.push(savedPAV.vendor_id);
     await vendor.save();
-
+    await updateSectionCompletion(savedPAV.vendor_id);
     process.env.IS_DEV !== "true" &&
       sendEmailToSlack({
         name: savedPAV.business_details.business_name,

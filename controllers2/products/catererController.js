@@ -71,7 +71,7 @@ const createCaterer = async (req, res) => {
     //ser1: Ankit caterer
     //ser2: ankit caterer
     const alreadyExists = await Caterer.findOne({
-      point_of_contact: req.body.name,
+      point_of_contact: req.body.point_of_contact,
       vendor_id: req.body.vendor_id,
     });
     if (alreadyExists) {
@@ -199,6 +199,7 @@ const createCaterer = async (req, res) => {
         regional_specialities: req.body.regional_specialities || [],
         service_style_offered: req.body.service_style_offered || [],
         service_location_caterer: {
+          service_address: req.body.address, 
           lat: req.body.latitude,
           lon: req.body.longitude,
           service_pincode: parseInt(req.body.pincode, 10),
@@ -284,7 +285,7 @@ const createCaterer = async (req, res) => {
     const savedCaterer = await newCaterer.save();
 
     // Associate with vendor
-    const vendor = await Vendor.findOne({ id: req.body.venId });
+    const vendor = await Vendor.findOne({ vendor_id: req.body.venId });
     if (!vendor) {
       await Caterer.findByIdAndDelete(savedCaterer.vendor_id);
       return res.status(404).json({ message: "Vendor not found" });

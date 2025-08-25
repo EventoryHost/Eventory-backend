@@ -1,5 +1,5 @@
 import express from "express";
-import { ReduxMakeupArtistModel } from "../../models2/reduxModels/makeUpArtist.js";
+import { MakeupArtistModel } from "../../models2/reduxModels/makeupArtist.js";
 
 const router = express.Router();
 
@@ -27,17 +27,16 @@ router.post("/", async (req, res) => {
       ...makeupArtistData
     };
 
-    // Perform DB upsert
-    const updatedDetails = await ReduxMakeupArtistModel.findOneAndUpdate(
-      { vendor_id },
-      dataToSave,
-      { new: true, upsert: true }
-    );
-
-    // Message based on whether new or updated
-    const message = updatedDetails
-      ? "Makeup artist details saved/updated successfully."
-      : "New makeup artist created.";
+        // Find and update the existing document. The `upsert: true` option
+        // will create a new document if one isn't found.
+        const updatedDetails = await MakeupArtistModel.findOneAndUpdate(
+          { vendor_id },
+          dataToSave,
+          { new: true, upsert: true }
+        );
+        
+        // This response works for both creation and update
+        const message = updatedDetails.isNew ? "Makeup artist details saved successfully." : "Makeup artist details updated successfully.";
 
     return res.status(200).json({
       message,
@@ -58,7 +57,7 @@ router.get("/:vendor_id", async (req, res) => {
     const { vendor_id } = req.params;
   
     try {
-      const makeupArtistDetails = await ReduxMakeupArtistModel.findOne({ vendor_id: vendor_id.trim() });
+      const makeupArtistDetails = await MakeupArtistModel.findOne({ vendor_id: vendor_id.trim() });
   
       if (!makeupArtistDetails) {
         return res.status(404).json({ message: "Makeup artist details not found." });
@@ -84,7 +83,7 @@ router.delete("/:vendor_id", async (req, res) => {
     }
   
     try {
-      const deletedDetails = await ReduxMakeupArtistModel.findOneAndDelete({ vendor_id: vendor_id }); 
+      const deletedDetails = await MakeupArtistModel.findOneAndDelete({ vendor_id: vendor_id }); 
   
       if (!deletedDetails) {
         return res.status(404).json({ message: "Makeup artist details not found for deletion." });

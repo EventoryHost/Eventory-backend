@@ -66,6 +66,7 @@ const createVenue = async (req, res) => {
     // Check if the venue already exists for the given vendor ID
     const alreadyExists = await VenueProvider.findOne({
       vendor_id: req.body.vendor_id,
+      point_of_contact: req.body.point_of_contact,
     });
     if (alreadyExists) {
       return res
@@ -197,6 +198,7 @@ const createVenue = async (req, res) => {
         service_type_details: req.body.service_type_details || [],
         event_types_venue: req.body.event_types_venue || [],
         service_location_venue: {
+          service_address: req.body.address, 
           lat: req.body.lat,
           lon: req.body.lon,
           service_opening_time: req.body.service_opening_time,

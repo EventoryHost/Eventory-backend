@@ -1,11 +1,11 @@
 import express from "express";
-import { CateringModel } from "../models/reduxStores/catering.js";
-import { DecoratorModel } from "../models/reduxStores/decorator.js";
-import PAVModel from "../models/reduxStores/pav.js";
-import VenueModel from "../models/reduxStores/venue-provider.js";
-import PropRentalModel from "../models/reduxStores/prop-rental.js";
-import MakeupArtistModel from "../models/reduxStores/makeUpArtist.js";
-import DjArtistModel from "../models/reduxStores/djArtist.js";
+import  {ReduxCatererModel}  from "../models2/reduxModels/caterer.js";
+import { ReduxDecoratorModel } from "../models2/reduxModels/decorator.js";
+import {ReduxPhotographerVideographerModel} from "../models2/reduxModels/photographerVideographer.js";
+import {ReduxVenueProviderModel} from "../models2/reduxModels/venueProvider.js";
+// import PropRentalModel from "../models2/reduxModels/prop-rental.js";
+import {MakeupArtistModel} from "../models2/reduxModels/makeupArtist.js";
+// import DjArtistModel from "../models2/reduxModels/decorator.js";
 
 const router = express.Router();
 
@@ -19,20 +19,20 @@ const router = express.Router();
 const getModelByFlowType = (flowType) => {
   switch (flowType) {
     case "caterer":
-      return CateringModel;
+      return ReduxCatererModel;
     case "decorator":
-      return DecoratorModel;
-    case "pav":
-      return PAVModel;
-    case "venue-provider":
-      return VenueModel;
-    case "prop-rental":
+      return ReduxDecoratorModel;
+    case "photographerVideographer":
+      return ReduxPhotographerVideographerModel;
+    case "venue_provider":
+      return ReduxVenueProviderModel;
+    case "prop_rental":
       return PropRentalModel;
-    case "makeupArtist":
+    case "makeup_artist":
       return MakeupArtistModel;
     case "djArtist":
       return DjArtistModel;
-    case "dj-artist": // alias for compatibility
+    case "dj_artist":
       return DjArtistModel;
     default:
       return null;
@@ -52,11 +52,11 @@ const getModelByFlowType = (flowType) => {
  * Body:
  * - pageNumber: The new page number to save
  */
-router.put("/:flowType/updatePageNumber/:id", async (req, res) => {
-  const { flowType, id } = req.params;
+router.put("/:flowType/updatePageNumber/:vendor_id", async (req, res) => {
+  const { flowType, vendor_id } = req.params;
   const { pageNumber } = req.body;
 
-  console.log("Received page number to update:", pageNumber, flowType, id);
+  console.log("Received page number to update:", pageNumber, flowType, vendor_id);
 
   // Validate input
   if (!pageNumber) {
@@ -73,9 +73,9 @@ router.put("/:flowType/updatePageNumber/:id", async (req, res) => {
 
     // Find vendor by ID and update its pageNumber, or create if not found
     const updatedVendor = await Model.findOneAndUpdate(
-      { id },
+      { vendor_id },
       { pageNumber },
-      { new: true, upsert: true }
+      { new: true, upsert: false }
     );
 
     res.json({
@@ -98,8 +98,8 @@ router.put("/:flowType/updatePageNumber/:id", async (req, res) => {
  * - flowType: Type of vendor
  * - vendorId: Vendor's unique ID
  */
-router.get("/:flowType/getLastPageNumber/:vendorId", async (req, res) => {
-  const { flowType, vendorId } = req.params;
+router.get("/:flowType/getLastPageNumber/:vendor_id", async (req, res) => {
+  const { flowType, vendor_id } = req.params;
 
   try {
     // Select correct model
@@ -110,7 +110,7 @@ router.get("/:flowType/getLastPageNumber/:vendorId", async (req, res) => {
     }
 
     // Fetch vendor data
-    const vendor = await Model.findOne({ id: vendorId });
+    const vendor = await Model.findOne({ vendor_id: vendor_id });
 
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });

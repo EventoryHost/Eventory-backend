@@ -23,13 +23,13 @@ const getNextInvoiceNumber = async () => {
 const invoicesSchema = new mongoose.Schema({
   invoice_no: {
     type: Number,
-    required: true,
+    // required: true,
     unique: true
     // Auto-incremental number - will be set in pre-save middleware
   },
   invoice_id: {
     type: String,
-    required: true,
+    // required: true,
     unique: true,
     default: () => generateUniqueId("INV")
   },
