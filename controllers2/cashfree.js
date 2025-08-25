@@ -8,6 +8,7 @@ import { sendEmailInvoice } from "../controllers2/sesController.js";
 import { generatePaymentId } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
+import { Invoices } from "../models2/invoices.js";
 
 dotenv.config();
 
@@ -260,7 +261,27 @@ const verifyCustomerPayment = async (req, res) => {
   }
 };
 
+const savePaymentInvoice = async (req, res) => {
+  try {
+    const invoice = new Invoices({
+      ...req.body
+    });
 
+    const savedInvoice = await invoice.save(); 
+
+    return res.status(201).json({
+      success: true,
+      message: "Invoice saved successfully",
+      data: savedInvoice
+    });
+  } catch (error) {
+    console.error("Error saving invoice:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to save invoice"
+    });
+  }
+};
 
 export default {
   createOrder,
@@ -268,5 +289,6 @@ export default {
   sendInvoice,
   handleWebhook,
   getPaymentSession,
-  verifyCustomerPayment
+  verifyCustomerPayment,
+  savePaymentInvoice
 };

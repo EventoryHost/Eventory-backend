@@ -19,4 +19,6 @@ cashfreeRoutes.post("/verify-customer-payment", cashfreeController.verifyCustome
 
 // cashfreeRoutes.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
 
+cashfreeRoutes.post("/payment-invoice", cashfreeController.savePaymentInvoice);
+
 export default cashfreeRoutes;
