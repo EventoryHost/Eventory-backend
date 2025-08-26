@@ -85,7 +85,7 @@ router.post("/", async (req, res) => {
     if (isNaN(parsedNumberOfGuest)) {
       return res
         .status(400)
-        .json({ error: "Budget and Number of Guests must be valid numbers." });
+        .json({ error: " Number of Guests must be valid numbers." });
     }
 
     const newQuotation = new Quotation({
