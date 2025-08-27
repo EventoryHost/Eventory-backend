@@ -3,6 +3,9 @@ import Order from "../models/finalOrders.js";
 import customerNotification from "../models/customerNotification.js";
 import vendorNotification from "../models/vendorNotification.js";
 import adminNotification from "../models/adminNotification.js";
+import { Quotation } from "../models/quotation.js";
+import { Customer } from "../models/customer.js";
+import  Chat  from "../models/chat.js";
 
 const router = express.Router();
 
@@ -57,7 +60,6 @@ const router = express.Router();
  *       400:
  *         description: Failed to process booking
  */
-
 
 router.post("/finalOrder", async (req, res) => {
   try {
@@ -131,7 +133,6 @@ router.get("/finalOrder", async (req, res) => {
  *         description: Order not found
  */
 
-
 // backend route to find status of approvals using quotationId
 router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
   const { id } = req.params;
@@ -174,7 +175,6 @@ router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
  *       500:
  *         description: Server error
  */
-
 
 // Approve or mark as needs discussion
 router.put("/finalOrder/approve", async (req, res) => {
@@ -251,6 +251,49 @@ router.put("/finalOrder/approve", async (req, res) => {
         quotationId: order.quotationId,
         message,
       });
+
+      // 1. Delete the main quotation document.
+      try {
+        const deleteResult = await Quotation.deleteOne({
+          id: order.quotationId,
+        });
+        console.log(
+          "Quotation deleted from Quotation collection:",
+          deleteResult
+        );
+      } catch (deleteError) {
+        console.error(
+          "Error deleting quotation from Quotation collection:",
+          deleteError
+        );
+      }
+
+      // 2. Delete the specific quotation object from the customer's quotations array.
+      try {
+        const updateResult = await Customer.updateOne(
+          { id: order.customerId },
+          { $pull: { quotations: { quotationId: order.quotationId } } }
+        );
+        console.log(
+          "Quotation object removed from customer document:",
+          updateResult
+        );
+      } catch (updateError) {
+        console.error(
+          "Error removing quotation from customer document:",
+          updateError
+        );
+      }
+
+      // 3. Delete the chat document associated with the quotation.
+      try {
+        const chatDeleteResult = await Chat.deleteOne({
+          chatId: order.quotationId, // Assuming chatId is the same as quotationId
+        });
+        console.log("Chat deleted successfully:", chatDeleteResult);
+      } catch (chatError) {
+        console.error("Error deleting chat:", chatError);
+      }
 
       return res.status(200).json({
         message: `Both parties approved. Checkout link sent to customer.`,
@@ -393,7 +436,6 @@ router.put("/finalOrder/approve", async (req, res) => {
  *         description: Booking not found
  */
 
-
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
   try {
@@ -439,7 +481,6 @@ router.put("/finalOrder/:orderId", async (req, res) => {
  *         description: No bookings found
  */
 
-
 // Fetch all bookings for a vendor (by vendorId)
 router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
   try {
@@ -479,7 +520,6 @@ router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
  *         description: No bookings found
  */
 
-
 // Fetch all bookings for a customer (by customerId)
 router.get("/finalOrder/customer/:customerId", async (req, res) => {
   try {
@@ -518,7 +558,6 @@ router.get("/finalOrder/customer/:customerId", async (req, res) => {
  *       404:
  *         description: Booking not found
  */
-
 
 // Fetch a specific booking by orderId
 router.get("/finalOrder/:orderId", async (req, res) => {

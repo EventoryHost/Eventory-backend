@@ -4,7 +4,7 @@ import { Customer } from "../models/customer.js";
 import { getQuotations } from "../controllers/quotationController.js";
 import generateUniqueId from "../utils/generateId.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
-import { v4 as uuidv4 } from "uuid"; 
+import { v4 as uuidv4 } from "uuid";
 import Chat from "../models/chat.js";
 
 const router = express.Router();
@@ -116,8 +116,10 @@ router.post("/", async (req, res) => {
       customer.quotations = [];
     }
 
-    if (customer.quotations.find(q => q.serviceId === req.body.service_id)) {
-      return res.status(400).json({ message: "Quotation already created for this service" });
+    if (customer.quotations.find((q) => q.serviceId === req.body.service_id)) {
+      return res
+        .status(400)
+        .json({ message: "Quotation already created for this service" });
     }
 
     customer.quotations.push({
@@ -181,7 +183,9 @@ router.get("/", async (req, res) => {
     const quotations = await Quotation.find({ vendor_id });
 
     if (quotations.length === 0) {
-      return res.status(404).json({ message: `No quotations found for vendor_id: ${vendor_id}` });
+      return res
+        .status(404)
+        .json({ message: `No quotations found for vendor_id: ${vendor_id}` });
     }
 
     res.status(200).json({
@@ -263,16 +267,23 @@ router.patch("/", async (req, res) => {
   try {
     const { id, status } = req.body;
 
-    const updateResult = await Quotation.updateOne({ id }, { $set: { status } });
+    const updateResult = await Quotation.updateOne(
+      { id },
+      { $set: { status } }
+    );
 
     if (updateResult.modifiedCount === 0) {
-      return res.status(404).json({ message: "Quotation not found or unchanged" });
+      return res
+        .status(404)
+        .json({ message: "Quotation not found or unchanged" });
     }
 
     const updatedQuotation = await Quotation.findOne({ id });
 
     if (!updatedQuotation) {
-      return res.status(404).json({ message: "Quotation not found after update" });
+      return res
+        .status(404)
+        .json({ message: "Quotation not found after update" });
     }
 
     if (status === "Accepted") {
@@ -284,6 +295,11 @@ router.patch("/", async (req, res) => {
         serId: service_id,
       });
 
+      if (existingChat) {
+        console.log("Chat already exists between customer and vendor.");
+        return;
+      }
+
       if (!existingChat) {
         await Chat.create({
           chatId: id,
@@ -292,6 +308,7 @@ router.patch("/", async (req, res) => {
           serId: service_id,
           rmId: "admin-rm",
         });
+        console.log("New chat created between customer and vendor.");
       }
     }
 
@@ -359,6 +376,27 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error retrieving quotation",
+      error: error.message,
+    });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleteResult = await Quotation.deleteOne({ id });
+
+    if (deleteResult.deletedCount === 0) {
+      return res.status(404).json({ message: "Quotation not found" });
+    }
+
+    res.status(200).json({
+      message: "Quotation deleted successfully!",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting quotation",
       error: error.message,
     });
   }

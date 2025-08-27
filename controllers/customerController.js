@@ -304,3 +304,43 @@ export const getCustomerById = async (req, res) => {
   }
 };
 
+// Add this new function to handle the deletion
+export const removeQuotationFromCustomer = async (req, res) => {
+  try {
+    const { customerId, quotationId } = req.params;
+
+    // Use findOneAndUpdate with the $pull operator to remove the object from the array
+    const updatedCustomer = await Customer.findOneAndUpdate(
+      { id: customerId },
+      { $pull: { quotations: { quotationId: quotationId } } },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedCustomer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    // Check if the quotation was actually removed
+    const wasQuotationRemoved = updatedCustomer.quotations.some(
+      (q) => q.quotationId === quotationId
+    );
+
+    if (wasQuotationRemoved) {
+      return res.status(404).json({
+        message: "Quotation object not found in customer's document.",
+      });
+    }
+
+    res.status(200).json({
+      message: "Quotation object removed from customer document successfully!",
+      customer: updatedCustomer,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        message: "Error removing quotation object from customer document",
+        error: error.message,
+      });
+  }
+};
