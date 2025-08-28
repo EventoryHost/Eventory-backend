@@ -9,7 +9,19 @@ const vendorNotificationSchema = new mongoose.Schema({
     type: String,
   },
   timestamp: { type: Date, default: Date.now },
-  read: { type: Boolean, default: false }, // <-- Add this line
+  read: { type: Boolean, default: false }, 
+  type: {
+    type: String,
+    enum: [
+      'quotation',
+      'order_request',
+      'order_approved',
+      "order_pending",
+      'payment_done',
+      'misc'
+    ],
+    required: true,
+  },
 });
 
 

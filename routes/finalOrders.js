@@ -234,13 +234,16 @@ router.put("/finalOrder/approve", async (req, res) => {
         { new: true, upsert: true }
       );
 
+      console.log(`Both parties agreed ...... Sending Agreed Notification 🥳🥳🥳🥳🥳🥳🥳`);
+
       // Vendor Notification
-      await vendorNotification.create({
+      const newVendorNotification = await vendorNotification.create({
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         quotationId: order.quotationId,
         message,
+        type: "order_approved",
       });
 
       // Admin Notification
@@ -306,12 +309,13 @@ router.put("/finalOrder/approve", async (req, res) => {
     if (approvals.customer === false || approvals.vendor === false) {
       const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
 
-      await vendorNotification.create({
+      const newVendorNotification = await vendorNotification.create({
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         quotationId: order.quotationId,
         message,
+        type: "order_rejected",
       });
 
       await adminNotification.create({
@@ -362,12 +366,13 @@ router.put("/finalOrder/approve", async (req, res) => {
     const message = `🟡 Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.orderId})`;
 
     // Notify Vendor
-    await vendorNotification.create({
+    const newVendorNotification = await vendorNotification.create({
       vendorId: order.vendorId,
       customerId: order.customerId,
       orderId: order.orderId,
       quotationId: order.quotationId,
       message,
+      type: "order_pending",
     });
 
     // Notify Admin
