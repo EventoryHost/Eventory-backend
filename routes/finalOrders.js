@@ -253,53 +253,53 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
 
       // 1. Delete the main quotation document.
-      try {
-        const deleteResult = await Quotation.deleteOne({
-          id: order.quotationId,
-        });
-        console.log(
-          "Quotation deleted from Quotation collection:",
-          deleteResult
-        );
-      } catch (deleteError) {
-        console.error(
-          "Error deleting quotation from Quotation collection:",
-          deleteError
-        );
-      }
+      // try {
+      //   const deleteResult = await Quotation.deleteOne({
+      //     id: order.quotationId,
+      //   });
+      //   console.log(
+      //     "Quotation deleted from Quotation collection:",
+      //     deleteResult
+      //   );
+      // } catch (deleteError) {
+      //   console.error(
+      //     "Error deleting quotation from Quotation collection:",
+      //     deleteError
+      //   );
+      // }
 
       // 2. Delete the specific quotation object from the customer's quotations array.
-      try {
-        const updateResult = await Customer.updateOne(
-          { id: order.customerId },
-          { $pull: { quotations: { quotationId: order.quotationId } } }
-        );
-        console.log(
-          "Quotation object removed from customer document:",
-          updateResult
-        );
-      } catch (updateError) {
-        console.error(
-          "Error removing quotation from customer document:",
-          updateError
-        );
-      }
+      // try {
+      //   const updateResult = await Customer.updateOne(
+      //     { id: order.customerId },
+      //     { $pull: { quotations: { quotationId: order.quotationId } } }
+      //   );
+      //   console.log(
+      //     "Quotation object removed from customer document:",
+      //     updateResult
+      //   );
+      // } catch (updateError) {
+      //   console.error(
+      //     "Error removing quotation from customer document:",
+      //     updateError
+      //   );
+      // }
 
       // 3. Delete the chat document associated with the quotation.
-      try {
-        const chatDeleteResult = await Chat.deleteOne({
-          chatId: order.quotationId, // Assuming chatId is the same as quotationId
-        });
-        console.log("Chat deleted successfully:", chatDeleteResult);
-      } catch (chatError) {
-        console.error("Error deleting chat:", chatError);
-      }
+      // try {
+      //   const chatDeleteResult = await Chat.deleteOne({
+      //     chatId: order.quotationId, // Assuming chatId is the same as quotationId
+      //   });
+      //   console.log("Chat deleted successfully:", chatDeleteResult);
+      // } catch (chatError) {
+      //   console.error("Error deleting chat:", chatError);
+      // }
 
-      return res.status(200).json({
-        message: `Both parties approved. Checkout link sent to customer.`,
-        data: order,
-        checkoutURL,
-      });
+      // return res.status(200).json({
+      //   message: `Both parties approved. Checkout link sent to customer.`,
+      //   data: order,
+      //   checkoutURL,
+      // });
     }
 
     // ❌ Case: Rejected by any party

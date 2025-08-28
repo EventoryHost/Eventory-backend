@@ -265,11 +265,12 @@ router.get("/all", async (req, res) => {
  */
 router.patch("/", async (req, res) => {
   try {
-    const { id, status } = req.body;
+    const { id, status, booking_payment_status } = req.body; // Destructure the new field
 
+    // Update both status and booking_payment_status
     const updateResult = await Quotation.updateOne(
       { id },
-      { $set: { status } }
+      { $set: { status, booking_payment_status } }
     );
 
     if (updateResult.modifiedCount === 0) {
@@ -288,7 +289,6 @@ router.patch("/", async (req, res) => {
 
     if (status === "Accepted") {
       const { user_id, vendor_id, service_id } = updatedQuotation;
-
       const existingChat = await Chat.findOne({
         cusId: user_id,
         venId: vendor_id,
@@ -314,7 +314,7 @@ router.patch("/", async (req, res) => {
 
     res.status(200).json({
       message: "Quotation updated successfully!",
-      data: updatedQuotation.status,
+      data: updatedQuotation,
     });
   } catch (error) {
     res.status(500).json({
