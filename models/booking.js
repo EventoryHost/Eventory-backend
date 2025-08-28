@@ -20,6 +20,7 @@ const BusinessDetailsSchema = new Schema({
 const FinalizedContentSchema = new Schema({
   name: String,
   price: Number,
+  description: String,
   _id: String,
 }, { _id: false });
 
