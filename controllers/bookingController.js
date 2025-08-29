@@ -4,7 +4,41 @@ import { Decorator } from "../models/decoraters.js";
 import { eventSchema, Venue } from "../models/venue.js";
 import Photographer from "../models/photographers.js";
 import MakeupArtist from "../models/makeupArtists.js";
+
 import generateUniqueId from "../utils/generateId.js";
+import { sendVendorEventBookingMessage } from "./waController.js";
+import { sendCustomerEventBookingMessage } from "./waController.js";
+import { Vendor } from "../models/users.js";
+import { Customer } from "../models/customer.js";
+import e from "express";
+
+function modelFromServiceId(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+  const prefix = serviceId.slice(0, 3).toLowerCase();
+
+  switch (prefix) {
+    case "cat":
+      return { Model: Caterer, vendorType: "caterer" };
+    case "dec":
+      return { Model: Decorator, vendorType: "decorator" };
+    case "mak":
+      return { Model: MakeupArtist, vendorType: "makeup" };
+    case "pav":
+      return { Model: Photographer, vendorType: "photographer" };
+    case "veu":
+      return { Model: Venue, vendorType: "venue" };
+    default:
+      return null;
+  }
+}
+
+const EVENT_COLORS = ["teal", "orange", "indigo", "blue", "purple"];
+
+function getRandomEventColor() {
+  const idx = Math.floor(Math.random() * EVENT_COLORS.length);
+  return EVENT_COLORS[idx];
+}
+
 
 export const createBooking = async (req, res) => {
   const {
@@ -24,13 +58,15 @@ export const createBooking = async (req, res) => {
     paymentDetails,
     paymentStatus,
     capacity,
-    // totalRatings,
-    vendorBusinessDetails,  // <-- NEW
-    rating,                 // <-- NEW
-    finalizedContents,       // <-- NEW
+    vendorBusinessDetails,
+    rating,
+    finalizedContents,
     serviceName,
     serviceLocation,
     serviceAddress,
+    eventLocation,
+    eventTime,
+    eventType,
   } = req.body;
 
   try {
@@ -51,29 +87,125 @@ export const createBooking = async (req, res) => {
       paymentDetails,
       paymentStatus,
       capacity,
-      // totalRatings,
       vendorBusinessDetails,
       rating,
       finalizedContents,
       serviceName,
       serviceLocation,
       serviceAddress,
+      eventLocation,
+      eventTime,
+      eventType,
     });
 
     const savedBooking = await newBooking.save();
+
+    const eventId = generateUniqueId("eve");
+
+    try {
+      const resolved = modelFromServiceId(serviceId);
+
+      if (resolved) {
+        const { Model } = resolved;
+
+        const eventObj = {
+          id: eventId,
+          title: eventType,
+          description:
+            (description && description.trim()) ||
+            `Booking ${savedBooking.bookingid} - ${customerName || ""}`.trim(),
+          start: startDate,
+          end: endDate,
+          color: getRandomEventColor(),
+        };
+
+        await Model.findOneAndUpdate(
+          { id: serviceId },
+          { $push: { schedule: eventObj } },
+          { new: true }
+        ).lean();
+      }
+    } catch (error) {
+      // skip error to avoid breaking booking creation
+    }
 
     res.status(201).json({
       message: "Booking created successfully",
       booking: savedBooking,
     });
+
+    const vendor = await Vendor.findOne({ id: venId }).lean();
+    const customer = await Customer.findOne({ id: customerId }).lean();
+
+    const vendorMobile =
+      vendor?.phone || vendor?.mobile || vendor?.whatsapp || vendor?.contactNumber;
+    const customerMobile =
+      customer?.phone || customer?.mobile || customer?.whatsapp || customer?.contactNumber;
+
+    const formatDate = (dateInput) => {
+      const date = new Date(dateInput);
+
+      const day = date.getDate();
+      const getDaySuffix = (d) => {
+        if (d > 3 && d < 21) return "th";
+        switch (d % 10) {
+          case 1: return "st";
+          case 2: return "nd";
+          case 3: return "rd";
+          default: return "th";
+        }
+      };
+      const dayWithSuffix = `${day}${getDaySuffix(day)}`;
+      const month = date.toLocaleString("en-US", { month: "short" });
+      const year = date.getFullYear();
+
+      return `${dayWithSuffix} ${month} ${year}`;
+    };
+
+    const dateText = formatDate(startDate);
+    const timeText = eventTime || "To be confirmed";
+    const venueText = eventLocation;
+
+    const customerLink = `http://eventory.in/customerbooking/${savedBooking?.bookingid}`;
+    const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
+
+    if (customerMobile) {
+      try {
+        await sendCustomerEventBookingMessage({
+          customer_mobile: String(customerMobile),
+          date: String(dateText),
+          time: String(timeText),
+          venue: String(venueText),
+          link: String(customerLink),
+        });
+      } catch (e) {
+        // skip failed customer WhatsApp
+      }
+    }
+
+    if (vendorMobile) {
+      try {
+        await sendVendorEventBookingMessage({
+          vendor_mobile: String(vendorMobile),
+          date: String(dateText),
+          time: String(timeText),
+          venue: String(venueText),
+          link: String(vendorLink),
+        });
+      } catch (e) {
+        // skip failed vendor WhatsApp
+      }
+    }
   } catch (error) {
-    console.error("Error creating booking:", error);
     res.status(500).json({
       message: "An error occurred while creating the booking",
       error: error.message,
     });
   }
 };
+
+
+
 
 export const getBooking = async (req, res) => {
   try {
@@ -121,30 +253,32 @@ export const fetchBooking = async (req, res) => {
 };
 
 export const updateBooking = async (req, res) => {
-  const { bookingId } = req.params; // Retrieve the booking ID from the URL parameters
-  const updateData = req.body; // Expecting the updated data from the request body
+  const { bookingId } = req.params;
+  const updateData = req.body;
 
   try {
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      bookingId,
-      updateData,
-      { new: true },
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { bookingid: bookingId }, 
+      { $set: updateData },   
+      { new: true }
     );
+
 
     if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
     }
+
 
     res.status(200).json({
       message: "Booking updated successfully",
       booking: updatedBooking,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "An error occurred", error: error.message });
+    res.status(500).json({ message: "An error occurred", error: error.message });
   }
 };
+
+
 
 export const deleteBooking = async (req, res) => {
   const { bookingId } = req.params; // Retrieve the booking ID from the URL parameters

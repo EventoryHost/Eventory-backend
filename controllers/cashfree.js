@@ -3,9 +3,11 @@ import { Cashfree, CFEnvironment } from "cashfree-pg";
 import generateInvoice from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
 import { Vendor } from "../models/users.js";
+import Order from "../models/finalOrders.js";
+import { Transaction } from "../models/transaction.js";
 import { Quotation } from "../models/quotation.js";
 import { sendEmailInvoice } from "./sesController.js";
-import { generatePaymentId } from "../utils/generateId.js";
+import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
 
@@ -24,8 +26,6 @@ const cashfree = process.env.IS_DEV === "true" ? new Cashfree(CFEnvironment.SAND
 
 
 const createOrder = async (req, res) => {
-  // console.log("✅ [createOrder] API Hit:", req.method, req.originalUrl);
-  // console.log("➡️ Request body:", req.body);
 
   var { amount, currency, customer_details } = req.body;
   amount = parseFloat(amount);
@@ -42,10 +42,8 @@ const createOrder = async (req, res) => {
       },
     };
 
-    // console.log("📤 [createOrder] Sending to Cashfree:", request);
 
     const response = await cashfree.PGCreateOrder(request);
-    // console.log("✅ [createOrder] Cashfree response:", response.data);
 
     return res.json(response.data);
   } catch (error) {
@@ -224,12 +222,27 @@ const getPaymentSession = async (req, res) => {
   }
 };
 
-const verifyCustomerPayment = async (req, res) => {
-  // console.log("✅ [Server] verifyCustomerPayment endpoint hit");
-  const { order_id, quotation_id } = req.body;
+function buildPayoutsHeaders() {
+  const payoutsClientId = process.env.CASHFREE_CLIENT_ID_PAYOUTS; // set in env
+  const payoutsSecret = process.env.CASHFREE_CLIENT_SECRET_PAYOUTS; // set in env
+  const rawKey = process.env.CASHFREE_PUBLIC_KEY_PAYOUTS.replace(/\n/g, "\n").trim();
+  const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = generateSignature(payoutsClientId, publicKey, timestamp);
 
-  // console.log("➡️ order_id:", order_id);
-  // console.log("➡️ quotation_id:", quotation_id);
+  return {
+    "Content-Type": "application/json",
+    "x-api-version": "2024-01-01",
+    "x-client-id": payoutsClientId,
+    "x-client-secret": payoutsSecret,
+    "x-cf-signature": signature, // header name per your 2FA setup
+    "x-cf-timestamp": String(timestamp), // send timestamp used for signature
+  };
+}
+
+const verifyCustomerPayment = async (req, res) => {
+
+  const { order_id, quotation_id, order_amount, payment_type } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -244,14 +257,222 @@ const verifyCustomerPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    // console.log("✅ Customer Payment verified:", payment);
+    const finalOrder = await Order.findOne({ quotationId: quotation_id }).lean();
+    if (!finalOrder) {
+      return res.status(404).json({ error: "Final order not found for quotation_id" });
+    }
+
+
+    const internalOrderId = finalOrder.orderId;
+    const vendorId = finalOrder.vendorId;
+    const customerId = finalOrder.customerId;
+
+    const receivableFromOrder =
+      Number(
+        finalOrder?.paymentDetails?.vendorReceivable?.total != null
+          ? finalOrder.paymentDetails.vendorReceivable.total
+          : NaN
+      ) || null;
+
+
+    const previousTxn = await Transaction.findOne({
+      quotationId: quotation_id,
+      vendorId: vendorId,
+      customerId: customerId,
+      internalOrderId: internalOrderId,
+    }).lean();
+
+    const alreadyPaid = previousTxn?.transfer_amount ?? 0;
+
+
+    let payoutAmount;
+    if (payment_type === "advance") {
+      payoutAmount = order_amount; // send full budget on advance
+    } else if (payment_type === "full") {
+      payoutAmount = receivableFromOrder; // prefer vendorReceivable.total
+    } else if (payment_type === "remaining") {
+      payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
+      if (payoutAmount < 0) payoutAmount = 0; // guard against negatives
+    }
+    const vendorDoc = await Vendor.findOne({ id: vendorId });
+    if (!vendorDoc) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    if (!vendorDoc.bankDetails || vendorDoc.bankDetails.length === 0) {
+      return res.status(400).json({ error: "Vendor bank details missing" });
+    }
+
+
+    const primaryBank = vendorDoc.bankDetails[0];
+    let beneficiaryId = primaryBank.beneficiaryId;
+
+    if (!beneficiaryId) {
+      beneficiaryId = generateUniqueId("bene");
+      primaryBank.beneficiaryId = beneficiaryId;
+      await vendorDoc.save();
+    } else {
+    }
+
+    const payoutsBase = process.env.IS_DEV === "true"
+      ? "https://sandbox.cashfree.com/payout"
+      : "https://api.cashfree.com/payout";
+
+    const headers = buildPayoutsHeaders();
+
+    const getBeneUrl = `${payoutsBase}/beneficiary`;
+    let hasBeneficiary = false;
+
+    try {
+      const resp = await axios.get(getBeneUrl, {
+        headers,
+        params: { beneficiary_id: beneficiaryId },
+      });
+      hasBeneficiary = true;
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status !== 404) {
+        return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
+      }
+    }
+
+    if (!hasBeneficiary) {
+      const createBody = {
+        beneficiary_id: beneficiaryId,
+        beneficiary_name: primaryBank.accountName,
+        beneficiary_instrument_details: {
+          bank_account_number: primaryBank.accountNo,
+          bank_ifsc: primaryBank.ifscCode,
+        },
+        beneficiary_contact_details: {
+          beneficiary_email: vendorDoc.email || "noreply@example.com",
+          beneficiary_phone: (vendorDoc.mobile || "").replace(/\s+/g, ""),
+          beneficiary_country_code: "+91",
+        },
+      };
+
+      try {
+        await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+      } catch (e) {
+        return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+      }
+    }
+
+    const transferId = generateUniqueId("trn");
+
+    await Transaction.create({
+      quotationId: quotation_id,
+      internalOrderId,
+      vendorId,
+      customerId,
+
+      pgOrderId: order_id,
+      pgStatus: payment.order_status || null,
+
+      transfer_id: transferId,        // UNIQUE PER ATTEMPT
+      status: "INIT",                 // pre-payout state
+      transfer_amount: payoutAmount,  // planned amount
+      transfer_mode: "IMPS",          // default or planned mode
+      beneficiary_id: beneficiaryId,
+
+      payment_type,
+
+      paymentDetails: {
+        customerPayable: {
+          total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+          baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+          convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+          taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+        },
+        vendorReceivable: {
+          total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+          baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+          commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+          taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+        },
+      },
+    });
+
+    const transferBody = {
+      transfer_id: transferId,
+      transfer_amount: payoutAmount,
+      beneficiary_details: { beneficiary_id: beneficiaryId },
+    };
+
+    let transferResp;
+    try {
+      transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+    } catch (e) {
+      await Transaction.findOneAndUpdate(
+        { transfer_id: transferId },
+        {
+          $set: {
+            status: "FAILED_INIT",
+            cf_transfer_id: null,
+            transfer_amount: payoutAmount,
+            transfer_mode: "IMPS",
+            added_on: undefined,
+            updated_on: new Date(),
+          },
+        },
+        { new: true }
+      );
+      return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+    }
+
+    const transferData = transferResp?.data || {};
+
+    const doc = await Transaction.findOneAndUpdate(
+      { transfer_id: transferId },
+      {
+        $set: {
+          quotationId: quotation_id,
+          internalOrderId,
+          vendorId,
+          customerId,
+
+          pgOrderId: order_id,
+          pgStatus: payment.order_status,
+
+          cf_transfer_id: transferData.cf_transfer_id || null,
+          status: transferData.status || null,
+          transfer_amount: transferData.transfer_amount ?? payoutAmount,
+          transfer_mode: transferData.transfer_mode || "IMPS",
+          transfer_utr: transferData.transfer_utr || null,
+          added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+          updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+
+          beneficiary_id: beneficiaryId,
+
+          payment_type,
+
+          paymentDetails: {
+            customerPayable: {
+              total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+              baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+              convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+              taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+            },
+            vendorReceivable: {
+              total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+              baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+              commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+              taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+            },
+          },
+        },
+      },
+      { new: true }
+    );
+
 
     return res.status(200).json({ message: "Customer payment verified", payment });
   } catch (error) {
-    console.error("❌ verifyCustomerPayment error:", error.message);
+    console.error("❌ verifyCustomerPayment error:", error.message, error.stack);
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 const getPaymentByOrderId = async (req, res) => {
   const { order_id } = req.body;
