@@ -44,7 +44,7 @@ async function sendInvoiceToWhatsApp(link, mobile, amount) {
           ],
         },
       },
-      { headers },
+      { headers }
     );
 
     // Send message via WhatsApp Business API
@@ -96,7 +96,7 @@ async function sendConfirmationMessageToWhatsapp(event) {
         },
       },
 
-      { headers },
+      { headers }
     );
   } catch (error) {
     console.error("Error sending confirmation message:", error.message);
@@ -109,7 +109,7 @@ async function sendResponseOnIntroMessage(req, res) {
 
   var user = await Customer.findOne(
     { mobile },
-    { id: 1, name: 1, quotations: 1 },
+    { id: 1, name: 1, quotations: 1 }
   );
   if (!user) {
     user = await Vendor.findOne({ mobile: mobile });
@@ -162,7 +162,7 @@ const sendPromotionTemplate = async (req, res) => {
         lastSentDate: 1,
         vendorName: 1,
         vendorType: 1,
-      },
+      }
     ).lean();
 
     // If phone number not present — first-time vendor
@@ -179,23 +179,27 @@ const sendPromotionTemplate = async (req, res) => {
         callRequest: { value: false, updatedAt: null },
         lastSentDate: currDate,
       });
-      return res
-        .status(200)
-        .json({
-          number: phoneNumber,
-          status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
-        });
+      return res.status(200).json({
+        number: phoneNumber,
+        status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
+      });
     }
 
     // If promotions are disabled
-    if (!data.canSend?.value && (!data.canSend?.updatedAt < !data.callRequest?.updatedAt) ||
-      (!data.canSend?.updatedAt < !data.reqToJoinCommunity?.updatedAt)) {
-      await Promotion.updateOne({ phoneNumber }, {
-        $set: {
-          "canSend.value": true,
-          "canSend.updatedAt": currDate
+    if (
+      (!data.canSend?.value &&
+        !data.canSend?.updatedAt < !data.callRequest?.updatedAt) ||
+      !data.canSend?.updatedAt < !data.reqToJoinCommunity?.updatedAt
+    ) {
+      await Promotion.updateOne(
+        { phoneNumber },
+        {
+          $set: {
+            "canSend.value": true,
+            "canSend.updatedAt": currDate,
+          },
         }
-      })
+      );
     }
 
     if (!data.canSend?.value) {
@@ -247,7 +251,7 @@ const sendPromotionTemplate = async (req, res) => {
           lastSentDate: currDate,
           "sentBeforeCount.updatedAt": currDate,
         },
-      },
+      }
     );
 
     return res.status(200).json({
@@ -320,13 +324,13 @@ const handlePromoResponse = async (req, res) => {
 
     const { callRequest, reqToJoinCommunity } = data;
 
-    if (payload === 'JOIN_COMMUNITY') {
+    if (payload === "JOIN_COMMUNITY") {
       const canSendCondition =
         !data.canSend?.value &&
-        (
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt) ||
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt)
-        );
+        (!data.canSend?.updatedAt ||
+          currDate > data.canSend.updatedAt ||
+          !data.canSend?.updatedAt ||
+          currDate > data.canSend.updatedAt);
 
       const updateFields = {};
 
@@ -343,22 +347,19 @@ const handlePromoResponse = async (req, res) => {
       updateFields["reqToJoinCommunity.value"] = true;
       updateFields["reqToJoinCommunity.updatedAt"] = new Date();
 
-
       if (Object.keys(updateFields).length) {
         await Promotion.updateOne(
           { phoneNumber: phone },
           { $set: updateFields }
         );
       }
-    }
-
-    else if (payload === 'BOOK_CALL') {
+    } else if (payload === "BOOK_CALL") {
       const canSendCondition =
         !data.canSend?.value &&
-        (
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt) ||
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt)
-        );
+        (!data.canSend?.updatedAt ||
+          currDate > data.canSend.updatedAt ||
+          !data.canSend?.updatedAt ||
+          currDate > data.canSend.updatedAt);
 
       const updateFields = {};
 
@@ -380,10 +381,11 @@ const handlePromoResponse = async (req, res) => {
           { $set: updateFields }
         );
       }
-    }
-
-    else if (payload === 'STOP_PROMOTIONS') {
-      await sendText(phone, "Thank you for giving us your time! We hope we'll serve you in future! If you still want to connect, call on +91 8800725840");
+    } else if (payload === "STOP_PROMOTIONS") {
+      await sendText(
+        phone,
+        "Thank you for giving us your time! We hope we'll serve you in future! If you still want to connect, call on +91 8800725840"
+      );
       await stopPromotionsForVendor(phone);
     }
 
@@ -408,7 +410,7 @@ const sendText = async (phone, text) => {
         Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
-    },
+    }
   );
 };
 
@@ -421,7 +423,7 @@ const stopPromotionsForVendor = async (phone) => {
           "canSend.value": false,
           "canSend.updatedAt": new Date(),
         },
-      },
+      }
     );
     console.log(`Stopped future promotions for ${phone}`);
   } catch (error) {
@@ -438,7 +440,7 @@ const saveBookingRequestToDB = async (phone) => {
           "callRequest.value": true,
           "callRequest.updatedAt": new Date(),
         },
-      },
+      }
     );
     console.log(`Saved booking request for ${phone}`);
   } catch (error) {
@@ -482,7 +484,13 @@ const getVendors = async (req, res) => {
 //     .then(result => console.log('Success:', result))
 //     .catch(error => console.error('Error:', error));
 
-async function sendVendorEventBookingMessage(event) {
+async function sendVendorEventBookingMessage(
+  date,
+  time,
+  venue,
+  link,
+  vendor_mobile
+) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -495,11 +503,11 @@ async function sendVendorEventBookingMessage(event) {
       WHATSAPP_API_URL,
       {
         messaging_product: "whatsapp",
-        to: `${event.vendor_mobile}`, 
+        to: `${vendor_mobile}`,
         type: "template",
         template: {
-          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57", 
-          name: "vendor_booking_message_1_v1", 
+          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+          name: "vendor_booking_message_1_v1",
           language: {
             code: "en",
           },
@@ -507,10 +515,10 @@ async function sendVendorEventBookingMessage(event) {
             {
               type: "body",
               parameters: [
-                { type: "text", text: event.date },   
-                { type: "text", text: event.time },   
-                { type: "text", text: event.venue },  
-                { type: "text", text: event.link },   
+                { type: "text", text: date },
+                { type: "text", text: time },
+                { type: "text", text: venue },
+                { type: "text", text: link },
               ],
             },
           ],
@@ -521,13 +529,21 @@ async function sendVendorEventBookingMessage(event) {
 
     return messageResponse.data;
   } catch (error) {
-    console.error("Error sending vendor event booking message:", error.response?.data || error.message);
+    console.error(
+      "Error sending vendor event booking message:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 }
 
-
-async function sendCustomerEventBookingMessage(event) {
+async function sendCustomerEventBookingMessage(
+  date,
+  time,
+  venue,
+  link,
+  customer_mobile
+) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -540,11 +556,11 @@ async function sendCustomerEventBookingMessage(event) {
       WHATSAPP_API_URL,
       {
         messaging_product: "whatsapp",
-        to: `${event.customer_mobile}`, 
+        to: `${customer_mobile}`,
         type: "template",
         template: {
-          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57", 
-          name: "customer_booking_message_1_v1", 
+          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+          name: "customer_booking_message_1_v1",
           language: {
             code: "en",
           },
@@ -552,10 +568,10 @@ async function sendCustomerEventBookingMessage(event) {
             {
               type: "body",
               parameters: [
-                { type: "text", text: event.date },   
-                { type: "text", text: event.time },   
-                { type: "text", text: event.venue },  
-                { type: "text", text: event.link },   
+                { type: "text", text: date },
+                { type: "text", text: time },
+                { type: "text", text: venue },
+                { type: "text", text: link },
               ],
             },
           ],
@@ -566,7 +582,10 @@ async function sendCustomerEventBookingMessage(event) {
 
     return messageResponse.data;
   } catch (error) {
-    console.error("Error sending vendor event booking message:", error.response?.data || error.message);
+    console.error(
+      "Error sending vendor event booking message:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 }
@@ -579,5 +598,5 @@ export {
   handlePromoResponse,
   getVendors,
   sendVendorEventBookingMessage,
-  sendCustomerEventBookingMessage
+  sendCustomerEventBookingMessage,
 };
