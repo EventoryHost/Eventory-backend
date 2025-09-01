@@ -17,6 +17,12 @@ const messageSchema = new mongoose.Schema(
       ref: "Message",
       default: null,
     },
+    // New field to track who has read the message.
+    // This will store the senderType of the user who has viewed the message.
+    readBy: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true },
 );

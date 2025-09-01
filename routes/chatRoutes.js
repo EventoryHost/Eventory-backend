@@ -11,6 +11,8 @@ import {
   unblockChat,
   getPinnedMessages,
   getBlockedChats,
+  getChatsWithUnreadCounts, // Import the new function
+  markChatAsRead,
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -234,5 +236,86 @@ router.get("/chat/:chatId/pinned", getPinnedMessages);
  *         description: Blocked chats retrieved
  */
 router.get("/blocked", getBlockedChats);
+/**
+ * @swagger
+ * /unread/{userType}/{userId}:
+ * get:
+ * summary: Get chats with unread message counts
+ * description: Retrieves all chats for a given user and returns the unread message counts.
+ * tags:
+ * - Chats
+ * parameters:
+ * - in: path
+ * name: userType
+ * required: true
+ * schema:
+ * type: string
+ * enum: [cus, ven, rm]
+ * description: Type of the user (cus, ven, or rm).
+ * - in: path
+ * name: userId
+ * required: true
+ * schema:
+ * type: string
+ * description: Unique ID of the user.
+ * responses:
+ * 200:
+ * description: Successfully retrieved unread message counts.
+ * content:
+ * application/json:
+ * schema:
+ * type: object
+ * example:
+ * chats:
+ * - chatId: "abc123"
+ * unreadCount: 5
+ * 400:
+ * description: Invalid parameters provided.
+ * 500:
+ * description: Internal server error.
+ */
+
+router.get("/unread/:userType/:userId", getChatsWithUnreadCounts);
+/**
+ * @swagger
+ * /{chatId}/mark-read/{userType}:
+ * post:
+ * summary: Mark chat messages as read
+ * description: Marks all messages in a chat as read for a specific user type.
+ * tags:
+ * - Chats
+ * parameters:
+ * - in: path
+ * name: chatId
+ * required: true
+ * schema:
+ * type: string
+ * description: ID of the chat.
+ * - in: path
+ * name: userType
+ * required: true
+ * schema:
+ * type: string
+ * enum: [cus, ven, rm]
+ * description: Type of the user marking messages as read.
+ * responses:
+ * 200:
+ * description: Successfully marked messages as read.
+ * content:
+ * application/json:
+ * schema:
+ * type: object
+ * example:
+ * success: true
+ * message: "Messages marked as read"
+ * 400:
+ * description: Invalid parameters provided.
+ * 404:
+ * description: Chat not found.
+ * 500:
+ * description: Internal server error.
+ */
+
+router.post("/:chatId/mark-read/:userType", markChatAsRead);
 
 export default router;

@@ -42,7 +42,7 @@ export const handleSocketConnection = (socket, io) => {
         parentSenderType,
         clientMessageId,
       },
-      callback,
+      callback
     ) => {
       try {
         // Fix function name swap - these were incorrectly imported/named
@@ -66,7 +66,7 @@ export const handleSocketConnection = (socket, io) => {
           } else {
             socket.emit(
               "error",
-              "Please refrain from sharing personal information!",
+              "Please refrain from sharing personal information!"
             );
           }
           return; // Prevent sending
@@ -90,14 +90,21 @@ export const handleSocketConnection = (socket, io) => {
           } else {
             socket.emit(
               "error",
-              "This chat is blocked. You cannot send messages.",
+              "This chat is blocked. You cannot send messages."
             );
           }
           return;
         }
 
         const validSenders = ["cus", "ven", "rm"];
-        const validContentTypes = ["text", "image", "video", "pdf", "file", "approval_request"];
+        const validContentTypes = [
+          "text",
+          "image",
+          "video",
+          "pdf",
+          "file",
+          "approval_request",
+        ];
 
         if (!validSenders.includes(senderType)) {
           // Call the callback with error if provided
@@ -125,10 +132,25 @@ export const handleSocketConnection = (socket, io) => {
           content,
           contentType,
           mediaUrl: mediaUrl || null,
-          parent, // Only set if valid ObjectId
+          parent,
+          readBy: [senderType],
         });
 
         await message.save();
+
+        // New Logic to emit an unread message notification to the receivers
+        // Find the chat participants based on senderType
+        const receiverTypes = validSenders.filter(
+          (type) => type !== senderType
+        );
+        
+        // This will emit to all clients in the room, including the sender.
+        // The frontend will need to filter based on userType.
+        io.to(chatId).emit("unread_message", {
+          chatId: chatId,
+          senderType: senderType,
+          receivers: receiverTypes,
+        });
 
         // Include parent message info in the broadcast to ALL clients
         io.to(chatId).emit("new_message", {
@@ -146,7 +168,7 @@ export const handleSocketConnection = (socket, io) => {
         });
 
         console.log(
-          `📤 ${senderType} sent ${contentType} message in chat ${chatId}`,
+          `📤 ${senderType} sent ${contentType} message in chat ${chatId}`
         );
 
         // Call the callback with no error to indicate success
@@ -162,7 +184,7 @@ export const handleSocketConnection = (socket, io) => {
           socket.emit("error", "Error sending message");
         }
       }
-    },
+    }
   );
 
   socket.on("disconnect", () => {
@@ -481,15 +503,6 @@ export const getBlockedChats = async (req, res) => {
   }
 };
 
-// export const getCustomerNotifications = async (req, res) => {
-//   try {
-//     // your logic here
-//     return res.status(200).json({ message: "Notifications fetched successfully" });
-//   } catch (error) {
-//     console.error("Error in getCustomerNotifications:", error);
-//     return res.status(500).json({ error: "Failed to fetch notifications" });
-//   }
-// };
 export const getCustomerNotifications = async (req, res) => {
   try {
     const { customerId } = req.params;
@@ -517,7 +530,6 @@ export const markNotificationAsRead = async (req, res) => {
       return res.status(400).json({ error: "Notification ID is required" });
     }
 
-    // Assuming you have a Notification model
     const notification = await customerNotification.findById(notificationId);
     if (!notification) {
       return res.status(404).json({ error: "Notification not found" });
@@ -529,9 +541,11 @@ export const markNotificationAsRead = async (req, res) => {
     return res.status(200).json({ message: "Notification marked as read" });
   } catch (error) {
     console.error("Error marking notification as read:", error);
-    return res.status(500).json({ error: "Failed to mark notification as read" });
+    return res
+      .status(500)
+      .json({ error: "Failed to mark notification as read" });
   }
-}
+};
 
 export const markAllCustomerNotificationsAsRead = async (req, res) => {
   try {
@@ -546,10 +560,94 @@ export const markAllCustomerNotificationsAsRead = async (req, res) => {
       { $set: { read: true } }
     );
 
-    return res.status(200).json({ message: "All notifications marked as read" });
+    return res
+      .status(200)
+      .json({ message: "All notifications marked as read" });
   } catch (error) {
     console.error("Error marking notifications as read:", error);
-    return res.status(500).json({ error: "Failed to mark notifications as read" });
+    return res
+      .status(500)
+      .json({ error: "Failed to mark notifications as read" });
+  }
+};
+
+export const getUnreadCountByChatId = async (req, res) => {
+  const { chatId, userType } = req.params;
+
+  try {
+    const chat = await Chat.findOne({ chatId });
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const unreadMessages = await Message.countDocuments({
+      chatId: chatId,
+      senderType: { $ne: userType },
+      readBy: { $ne: userType },
+    });
+
+    return res.status(200).json({ unreadCount: unreadMessages });
+  } catch (err) {
+    console.error("Error fetching unread count:", err);
+    return res.status(500).json({ error: "Failed to fetch unread count" });
+  }
+};
+
+export const getChatsWithUnreadCounts = async (req, res) => {
+  const { userType, userId } = req.params; // userId will be cusId, venId, or rmId
+
+  try {
+    let chats;
+    if (userType === "cus") {
+      chats = await Chat.find({ cusId: userId });
+    } else if (userType === "ven") {
+      chats = await Chat.find({ venId: userId });
+    } else if (userType === "rm") {
+      chats = await Chat.find({ rmId: userId });
+    } else {
+      return res.status(400).json({ error: "Invalid user type" });
+    }
+
+    const chatsWithCounts = await Promise.all(
+      chats.map(async (chat) => {
+        const unreadCount = await Message.countDocuments({
+          chatId: chat.chatId,
+          senderType: { $ne: userType },
+          readBy: { $ne: userType },
+        });
+        return {
+          ...chat.toObject(),
+          unreadCount: unreadCount,
+        };
+      })
+    );
+
+    return res.status(200).json({ chats: chatsWithCounts });
+  } catch (err) {
+    console.error("Error fetching chats with unread counts:", err);
+    return res.status(500).json({ error: "Failed to fetch chats" });
+  }
+};
+
+export const markChatAsRead = async (req, res) => {
+  const { chatId, userType } = req.params;
+
+  try {
+    await Message.updateMany(
+      {
+        chatId: chatId,
+        senderType: { $ne: userType },
+        readBy: { $nin: [userType] },
+      },
+      {
+        $addToSet: { readBy: userType },
+      }
+    );
+
+    return res.status(200).json({ message: "Messages marked as read" });
+  } catch (err) {
+    console.error("Error marking messages as read:", err);
+    return res.status(500).json({ error: "Failed to mark messages as read" });
   }
 };
 
