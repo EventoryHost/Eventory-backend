@@ -482,7 +482,7 @@ const getVendors = async (req, res) => {
 //     .then(result => console.log('Success:', result))
 //     .catch(error => console.error('Error:', error));
 
-async function sendVendorEventBookingMessage(event) {
+async function sendVendorEventBookingMessage(vendor_mobile,date,time,venue,link) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -495,11 +495,11 @@ async function sendVendorEventBookingMessage(event) {
       WHATSAPP_API_URL,
       {
         messaging_product: "whatsapp",
-        to: `${event.vendor_mobile}`,
+        to: `${vendor_mobile}`, 
         type: "template",
         template: {
-          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
-          name: "vendor_booking_message_1_v1",
+          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57", 
+          name: "vendor_booking_message_1_v1", 
           language: {
             code: "en",
           },
@@ -507,10 +507,10 @@ async function sendVendorEventBookingMessage(event) {
             {
               type: "body",
               parameters: [
-                { type: "text", text: event.date },
-                { type: "text", text: event.time },
-                { type: "text", text: event.venue },
-                { type: "text", text: event.link },
+                { type: "text", text: date },   
+                { type: "text", text: time },   
+                { type: "text", text: venue },  
+                { type: "text", text: link },   
               ],
             },
           ],
@@ -527,7 +527,7 @@ async function sendVendorEventBookingMessage(event) {
 }
 
 
-async function sendCustomerEventBookingMessage(event) {
+async function sendCustomerEventBookingMessage(customer_mobile,date,time,venue,link) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -540,11 +540,11 @@ async function sendCustomerEventBookingMessage(event) {
       WHATSAPP_API_URL,
       {
         messaging_product: "whatsapp",
-        to: `${event.customer_mobile}`,
+        to: `${customer_mobile}`, 
         type: "template",
         template: {
-          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
-          name: "customer_booking_message_1_v1",
+          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57", 
+          name: "customer_booking_message_1_v1", 
           language: {
             code: "en",
           },
@@ -552,10 +552,10 @@ async function sendCustomerEventBookingMessage(event) {
             {
               type: "body",
               parameters: [
-                { type: "text", text: event.date },
-                { type: "text", text: event.time },
-                { type: "text", text: event.venue },
-                { type: "text", text: event.link },
+                { type: "text", text: date },   
+                { type: "text", text: time },   
+                { type: "text", text: venue },  
+                { type: "text", text: link },   
               ],
             },
           ],

@@ -1,7 +1,7 @@
 import { Booking } from "../models/booking.js";
 import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decoraters.js";
-import { eventSchema, Venue } from "../models/venue.js";
+import { Venue } from "../models/venue.js";
 import Photographer from "../models/photographers.js";
 import MakeupArtist from "../models/makeupArtists.js";
 
@@ -171,13 +171,13 @@ export const createBooking = async (req, res) => {
 
     if (customerMobile) {
       try {
-        await sendCustomerEventBookingMessage({
-          customer_mobile: String(customerMobile),
-          date: String(dateText),
-          time: String(timeText),
-          venue: String(venueText),
-          link: String(customerLink),
-        });
+        await sendCustomerEventBookingMessage(
+          String(customerMobile),
+          String(dateText),
+          String(timeText),
+          String(venueText),
+          String(customerLink)
+        );
       } catch (e) {
         // skip failed customer WhatsApp
       }
@@ -185,23 +185,23 @@ export const createBooking = async (req, res) => {
 
     if (vendorMobile) {
       try {
-        await sendVendorEventBookingMessage({
-          vendor_mobile: String(vendorMobile),
-          date: String(dateText),
-          time: String(timeText),
-          venue: String(venueText),
-          link: String(vendorLink),
-        });
+        await sendVendorEventBookingMessage(
+          String(vendorMobile),
+          String(dateText),
+          String(timeText),
+          String(venueText),
+          String(vendorLink)
+        );
       } catch (e) {
         // skip failed vendor WhatsApp
       }
-    }
-  } catch (error) {
-    res.status(500).json({
-      message: "An error occurred while creating the booking",
-      error: error.message,
-    });
   }
+  } catch (error) {
+  res.status(500).json({
+    message: "An error occurred while creating the booking",
+    error: error.message,
+  });
+}
 };
 
 
@@ -258,8 +258,8 @@ export const updateBooking = async (req, res) => {
 
   try {
     const updatedBooking = await Booking.findOneAndUpdate(
-      { bookingid: bookingId }, 
-      { $set: updateData },   
+      { bookingid: bookingId },
+      { $set: updateData },
       { new: true }
     );
 
