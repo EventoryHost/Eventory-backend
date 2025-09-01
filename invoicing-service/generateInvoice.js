@@ -371,13 +371,12 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
       },
     );
 
-    if (customer.email)
-      await sendInvoiceEmail({
-        to: customer.email,
-        name: customer.name,
-        pdfBuffer,
-        pdfFileName: `invoice-${paymentDetails.invoiceNumber}.pdf`
-      });
+    await sendInvoiceEmail({
+      to: customer.email || "event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com",
+      name: customer.name,
+      pdfBuffer,
+      pdfFileName: `invoice-${paymentDetails.invoiceNumber}.pdf`
+    });
 
 
     await sendInvoiceToWhatsApp(

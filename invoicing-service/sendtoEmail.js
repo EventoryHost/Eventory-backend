@@ -46,10 +46,15 @@ export async function sendInvoiceEmail({ to, name, pdfBuffer, pdfFileName }) {
     }
   });
 
+  const slackEmail = "event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com";
+  const ccEmails = to === slackEmail 
+    ? ["payments@eventory.in"] 
+    : [slackEmail, "payments@eventory.in"]; 
+
   const mailOptions = {
     from: "registrations@eventory.in",
     to,
-    cc: ["event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com", "payments@eventory.in"],
+    cc: ccEmails,
     subject: "Welcome to Eventory!",
     html: generateEmailHtml(name), 
     attachments: [
