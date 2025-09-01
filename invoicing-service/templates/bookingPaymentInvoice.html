@@ -31,15 +31,15 @@
     <hr style="border: 1px solid #7731d8; margin: 20px 0" />
     <section class="billing-info-booking">
       <div class="billed-to">
-        <h3><strong>Billed to:</strong></h3>
-        <div class="customer-info">
-          {{userDetails}}
-        </div>
-      </div>
-      <div class="billed-to">
         <h3><strong>Vendor Details:</strong></h3>
         <div class="customer-info">
           {{vendorDetails}}
+        </div>
+      </div>  
+      <div class="billed-to">
+        <h3><strong>Issued to:</strong></h3>
+        <div class="customer-info">
+          {{userDetails}}
         </div>
       </div>
 
@@ -51,12 +51,6 @@
         <div class="payment-info">
           <p><strong>Paid by:</strong></p>
           <p>{{paymentMethod}}</p>
-        </div>
-        <div class="payment-info">
-          {{advanceDetails}}
-        </div>
-        <div class="payment-info">
-          {{dueDetails}}
         </div>
       </div>
 

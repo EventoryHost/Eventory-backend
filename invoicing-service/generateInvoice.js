@@ -406,7 +406,9 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
   }
 }
 
-// ...existing code...
+
+
+
 
 async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = {}) {
   let browser = null;
@@ -511,15 +513,19 @@ async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = 
         <td style="font-weight:bold;border-top: 2px solid #000">Rs ${convinienceFee.toFixed(2)}</td>
       </tr>
       <tr class="total-row">
-        <td colspan="7" style="text-align:right;font-weight:bold;">Total Paid:</td>
+        <td colspan="7" style="text-align:right;font-weight:bold;">Total to be paid:</td>
         <td style="font-weight:bold;">Rs ${finalAmount.toFixed(2)}</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="7" style="text-align:right;font-weight:bold;">Paid:</td>
+        <td style="font-weight:bold;">Rs ${(paymentDetails.advanceAmount !== "0") ? paymentDetails.advanceAmount : finalAmount.toFixed(2)}</td>
       </tr>
     `;
 
     const amountInWordsRow = `
       <tr class="amount-words-row">
         <td colspan="8" style="text-align:left;font-style:italic;padding-top:10px;">
-          <strong>Amount in Words:</strong> ${formatAmountInWords(finalAmount)}
+          <strong>Amount Paid</strong> ${formatAmountInWords((paymentDetails.advanceAmount !== "0") ? paymentDetails.advanceAmount : finalAmount.toFixed(2))}
         </td>
       </tr>
     `;
@@ -529,16 +535,12 @@ async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = 
       <p><strong>${capitalizeWords(customer.name || "")}</strong></p>
       <p>${customer.address || ""}</p>
       <p>${customer.pincode || ""}</p>
-      <p>${customer.email || ""}</p>
-      <p>${customer.mobile || ""}</p>
     `;
 
     const vendorDetails = `
       <p><strong>${capitalizeWords(vendor.businessDetails?.businessName || "")}</strong></p>
       <p>${vendor.businessDetails?.businessAddress || ""}</p>
       <p>${vendor.businessDetails?.pinCode || ""}</p>
-      <p>${vendor.businessDetails?.email || ""}</p>
-      <p>${vendor.businessDetails?.mobile || ""}</p>
       <p>${vendor.businessDetails?.panNo ? `PAN: ${vendor.businessDetails.panNo}` : ""}</p>
       <p>${vendor.businessDetails?.gstin ? `GST: ${vendor.businessDetails.gstin}` : ""}</p>
     `;
@@ -614,6 +616,49 @@ async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = 
 
     // vendor invoice
 
+    tableRows = "";
+    runningSerial = 1;
+    items.forEach((item) => {
+      const gross = parseFloat(item.amount) || 0;
+      const net = gross / 1.18;
+      const tax = gross - net;
+
+      if (isDelhiPincode) {
+        const half = tax / 2;
+        tableRows += `
+          <tr>
+            <td style="text-align:center;" rowspan="2">${runningSerial}</td>
+            <td rowspan="2">${item.name || "Item"}</td>
+            <td rowspan="2" style="text-align:center;">${item.type || "-"}</td>
+            <td rowspan="2" style="text-align:center;">Rs ${net.toFixed(2)}</td>
+            <td style="text-align:center;">9%</td>
+            <td style="text-align:center;">CGST</td>
+            <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
+            <td rowspan="2" style="text-align:center;">Rs ${gross.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">9%</td>
+            <td style="text-align:center;">SGST</td>
+            <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
+          </tr>
+        `;
+      } else {
+        tableRows += `
+          <tr>
+            <td style="text-align:center;">${runningSerial}</td>
+            <td>${item.name || "Item"}</td>
+            <td style="text-align:center;">${item.type || "-"}</td>
+            <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
+            <td style="text-align:center;">18%</td>
+            <td style="text-align:center;">IGST</td>
+            <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
+            <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
+          </tr>
+        `;
+      }
+      runningSerial++;
+    });
+
     id = `<p><strong>Vendor ID:</strong></p>
        <p>${vendor.id}</p>`;
 
@@ -623,8 +668,16 @@ async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = 
         <td style="font-weight:bold;border-top: 2px solid #000">Rs ${commissionFee.toFixed(2)}</td>
       </tr>
       <tr class="total-row">
-        <td colspan="7" style="text-align:right;font-weight:bold;">Total Paid:</td>
+        <td colspan="7" style="text-align:right;font-weight:bold;">Total Receivable:</td>
         <td style="font-weight:bold;">Rs ${finalAmount.toFixed(2)}</td>
+      </tr>
+    `;
+
+    amountInWordsRow = `
+      <tr class="amount-words-row">
+        <td colspan="8" style="text-align:left;font-style:italic;padding-top:10px;">
+          <strong>Amount Received</strong> ${formatAmountInWords(finalAmount)}
+        </td>
       </tr>
     `;
 
@@ -639,8 +692,6 @@ async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = 
       .replace("{{userId}}", id)
       .replace("{{userDetails}}", userDetails)
       .replace("{{vendorDetails}}", vendorDetails)
-      .replace("{{advanceDetails}}", advanceDetails)
-      .replace("{{dueDetails}}", dueDetails)
       .replace("{{tableRows}}", tableRows)
       .replace("{{totalRow}}", totalRow)
       .replace("{{amountInWordsRow}}", amountInWordsRow);

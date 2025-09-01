@@ -25,18 +25,23 @@ async function pollSQS() {
         const body = JSON.parse(message.Body);
 
         try {
-          await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
-          const delCommand = new DeleteMessageCommand({
-            QueueUrl: queueUrl,
-            ReceiptHandle: message.ReceiptHandle
-          });
-          await sqs.send(delCommand);
-        } catch (err) {
-          console.error("Invoice generation failed:", err);
+          if (body.type === "vendorOnboarded") {
+            await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
+
+          } else {
+            await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
+          }
+            const delCommand = new DeleteMessageCommand({
+              QueueUrl: queueUrl,
+              ReceiptHandle: message.ReceiptHandle
+            });
+            await sqs.send(delCommand);
+          } catch (err) {
+            console.error("Invoice generation failed:", err);
+          }
         }
-      }
+    }
     }
   }
-}
 
-pollSQS().catch(console.error);
+  pollSQS().catch(console.error);
