@@ -10,11 +10,15 @@ import { sendEmailInvoice } from "./sesController.js";
 import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
+import adminNotification from "../models/adminNotification.js";
+import customerNotification from "../models/customerNotification.js";
+import vendorNotification from "../models/vendorNotification.js";
 
 dotenv.config();
 
 import { sendInvoiceToWhatsApp } from "./waController.js";
 import axios from "axios";
+import { Customer } from "../models/customer.js";
 
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
@@ -287,22 +291,30 @@ const verifyCustomerPayment = async (req, res) => {
 
     let payoutAmount;
     if (payment_type === "advance") {
-      payoutAmount = order_amount; // send full budget on advance
+      payoutAmount = order_amount; 
     } else if (payment_type === "full") {
-      payoutAmount = receivableFromOrder; // prefer vendorReceivable.total
+      payoutAmount = receivableFromOrder;
     } else if (payment_type === "remaining") {
       payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
-      if (payoutAmount < 0) payoutAmount = 0; // guard against negatives
+      if (payoutAmount < 0) payoutAmount = 0; 
     }
     const vendorDoc = await Vendor.findOne({ id: vendorId });
     if (!vendorDoc) {
       return res.status(404).json({ error: "Vendor not found" });
     }
 
+    const customerDoc = await Customer.findOne({ id: customerId });
+    if (!customerDoc) {
+      return res.status(404).json({ error: "Customer not found" });
+    }
+
     if (!vendorDoc.bankDetails || vendorDoc.bankDetails.length === 0) {
       return res.status(400).json({ error: "Vendor bank details missing" });
     }
 
+
+    const vendorName = vendorDoc.name;
+    const customerName = customerDoc.name;
 
     const primaryBank = vendorDoc.bankDetails[0];
     let beneficiaryId = primaryBank.beneficiaryId;
@@ -369,10 +381,10 @@ const verifyCustomerPayment = async (req, res) => {
       pgOrderId: order_id,
       pgStatus: payment.order_status || null,
 
-      transfer_id: transferId,        // UNIQUE PER ATTEMPT
-      status: "INIT",                 // pre-payout state
-      transfer_amount: payoutAmount,  // planned amount
-      transfer_mode: "IMPS",          // default or planned mode
+      transfer_id: transferId,       
+      status: "INIT",               
+      transfer_amount: payoutAmount,  
+      transfer_mode: "IMPS",         
       beneficiary_id: beneficiaryId,
 
       payment_type,
@@ -413,7 +425,7 @@ const verifyCustomerPayment = async (req, res) => {
             transfer_mode: "IMPS",
             added_on: undefined,
             updated_on: new Date(),
-          },
+          }, 
         },
         { new: true }
       );
@@ -465,6 +477,51 @@ const verifyCustomerPayment = async (req, res) => {
       { new: true }
     );
 
+    const paymentTypeMap = {
+      advance: "Advance Payment",
+      remaining: "Remaining Payment",
+      full: "Full Payment",
+    };
+
+    const paymentMode = paymentTypeMap[payment_type] || "Payment";
+    const customerMessage = `${paymentMode} of ₹${order_amount} done successfully to ${vendorDoc?.businessDetails?.businessName} for Order ID: ${internalOrderId}`;
+    const vendorMessage = `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
+    const adminMessage = `${paymentMode} of ₹${order_amount} is done by ${customerName} to ${vendorDoc?.businessDetails?.businessName} for Order ID: ${internalOrderId}`;
+
+    try {
+      await adminNotification.create({
+        orderId: internalOrderId,
+        vendorId,
+        customerId,
+        message: adminMessage,
+        quotationId: quotation_id,
+        read: false,
+        timestamp: new Date(),
+      });
+
+      await vendorNotification.create({
+        orderId: internalOrderId,
+        vendorId,
+        customerId,
+        message: vendorMessage,
+        quotationId: quotation_id,
+        type: "payment_done",
+        read: false,
+        timestamp: new Date(),
+      });
+
+      await customerNotification.create({
+        customerId,
+        vendorId,
+        orderId: internalOrderId,
+        message: customerMessage,
+        quotationId: quotation_id,
+        read: false,
+        createdAt: new Date(),
+      });
+    } catch (notifErr) {
+      console.error("Notification creation error:", notifErr);
+    }
 
     return res.status(200).json({ message: "Customer payment verified", payment });
   } catch (error) {

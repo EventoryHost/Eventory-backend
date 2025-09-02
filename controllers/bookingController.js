@@ -10,7 +10,9 @@ import { sendVendorEventBookingMessage } from "./waController.js";
 import { sendCustomerEventBookingMessage } from "./waController.js";
 import { Vendor } from "../models/users.js";
 import { Customer } from "../models/customer.js";
-import e from "express";
+import adminNotification from "../models/adminNotification.js";
+import customerNotification from "../models/customerNotification.js";
+import vendorNotification from "../models/vendorNotification.js";
 
 function modelFromServiceId(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
@@ -32,13 +34,17 @@ function modelFromServiceId(serviceId) {
   }
 }
 
-const EVENT_COLORS = ["teal", "orange", "indigo", "blue", "purple"];
-
-function getRandomEventColor() {
-  const idx = Math.floor(Math.random() * EVENT_COLORS.length);
-  return EVENT_COLORS[idx];
+function getStatusColor(paymentDetails) {
+  if (!paymentDetails) return "yellow";
+  if (typeof paymentDetails === "string") {
+    try { paymentDetails = JSON.parse(paymentDetails); }
+    catch { return "yellow"; }
+  }
+  if (paymentDetails.fullPaid !== undefined && paymentDetails.fullPaid !== null) {
+    return "green";
+  }
+  return "yellow";
 }
-
 
 export const createBooking = async (req, res) => {
   const {
@@ -69,6 +75,7 @@ export const createBooking = async (req, res) => {
     eventType,
   } = req.body;
 
+  const eventId = generateUniqueId("eve");
   try {
     const newBooking = new Booking({
       customerId,
@@ -96,11 +103,12 @@ export const createBooking = async (req, res) => {
       eventLocation,
       eventTime,
       eventType,
+      eventId
     });
 
     const savedBooking = await newBooking.save();
 
-    const eventId = generateUniqueId("eve");
+    const color = getStatusColor(paymentDetails);
 
     try {
       const resolved = modelFromServiceId(serviceId);
@@ -116,7 +124,7 @@ export const createBooking = async (req, res) => {
             `Booking ${savedBooking.bookingid} - ${customerName || ""}`.trim(),
           start: startDate,
           end: endDate,
-          color: getRandomEventColor(),
+          color,
         };
 
         await Model.findOneAndUpdate(
@@ -126,7 +134,6 @@ export const createBooking = async (req, res) => {
         ).lean();
       }
     } catch (error) {
-      // skip error to avoid breaking booking creation
     }
 
     res.status(201).json({
@@ -179,7 +186,6 @@ export const createBooking = async (req, res) => {
           String(customerLink)
         );
       } catch (e) {
-        // skip failed customer WhatsApp
       }
     }
 
@@ -193,18 +199,54 @@ export const createBooking = async (req, res) => {
           String(vendorLink)
         );
       } catch (e) {
-        // skip failed vendor WhatsApp
       }
-  }
+    }
+
+    const adminMessage = `New booking ${savedBooking.bookingid} created by ${customer?.name} for ${vendor?.businessDetails?.businessName || vendor?.name}.`;
+    const vendorMessage = `You have a new booking ${savedBooking.bookingid} from ${customer?.name}.`;
+    const customerMessage = `Your booking ${savedBooking.bookingid} for ${vendor?.businessDetails?.businessName || vendor?.name} has been confirmed.`;
+
+    try {
+      await adminNotification.create({
+        orderId: savedBooking.bookingid,
+        vendorId: venId,
+        customerId: customerId,
+        message: adminMessage,
+        quotationId: "",  
+        read: false,
+        timestamp: new Date(),
+      });
+
+      await vendorNotification.create({
+        orderId: savedBooking.bookingid,
+        vendorId: venId,
+        customerId: customerId,
+        message: vendorMessage,
+        type: "booking_confirmed",
+        read: false,
+        timestamp: new Date(),
+      });
+
+      await customerNotification.create({
+        customerId: customerId,
+        vendorId: venId,
+        orderId: savedBooking.bookingid,
+        message: customerMessage,
+        read: false,
+        createdAt: new Date(),
+      });
+    } catch (notifError) {
+      console.error("Notification creation failed:", notifError);
+    }
+
+
   } catch (error) {
-  res.status(500).json({
-    message: "An error occurred while creating the booking",
-    error: error.message,
-  });
-}
+    res.status(500).json({
+      message: "An error occurred while creating the booking",
+      error: error.message,
+    });
+  }
 };
-
-
 
 
 export const getBooking = async (req, res) => {
@@ -576,7 +618,6 @@ export const getVendorBookings = async (req, res) => {
   }
 };
 
-// GET /api/bookings/:bookingId
 export const getBookingById = async (req, res) => {
   try {
     const { bookingId } = req.params;

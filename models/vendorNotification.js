@@ -18,7 +18,8 @@ const vendorNotificationSchema = new mongoose.Schema({
       'order_approved',
       "order_pending",
       'payment_done',
-      'misc'
+      'misc',
+      "booking_confirmed",
     ],
     required: true,
   },

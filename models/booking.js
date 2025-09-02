@@ -14,8 +14,8 @@ const BusinessDetailsSchema = new Schema({
   teamsize: String,
   verificationType: String,
   years: String,
-  _id: String, // if you still want to retain it
-}, { _id: false }); // prevent automatic _id creation
+  _id: String, 
+}, { _id: false }); 
 
 const FinalizedContentSchema = new Schema({
   name: String,
@@ -63,6 +63,8 @@ const BookingSchema = new Schema({
   eventTime: {type: String, required: false},
 
   eventType: {type: String, required: false},
+
+  eventId: { type: String, required: false },
 });
 
 const Booking = model("Bookings", BookingSchema);
