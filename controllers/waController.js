@@ -623,5 +623,4 @@ export {
   sendVendorEventBookingMessage,
   sendCustomerEventBookingMessage,
   sendVendorQuotationMessage
-  sendCustomerEventBookingMessage
 };
