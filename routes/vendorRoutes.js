@@ -19,10 +19,10 @@ const router = express.Router();
  */
 router.get("/all", async (req, res) => {
   try {
-    // 1. Change the projection to retrieve the entire businessDetails object.
+    // Corrected projection string to include 'bankDetails'
     const vendors = await Vendor.find(
       {},
-      "id name email mobile businessDetails invoices serviceIds"
+      "id name email mobile businessDetails invoices serviceIds bankDetails"
     ).lean();
 
     const filteredVendors = vendors.filter(vendor => {
@@ -35,15 +35,15 @@ router.get("/all", async (req, res) => {
       name: vendor.name,
       email: vendor.email || "N/A",
       mobile: vendor.mobile || "N/A",
-      // 2. Now you can access all properties from the fetched object
       businessDetails: {
-          address: vendor.businessDetails?.businessAddress || "N/A",
-          category: vendor.businessDetails?.category || "N/A",
-          teamsize: vendor.businessDetails?.teamsize || "N/A",
-          years: vendor.businessDetails?.years || "N/A",
-          bookingsPerMonth: vendor.businessDetails?.bookingsPerMonth || "N/A",
+        address: vendor.businessDetails?.businessAddress || "N/A",
+        category: vendor.businessDetails?.category || "N/A",
+        teamsize: vendor.businessDetails?.teamsize || "N/A",
+        years: vendor.businessDetails?.years || "N/A",
+        bookingsPerMonth: vendor.businessDetails?.bookingsPerMonth || "N/A",
       },
       serviceIds: vendor.serviceIds || [],
+      bankDetails: vendor.bankDetails || [], 
     }));
 
     res.status(200).json({ success: true, data: transformedVendors });
@@ -53,7 +53,6 @@ router.get("/all", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 });
-
 /**
  * @swagger
  * /api/vendors/{vendor_id}:
