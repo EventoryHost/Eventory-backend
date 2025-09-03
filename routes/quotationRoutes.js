@@ -81,7 +81,6 @@ const router = express.Router();
  *         description: Server error
  */
 router.post("/", async (req, res) => {
-  console.log("Starting quotation creation...");
   try {
     const parsedNumberOfGuest = Number(req.body.number_of_guest);
 
