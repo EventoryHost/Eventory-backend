@@ -142,6 +142,7 @@ router.post("/", async (req, res) => {
         customer_name: customer.name,
         id: newQuotation.id,
       });
+      
       sendVendorQuotationMessage(vendor.mobile,vendor.name,"https://www.eventory.in/dashboard?q=quotations");
     });
   } catch (error) {

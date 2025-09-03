@@ -574,7 +574,6 @@ async function sendCustomerEventBookingMessage(customer_mobile,date,time,venue,l
 
 async function sendVendorQuotationMessage(vendor_mobile, vendor_name, quotationLink) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
-
   const headers = {
     Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
     "Content-Type": "application/json",
