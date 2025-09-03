@@ -1,6 +1,7 @@
 // routes/vendorRoutes.js
 import express from "express";
 import { Vendor } from "../models/users.js";
+import Message  from "../models/message.js";
 import vendorNotification from "../models/vendorNotification.js";
 
 const router = express.Router();
@@ -127,7 +128,6 @@ router.get("/:vendorId/vendorNotification", async (req, res) => {
 
     const notifications = await vendorNotification.find({ vendorId }).sort({ timestamp: -1 });
     const unreadCount = await vendorNotification.countDocuments({ vendorId, read: false });
-
     res.status(200).json({ 
       message: "Notifications fetched", 
       data: notifications,
@@ -206,7 +206,68 @@ router.patch('/:vendorId/vendorNotification/mark-as-read', async (req, res) => {
   }
 });
 
+// for single quotation 
+// When a message come on a quotation this api gives the unread count of THAT quotation
+// first hit it when page gets loaded then after someone has read the message 
+router.get("/:chatId/:usertype/read-by", async (req, res) => {
+  try {
+    const { chatId, usertype } = req.params;
 
+    // Find all messages belonging to this chat
+    const messages = await Message.find({ chatId });
 
+    if (!messages || messages.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No messages found for this chat",
+      });
+    }
+
+    // Filter unread messages for this usertype
+    const unreadMessages = messages.filter(
+      msg => !msg.readBy.includes(usertype)
+    );
+
+    return res.json({
+      success: true,
+      chatId,
+      usertype,
+      unreadCount: unreadMessages.length,
+    });
+  } catch (error) {
+    console.error("Error fetching unread messages:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// for marking the unread count when a usertype has read the unread messages.
+router.patch("/:chatId/:usertype/vendorNotification/read-by", async (req, res) => {
+  try {
+    const { chatId, usertype } = req.params;
+
+    // Update all messages where this usertype is NOT in readBy
+    const result = await Message.updateMany(
+      { chatId, readBy: { $ne: usertype } }, // condition: usertype not in readBy
+      { $push: { readBy: usertype } }        // action: add usertype
+    );
+
+    return res.json({
+      success: true,
+      chatId,
+      usertype,
+      updatedCount: result.modifiedCount, // number of messages updated
+      message: `${result.modifiedCount} messages marked as read for ${usertype}`,
+    });
+  } catch (error) {
+    console.error("Error marking messages as read:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
 
 export default router;
