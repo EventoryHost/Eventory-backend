@@ -1,11 +1,13 @@
 import express from "express";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
+import { Vendor } from "../models/users.js";
 import { getQuotations } from "../controllers/quotationController.js";
 import generateUniqueId from "../utils/generateId.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
 import { v4 as uuidv4 } from "uuid"; 
 import Chat from "../models/chat.js";
+import { sendVendorQuotationMessage } from "../controllers/waController.js";
 
 const router = express.Router();
 
@@ -79,6 +81,7 @@ const router = express.Router();
  *         description: Server error
  */
 router.post("/", async (req, res) => {
+  console.log("Starting quotation creation...");
   try {
     const parsedNumberOfGuest = Number(req.body.number_of_guest);
 
@@ -105,6 +108,7 @@ router.post("/", async (req, res) => {
     });
 
     const customer = await Customer.findOne({ id: req.body.user_id });
+    const vendor = await Vendor.findOne({ id: req.body.vendor_id });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -138,6 +142,8 @@ router.post("/", async (req, res) => {
         customer_name: customer.name,
         id: newQuotation.id,
       });
+      
+      sendVendorQuotationMessage(vendor.mobile,vendor.name,"https://www.eventory.in/dashboard?q=quotations");
     });
   } catch (error) {
     res.status(500).json({
