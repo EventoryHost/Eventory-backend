@@ -6,7 +6,8 @@ import PropRental from "../models/props.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
-import customerNotification from "../models/customerNotification.js";
+import  customerNotification  from "../models/customerNotification.js";
+import { Quotation } from "../models/quotation.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -50,7 +51,44 @@ export const getBooking = async (req, res) => {
       return res.status(204).json({ message: "No bookings found" });
     }
     res.status(200).json(booking);
-  } catch {
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getActiveBooking = async (req, res) => {
+  try {
+    const serviceId = req.params.serId;
+    const customerId = req.params.cusId;
+
+    // Find all quotation IDs recorded for this customer + service
+    const customer = await Customer.findOne({ id: customerId });
+    if (!customer || !Array.isArray(customer.quotations)) {
+      return res.status(204).json({ message: "No bookings found" });
+    }
+
+    const relatedQuotationIds = customer.quotations
+      .filter((q) => q.serviceId === serviceId)
+      .map((q) => q.quotationId);
+
+    if (relatedQuotationIds.length === 0) {
+      return res.status(204).json({ message: "No bookings found" });
+    }
+
+    // Check if any of those quotations are still active (not Rejected)
+    const activeQuotation = await Quotation.findOne({
+      id: { $in: relatedQuotationIds },
+      status: { $ne: "Rejected" },
+    });
+
+    if (!activeQuotation) {
+      // All prior quotations were rejected -> allow new submission
+      return res.status(204).json({ message: "No active bookings found" });
+    }
+
+    // There's an active (pending/accepted/in-progress) quotation
+    return res.status(200).json(activeQuotation);
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
