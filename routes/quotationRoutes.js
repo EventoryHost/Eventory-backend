@@ -90,6 +90,23 @@ router.post("/", async (req, res) => {
         .json({ error: "Budget and Number of Guests must be valid numbers." });
     }
 
+    // Block duplicate quotations only if there is an existing one that is not Rejected
+    const existingActiveQuotation = await Quotation.findOne({
+      user_id: req.body.user_id,
+      vendor_id: req.body.vendor_id,
+      service_id: req.body.service_id,
+      status: { $ne: "Rejected" },
+    });
+
+    if (existingActiveQuotation) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Quotation already exists and is active for this service with this vendor",
+        });
+    }
+
     const newQuotation = new Quotation({
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
@@ -119,14 +136,13 @@ router.post("/", async (req, res) => {
       customer.quotations = [];
     }
 
-    if (customer.quotations.find(q => q.serviceId === req.body.service_id)) {
-      return res.status(400).json({ message: "Quotation already created for this service" });
+    // Always record the new quotation reference; allow multiple entries for same service
+    if (!customer.quotations.some((q) => q.quotationId === savedQuotation.id)) {
+      customer.quotations.push({
+        serviceId: req.body.service_id,
+        quotationId: savedQuotation.id,
+      });
     }
-
-    customer.quotations.push({
-      serviceId: req.body.service_id,
-      quotationId: savedQuotation.id,
-    });
 
     await customer.save();
 
