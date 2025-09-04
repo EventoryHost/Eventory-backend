@@ -484,10 +484,10 @@ const getVendors = async (req, res) => {
 
 
 async function sendVendorEventBookingMessage(invoice_link,vendor_mobile,date,time,venue,link) {
-  const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${WA_PHONE_NUMBER_ID}/messages`;
+  const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
-    Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
     "Content-Type": "application/json",
   };
 
@@ -535,10 +535,10 @@ async function sendVendorEventBookingMessage(invoice_link,vendor_mobile,date,tim
 
 
 async function sendCustomerEventBookingMessage(invoice_link, customer_mobile, date, time, venue,link) {
-  const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${WA_PHONE_NUMBER_ID}/messages`;
+  const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
-    Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`,
     "Content-Type": "application/json",
   };
 
