@@ -65,6 +65,11 @@ const BookingSchema = new Schema({
   eventType: {type: String, required: false},
 
   eventId: { type: String, required: false },
+
+  invoices: {
+    customerInvoices: { type: [String], default: [] },
+    vendorInvoices: { type: [String], default: [] }
+  }
 });
 
 const Booking = model("Bookings", BookingSchema);

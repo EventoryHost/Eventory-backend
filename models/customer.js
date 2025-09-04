@@ -16,6 +16,7 @@ const CustomerSchema = new Schema({
   city: { type: String, default: "" },
   address: { type: String, default: "" },
   pincode: { type: String, default: "" },
+  invoices: { type: [String], default: [] },
   quotations: [
     {
       serviceId: { type: String, required: true },

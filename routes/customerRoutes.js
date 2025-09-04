@@ -24,6 +24,7 @@ import {
   getFavoriteServiceIds,
   getBooking,
   removeQuotationFromCustomer,
+  addCustomerInvoice,
 } from "../controllers/customerController.js";
 
 const router = express.Router();
@@ -212,5 +213,7 @@ router.patch(
 router.get("/:id", getCustomerById);
 
 router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
+
+router.post("/add-customer-invoice", addCustomerInvoice);
 
 export default router;

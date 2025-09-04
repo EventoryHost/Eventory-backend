@@ -6,7 +6,7 @@ import PropRental from "../models/props.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.js";
-import  customerNotification  from "../models/customerNotification.js";
+import customerNotification from "../models/customerNotification.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -24,15 +24,15 @@ export const addCustomer = async (req, res) => {
 
 export const getCustomer = async (req, res) => {
   try {
-    let phone  = req.params.mobile;
+    let phone = req.params.mobile;
     if (phone && !phone.startsWith("+91")) {
       phone = "+91" + phone;
     }
     const customer = await Customer.findOne({ mobile: phone });
-    if(!customer) {
+    if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    res.status(200).json({customer});
+    res.status(200).json({ customer });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -58,7 +58,7 @@ export const getBooking = async (req, res) => {
 export const addFavourite = async (req, res) => {
   try {
     const customerId = req.params.cusId;
-    const serviceId = req.params.serviceId; 
+    const serviceId = req.params.serviceId;
 
     const customer = await Customer.findOne({ id: customerId });
     if (!customer) {
@@ -344,3 +344,28 @@ export const removeQuotationFromCustomer = async (req, res) => {
       });
   }
 };
+
+
+export const addCustomerInvoice = async (req, res) => {
+  const { invoiceUrl, customerId } = req.body
+  console.log(
+    `Received request to add invoice for customer ${customerId} with URL ${invoiceUrl}`
+  );
+
+  const customer = await Customer.findOne({ id: customerId });
+  if (!customer) {
+    return res.status(404).json({ message: "ustomer not found" });
+  }
+
+  try {
+    customer.invoices.push(invoiceUrl);
+    await customer.save();
+    return res.status(200).json({
+      message: "Invoice added successfully",
+    });
+  }
+  catch (error) {
+    console.error("Error adding invoice:", error);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+}

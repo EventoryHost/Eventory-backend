@@ -244,19 +244,17 @@ function buildPayoutsHeaders() {
   };
 }
 
-const verifyCustomerPayment = async (req, res) => {
+const N = (v) => Number(v ?? 0)
 
+const verifyCustomerPayment = async (req, res) => {
   const { order_id, quotation_id, order_amount, payment_type } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
-
     if (!response.data || response.data.length === 0) {
       return res.status(400).json({ error: "Payment not found" });
     }
-
     const payment = response.data;
-
     if (payment.order_status !== "PAID") {
       return res.status(400).json({ error: "Payment not successful" });
     }
@@ -265,7 +263,6 @@ const verifyCustomerPayment = async (req, res) => {
     if (!finalOrder) {
       return res.status(404).json({ error: "Final order not found for quotation_id" });
     }
-
 
     const internalOrderId = finalOrder.orderId;
     const vendorId = finalOrder.vendorId;
@@ -278,7 +275,6 @@ const verifyCustomerPayment = async (req, res) => {
           : NaN
       ) || null;
 
-
     const previousTxn = await Transaction.findOne({
       quotationId: quotation_id,
       vendorId: vendorId,
@@ -288,30 +284,27 @@ const verifyCustomerPayment = async (req, res) => {
 
     const alreadyPaid = previousTxn?.transfer_amount ?? 0;
 
-
     let payoutAmount;
     if (payment_type === "advance") {
-      payoutAmount = order_amount; 
+      payoutAmount = order_amount;
     } else if (payment_type === "full") {
       payoutAmount = receivableFromOrder;
     } else if (payment_type === "remaining") {
       payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
-      if (payoutAmount < 0) payoutAmount = 0; 
+      if (payoutAmount < 0) payoutAmount = 0;
     }
+
     const vendorDoc = await Vendor.findOne({ id: vendorId });
     if (!vendorDoc) {
       return res.status(404).json({ error: "Vendor not found" });
     }
-
     const customerDoc = await Customer.findOne({ id: customerId });
     if (!customerDoc) {
       return res.status(404).json({ error: "Customer not found" });
     }
-
     if (!vendorDoc.bankDetails || vendorDoc.bankDetails.length === 0) {
       return res.status(400).json({ error: "Vendor bank details missing" });
     }
-
 
     const vendorName = vendorDoc.name;
     const customerName = customerDoc.name;
@@ -323,18 +316,15 @@ const verifyCustomerPayment = async (req, res) => {
       beneficiaryId = generateUniqueId("bene");
       primaryBank.beneficiaryId = beneficiaryId;
       await vendorDoc.save();
-    } else {
     }
 
     const payoutsBase = process.env.IS_DEV === "true"
       ? "https://sandbox.cashfree.com/payout"
       : "https://api.cashfree.com/payout";
-
     const headers = buildPayoutsHeaders();
 
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
-
     try {
       const resp = await axios.get(getBeneUrl, {
         headers,
@@ -362,7 +352,6 @@ const verifyCustomerPayment = async (req, res) => {
           beneficiary_country_code: "+91",
         },
       };
-
       try {
         await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
       } catch (e) {
@@ -377,18 +366,14 @@ const verifyCustomerPayment = async (req, res) => {
       internalOrderId,
       vendorId,
       customerId,
-
       pgOrderId: order_id,
       pgStatus: payment.order_status || null,
-
-      transfer_id: transferId,       
-      status: "INIT",               
-      transfer_amount: payoutAmount,  
-      transfer_mode: "IMPS",         
+      transfer_id: transferId,
+      status: "INIT",
+      transfer_amount: payoutAmount,
+      transfer_mode: "IMPS",
       beneficiary_id: beneficiaryId,
-
       payment_type,
-
       paymentDetails: {
         customerPayable: {
           total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
@@ -425,7 +410,7 @@ const verifyCustomerPayment = async (req, res) => {
             transfer_mode: "IMPS",
             added_on: undefined,
             updated_on: new Date(),
-          }, 
+          },
         },
         { new: true }
       );
@@ -433,7 +418,6 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     const transferData = transferResp?.data || {};
-
     const doc = await Transaction.findOneAndUpdate(
       { transfer_id: transferId },
       {
@@ -442,10 +426,8 @@ const verifyCustomerPayment = async (req, res) => {
           internalOrderId,
           vendorId,
           customerId,
-
           pgOrderId: order_id,
           pgStatus: payment.order_status,
-
           cf_transfer_id: transferData.cf_transfer_id || null,
           status: transferData.status || null,
           transfer_amount: transferData.transfer_amount ?? payoutAmount,
@@ -453,11 +435,8 @@ const verifyCustomerPayment = async (req, res) => {
           transfer_utr: transferData.transfer_utr || null,
           added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
           updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-
           beneficiary_id: beneficiaryId,
-
           payment_type,
-
           paymentDetails: {
             customerPayable: {
               total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
@@ -482,8 +461,8 @@ const verifyCustomerPayment = async (req, res) => {
       remaining: "Remaining Payment",
       full: "Full Payment",
     };
-
     const paymentMode = paymentTypeMap[payment_type] || "Payment";
+
     const customerMessage = `${paymentMode} of ₹${order_amount} done successfully to ${vendorDoc?.businessDetails?.businessName} for Order ID: ${internalOrderId}`;
     const vendorMessage = `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
     const adminMessage = `${paymentMode} of ₹${order_amount} is done by ${customerName} to ${vendorDoc?.businessDetails?.businessName} for Order ID: ${internalOrderId}`;
@@ -498,7 +477,6 @@ const verifyCustomerPayment = async (req, res) => {
         read: false,
         timestamp: new Date(),
       });
-
       await vendorNotification.create({
         orderId: internalOrderId,
         vendorId,
@@ -509,7 +487,6 @@ const verifyCustomerPayment = async (req, res) => {
         read: false,
         timestamp: new Date(),
       });
-
       await customerNotification.create({
         customerId,
         vendorId,
@@ -523,12 +500,136 @@ const verifyCustomerPayment = async (req, res) => {
       console.error("Notification creation error:", notifErr);
     }
 
+    console.log("✅ Payment method from Cashfree:", payment?.order_meta?.payment_methods);
+    const paymentMethod = payment.order_meta.payment_methods !== null
+      ? payment.order_meta.payment_methods
+      : "Online";
+
+    const cp = finalOrder?.paymentDetails?.customerPayable || {};
+    const vr = finalOrder?.paymentDetails?.vendorReceivable || {};
+
+    console.log("🧾 Customer Payable Object:", cp);
+    console.log("🧾 Vendor Receivable Object:", vr);
+
+    const totalCustomerPayable = N(cp.total);
+    const baseCustomer = N(cp.baseAmount);
+    const convenienceFee = N(cp.convenienceFee);
+    const taxOnConvenience = N(cp.taxOnConvenience);
+    const commission = N(vr.commission);
+    const taxOnCommission = N(vr.taxOnCommission);
+    const commissionFee = commission + taxOnCommission;
+
+    console.log("💰 totalCustomerPayable:", totalCustomerPayable);
+    console.log("💰 baseCustomer:", baseCustomer);
+    console.log("💰 convenienceFee:", convenienceFee);
+    console.log("💰 taxOnConvenience:", taxOnConvenience);
+    console.log("💰 commission:", commission);
+    console.log("💰 taxOnCommission:", taxOnCommission);
+    console.log("💰 commissionFee (total):", commissionFee);
+
+    const contents = Array.isArray(finalOrder?.finalizedContents)
+      ? finalOrder.finalizedContents
+      : [];
+
+    const items = contents.map((c, idx) => ({
+      name: c.name || `Item ${idx + 1}`,
+      type: finalOrder?.event_type || "-",
+      amount: String(Number(N(c.price).toFixed(2))), // use price as gross
+    }));
+
+    console.log("🛒 Items for invoice:", items);
+
+    const discount = N(cp.discount) || 0;
+    const finalAmount = Math.max(0, totalCustomerPayable - discount);
+
+    console.log("🏷️ Discount:", discount);
+    console.log("💳 Final Amount (after discount):", finalAmount);
+
+    const paidAmount =
+      payment_type === "advance"
+        ? N(order_amount)
+        : payment_type === "full"
+          ? finalAmount
+          : payment_type === "remaining"
+            ? Math.max(0, N(totalCustomerPayable) - N(alreadyPaid) - 0)
+            : N(order_amount);
+
+    console.log("💵 Already Paid:", alreadyPaid);
+    console.log("💵 Paid Amount for this txn:", paidAmount);
+
+    const customerPayload = {
+      id: customerDoc.id,
+      name: customerDoc.name,
+      email: customerDoc.email,
+      mobile: customerDoc.mobile,
+      address: customerDoc.address || finalOrder?.location || "",
+      pincode: customerDoc.pincode || customerDoc.pinCode || "",
+    };
+    console.log("👤 Customer Payload:", customerPayload);
+
+    const vendorPayload = {
+      id: vendorDoc.id,
+      name: vendorDoc.name,
+      businessDetails: {
+        businessName: vendorDoc?.businessDetails?.businessName || vendorDoc?.name || "",
+        businessAddress: vendorDoc?.businessDetails?.businessAddress || "",
+        pinCode: vendorDoc?.businessDetails?.pinCode || "",
+        panNo: vendorDoc?.businessDetails?.panNo || "",
+        gstin: vendorDoc?.businessDetails?.gstin || "",
+      },
+    };
+    console.log("🏢 Vendor Payload:", vendorPayload);
+
+    const paymentDetailsMsg = {
+      paymentType: payment_type,
+      paidAmount: String(Number(paidAmount.toFixed(2))),
+      method: paymentMethod,
+      items,
+      amount: String(Number(totalCustomerPayable.toFixed(2))),
+      discount: String(Number((discount || 0).toFixed(2))),
+      advanceAmount: String(Number((payment_type === "advance" ? order_amount : 0).toFixed(2))),
+      convinienceFee: String(Number((convenienceFee + taxOnConvenience).toFixed(2))),
+      commissionFee: String(Number(commissionFee.toFixed(2))),
+      couponCode: finalOrder?.paymentDetails?.couponCode || null,
+      customerPayable: {
+        total: N(cp.total || 0),
+        baseAmount: N(cp.baseAmount || 0),
+        convenienceFee: N(cp.convenienceFee || 0),
+        taxOnConvenience: N(cp.taxOnConvenience || 0),
+        discount: N(cp.discount || 0),
+      },
+      vendorReceivable: {
+        total: N(vr.total || 0),
+        baseAmount: N(vr.baseAmount || 0),
+        commission: N(vr.commission || 0),
+        taxOnCommission: N(vr.taxOnCommission || 0),
+      },
+      invoiceNumber: order_id,
+    };
+    console.log("🧾 Payment Details for Invoice:", paymentDetailsMsg);
+
+    const sqsMessage = {
+      type: "bookingPayment",
+      customer: customerPayload,
+      vendor: vendorPayload,
+      paymentDetails: paymentDetailsMsg,
+    };
+    console.log("📨 Final SQS Message Body:", sqsMessage);
+
+    await sqs.send(new SendMessageCommand({
+      QueueUrl: process.env.INVOICE_QUEUE_URL || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      MessageBody: JSON.stringify(sqsMessage),
+    }));
+    console.log("✅ SQS message sent successfully.");
+
     return res.status(200).json({ message: "Customer payment verified", payment });
+
   } catch (error) {
     console.error("❌ verifyCustomerPayment error:", error.message, error.stack);
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 
 const getPaymentByOrderId = async (req, res) => {
