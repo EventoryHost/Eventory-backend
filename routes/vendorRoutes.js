@@ -41,6 +41,7 @@ router.get("/all", async (req, res) => {
         teamsize: vendor.businessDetails?.teamsize || "N/A",
         years: vendor.businessDetails?.years || "N/A",
         bookingsPerMonth: vendor.businessDetails?.bookingsPerMonth || "N/A",
+        businessName: vendor.businessDetails?.businessName || "N/A",
       },
       serviceIds: vendor.serviceIds || [],
       bankDetails: vendor.bankDetails || [], 
