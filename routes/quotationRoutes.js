@@ -1,11 +1,13 @@
 import express from "express";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
+import { Vendor } from "../models/users.js";
 import { getQuotations } from "../controllers/quotationController.js";
 import generateUniqueId from "../utils/generateId.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js";
 import { v4 as uuidv4 } from "uuid"; 
 import Chat from "../models/chat.js";
+import { sendVendorQuotationMessage } from "../controllers/waController.js";
 
 const router = express.Router();
 
@@ -88,6 +90,23 @@ router.post("/", async (req, res) => {
         .json({ error: "Budget and Number of Guests must be valid numbers." });
     }
 
+    // Block duplicate quotations only if there is an existing one that is not Rejected
+    const existingActiveQuotation = await Quotation.findOne({
+      user_id: req.body.user_id,
+      vendor_id: req.body.vendor_id,
+      service_id: req.body.service_id,
+      status: { $ne: "Rejected" },
+    });
+
+    if (existingActiveQuotation) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Quotation already exists and is active for this service with this vendor",
+        });
+    }
+
     const newQuotation = new Quotation({
       user_id: req.body.user_id,
       vendor_id: req.body.vendor_id,
@@ -105,6 +124,7 @@ router.post("/", async (req, res) => {
     });
 
     const customer = await Customer.findOne({ id: req.body.user_id });
+    const vendor = await Vendor.findOne({ id: req.body.vendor_id });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -116,14 +136,13 @@ router.post("/", async (req, res) => {
       customer.quotations = [];
     }
 
-    if (customer.quotations.find(q => q.serviceId === req.body.service_id)) {
-      return res.status(400).json({ message: "Quotation already created for this service" });
+    // Always record the new quotation reference; allow multiple entries for same service
+    if (!customer.quotations.some((q) => q.quotationId === savedQuotation.id)) {
+      customer.quotations.push({
+        serviceId: req.body.service_id,
+        quotationId: savedQuotation.id,
+      });
     }
-
-    customer.quotations.push({
-      serviceId: req.body.service_id,
-      quotationId: savedQuotation.id,
-    });
 
     await customer.save();
 
@@ -138,6 +157,8 @@ router.post("/", async (req, res) => {
         customer_name: customer.name,
         id: newQuotation.id,
       });
+      
+      sendVendorQuotationMessage(vendor.mobile,vendor.name,"https://www.eventory.in/dashboard?q=quotations");
     });
   } catch (error) {
     res.status(500).json({

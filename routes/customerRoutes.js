@@ -22,7 +22,8 @@ import {
   addFavourite,
   removeFavourite,
   getFavoriteServiceIds,
-  getBooking
+  getBooking,
+  getActiveBooking
 } from "../controllers/customerController.js";
 
 const router = express.Router();
@@ -71,6 +72,15 @@ router.get("/get-fav-id/:cusId", getFavoriteServiceIds);
  *     tags: [Customer]
  */
 router.get("/get-booking/:cusId/:serId", getBooking);
+
+/**
+ * @swagger
+ * /api/customer/get-active-booking/{cusId}/{serId}:
+ *   get:
+ *     summary: Get active (non-rejected) bookings for a customer and service
+ *     tags: [Customer]
+ */
+router.get("/get-active-booking/:cusId/:serId", getActiveBooking);
 
 /**
  * @swagger
