@@ -19,6 +19,7 @@ dotenv.config();
 import { sendInvoiceToWhatsApp } from "./waController.js";
 import axios from "axios";
 import { Customer } from "../models/customer.js";
+import { Booking } from "../models/booking.js";
 
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
@@ -58,8 +59,6 @@ const createOrder = async (req, res) => {
     return res.status(500).json({ error: "Failed to create order" });
   }
 };
-
-
 
 const verifyPayment = async (req, res) => {
   const { order_id, ven_id, discount, couponCode } = req.body;
@@ -264,6 +263,11 @@ const verifyCustomerPayment = async (req, res) => {
       return res.status(404).json({ error: "Final order not found for quotation_id" });
     }
 
+    const qoutation = await Quotation.findOne({ id: quotation_id }).lean();
+    if (!qoutation) {
+      return res.status(404).json({ error: "Quotation not found for quotation_id" });
+    }
+
     const internalOrderId = finalOrder.orderId;
     const vendorId = finalOrder.vendorId;
     const customerId = finalOrder.customerId;
@@ -326,10 +330,7 @@ const verifyCustomerPayment = async (req, res) => {
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
     try {
-      const resp = await axios.get(getBeneUrl, {
-        headers,
-        params: { beneficiary_id: beneficiaryId },
-      });
+      await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiaryId } });
       hasBeneficiary = true;
     } catch (e) {
       const status = e?.response?.status;
@@ -418,7 +419,7 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     const transferData = transferResp?.data || {};
-    const doc = await Transaction.findOneAndUpdate(
+    await Transaction.findOneAndUpdate(
       { transfer_id: transferId },
       {
         $set: {
@@ -496,20 +497,45 @@ const verifyCustomerPayment = async (req, res) => {
         read: false,
         createdAt: new Date(),
       });
-    } catch (notifErr) {
-      console.error("Notification creation error:", notifErr);
+    } catch { }
+
+    let bookingId;
+    if (payment_type !== "remaining") {
+      bookingId = generateUniqueId("book");
+      const preBooking = new Booking({
+        bookingid: bookingId,
+        customerId: customerId,
+        venId: vendorId,
+        serviceId: "temp_service_id",
+        type: "pending",
+        location: "pending location",
+        startDate: new Date(),
+        endDate: new Date(),
+        details: "Pending details",
+        guest: 0,
+        amount: "0",
+        status: "Pending",
+        managerName: "Not Assigned",
+        customerName: "Pending Customer",
+        description: "Pending description",
+        paymentDetails: "{}",
+        paymentStatus: "Pending",
+        capacity: "0",
+        serviceName: "Pending Service Name",
+        serviceLocation: {},
+        serviceAddress: "",
+      });
+      await preBooking.save();
+    } else {
+      bookingId = null;
     }
 
-    console.log("✅ Payment method from Cashfree:", payment?.order_meta?.payment_methods);
     const paymentMethod = payment.order_meta.payment_methods !== null
       ? payment.order_meta.payment_methods
       : "Online";
 
     const cp = finalOrder?.paymentDetails?.customerPayable || {};
     const vr = finalOrder?.paymentDetails?.vendorReceivable || {};
-
-    console.log("🧾 Customer Payable Object:", cp);
-    console.log("🧾 Vendor Receivable Object:", vr);
 
     const totalCustomerPayable = N(cp.total);
     const baseCustomer = N(cp.baseAmount);
@@ -519,14 +545,6 @@ const verifyCustomerPayment = async (req, res) => {
     const taxOnCommission = N(vr.taxOnCommission);
     const commissionFee = commission + taxOnCommission;
 
-    console.log("💰 totalCustomerPayable:", totalCustomerPayable);
-    console.log("💰 baseCustomer:", baseCustomer);
-    console.log("💰 convenienceFee:", convenienceFee);
-    console.log("💰 taxOnConvenience:", taxOnConvenience);
-    console.log("💰 commission:", commission);
-    console.log("💰 taxOnCommission:", taxOnCommission);
-    console.log("💰 commissionFee (total):", commissionFee);
-
     const contents = Array.isArray(finalOrder?.finalizedContents)
       ? finalOrder.finalizedContents
       : [];
@@ -534,16 +552,11 @@ const verifyCustomerPayment = async (req, res) => {
     const items = contents.map((c, idx) => ({
       name: c.name || `Item ${idx + 1}`,
       type: finalOrder?.event_type || "-",
-      amount: String(Number(N(c.price).toFixed(2))), // use price as gross
+      amount: String(Number(N(c.price).toFixed(2))),
     }));
-
-    console.log("🛒 Items for invoice:", items);
 
     const discount = N(cp.discount) || 0;
     const finalAmount = Math.max(0, totalCustomerPayable - discount);
-
-    console.log("🏷️ Discount:", discount);
-    console.log("💳 Final Amount (after discount):", finalAmount);
 
     const paidAmount =
       payment_type === "advance"
@@ -554,8 +567,28 @@ const verifyCustomerPayment = async (req, res) => {
             ? Math.max(0, N(totalCustomerPayable) - N(alreadyPaid) - 0)
             : N(order_amount);
 
-    console.log("💵 Already Paid:", alreadyPaid);
-    console.log("💵 Paid Amount for this txn:", paidAmount);
+    const formatDate = (dateInput) => {
+      const date = new Date(dateInput);
+      const day = date.getDate();
+      const getDaySuffix = (d) => {
+        if (d > 3 && d < 21) return "th";
+        switch (d % 10) {
+          case 1: return "st";
+          case 2: return "nd";
+          case 3: return "rd";
+          default: return "th";
+        }
+      };
+      const dayWithSuffix = `${day}${getDaySuffix(day)}`;
+      const month = date.toLocaleString("en-US", { month: "short" });
+      const year = date.getFullYear();
+      return `${dayWithSuffix} ${month} ${year}`;
+    };
+    const date = formatDate(finalOrder.start_date);
+    const time = finalOrder.time;
+    const venue = qoutation.location;
+    const customerLink = `https://eventory.in/customerbooking/${bookingId}`;
+    const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
 
     const customerPayload = {
       id: customerDoc.id,
@@ -565,11 +598,11 @@ const verifyCustomerPayment = async (req, res) => {
       address: customerDoc.address || finalOrder?.location || "",
       pincode: customerDoc.pincode || customerDoc.pinCode || "",
     };
-    console.log("👤 Customer Payload:", customerPayload);
 
     const vendorPayload = {
       id: vendorDoc.id,
       name: vendorDoc.name,
+      mobile: vendorDoc.mobile,
       businessDetails: {
         businessName: vendorDoc?.businessDetails?.businessName || vendorDoc?.name || "",
         businessAddress: vendorDoc?.businessDetails?.businessAddress || "",
@@ -578,7 +611,6 @@ const verifyCustomerPayment = async (req, res) => {
         gstin: vendorDoc?.businessDetails?.gstin || "",
       },
     };
-    console.log("🏢 Vendor Payload:", vendorPayload);
 
     const paymentDetailsMsg = {
       paymentType: payment_type,
@@ -605,8 +637,13 @@ const verifyCustomerPayment = async (req, res) => {
         taxOnCommission: N(vr.taxOnCommission || 0),
       },
       invoiceNumber: order_id,
+      date,
+      time,
+      venue,
+      customerLink,
+      vendorLink,
+      bookingId: bookingId,
     };
-    console.log("🧾 Payment Details for Invoice:", paymentDetailsMsg);
 
     const sqsMessage = {
       type: "bookingPayment",
@@ -614,23 +651,17 @@ const verifyCustomerPayment = async (req, res) => {
       vendor: vendorPayload,
       paymentDetails: paymentDetailsMsg,
     };
-    console.log("📨 Final SQS Message Body:", sqsMessage);
 
     await sqs.send(new SendMessageCommand({
       QueueUrl: process.env.INVOICE_QUEUE_URL || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
       MessageBody: JSON.stringify(sqsMessage),
     }));
-    console.log("✅ SQS message sent successfully.");
 
-    return res.status(200).json({ message: "Customer payment verified", payment });
-
+    return res.status(200).json({ message: "Customer payment verified", payment, bookingId });
   } catch (error) {
-    console.error("❌ verifyCustomerPayment error:", error.message, error.stack);
     return res.status(500).json({ error: error.message });
   }
 };
-
-
 
 const getPaymentByOrderId = async (req, res) => {
   const { order_id } = req.body;

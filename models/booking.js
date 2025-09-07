@@ -27,7 +27,6 @@ const FinalizedContentSchema = new Schema({
 const BookingSchema = new Schema({
   bookingid: {
     type: String,
-    default: () => generateUniqueId("book"),
     required: true,
   },
   customerId: { type: String, required: true },
@@ -66,10 +65,10 @@ const BookingSchema = new Schema({
 
   eventId: { type: String, required: false },
 
-  invoices: {
-    customerInvoices: { type: [String], default: [] },
-    vendorInvoices: { type: [String], default: [] }
-  }
+  // invoices: {
+  //   customerInvoices: { type: [String], default: [] },
+  //   vendorInvoices: { type: [String], default: [] }
+  // }
 });
 
 const Booking = model("Bookings", BookingSchema);
