@@ -55,9 +55,15 @@ const venueSchema = new Schema({
   insurancePolicy: {
     type: [String],
   },
+  photos: [{ 
+    original: { type: String },
+    preview: { type: String }
+  }],
 
-  photos: { type: [String] },
-  videos: { type: [String] },
+  videos: [{ 
+    original: { type: String },
+    preview: { type: String }
+  }],
   instagramURL: { type: String },
   websiteURL: { type: String },
   awards: { type: String },
