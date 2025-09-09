@@ -48,8 +48,15 @@ const CateringSchema = new mongoose.Schema(
 
     minOrderReq: { type: String }, // Minimum order requirements
     AdvBooking: { type: String }, // Advance booking period
-    photos: { type: [String] }, // Photos related to catering
-    videos: { type: [String] }, // Videos related to catering
+    photos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+
+    videos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
     tastingSessions: { type: Boolean }, // Tasting sessions offered
     businessLicenses: { type: Boolean }, // Business licenses held
     foodSafety: { type: Boolean }, // Food safety certificates held

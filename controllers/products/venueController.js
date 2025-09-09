@@ -291,21 +291,17 @@ const createVenue = async (req, res) => {
       },
 
       additionalDetails: {
-        completed: false, // Will be updated based on completion
+        completed: false, 
         photos: Array.isArray(photosUrl) ? photosUrl.map(url => {
-          // Check if URL is already an object with original and preview
           if (typeof url === 'object' && url.original && url.preview) {
             return url;
           }
-          // Convert string URL to object format
           return { original: url, preview: url };
         }) : [{ original: photosUrl, preview: photosUrl }],
         videos: Array.isArray(videosUrl) ? videosUrl.map(url => {
-          // Check if URL is already an object with original and preview
           if (typeof url === 'object' && url.original && url.preview) {
             return url;
           }
-          // Convert string URL to object format
           return { original: url, preview: url };
         }) : [{ original: videosUrl, preview: videosUrl }],
         awards: req.body.awards,

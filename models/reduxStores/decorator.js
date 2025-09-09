@@ -25,10 +25,23 @@ const DecoratorSchema = new mongoose.Schema(
     customizationsThemes: { type: Boolean },
     customDesignProcess: { type: String },
     themesElements: { type: [String] },
-    themephotos: { type: [String] },
-    themevideos: { type: [String] },
-    photos: { type: [String] },
-    videos: { type: [String] },
+    themePhotos:  [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+    themeVideos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+    photos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+
+    videos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
     clientTestimonials: { type: String },
     Recongnition_awards: { type: String },
     intstagramurl: { type: String },

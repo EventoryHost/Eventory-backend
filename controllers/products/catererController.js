@@ -189,8 +189,27 @@ const createCaterer = async (req, res) => {
         priceStartingFrom: parseInt(req.body.priceStartingFrom, 10) || 0,
         minimum_order_requirements: req.body.minimum_order_requirements,
         advance_booking_period: parseRange(req.body.advance_booking_period),
-        photos: Array.isArray(photos) ? photos : [photos],
-        videos: Array.isArray(videos) ? videos : [videos],
+        photos: Array.isArray(photos) ? photos.map(url => {
+          if (typeof url === 'object' && url.original && url.preview) {
+            return url;
+          }
+          return { original: url, preview: url };
+        }) : photos ? [{ 
+          original: photos, 
+          preview: photos
+        }] : [],
+        videos: Array.isArray(videos) ? videos.map(url => {
+          if (typeof url === 'object' && url.original && url.preview) {
+            return url;
+          }
+          return { 
+            original: url, 
+            preview: url
+          };
+        }) : videos ? [{ 
+          original: videos, 
+          preview: videos
+        }] : [],
         tasting_sessions: req.body.tasting_sessions === "true",
         business_licenses: req.body.business_licenses === "true",
         food_safety_certificates: Array.isArray(foodSafetyCertificates)

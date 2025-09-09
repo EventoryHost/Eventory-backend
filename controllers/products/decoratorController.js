@@ -171,16 +171,64 @@ const createDecorator = async (req, res) => {
       },
       themesElement: {
         themeElements: req.body.themeElements,
-        themePhotos: Array.isArray(themePhotosUrl)
-          ? themePhotosUrl
-          : [themePhotosUrl],
+        themePhotos: Array.isArray(themePhotosUrl) 
+          ? themePhotosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : themePhotosUrl ? [{ 
+              original: themePhotosUrl, 
+              preview: themePhotosUrl
+            }] : [],
         themeVideos: Array.isArray(themeVideosUrl)
-          ? themeVideosUrl
-          : [themeVideosUrl],
+          ? themeVideosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : themeVideosUrl ? [{ 
+              original: themeVideosUrl, 
+              preview: themeVideosUrl 
+            }] : [],
       },
       additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        photos: Array.isArray(photosUrl) 
+          ? photosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : photosUrl ? [{ 
+              original: photosUrl, 
+              preview: photosUrl
+            }] : [],
+        videos: Array.isArray(videosUrl) 
+          ? videosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : videosUrl ? [{ 
+              original: videosUrl, 
+              preview: videosUrl
+            }] : [],
         clientTestimonials: req.body.clientTestimonials,
         awards: req.body.awards,
         website: req.body.websiteurl,
