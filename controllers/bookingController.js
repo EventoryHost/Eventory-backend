@@ -1,13 +1,54 @@
 import { Booking } from "../models/booking.js";
 import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decoraters.js";
-import { eventSchema, Venue } from "../models/venue.js";
+import { Venue } from "../models/venue.js";
 import Photographer from "../models/photographers.js";
 import MakeupArtist from "../models/makeupArtists.js";
+
 import generateUniqueId from "../utils/generateId.js";
+import { sendVendorEventBookingMessage } from "./waController.js";
+import { sendCustomerEventBookingMessage } from "./waController.js";
+import { Vendor } from "../models/users.js";
+import { Customer } from "../models/customer.js";
+import adminNotification from "../models/adminNotification.js";
+import customerNotification from "../models/customerNotification.js";
+import vendorNotification from "../models/vendorNotification.js";
+
+function modelFromServiceId(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+  const prefix = serviceId.slice(0, 3).toLowerCase();
+
+  switch (prefix) {
+    case "cat":
+      return { Model: Caterer, vendorType: "caterer" };
+    case "dec":
+      return { Model: Decorator, vendorType: "decorator" };
+    case "mak":
+      return { Model: MakeupArtist, vendorType: "makeup" };
+    case "pav":
+      return { Model: Photographer, vendorType: "photographer" };
+    case "veu":
+      return { Model: Venue, vendorType: "venue" };
+    default:
+      return null;
+  }
+}
+
+function getStatusColor(paymentDetails) {
+  if (!paymentDetails) return "yellow";
+  if (typeof paymentDetails === "string") {
+    try { paymentDetails = JSON.parse(paymentDetails); }
+    catch { return "yellow"; }
+  }
+  if (paymentDetails.fullPaid !== undefined && paymentDetails.fullPaid !== null) {
+    return "green";
+  }
+  return "yellow";
+}
 
 export const createBooking = async (req, res) => {
   const {
+    bookingid,
     customerId,
     venId,
     serviceId,
@@ -22,54 +63,197 @@ export const createBooking = async (req, res) => {
     customerName,
     description,
     paymentDetails,
+    status,
     paymentStatus,
     capacity,
-    // totalRatings,
-    vendorBusinessDetails,  // <-- NEW
-    rating,                 // <-- NEW
-    finalizedContents,       // <-- NEW
+    vendorBusinessDetails,
+    rating,
+    finalizedContents,
     serviceName,
     serviceLocation,
-    serviceAddress,
+    eventLocation,
+    eventTime,
+    eventType,
   } = req.body;
 
-  try {
-    const newBooking = new Booking({
-      customerId,
-      venId,
-      serviceId,
-      type,
-      location,
-      startDate,
-      endDate,
-      details,
-      guest,
-      amount,
-      managerName,
-      customerName,
-      description,
-      paymentDetails,
-      paymentStatus,
-      capacity,
-      // totalRatings,
-      vendorBusinessDetails,
-      rating,
-      finalizedContents,
-      serviceName,
-      serviceLocation,
-      serviceAddress,
-    });
+  const eventId = generateUniqueId("eve");
 
-    const savedBooking = await newBooking.save();
+  try {
+    let savedBooking;
+    if (bookingid) {
+      savedBooking = await Booking.findOneAndUpdate(
+        { bookingid },
+        {
+          $set: {
+            customerId,
+            venId,
+            serviceId,
+            type,
+            location,
+            startDate,
+            endDate,
+            details,
+            guest,
+            amount,
+            managerName,
+            customerName,
+            description,
+            paymentDetails,
+            status,
+            paymentStatus,
+            capacity,
+            vendorBusinessDetails,
+            rating,
+            finalizedContents,
+            serviceName,
+            serviceLocation,
+            eventLocation,
+            eventTime,
+            eventType,
+            eventId,
+          },
+        },
+        { new: true }
+      );
+      if (!savedBooking) {
+        savedBooking = new Booking({
+          bookingid,
+          customerId,
+          venId,
+          serviceId,
+          type,
+          location,
+          startDate,
+          endDate,
+          details,
+          guest,
+          amount,
+          managerName,
+          customerName,
+          description,
+          paymentDetails,
+          status,
+          paymentStatus,
+          capacity,
+          vendorBusinessDetails,
+          rating,
+          finalizedContents,
+          serviceName,
+          serviceLocation,
+          eventLocation,
+          eventTime,
+          eventType,
+          eventId,
+        });
+        await savedBooking.save();
+      }
+    } else {
+      savedBooking = new Booking({
+        bookingid: generateUniqueId("book"),
+        customerId,
+        venId,
+        serviceId,
+        type,
+        location,
+        startDate,
+        endDate,
+        details,
+        guest,
+        amount,
+        managerName,
+        customerName,
+        description,
+        paymentDetails,
+        status,
+        paymentStatus,
+        capacity,
+        vendorBusinessDetails,
+        rating,
+        finalizedContents,
+        serviceName,
+        serviceLocation,
+        eventLocation,
+        eventTime,
+        eventType,
+        eventId,
+      });
+      await savedBooking.save();
+    }
+
+    const color = getStatusColor(paymentDetails);
+
+    try {
+      const resolved = modelFromServiceId(serviceId);
+      if (resolved) {
+        const { Model } = resolved;
+        const eventObj = {
+          id: eventId,
+          title: eventType,
+          description:
+            (description && description.trim()) ||
+            `Booking ${savedBooking.bookingid} - ${customerName || ""}`.trim(),
+          start: startDate,
+          end: endDate,
+          color,
+        };
+        await Model.findOneAndUpdate(
+          { id: serviceId },
+          { $push: { schedule: eventObj } },
+          { new: true }
+        ).lean();
+      }
+    } catch {
+      // ignore errors here, but log if desired
+    }
 
     res.status(201).json({
-      message: "Booking created successfully",
+      message: "Booking saved successfully",
       booking: savedBooking,
     });
+
+    const vendor = await Vendor.findOne({ id: venId }).lean();
+    const customer = await Customer.findOne({ id: customerId }).lean();
+
+    const adminMessage = `New booking ${savedBooking.bookingid} created by ${customer?.name} for ${vendor?.businessDetails?.businessName || vendor?.name}.`;
+    const vendorMessage = `You have a new booking ${savedBooking.bookingid} from ${customer?.name}.`;
+    const customerMessage = `Your booking ${savedBooking.bookingid} for ${vendor?.businessDetails?.businessName || vendor?.name} has been confirmed.`;
+
+    try {
+      await adminNotification.create({
+        orderId: savedBooking.bookingid,
+        vendorId: venId,
+        customerId,
+        message: adminMessage,
+        quotationId: "",
+        read: false,
+        timestamp: new Date(),
+      });
+
+      await vendorNotification.create({
+        orderId: savedBooking.bookingid,
+        vendorId: venId,
+        customerId,
+        message: vendorMessage,
+        type: "booking_confirmed",
+        read: false,
+        timestamp: new Date(),
+      });
+
+      await customerNotification.create({
+        orderId: savedBooking.bookingid,
+        vendorId: venId,
+        customerId,
+        message: customerMessage,
+        read: false,
+        createdAt: new Date(),
+      });
+    } catch (notifError) {
+      console.error("Notification creation failed:", notifError);
+    }
   } catch (error) {
-    console.error("Error creating booking:", error);
+    console.error("Create booking error:", error);
     res.status(500).json({
-      message: "An error occurred while creating the booking",
+      message: "An error occurred while saving the booking",
       error: error.message,
     });
   }
@@ -121,28 +305,28 @@ export const fetchBooking = async (req, res) => {
 };
 
 export const updateBooking = async (req, res) => {
-  const { bookingId } = req.params; // Retrieve the booking ID from the URL parameters
-  const updateData = req.body; // Expecting the updated data from the request body
+  const { bookingId } = req.params;
+  const updateData = req.body;
 
   try {
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      bookingId,
-      updateData,
-      { new: true },
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { bookingid: bookingId },
+      { $set: updateData },
+      { new: true }
     );
+
 
     if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
     }
+
 
     res.status(200).json({
       message: "Booking updated successfully",
       booking: updatedBooking,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "An error occurred", error: error.message });
+    res.status(500).json({ message: "An error occurred", error: error.message });
   }
 };
 
@@ -442,7 +626,6 @@ export const getVendorBookings = async (req, res) => {
   }
 };
 
-// GET /api/bookings/:bookingId
 export const getBookingById = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -542,5 +725,44 @@ export const getAllVendorServiceSchedules = async (req, res) => {
   } catch (error) {
     console.error("Error fetching all schedules:", error);
     return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+export const addBookingInvoice = async (req, res) => {
+  try {
+    const { bookingId, customerInvoiceUrl, vendorInvoiceUrl } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ error: 'bookingId is required' });
+    }
+
+    if (!customerInvoiceUrl && !vendorInvoiceUrl) {
+      return res.status(400).json({ error: 'At least one invoice URL is required' });
+    }
+
+    const update = {};
+    if (customerInvoiceUrl) update['$push'] = { 'invoices.customerInvoices': customerInvoiceUrl };
+    if (vendorInvoiceUrl) {
+      if (!update['$push']) update['$push'] = {};
+      update['$push']['invoices.vendorInvoices'] = vendorInvoiceUrl;
+    }
+
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { bookingid: bookingId },
+      update,
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ error: `Booking with id ${bookingId} not found` });
+    }
+
+    res.status(200).json({
+      message: 'Invoice URLs added successfully',
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    console.error('Error adding invoice URLs to booking:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
