@@ -75,7 +75,6 @@ const createDecorator = async (req, res) => {
     // Check for existing decorator
     const alreadyExists = await Decorator.findOne({
       vendor_id: req.body.vendor_id,
-      point_of_contact: req.body.point_of_contact,
     });
     if (alreadyExists) {
       return res.status(400).json({ message: "Decorator already exists" });
@@ -258,10 +257,12 @@ const createDecorator = async (req, res) => {
     const savedDecorator = await newDecorator.save();
 
     // Vendor association
+    console.log("Vendor ID", req.body.vendor_id);
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
+    console.log("Vendor", vendor);
     if (!vendor) {
       await Decorator.findByIdAndDelete(savedDecorator._id);
-      return res.status(404).json({ message: "Vendor not found" });
+      return res.status(404).json({ message: "Vendor not founddddddddd" });
     }
 
     vendor.services.push(savedDecorator.service_id);
