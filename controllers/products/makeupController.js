@@ -75,17 +75,22 @@ const createMakeupArtist = async (req, res) => {
       return res.status(400).json({ message: "Makeup artist already exists" });
     }
 
-    // Get uploaded file URLs
-    // const photos = getFileUrls(req.files, "photos");
-    // const videos = getFileUrls(req.files, "videos");
+    // Process photos and videos - handling both string arrays and objects with original/preview properties
+    let photos = req.body.photos || [];
+    let videos = req.body.videos || [];
+    
+    // Convert string photos to proper format if needed
+    if (typeof photos === 'string') {
+      photos = [photos];
+    }
+    
+    // Convert string videos to proper format if needed
+    if (typeof videos === 'string') {
+      videos = [videos];
+    }
+    
 
-    // Parse location data
-    // const location = {
-    //   lat: parseFloat(req.body.latitude),
-    //   lng: parseFloat(req.body.longitude),
-    //   pincode: parseInt(req.body.pincode),
-    //   googleMapsAddress: req.body.address || ""
-    // };
+    
 
     // Profile completion check
     const fieldsToCheck = [
@@ -172,8 +177,32 @@ const createMakeupArtist = async (req, res) => {
       },
 
       additionalDetails: {
-        photos: req.body.photos,
-        videos: req.body.videos,
+        photos: Array.isArray(photos) 
+          ? photos.map(url => {
+              if (typeof url === 'object' && (url.original || url.preview)) {
+                return {
+                  original: url.original || url.preview || '',
+                  preview: url.preview || url.original || ''
+                };
+              }
+              return { original: url, preview: url };
+            }) 
+          : (photos && typeof photos === 'string' 
+              ? [{ original: photos, preview: photos }] 
+              : []),
+        videos: Array.isArray(videos) 
+          ? videos.map(url => {
+              if (typeof url === 'object' && (url.original || url.preview)) {
+                return {
+                  original: url.original || url.preview || '',
+                  preview: url.preview || url.original || ''
+                };
+              }
+              return { original: url, preview: url };
+            }) 
+          : (videos && typeof videos === 'string' 
+              ? [{ original: videos, preview: videos }] 
+              : []),
         socialMedia: req.body.socialMedia || "",
         websiteUrl: req.body.websiteUrl || "",
         priceStartingFrom: req.body.priceStarts,

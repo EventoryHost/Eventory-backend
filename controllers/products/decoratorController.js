@@ -76,8 +76,9 @@ const createDecorator = async (req, res) => {
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || "";
     const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
-    const themePhotosUrl = req.body.themephotos || [];
-    const themeVideosUrl = req.body.themevideos || [];
+    // Check both camelCase and lowercase versions to ensure compatibility
+    const themePhotosUrl = req.body.themePhotos || req.body.themephotos || [];
+    const themeVideosUrl = req.body.themeVideos || req.body.themevideos || [];
 
     const photosUrl = req.body.photos || [];
     const videosUrl = req.body.videos || [];
@@ -90,6 +91,8 @@ const createDecorator = async (req, res) => {
     };
 
     console.log("Service Areas received:", req.body.serviceAreas);
+    console.log("Theme Photos received:", themePhotosUrl);
+    console.log("Theme Videos received:", themeVideosUrl);
 
     // Calculate profile completion
     const fieldsToCheck = [
