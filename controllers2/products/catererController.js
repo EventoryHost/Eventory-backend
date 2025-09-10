@@ -71,7 +71,6 @@ const createCaterer = async (req, res) => {
     //ser1: Ankit caterer
     //ser2: ankit caterer
     const alreadyExists = await Caterer.findOne({
-      point_of_contact: req.body.point_of_contact,
       vendor_id: req.body.vendor_id,
     });
     if (alreadyExists) {
@@ -83,7 +82,7 @@ const createCaterer = async (req, res) => {
     const asset_images = req.body.asset_images || [];
     const asset_videos = req.body.asset_videos || [];
     const food_safety_certificates = req.body.food_safety_certificates || [];
-    console.log("Flow got till here ???????",alreadyExists)
+    
     const tempCatererData = await ReduxCatererModel.findOne({
           vendor_id: req.body.vendor_id,
         });
@@ -93,7 +92,6 @@ const createCaterer = async (req, res) => {
         if (agreementUrl) {
           console.log("Found agreement data for venue:", agreementUrl);
         }
-    console.log("whats the value",tempCatererData)
 
     // Profile completion check
     const fieldsToCheck = [
