@@ -78,13 +78,12 @@ const createCaterer = async (req, res) => {
       return res.status(400).json({ message: "Caterer already exists" });
     }
 
-
     // Handle file uploads and array conversions
     const menu = req.body.menu || [];
     const asset_images = req.body.asset_images || [];
     const asset_videos = req.body.asset_videos || [];
     const food_safety_certificates = req.body.food_safety_certificates || [];
-
+    console.log("Flow got till here ???????",alreadyExists)
     const tempCatererData = await ReduxCatererModel.findOne({
           vendor_id: req.body.vendor_id,
         });
@@ -94,7 +93,7 @@ const createCaterer = async (req, res) => {
         if (agreementUrl) {
           console.log("Found agreement data for venue:", agreementUrl);
         }
-    
+    console.log("whats the value",tempCatererData)
 
     // Profile completion check
     const fieldsToCheck = [
@@ -187,7 +186,6 @@ const createCaterer = async (req, res) => {
     const newCaterer = new Caterer({
       vendor_id: req.body.vendor_id,
       service_areas: req.body.service_areas || [],
-    
       basic_details: {
         is_completed: profile_completion_score?.basic_details || false,
         point_of_contact: req.body.point_of_contact,
@@ -285,7 +283,7 @@ const createCaterer = async (req, res) => {
     const savedCaterer = await newCaterer.save();
 
     // Associate with vendor
-    const vendor = await Vendor.findOne({ vendor_id: req.body.venId });
+    const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
       await Caterer.findByIdAndDelete(savedCaterer.vendor_id);
       return res.status(404).json({ message: "Vendor not found" });
