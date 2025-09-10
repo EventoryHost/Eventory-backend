@@ -21,7 +21,6 @@ const getInvoiceCount = async () => {
     const command = new ListObjectsV2Command(params);
     const response = await s3.send(command);
     
-    console.log("S3 response:", response);
     
     return response.Contents ? response.Contents.length : 0;
   } catch (error) {
