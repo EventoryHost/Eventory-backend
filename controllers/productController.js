@@ -674,9 +674,9 @@ const searchAllVendors = async (query) => {
       {
         $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
       },
-      // {
-      //   $unionWith: { coll: "makeupartists", pipeline: [{ $match: filters }] },
-      // },
+      {
+        $unionWith: { coll: "makeupartists", pipeline: [{ $match: filters }] },
+      },
       { $count: "total" },
     ];
 
@@ -692,9 +692,9 @@ const searchAllVendors = async (query) => {
       {
         $unionWith: { coll: "photographers", pipeline: [{ $match: filters }] },
       },
-      // {
-      //   $unionWith: { coll: "makeupartists", pipeline: [{ $match: filters }] },
-      // },
+      {
+        $unionWith: { coll: "makeupartists", pipeline: [{ $match: filters }] },
+      },
       { $sort: sortStage }, // Apply sorting
       {
         $set: {
@@ -719,12 +719,12 @@ const searchAllVendors = async (query) => {
                   },
                   then: "Decorator",
                 },
-                // {
-                //   case: {
-                //     $gt: [{ $type: "$basicDetails.makeupType" }, "missing"],
-                //   },
-                //   then: "MakeupArtist",
-                // },
+                {
+                  case: {
+                    $gt: [{ $type: "$basicDetails.makeupType" }, "missing"],
+                  },
+                  then: "MakeupArtist",
+                },
               ],
               default: "Photographer",
             },
