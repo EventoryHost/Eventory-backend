@@ -79,20 +79,56 @@ const createMakeupArtist = async (req, res) => {
     let photos = req.body.photos || [];
     let videos = req.body.videos || [];
     
-    // Convert string photos to proper format if needed
-    if (typeof photos === 'string') {
-      photos = [photos];
+    // Process photos - handle JSON strings from frontend
+    if (Array.isArray(photos)) {
+      photos = photos.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof photos === 'string') {
+      try {
+        const parsed = JSON.parse(photos);
+        photos = [parsed];
+      } catch (e) {
+        photos = [photos];
+      }
     }
     
-    // Convert string videos to proper format if needed
-    if (typeof videos === 'string') {
-      videos = [videos];
+    // Process videos - handle JSON strings from frontend
+    if (Array.isArray(videos)) {
+      videos = videos.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof videos === 'string') {
+      try {
+        const parsed = JSON.parse(videos);
+        videos = [parsed];
+      } catch (e) {
+        videos = [videos];
+      }
     }
-    
 
-    
-
-    // Profile completion check
     const fieldsToCheck = [
       req.body.name, // basicDetails.name
       req.body.eventSize?.ll, // basicDetails.eventSize.ll
@@ -179,26 +215,60 @@ const createMakeupArtist = async (req, res) => {
       additionalDetails: {
         photos: Array.isArray(photos) 
           ? photos.map(url => {
-              if (typeof url === 'object' && (url.original || url.preview)) {
-                return {
-                  original: url.original || url.preview || '',
-                  preview: url.preview || url.original || ''
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'string') {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl
                 };
               }
-              return { original: url, preview: url };
+              return { 
+                original: url, 
+                preview: url
+              };
             }) 
           : (photos && typeof photos === 'string' 
               ? [{ original: photos, preview: photos }] 
               : []),
         videos: Array.isArray(videos) 
           ? videos.map(url => {
-              if (typeof url === 'object' && (url.original || url.preview)) {
-                return {
-                  original: url.original || url.preview || '',
-                  preview: url.preview || url.original || ''
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'string') {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl
                 };
               }
-              return { original: url, preview: url };
+              return { 
+                original: url, 
+                preview: url
+              };
             }) 
           : (videos && typeof videos === 'string' 
               ? [{ original: videos, preview: videos }] 

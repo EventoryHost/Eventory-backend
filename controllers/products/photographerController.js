@@ -122,6 +122,56 @@ const createPhotographer = async (req, res) => {
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const termsAndConditionsFileUrl = req.body.termsAndConditions || [];
 
+    let processedPhotos = photosUrl;
+    if (Array.isArray(photosUrl)) {
+      processedPhotos = photosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item; 
+      });
+    } else if (typeof photosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(photosUrl);
+        processedPhotos = [parsed];
+      } catch (e) {
+        processedPhotos = [photosUrl];
+      }
+    }
+
+    let processedVideos = videosUrl;
+    if (Array.isArray(videosUrl)) {
+      processedVideos = videosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item; 
+          } catch (e) {
+            return item;
+          }
+        }
+        return item; 
+      });
+    } else if (typeof videosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(videosUrl);
+        processedVideos = [parsed];
+      } catch (e) {
+        processedVideos = [videosUrl];
+      }
+    }
+
     // Log fields to debug
     console.log("Incoming fields:", {
       name: req.body.name,
@@ -138,8 +188,8 @@ const createPhotographer = async (req, res) => {
       availablefordestinationevents: req.body.availablefordestinationevents,
       Advancesetup: req.body.Advancesetup,
       postproductionservices: req.body.postproductionservices,
-      photosUrl,
-      videosUrl,
+      photosUrl: processedPhotos,
+      videosUrl: processedVideos,
       cancellationPolicyFileUrl,
       termsAndConditionsFileUrl,
     });
@@ -162,8 +212,8 @@ const createPhotographer = async (req, res) => {
       req.body.availablefordestinationevents, // Ensure availableForDestinationEvents is defined
       req.body.Advancesetup, // Ensure AdvanceSetup is defined
       req.body.postproductionservices, // Ensure postProductionServices is defined
-      photosUrl.length > 0, // Ensure there are photos
-      videosUrl.length > 0, // Ensure there are videos
+      processedPhotos.length > 0, // Ensure there are photos
+      processedVideos.length > 0, // Ensure there are videos
       cancellationPolicyFileUrl, // Ensure cancellationPolicy is uploaded
       termsAndConditionsFileUrl, // Ensure termsAndConditions file is uploaded
     ];
@@ -171,11 +221,6 @@ const createPhotographer = async (req, res) => {
     const completedFields = fieldsToCheck.filter((field) => !!field).length;
     const profileCompletion =
       Math.round(completedFields / fieldsToCheck.length) * 100 || 0;
-
-    // Debug profile completion calculation
-    console.log("Fields to Check:", fieldsToCheck);
-    console.log("Completed Fields:", completedFields);
-    console.log("Profile Completion:", profileCompletion);
 
     // Prepare eventSize object
     // const eventSizeCheck = parseRange(req.body.eventSize);
@@ -207,8 +252,80 @@ const createPhotographer = async (req, res) => {
 
     // Prepare additionalDetails
     const additionalDetails = {
-      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+      photos: Array.isArray(processedPhotos) ? processedPhotos.map(url => {
+        // If it's already an object with original and preview, use it directly
+        if (typeof url === 'object' && url.original && url.preview) {
+          return {
+            original: url.original,
+            preview: url.preview
+          };
+        }
+        // If it's just an object with original, generate preview
+        if (typeof url === 'object' && url.original) {
+          let previewUrl = url.original;
+          if (url.original.includes('/original-')) {
+            previewUrl = url.original.replace('/original-', '/preview-');
+            // For images, change extension to .webp
+            if (url.original.match(/\.(jpg|jpeg|png|gif)$/i)) {
+              previewUrl = previewUrl.replace(/\.(jpg|jpeg|png|gif)$/i, '.webp');
+            }
+          }
+          return {
+            original: url.original,
+            preview: previewUrl
+          };
+        }
+        // If it's a string, generate both original and preview
+        if (typeof url === 'string') {
+          let previewUrl = url;
+          if (url.includes('/original-')) {
+            previewUrl = url.replace('/original-', '/preview-');
+            // For images, change extension to .webp
+            if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
+              previewUrl = previewUrl.replace(/\.(jpg|jpeg|png|gif)$/i, '.webp');
+            }
+          }
+          return { original: url, preview: previewUrl };
+        }
+        return { original: url, preview: url };
+      }) : [],
+      videos: Array.isArray(processedVideos) ? processedVideos.map(url => {
+        // If it's already an object with original and preview, use it directly
+        if (typeof url === 'object' && url.original && url.preview) {
+          return {
+            original: url.original,
+            preview: url.preview
+          };
+        }
+        // If it's just an object with original, generate preview
+        if (typeof url === 'object' && url.original) {
+          let previewUrl = url.original;
+          if (url.original.includes('/original-')) {
+            previewUrl = url.original.replace('/original-', '/preview-');
+            // For videos, ensure .mp4 extension for preview
+            if (!previewUrl.endsWith('.mp4')) {
+              previewUrl = previewUrl.replace(/\.[^.]+$/, '.mp4');
+            }
+          }
+          return {
+            original: url.original,
+            preview: previewUrl
+          };
+        }
+        // If it's a string, generate both original and preview
+        if (typeof url === 'string') {
+          let previewUrl = url;
+          if (url.includes('/original-')) {
+            previewUrl = url.replace('/original-', '/preview-');
+            // For videos, ensure .mp4 extension for preview
+            if (!previewUrl.endsWith('.mp4')) {
+              previewUrl = previewUrl.replace(/\.[^.]+$/, '.mp4');
+            }
+          }
+          return { original: url, preview: previewUrl };
+        }
+        return { original: url, preview: url };
+      }) : [],
       clientTestimonials: req.body.clientTestimonials,
       awards: req.body.awards,
       website: req.body.website,

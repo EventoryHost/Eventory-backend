@@ -27,8 +27,18 @@ const djArtistSchema = Schema({
          servicesOffered: { type: [String], required: true },  
     },
     additionalDetails:{
-        photos: { type: [String], required: true },
-        videos: { type: [String], required: true },
+        photos: [
+            {
+                original: { type: String },
+                preview: { type: String },
+            },
+        ],
+        videos: [
+            {
+                original: { type: String },
+                preview: { type: String },
+            },
+        ],
         awards : { type: String, },
         instagramUrl : { type: String, },
         websiteUrl : { type: String, },
