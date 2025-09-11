@@ -91,6 +91,7 @@ const verifyPayment = async (req, res) => {
 
     const vendor = await Vendor.findOne({ id: ven_id });
     const sqsMessage = {
+      type: "vendorOnboarded",
       customer: vendor,
       paymentDetails: formattedDetails,
     };
