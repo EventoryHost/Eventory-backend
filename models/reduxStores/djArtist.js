@@ -25,7 +25,7 @@ const djArtistSchema = Schema({
     instagramURL: { type: String },
     websiteURL: { type: String },
     testimonials: { type: String },
-    priceStarts: { type: Number },
+    priceStartingFrom: { type: Number },
     termsAndConditions: { type: [String] },
     cancellationPolicy: { type: [String] },
     agreementUrl: { type: String },
