@@ -6,6 +6,26 @@ import { Service } from "../models/services.js";
 import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
 
+function modelFromServiceId(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+  const prefix = serviceId.slice(0, 3).toLowerCase();
+
+  switch (prefix) {
+    case "cat":
+      return { Model: Caterer, vendorType: "caterer" };
+    case "dec":
+      return { Model: Decorator, vendorType: "decorator" };
+    case "mak":
+      return { Model: MakeupArtist, vendorType: "makeup" };
+    case "pav":
+      return { Model: Photographer, vendorType: "photographer" };
+    case "veu":
+      return { Model: Venue, vendorType: "venue" };
+    default:
+      return null;
+  }
+}
+
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
   console.log(vendortype, vendorid);
@@ -278,5 +298,32 @@ export const getServiceByServiceId = async (req, res) => {
   } catch (error) {
     console.error("❌ Error fetching service:", error);
     return res.status(500).json({ error: "An error occurred: " + error.message });
+  }
+};
+
+
+export const updateScheduleColor = async (req, res) => {
+  const { serviceId, eventId } = req.params;
+  try {
+    const resolver = modelFromServiceId(serviceId);
+    if (!resolver) {
+      return res.status(400).json({ error: "Invalid serviceId prefix" });
+    }
+    const { Model } = resolver;
+
+    const updatedService = await Model.findOneAndUpdate(
+      { id: serviceId, "schedule.id": eventId },
+      { $set: { "schedule.$.color": "green" } },
+      { new: true }
+    ).lean();
+
+    if (!updatedService) {
+      return res.status(404).json({ error: "Service or schedule event not found" });
+    }
+
+    return res.status(200).json({ message: "Schedule event color updated", data: updatedService });
+  } catch (error) {
+    console.error("Error updating schedule color:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

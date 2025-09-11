@@ -23,6 +23,8 @@ import {
   removeFavourite,
   getFavoriteServiceIds,
   getBooking,
+  removeQuotationFromCustomer,
+  addCustomerInvoice,
   getActiveBooking
 } from "../controllers/customerController.js";
 
@@ -206,7 +208,10 @@ router.patch("/notifications/read/:notificationId", markNotificationAsRead);
  *     summary: Mark all customer notifications as read
  *     tags: [Notifications]
  */
-router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
+router.patch(
+  "/:customerId/customerNotifications/read-all",
+  markAllCustomerNotificationsAsRead
+);
 
 /**
  * @swagger
@@ -216,5 +221,9 @@ router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotif
  *     tags: [Customer]
  */
 router.get("/:id", getCustomerById);
+
+router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
+
+router.post("/add-customer-invoice", addCustomerInvoice);
 
 export default router;
