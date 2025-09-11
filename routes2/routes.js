@@ -8,7 +8,6 @@ import aboutEmailRoutes from "../routes2/aboutEmailRoutes.js";
 import cashfreeRoutes from "../routes2/cashfreeRoutes.js";
 import queryRoutes from "../routes/queryRoutes.js";
 import { businessDetailsRoutes } from "../routes2/reduxRoutes/businessDetails.js";
-import updatePageRoutes from "../routes/updatePageRoutes.js";
 import fileRoutes from "../routes/fileRoutes.js";
 import quotationRoutes from "../routes/quotationRoutes.js";
 import verificationRoutes from "../routes2/verificationRoutes.js";
@@ -33,6 +32,7 @@ import decoratorPersistenceRoutes from "../routes2/reduxRoutes/decorator.js";
 import makeupArtistPersistenceRoutes from "../routes2/reduxRoutes/makeUpArtist.js";
 import photographerPersistenceRoutes from "../routes2/reduxRoutes/photographers.js";
 import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provider.js";
+import updatePageRoutes from "../routes2/updatePageRoutes.js";
 
 const MainRoutes = Router();
 
