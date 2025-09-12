@@ -3,7 +3,7 @@ import express from "express";
 import { Vendor } from "../models/users.js";
 import Message  from "../models/message.js";
 import vendorNotification from "../models/vendorNotification.js";
-
+import {Quotation} from "../models/quotation.js";
 const router = express.Router();
 /**
  * @swagger
@@ -216,6 +216,8 @@ router.get("/:chatId/:usertype/read-by", async (req, res) => {
     // Find all messages belonging to this chat
     const messages = await Message.find({ chatId });
 
+    console.log(`Chat ID: ${chatId}, Usertype: ${usertype}, Total Messages: ${messages.length}`);
+
     if (!messages || messages.length === 0) {
       return res.status(404).json({
         success: false,
@@ -227,6 +229,8 @@ router.get("/:chatId/:usertype/read-by", async (req, res) => {
     const unreadMessages = messages.filter(
       msg => !msg.readBy.includes(usertype)
     );
+
+    console.log(`Unread Messages for ${usertype}: ${unreadMessages.length}`);
 
     return res.json({
       success: true,
@@ -266,6 +270,50 @@ router.patch("/:chatId/:usertype/vendorNotification/read-by", async (req, res) =
     return res.status(500).json({
       success: false,
       message: "Server error",
+    });
+  }
+});
+
+// Corrected Backend API to get unread counts for all chats of a vendor
+// placed after all your previous routes but before the final `export default router`
+router.get("/:vendorId/:usertype/unread-counts", async (req, res) => {
+  try {
+    const { vendorId, usertype } = req.params;
+
+    // Find all quotations for the vendor and select the 'id' field
+    const quotations = await Quotation.find({ vendor_id: vendorId }).select("id");
+
+    if (!quotations || quotations.length === 0) {
+      return res.status(200).json({
+        success: true,
+        unreadCounts: {},
+        message: "No quotations found for this vendor.",
+      });
+    }
+
+    const unreadCounts = {};
+    for (const quotation of quotations) {
+      // Use the 'id' field as the chatId
+      const chatId = quotation.id;
+
+      const messages = await Message.find({ chatId });
+      const unreadCount = messages.filter(
+        (msg) => !msg.readBy.includes(usertype)
+      ).length;
+
+      unreadCounts[chatId] = unreadCount;
+    }
+
+    return res.json({
+      success: true,
+      unreadCounts,
+    });
+  } catch (error) {
+    console.error("Error fetching unread counts for vendor:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
     });
   }
 });
