@@ -177,7 +177,7 @@ const createDjArtist = async (req, res) => {
       req.body.instagramUrl,
       req.body.websiteUrl,
       req.body.testimonials?.length > 0,
-      req.body.priceStarts,
+      req.body.priceStartingFrom,
       req.body.termsAndConditions?.length > 0,
       req.body.cancellationPolicy?.length > 0,
     ];
@@ -291,7 +291,7 @@ const createDjArtist = async (req, res) => {
         instagramUrl: req.body.instagramUrl,
         websiteUrl: req.body.websiteUrl,
         testimonials: req.body.testimonials,
-        priceStarts: Number(req.body.priceStarts),
+        priceStartingFrom: Number(req.body.priceStartingFrom),
       },
       policies: {
         termsAndConditions: req.body.termsAndConditions?.split(",") || [],

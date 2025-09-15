@@ -1,7 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 import generateUniqueId from "../utils/generateId.js";
-import { eventSchema } from "./venue.js";
+import { eventSchema } from "./event.js";
 
 const decoratorSchema = Schema({
   type: { type: String, default: "decorator" },

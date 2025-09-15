@@ -25,15 +25,15 @@ export const addCustomer = async (req, res) => {
 
 export const getCustomer = async (req, res) => {
   try {
-    let phone  = req.params.mobile;
+    let phone = req.params.mobile;
     if (phone && !phone.startsWith("+91")) {
       phone = "+91" + phone;
     }
     const customer = await Customer.findOne({ mobile: phone });
-    if(!customer) {
+    if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    res.status(200).json({customer});
+    res.status(200).json({ customer });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -96,7 +96,7 @@ export const getActiveBooking = async (req, res) => {
 export const addFavourite = async (req, res) => {
   try {
     const customerId = req.params.cusId;
-    const serviceId = req.params.serviceId; 
+    const serviceId = req.params.serviceId;
 
     const customer = await Customer.findOne({ id: customerId });
     if (!customer) {
@@ -342,3 +342,68 @@ export const getCustomerById = async (req, res) => {
   }
 };
 
+// Add this new function to handle the deletion
+export const removeQuotationFromCustomer = async (req, res) => {
+  try {
+    const { customerId, quotationId } = req.params;
+
+    // Use findOneAndUpdate with the $pull operator to remove the object from the array
+    const updatedCustomer = await Customer.findOneAndUpdate(
+      { id: customerId },
+      { $pull: { quotations: { quotationId: quotationId } } },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedCustomer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    // Check if the quotation was actually removed
+    const wasQuotationRemoved = updatedCustomer.quotations.some(
+      (q) => q.quotationId === quotationId
+    );
+
+    if (wasQuotationRemoved) {
+      return res.status(404).json({
+        message: "Quotation object not found in customer's document.",
+      });
+    }
+
+    res.status(200).json({
+      message: "Quotation object removed from customer document successfully!",
+      customer: updatedCustomer,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        message: "Error removing quotation object from customer document",
+        error: error.message,
+      });
+  }
+};
+
+
+export const addCustomerInvoice = async (req, res) => {
+  const { invoiceUrl, customerId } = req.body
+  console.log(
+    `Received request to add invoice for customer ${customerId} with URL ${invoiceUrl}`
+  );
+
+  const customer = await Customer.findOne({ id: customerId });
+  if (!customer) {
+    return res.status(404).json({ message: "ustomer not found" });
+  }
+
+  try {
+    customer.invoices.push(invoiceUrl);
+    await customer.save();
+    return res.status(200).json({
+      message: "Invoice added successfully",
+    });
+  }
+  catch (error) {
+    console.error("Error adding invoice:", error);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+}

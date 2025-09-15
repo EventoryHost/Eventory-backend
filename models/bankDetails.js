@@ -5,4 +5,5 @@ export const bankDetailsSchema = new mongoose.Schema({
   accountName: { type: String, required: true },
   accountNo: { type: String, required: true },
   ifscCode: { type: String, required: true },
+  beneficiaryId: { type: String, required: true },
 });

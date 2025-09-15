@@ -1,6 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
-import { eventSchema } from "./venue.js";
+import { eventSchema } from "./event.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
