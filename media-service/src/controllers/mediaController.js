@@ -11,7 +11,11 @@ export const uploadMedia = async (req, res) => {
     const { serviceType, vendorId } = req.body;
 
     console.log("Upload request:", {
-      file: req.file,
+      file: {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      },
       serviceType,
       vendorId,
     });
@@ -25,18 +29,19 @@ export const uploadMedia = async (req, res) => {
 
     const mimeType = req.file.mimetype || "";
     const ext = path.extname(req.file.originalname).toLowerCase();
+    const fileBuffer = req.file.buffer;
 
     const videoExts = [".mp4", ".mov", ".webm", ".mkv", ".avi"];
     const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 
-    let processedPaths;
+    let processedBuffers;
 
     if (ext === ".webp" || mimeType === "image/webp") {
-      processedPaths = await compressImage(req.file.path);
+      processedBuffers = await compressImage(fileBuffer);
     } else if (mimeType.startsWith("image/") || imageExts.includes(ext)) {
-      processedPaths = await compressImage(req.file.path);
+      processedBuffers = await compressImage(fileBuffer);
     } else if (mimeType.startsWith("video/") || videoExts.includes(ext)) {
-      processedPaths = await compressVideo(req.file.path);
+      processedBuffers = await compressVideo(fileBuffer);
     } else {
       return res.status(400).json({
         success: false,
@@ -44,11 +49,11 @@ export const uploadMedia = async (req, res) => {
       });
     }
 
-    const { originalPath, previewPath, compressedPath } = processedPaths;
+    const { originalBuffer, previewBuffer } = processedBuffers;
 
     const uploadResult = await uploadToS3({
-      originalPath,
-      previewPath: previewPath || compressedPath,
+      originalBuffer,
+      previewBuffer,
       serviceType,
       vendorId,
       originalFile: req.file

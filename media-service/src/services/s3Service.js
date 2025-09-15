@@ -1,5 +1,4 @@
 import AWS from "aws-sdk";
-import fs from "fs";
 import path from "path";
 import mime from "mime-types";
 
@@ -19,7 +18,7 @@ const SUPPORTED_FILE_TYPES = {
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_SECRET,
   region: process.env.AWS_REGION,
 });
 
@@ -66,32 +65,17 @@ const getContentType = (key) => {
   return "application/octet-stream";
 };
 
-const uploadFile = (filePath, key) => {
-  if (!fs.existsSync(filePath)) {
-    return Promise.reject(new Error(`File does not exist: ${filePath}`));
-  }
-
-  let fileStream;
-  try {
-    fileStream = fs.createReadStream(filePath);
-  } catch (err) {
-    return Promise.reject(new Error(`Cannot read file: ${err.message}`));
-  }
-
-  const contentType = getContentType(key);
-  const ext = path.extname(key).toLowerCase();
-  const isVideo = contentType.startsWith("video/");
-
+const uploadBuffer = (buffer, key, contentType) => {
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: key,
-    Body: fileStream,
+    Body: buffer,
     ACL: "public-read",
     ContentType: contentType,
   };
 
   // Set appropriate Content-Disposition header
-  if (isVideo) {
+  if (contentType.startsWith("video/")) {
     params.ContentDisposition = "inline";
     params.CacheControl = "max-age=31536000";
   } else {
@@ -108,20 +92,16 @@ const uploadFile = (filePath, key) => {
 
 
 export const uploadToS3 = async ({
-  originalPath,
-  previewPath,
+  originalBuffer,
+  previewBuffer,
   serviceType,
   vendorId,
   originalFile
 }) => {
   const timestamp = Date.now();
 
-  const originalMimeType = originalFile?.mimetype || mime.lookup(originalPath) || "";
+  const originalMimeType = originalFile?.mimetype || "";
   let originalExt = path.extname(originalFile?.originalname || "").toLowerCase();
-  
-  if (!originalExt) {
-    originalExt = path.extname(originalPath).toLowerCase();
-  }
   
   // If still no extension, determine it from the mime type
   if (!originalExt && originalMimeType) {
@@ -142,45 +122,23 @@ export const uploadToS3 = async ({
     else originalExt = `.${mime.extension(originalMimeType) || "bin"}`;
   }
 
-  const isVideo =
-    (originalMimeType && originalMimeType.startsWith("video/")) ||
+  const isVideo = originalMimeType && originalMimeType.startsWith("video/") ||
     [".mp4", ".mov", ".webm", ".mkv", ".avi"].includes(originalExt);
 
-  let previewExt = path.extname(previewPath).toLowerCase();
-  
-  if (!previewExt) {
-    if (isVideo) {
-      previewExt = ".mp4";
-    } else {
-      previewExt = ".webp";
-    }
-  }
-
-  const previewMimeType = mime.lookup(previewPath) || "";
-  const isPreviewVideo = previewMimeType.startsWith("video/");
-  
-  if (isVideo) {
-    previewExt = ".mp4";  
-  }
+  let previewExt = isVideo ? ".mp4" : ".webp";
 
   const mimeFolder = isVideo ? "video" : "image";
 
   const originalKey = `${serviceType}/${vendorId}/${mimeFolder}/original-${timestamp}${originalExt}`;
   const previewKey = `${serviceType}/${vendorId}/${mimeFolder}/preview-${timestamp}${previewExt}`;
 
-  const originalUrl = await uploadFile(originalPath, originalKey);
-  const previewUrl = await uploadFile(previewPath, previewKey);
+  const originalContentType = getContentType(originalKey);
+  const previewContentType = getContentType(previewKey);
+
+  const originalUrl = await uploadBuffer(originalBuffer, originalKey, originalContentType);
+  const previewUrl = await uploadBuffer(previewBuffer, previewKey, previewContentType);
 
   console.log("Uploaded to S3:", { originalUrl, previewUrl });
-
-  setTimeout(() => {
-    try {
-      if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
-    } catch {}
-    try {
-      if (fs.existsSync(previewPath)) fs.unlinkSync(previewPath);
-    } catch {}
-  }, 500);
 
   const cloudfrontDomain = process.env.CLOUDFRONT_URL || "";
 

@@ -1,50 +1,73 @@
 import sharp from "sharp";
+import ffmpeg from "fluent-ffmpeg";
+import { Readable } from "stream";
+import fs from "fs";
 import path from "path";
-import ffmpeg from "fluent-ffmpeg";  
+import os from "os";
 
-export const compressImage = async (filePath) => {
-  const dir = path.dirname(filePath);
-  const ext = path.extname(filePath);
-  const base = path.basename(filePath, ext);
-
-  const outputPath = path.join(dir, `${base}-preview.webp`);
-
-  await sharp(filePath)
+export const compressImage = async (fileBuffer) => {
+  // Process original buffer to create preview
+  const previewBuffer = await sharp(fileBuffer)
     .resize({ width: 720 })
     .webp({ quality: 60 })
     .withMetadata(false)
-    .toFile(outputPath);
+    .toBuffer();
 
   return {
-    originalPath: filePath,
-    previewPath: outputPath,
+    originalBuffer: fileBuffer,
+    previewBuffer: previewBuffer,
   };
 };
 
-export const compressVideo = (filePath) => {
+export const compressVideo = (fileBuffer) => {
   return new Promise((resolve, reject) => {
-    const dir = path.dirname(filePath);
-    const ext = path.extname(filePath); 
-    const base = path.basename(filePath, ext);
+    // Create temporary files for FFmpeg processing (FFmpeg works better with files)
+    const tempDir = os.tmpdir();
+    const inputPath = path.join(tempDir, `input_${Date.now()}.mp4`);
+    const outputPath = path.join(tempDir, `output_${Date.now()}.mp4`);
 
-    const outputPath = path.join(dir, `${base}-preview.mp4`);
+    try {
+      // Write buffer to temporary input file
+      fs.writeFileSync(inputPath, fileBuffer);
 
-    ffmpeg(filePath)
-      .outputOptions([
-        "-vf scale=1280:-1",   
-        "-c:v libx264",        
-        "-preset veryfast",    
-        "-crf 28",             
-        "-c:a aac",           
-        "-b:a 128k",           
-      ])
-      .save(outputPath)
-      .on("end", () => {
-        resolve({
-          originalPath: filePath,
-          previewPath: outputPath,  
-        });
-      })
-      .on("error", (err) => reject(err));
+      ffmpeg(inputPath)
+        .outputOptions([
+          "-vf scale=1280:-1",   
+          "-c:v libx264",        
+          "-preset veryfast",    
+          "-crf 28",             
+          "-c:a aac",           
+          "-b:a 128k",           
+        ])
+        .output(outputPath)
+        .on('end', () => {
+          try {
+            // Read the compressed video back into a buffer
+            const previewBuffer = fs.readFileSync(outputPath);
+            
+            // Clean up temporary files
+            fs.unlinkSync(inputPath);
+            fs.unlinkSync(outputPath);
+            
+            resolve({
+              originalBuffer: fileBuffer,
+              previewBuffer: previewBuffer,  
+            });
+          } catch (readError) {
+            reject(readError);
+          }
+        })
+        .on('error', (err) => {
+          // Clean up temporary files on error
+          try {
+            if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+            if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+          } catch {}
+          reject(err);
+        })
+        .run();
+    } catch (writeError) {
+      reject(writeError);
+    }
   });
 };
