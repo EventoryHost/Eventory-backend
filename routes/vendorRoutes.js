@@ -1,9 +1,9 @@
 // routes/vendorRoutes.js
 import express from "express";
 import { Vendor } from "../models/users.js";
-import Message  from "../models/message.js";
+import Message from "../models/message.js";
 import vendorNotification from "../models/vendorNotification.js";
-import {Quotation} from "../models/quotation.js";
+import { Quotation } from "../models/quotation.js";
 const router = express.Router();
 /**
  * @swagger
@@ -26,32 +26,34 @@ router.get("/all", async (req, res) => {
       "id name email mobile businessDetails invoices serviceIds"
     ).lean();
 
-    const filteredVendors = vendors.filter(vendor => {
-      const hasServices = Array.isArray(vendor.serviceIds) && vendor.serviceIds.length > 0;
+    const filteredVendors = vendors.filter((vendor) => {
+      const hasServices =
+        Array.isArray(vendor.serviceIds) && vendor.serviceIds.length > 0;
       return hasServices;
     });
 
-    const transformedVendors = filteredVendors.map(vendor => ({
+    const transformedVendors = filteredVendors.map((vendor) => ({
       id: vendor.id,
       name: vendor.name,
       email: vendor.email || "N/A",
       mobile: vendor.mobile || "N/A",
       // 2. Now you can access all properties from the fetched object
       businessDetails: {
-          address: vendor.businessDetails?.businessAddress || "N/A",
-          category: vendor.businessDetails?.category || "N/A",
-          teamsize: vendor.businessDetails?.teamsize || "N/A",
-          years: vendor.businessDetails?.years || "N/A",
-          bookingsPerMonth: vendor.businessDetails?.bookingsPerMonth || "N/A",
+        address: vendor.businessDetails?.businessAddress || "N/A",
+        category: vendor.businessDetails?.category || "N/A",
+        teamsize: vendor.businessDetails?.teamsize || "N/A",
+        years: vendor.businessDetails?.years || "N/A",
+        bookingsPerMonth: vendor.businessDetails?.bookingsPerMonth || "N/A",
       },
       serviceIds: vendor.serviceIds || [],
     }));
 
     res.status(200).json({ success: true, data: transformedVendors });
-
   } catch (error) {
     console.error("Error fetching all vendors:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 });
 
@@ -77,7 +79,6 @@ router.get("/all", async (req, res) => {
  *       500:
  *         description: Server error
  */
-
 
 // Get vendor details by vendor_id
 router.get("/:vendor_id", async (req, res) => {
@@ -120,21 +121,27 @@ router.get("/:vendor_id", async (req, res) => {
  *         description: Failed to fetch notifications
  */
 
-
 // Get all notifications and count unread
 router.get("/:vendorId/vendorNotification", async (req, res) => {
   try {
     const { vendorId } = req.params;
 
-    const notifications = await vendorNotification.find({ vendorId }).sort({ timestamp: -1 });
-    const unreadCount = await vendorNotification.countDocuments({ vendorId, read: false });
-    res.status(200).json({ 
-      message: "Notifications fetched", 
+    const notifications = await vendorNotification
+      .find({ vendorId })
+      .sort({ timestamp: -1 });
+    const unreadCount = await vendorNotification.countDocuments({
+      vendorId,
+      read: false,
+    });
+    res.status(200).json({
+      message: "Notifications fetched",
       data: notifications,
-      unreadCount 
+      unreadCount,
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch notifications", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch notifications", error: error.message });
   }
 });
 
@@ -158,7 +165,6 @@ router.get("/:vendorId/vendorNotification", async (req, res) => {
  *         description: Failed to mark notifications
  */
 
-
 router.put("/:vendorId/vendorNotification/mark-read", async (req, res) => {
   try {
     const { vendorId } = req.params;
@@ -168,9 +174,19 @@ router.put("/:vendorId/vendorNotification/mark-read", async (req, res) => {
       { $set: { read: true } }
     );
 
-    res.status(200).json({ message: "Notifications marked as read", modifiedCount: result.modifiedCount });
+    res
+      .status(200)
+      .json({
+        message: "Notifications marked as read",
+        modifiedCount: result.modifiedCount,
+      });
   } catch (error) {
-    res.status(500).json({ message: "Failed to mark notifications as read", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to mark notifications as read",
+        error: error.message,
+      });
   }
 });
 
@@ -194,21 +210,25 @@ router.put("/:vendorId/vendorNotification/mark-read", async (req, res) => {
  *         description: Failed to mark notifications
  */
 
-
 // PATCH /api/vendors/:vendorId/vendorNotification/mark-as-read
-router.patch('/:vendorId/vendorNotification/mark-as-read', async (req, res) => {
+router.patch("/:vendorId/vendorNotification/mark-as-read", async (req, res) => {
   try {
     const { vendorId } = req.params;
-    await vendorNotification.updateMany({ vendorId, read: false }, { $set: { read: true } });
+    await vendorNotification.updateMany(
+      { vendorId, read: false },
+      { $set: { read: true } }
+    );
     res.json({ message: "Notifications marked as read" });
   } catch (err) {
-    res.status(500).json({ message: "Failed to mark notifications", error: err.toString() });
+    res
+      .status(500)
+      .json({ message: "Failed to mark notifications", error: err.toString() });
   }
 });
 
-// for single quotation 
+// for single quotation
 // When a message come on a quotation this api gives the unread count of THAT quotation
-// first hit it when page gets loaded then after someone has read the message 
+// first hit it when page gets loaded then after someone has read the message
 router.get("/:chatId/:usertype/read-by", async (req, res) => {
   try {
     const { chatId, usertype } = req.params;
@@ -216,7 +236,9 @@ router.get("/:chatId/:usertype/read-by", async (req, res) => {
     // Find all messages belonging to this chat
     const messages = await Message.find({ chatId });
 
-    console.log(`Chat ID: ${chatId}, Usertype: ${usertype}, Total Messages: ${messages.length}`);
+    console.log(
+      `Chat ID: ${chatId}, Usertype: ${usertype}, Total Messages: ${messages.length}`
+    );
 
     if (!messages || messages.length === 0) {
       return res.status(404).json({
@@ -227,7 +249,7 @@ router.get("/:chatId/:usertype/read-by", async (req, res) => {
 
     // Filter unread messages for this usertype
     const unreadMessages = messages.filter(
-      msg => !msg.readBy.includes(usertype)
+      (msg) => !msg.readBy.includes(usertype)
     );
 
     console.log(`Unread Messages for ${usertype}: ${unreadMessages.length}`);
@@ -248,60 +270,72 @@ router.get("/:chatId/:usertype/read-by", async (req, res) => {
 });
 
 // for marking the unread count when a usertype has read the unread messages.
-router.patch("/:chatId/:usertype/vendorNotification/read-by", async (req, res) => {
-  try {
-    const { chatId, usertype } = req.params;
+router.patch(
+  "/:chatId/:usertype/vendorNotification/read-by",
+  async (req, res) => {
+    try {
+      const { chatId, usertype } = req.params;
 
-    // Update all messages where this usertype is NOT in readBy
-    const result = await Message.updateMany(
-      { chatId, readBy: { $ne: usertype } }, // condition: usertype not in readBy
-      { $push: { readBy: usertype } }        // action: add usertype
-    );
+      // Update all messages where this usertype is NOT in readBy
+      const result = await Message.updateMany(
+        { chatId, readBy: { $ne: usertype } }, // condition: usertype not in readBy
+        { $push: { readBy: usertype } } // action: add usertype
+      );
 
-    return res.json({
-      success: true,
-      chatId,
-      usertype,
-      updatedCount: result.modifiedCount, // number of messages updated
-      message: `${result.modifiedCount} messages marked as read for ${usertype}`,
-    });
-  } catch (error) {
-    console.error("Error marking messages as read:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+      return res.json({
+        success: true,
+        chatId,
+        usertype,
+        updatedCount: result.modifiedCount, // number of messages updated
+        message: `${result.modifiedCount} messages marked as read for ${usertype}`,
+      });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
+    }
   }
-});
+);
 
 // Corrected Backend API to get unread counts for all chats of a vendor
 // placed after all your previous routes but before the final `export default router`
-router.get("/:vendorId/:usertype/unread-counts", async (req, res) => {
+router.get("/:userId/:usertype/unread-counts", async (req, res) => {
   try {
-    const { vendorId, usertype } = req.params;
+    const { userId, usertype } = req.params; // Dynamically choose the query field based on the user type
 
-    // Find all quotations for the vendor and select the 'id' field
-    const quotations = await Quotation.find({ vendor_id: vendorId }).select("id");
+    let queryField = {};
+    if (usertype === "ven") {
+      queryField = { vendor_id: userId };
+    } else if (usertype === "cust") {
+      queryField = { user_id: userId };
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid usertype.",
+      });
+    } // Find all quotations for the user and select the 'id' field
+
+    const quotations = await Quotation.find(queryField).select("id");
 
     if (!quotations || quotations.length === 0) {
       return res.status(200).json({
         success: true,
         unreadCounts: {},
-        message: "No quotations found for this vendor.",
+        message: `No quotations found for this ${usertype}.`,
       });
     }
 
     const unreadCounts = {};
     for (const quotation of quotations) {
-      // Use the 'id' field as the chatId
-      const chatId = quotation.id;
+      const chatId = quotation.id; // 🔴 CORRECTED LOGIC: Check if the user type is NOT IN the readBy array
+      const unreadMessagesCount = await Message.countDocuments({
+        chatId: chatId,
+        readBy: { $nin: [usertype] }, // Use $nin to check if usertype is not in the array
+      });
 
-      const messages = await Message.find({ chatId });
-      const unreadCount = messages.filter(
-        (msg) => !msg.readBy.includes(usertype)
-      ).length;
-
-      unreadCounts[chatId] = unreadCount;
+      unreadCounts[chatId] = unreadMessagesCount;
     }
 
     return res.json({
@@ -309,7 +343,7 @@ router.get("/:vendorId/:usertype/unread-counts", async (req, res) => {
       unreadCounts,
     });
   } catch (error) {
-    console.error("Error fetching unread counts for vendor:", error);
+    console.error("Error fetching unread counts:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
