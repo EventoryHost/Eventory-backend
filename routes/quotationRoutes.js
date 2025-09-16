@@ -8,6 +8,7 @@ import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.j
 import { v4 as uuidv4 } from "uuid";
 import Chat from "../models/chat.js";
 import { sendVendorQuotationMessage } from "../controllers/waController.js";
+import vendorNotification from "../models/vendorNotification.js";
 
 // The router is now created inside a function that accepts the 'io' instance.
 export default (io) => {
