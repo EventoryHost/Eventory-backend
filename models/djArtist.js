@@ -1,6 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 import generateUniqueId from "../utils/generateId.js";
+import { eventSchema } from "./event.js";
 
 const djArtistSchema = Schema({
     type: { type: String, default: "djArtist" },
@@ -12,39 +13,41 @@ const djArtistSchema = Schema({
         serviceName: { type: String, required: true },
         name: { type: String, required: true },
         contact: { type: String, required: true },
-        description: { type: String, required: true},  
-        address: { type: String, required: true },  
+        description: { type: String, required: true },
+        address: { type: String, required: true },
         serviceAreas: { type: [String], required: true },
         location: {
-          lat: { type: Number, required: true },
-          lng: { type: Number, required: true },
+            lat: { type: Number, required: true },
+            lng: { type: Number, required: true },
         }
     },
-    serviceDetails:{
-         eventTypes: { type: [String], required: true },
-         musicGenres: { type: [String],},
-         regionalSpecializations: { type: [String], required: true },
-         servicesOffered: { type: [String], required: true },  
+    serviceDetails: {
+        eventTypes: { type: [String], required: true },
+        musicGenres: { type: [String], },
+        regionalSpecializations: { type: [String], required: true },
+        servicesOffered: { type: [String], required: true },
     },
-    additionalDetails:{
+    additionalDetails: {
         photos: { type: [String], required: true },
         videos: { type: [String], required: true },
-        awards : { type: String, },
-        instagramUrl : { type: String, },
-        websiteUrl : { type: String, },
-        testimonials : { type: String, },
-        priceStarts : { type: Number, required: true },
+        awards: { type: String, },
+        instagramUrl: { type: String, },
+        websiteUrl: { type: String, },
+        testimonials: { type: String, },
+        priceStartingFrom: { type: Number, required: true },
     },
-    policies:{
+    policies: {
         completed: { type: Boolean, default: false }, // Flag for section completion
         termsAndConditions: { type: [String] },
         cancellationPolicy: { type: [String] },
         agreementUrl: { type: String },
         agreementSignedAt: { type: Date },
-   },
+    },
     id: { type: String, default: () => generateUniqueId("dj"), required: true },
     venId: { type: String, required: true },
     vendorType: { type: String, default: "djArtist" },
+    schedule: [eventSchema],
+    rating: { type: Number, default: 0 }, // Added rating field
 });
 
 

@@ -5,6 +5,29 @@ import propRental from "../models/props.js";
 import { Service } from "../models/services.js";
 import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
+import DjArtist from "../models/djArtist.js";
+
+function modelFromServiceId(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+  const prefix = serviceId.slice(0, 3).toLowerCase();
+
+  switch (prefix) {
+    case "cat":
+      return { Model: Caterer, vendorType: "caterer" };
+    case "dec":
+      return { Model: Decorator, vendorType: "decorator" };
+    case "mak":
+      return { Model: MakeupArtist, vendorType: "makeup" };
+    case "pav":
+      return { Model: Photographer, vendorType: "photographer" };
+    case "veu":
+      return { Model: Venue, vendorType: "venue" };
+    case "dj":
+      return { Model: DjArtist, vendorType: "dj" };
+    default:
+      return null;
+  }
+}
 
 function modelFromServiceId(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
@@ -51,6 +74,9 @@ export const getService = async (req, res) => {
         break;
       case "Makeup-Artist":
         vendorData = await MakeupArtist.findOne({ id: vendorid });
+        break;
+      case "DJ-Vendor":
+        vendorData = await DjArtist.findOne({ id: vendorid });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
@@ -220,7 +246,7 @@ export const handleSearch = async (req, res) => {
     }
 
     const regex = new RegExp(`^${query}`, "i");
-    const [venues, caterers, decorators, propRentals, pav] = await Promise.all([
+    const [venues, caterers, decorators, propRentals, pav, makeupArtists,djVendors] = await Promise.all([
       Venue.find({ "basicDetails.name": regex }).select(
         "basicDetails.name vendorType id",
       ),
@@ -236,6 +262,12 @@ export const handleSearch = async (req, res) => {
       Photographer.find({ "basicDetails.name": regex }).select(
         "basicDetails.name vendorType id",
       ),
+      MakeupArtist.find({ "basicDetails.name": regex }).select(
+        "basicDetails.name vendorType id",
+      ),
+      DjArtist.find({ "basicDetails.name": regex }).select(
+        "basicDetails.name vendorType id",
+      )
     ]);
 
     const results = [
@@ -244,6 +276,8 @@ export const handleSearch = async (req, res) => {
       { serviceType: "Decorators", services: decorators },
       { serviceType: "Prop Rental", services: propRentals },
       { serviceType: "Photographers & Videographers", services: pav },
+      { serviceType: "Makeup-Artist", services: makeupArtists },
+      { serviceType: "DJ-Vendor", services: djVendors },
     ];
 
     const filteredResults = results.filter(
