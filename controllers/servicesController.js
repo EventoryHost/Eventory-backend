@@ -29,25 +29,7 @@ function modelFromServiceId(serviceId) {
   }
 }
 
-function modelFromServiceId(serviceId) {
-  if (!serviceId || typeof serviceId !== "string") return null;
-  const prefix = serviceId.slice(0, 3).toLowerCase();
 
-  switch (prefix) {
-    case "cat":
-      return { Model: Caterer, vendorType: "caterer" };
-    case "dec":
-      return { Model: Decorator, vendorType: "decorator" };
-    case "mak":
-      return { Model: MakeupArtist, vendorType: "makeup" };
-    case "pav":
-      return { Model: Photographer, vendorType: "photographer" };
-    case "veu":
-      return { Model: Venue, vendorType: "venue" };
-    default:
-      return null;
-  }
-}
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
