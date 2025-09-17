@@ -94,6 +94,11 @@ const ordersSchema = new Schema({
     required: true
     // Customer's name for which booking has been placed
   },
+  customer_id : {
+    type: String,
+    required: true
+    // Customer's id for which booking has been placed
+  },
   event_start: {
     type: Date,
     required: true,

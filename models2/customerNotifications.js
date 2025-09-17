@@ -17,6 +17,9 @@ const customerNotificationSchema = new mongoose.Schema({
   event_id: {
     type: String,
   },
+  quotation_id: {
+    type: String,
+  },
   chat_id: {
     type: String
     // Chat ID
@@ -68,7 +71,7 @@ customerNotificationSchema.pre('save', function(next) {
   next();
 });
 
-const CustomerNotification = mongoose.model('CustomerNotification', customerNotificationSchema);
+const CustomerNotification = mongoose.model('CustomerNotifications', customerNotificationSchema);
 
 export { CustomerNotification };
 export default CustomerNotification;
