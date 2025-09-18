@@ -255,7 +255,7 @@ const createVenue = async (req, res) => {
         return res.status(404).json({ message: "Vendor not found" });
     }
     
-    vendor.services.push(savedVenue.vendor_id);
+    vendor.services.push(savedVenue.service_id);
     
     await vendor.save();
     

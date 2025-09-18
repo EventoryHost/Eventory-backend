@@ -4,8 +4,8 @@ import { Caterer } from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
 import Photographer from "../models2/photographerVideographer.js";
 import PropRental from "../models/props.js";
-import { Venue } from "../models/venue.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import  VenueProvider  from "../models2/venueProvider.js";
+import MakeupArtist from "../models2/makeupArtist.js";
 import DjArtist from "../models/djArtist.js";
 import { checkDecoratorProfileCompletion } from "../utils/completionUtils/decoratorCompletionUtils.js";
 import { checkCatererProfileCompletion } from "../utils/completionUtils/catererCompletionUtils.js";
@@ -13,6 +13,11 @@ import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pav
 import { checkVenueProfileCompletion } from "../utils/completionUtils/venueCompletionUtils.js";
 import { checkMakeupArtistProfileCompletion } from "../utils/completionUtils/makeupCompletionUtils.js";
 import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompletionUtils.js";
+
+import {
+  updateVendorAndService,
+  updateDetails,
+} from "../controllers2/vendorEditController.js";
 
 const router = express.Router();
 
@@ -65,204 +70,11 @@ const router = express.Router();
  *         description: Internal server error
  */
 
-//1. Update API for basic vendor details such as name, mobile, email ((Full name and number))
-router.put("/update-service/:serviceId", async (req, res) => {
-  const { serviceId } = req.params;
-  const updateData = req.body;
+// 1. Update API for basic vendor + service details
+router.put("/update-service/:serviceId", updateVendorAndService);
 
-  console.log(
-    `API received update for serviceId=${serviceId}, payload=${JSON.stringify(updateData)}`
-  );
-
-  try {
-    // Find the vendor containing this service
-    const vendor = await Vendor.findOne({ services: serviceId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: "Service not found" });
-    }
-
-    // Update vendor-level fields
-    if (updateData.vendor_mobile)
-      vendor.vendor_mobile = updateData.vendor_mobile;
-    if (updateData.email_address)
-      vendor.email_address = updateData.email_address;
-    if (updateData.profile_picture)
-      vendor.profile_picture = updateData.profile_picture;
-
-    if (updateData.highest_discount_ever_applied !== undefined) {
-      vendor.highest_discount_ever_applied =
-        updateData.highest_discount_ever_applied;
-    }
-
-    if (updateData.coupons_used && Array.isArray(updateData.coupons_used)) {
-      vendor.coupons_used = updateData.coupons_used;
-      vendor.last_coupon_used_at = new Date();
-    }
-
-    if (updateData.service_types && Array.isArray(updateData.service_types)) {
-      vendor.service_types = updateData.service_types;
-    } else {
-      vendor.service_types = vendor.service_types.map((service) => {
-        if (service.service_id === serviceId) {
-          return {
-            ...service,
-            service_name: updateData.service_name || service.service_name,
-            service_status: updateData.service_status || service.service_status,
-          };
-        }
-        return service;
-      });
-    }
-    console.log("Final service_types:", vendor.service_types);
-    await vendor.save();
-
-    res.status(200).json({
-      message: "Service and vendor updated successfully",
-      vendor,
-    });
-  } catch (error) {
-    console.error("Error updating service:", error);
-    res.status(500).json({ message: "Internal Server Error", error });
-  }
-});
-
-/**
- * @swagger
- * /updateService/{serviceId}:
- *   post:
- *     summary: Update service details (company name and description)
- *     description: Updates basic details like company name and description for the service specified by serviceId.
- *     tags: [Services]
- *     parameters:
- *       - in: path
- *         name: serviceId
- *         required: true
- *         schema:
- *           type: string
- *         description: The service ID whose details will be updated.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               newDescription:
- *                 type: string
- *               newCompanyName:
- *                 type: string
- *     responses:
- *       200:
- *         description: Service updated successfully
- *       400:
- *         description: Invalid service type
- *       404:
- *         description: Vendor or service not found
- *       500:
- *         description: Internal server error
- */
-
-//2. API endpoint to update service details (company name and description)
-router.post("/updateService/:serviceId", async (req, res) => {
-  const { serviceId } = req.params; // Get serviceId from the URL parameter
-  const { newDescription, newCompanyName } = req.body; // Get other data from the request body
-
-  try {
-    // Fetch the vendor document by serviceId
-    const vendor = await Vendor.findOne({ "serviceIds.serId": serviceId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
-
-    // Find the service details based on the serviceId
-    const service = vendor.serviceIds.find(
-      (service) => service.serId === serviceId
-    );
-
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
-    }
-
-    // Dynamically select the service model based on the serviceType
-    let serviceDoc;
-    switch (service.serType) {
-      case "caterer":
-        serviceDoc = await Caterer.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "decorator":
-        serviceDoc = await Decorator.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "pav":
-      case "photographer": // Replace 'pav' with 'photographer'
-        serviceDoc = await Photographer.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "venue-provider":
-        serviceDoc = await Venue.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "prop-rental":
-        serviceDoc = await PropRental.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "makeupArtist":
-        serviceDoc = await MakeupArtist.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      case "djArtist":
-        serviceDoc = await DjArtist.findOne({
-          id: service.serId,
-          venId: vendor.id,
-        });
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid service type" });
-    }
-
-    if (!serviceDoc) {
-      return res
-        .status(404)
-        .json({ message: `${service.serType} service not found` });
-    }
-
-    // Update the service document (e.g., description and company name)
-    const updateFields = {
-      "basicDetails.description": newDescription,
-      "basicDetails.name": newCompanyName,
-    };
-
-    // Use findOneAndUpdate to avoid full document validation
-    const updatedServiceDoc = await serviceDoc.constructor.findOneAndUpdate(
-      { _id: serviceDoc._id },
-      { $set: updateFields },
-      { new: true, runValidators: false }
-    );
-
-    return res.status(200).json({
-      message: "Service updated successfully",
-      data: updatedServiceDoc,
-    });
-  } catch (error) {
-    console.error("Error updating service:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-});
+// 2. Update service details (company name and description)
+router.post("/updateService/:serviceId", updateDetails);
 
 //3. API endpoint to update service details
 const updateServiceDetails = async (req, res) => {

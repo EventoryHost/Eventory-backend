@@ -262,7 +262,7 @@ const createDecorator = async (req, res) => {
     console.log("Vendor", vendor);
     if (!vendor) {
       await Decorator.findByIdAndDelete(savedDecorator._id);
-      return res.status(404).json({ message: "Vendor not founddddddddd" });
+      return res.status(404).json({ message: "Vendor not found" });
     }
 
     vendor.services.push(savedDecorator.service_id);

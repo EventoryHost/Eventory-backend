@@ -65,7 +65,7 @@ MainRoutes.use("/decorator-details", decoratorPersistenceRoutes);
 MainRoutes.use("/makeup-artist-details", makeupArtistPersistenceRoutes);
 MainRoutes.use("/photographer-details", photographerPersistenceRoutes);
 MainRoutes.use("/venue-provider-details", venueProviderPersistenceRoutes);
-// MainRoutes.use("/business-details", businessDetailsRoutes);
+// MainRoutes.use("/business-details", businessDetailsRoutes); Not to be done
 MainRoutes.use("/update-page", updatePageRoutes);
 MainRoutes.use("/vendor-edit", vendorEditRoutes);
 // router.use("/webhook", waRoutes); 
