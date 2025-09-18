@@ -150,7 +150,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
   let page = null;
 
   try {
-    const templatePath = path.resolve("templates", "invoiceTemplate.html");
+    const templatePath = path.resolve("templates", "onboardInvoiceTemplate.html");
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
@@ -188,21 +188,18 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
     const isDelhiPincode = customer.businessDetails.pinCode.toString().startsWith("1");
 
     // Create table rows with tax logic
-    let tableRows = [];
-
-    const items = orderDetails.items || [];
+    let tableRows = "";
 
     if (isDelhiPincode) {
       // Split into CGST and SGST rows for Delhi
       const cgstAmount = originalTaxAmount / 2;
       const sgstAmount = originalTaxAmount / 2;
 
-      for (let i = 0; i < items.length; i++) {
-
-        tableRows[i] = `
+      tableRows = `
         <tr>
           <td style="text-align: center;">1</td>
-          <td>${items[i].name}</td>
+          <td>Eventory Vendor Registration</td>
+          <td style="text-align: center;">${vendorType}</td>
           <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
           <td style="text-align: center;">9%</td>
           <td style="text-align: center;">CGST</td>
@@ -219,11 +216,9 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
           <td style="text-align: center;">Rs ${sgstAmount.toFixed(2)}</td>
         </tr>
       `;
-      }
     } else {
       // Single IGST row for other states
-      for (let i = 0; i < items.length; i++) {
-        tableRows = `
+      tableRows = `
         <tr>
           <td style="text-align: center;">1</td>
           <td>Eventory Vendor Registration</td>
@@ -235,7 +230,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
           <td style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
         </tr>
       `;
-      }
     }
 
     // Apply the same logic to discount rows
