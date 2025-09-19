@@ -5,7 +5,7 @@ import vendorNotification from "../models/vendorNotification.js";
 import adminNotification from "../models/adminNotification.js";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
-import  Chat  from "../models/chat.js";
+import Chat from "../models/chat.js";
 
 const router = express.Router();
 
@@ -217,32 +217,28 @@ router.put("/finalOrder/approve", async (req, res) => {
       const message = `✅ Final Order Approved by both Vendor and Customer. (Order ID: ${order.orderId})`;
 
       // Customer Notification
-      await customerNotification.findOneAndUpdate(
-        {
-          customerId: order.customerId,
-          orderId: order.orderId,
-          vendorId: order.vendorId,
-        },
-        {
-          $set: {
-            finalPrice: parsedFinalPrice,
-            checkoutURL,
-            message,
-            quotationId: order.quotationId,
-          },
-        },
-        { new: true, upsert: true }
+      await customerNotification.create({
+        customerId: order.customerId,
+        orderId: order.orderId,
+        vendorId: order.vendorId,
+        message,
+        quotationId: order.quotationId,
+        type: "order_approved",
+        checkoutURL,
+      });
+
+      console.log(
+        `Both parties agreed ...... Sending Agreed Notification 🥳🥳🥳🥳🥳🥳🥳`
       );
 
-      console.log(`Both parties agreed ...... Sending Agreed Notification 🥳🥳🥳🥳🥳🥳🥳`);
-
       // Vendor Notification
-      const newVendorNotification = await vendorNotification.create({
+      await vendorNotification.create({
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         quotationId: order.quotationId,
         message,
+        serviceId: order.service_id,
         type: "order_approved",
       });
 
@@ -255,67 +251,26 @@ router.put("/finalOrder/approve", async (req, res) => {
         message,
       });
 
-      // 1. Delete the main quotation document.
-      // try {
-      //   const deleteResult = await Quotation.deleteOne({
-      //     id: order.quotationId,
-      //   });
-      //   console.log(
-      //     "Quotation deleted from Quotation collection:",
-      //     deleteResult
-      //   );
-      // } catch (deleteError) {
-      //   console.error(
-      //     "Error deleting quotation from Quotation collection:",
-      //     deleteError
-      //   );
-      // }
-
-      // 2. Delete the specific quotation object from the customer's quotations array.
-      // try {
-      //   const updateResult = await Customer.updateOne(
-      //     { id: order.customerId },
-      //     { $pull: { quotations: { quotationId: order.quotationId } } }
-      //   );
-      //   console.log(
-      //     "Quotation object removed from customer document:",
-      //     updateResult
-      //   );
-      // } catch (updateError) {
-      //   console.error(
-      //     "Error removing quotation from customer document:",
-      //     updateError
-      //   );
-      // }
-
-      // 3. Delete the chat document associated with the quotation.
-      // try {
-      //   const chatDeleteResult = await Chat.deleteOne({
-      //     chatId: order.quotationId, // Assuming chatId is the same as quotationId
-      //   });
-      //   console.log("Chat deleted successfully:", chatDeleteResult);
-      // } catch (chatError) {
-      //   console.error("Error deleting chat:", chatError);
-      // }
-
-      // return res.status(200).json({
-      //   message: `Both parties approved. Checkout link sent to customer.`,
-      //   data: order,
-      //   checkoutURL,
-      // });
+      // ✅ Send response back to frontend
+      return res.status(200).json({
+        message: "Final order approved by both parties.",
+        data: order,
+        checkoutURL,
+      });
     }
 
     // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
       const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
 
-      const newVendorNotification = await vendorNotification.create({
+      await vendorNotification.create({
         vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
         quotationId: order.quotationId,
         message,
-        type: "order_rejected",
+        serviceId: order.service_id,
+        type: "order_pending",
       });
 
       await adminNotification.create({
@@ -354,59 +309,100 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
     }
 
-    // 🟡 CASE 3: Only one party approved, temporarily allow checkout
-    const parsedFinalPrice = Number(
-      String(order.budget || order.finalPrice || 0).replace(/,/g, "")
-    );
+    // 🟡 CASE 3: Only one party approved (replace the old CASE 3 block with this)
+    if (
+      (approvals.customer === true && approvals.vendor !== true) ||
+      (approvals.vendor === true && approvals.customer !== true)
+    ) {
+      const parsedFinalPrice = Number(
+        String(order.budget || order.finalPrice || 0).replace(/,/g, "")
+      );
 
-    const checkoutURL =
-      order.finalURL ||
-      `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
+      const checkoutURL =
+        order.finalURL ||
+        `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
 
-    const message = `🟡 Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.orderId})`;
+      const message = `🟡 Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.orderId})`;
 
-    // Notify Vendor
-    const newVendorNotification = await vendorNotification.create({
-      vendorId: order.vendorId,
-      customerId: order.customerId,
-      orderId: order.orderId,
-      quotationId: order.quotationId,
-      message,
-      type: "order_pending",
-    });
-
-    // Notify Admin
-    await adminNotification.create({
-      vendorId: order.vendorId,
-      customerId: order.customerId,
-      orderId: order.orderId,
-      quotationId: order.quotationId,
-      message,
-    });
-
-    // Notify Customer
-    await customerNotification.findOneAndUpdate(
-      {
+      // ✅ Always notify admin
+      await adminNotification.create({
+        vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
-        vendorId: order.vendorId,
-      },
-      {
-        $set: {
-          finalPrice: parsedFinalPrice,
-          checkoutURL,
-          message,
-          quotationId: order.quotationId,
-        },
-      },
-      { new: true, upsert: true }
-    );
+        quotationId: order.quotationId,
+        message,
+      });
 
-    return res.status(200).json({
-      message: `Approval updated for ${userType}. Checkout link temporarily sent.`,
-      data: order,
-      checkoutURL,
-    });
+      // Normalize userType just in case (optional but safer)
+      const actor = String(userType).toLowerCase();
+
+      if (actor === "vendor") {
+        // Vendor approved -> notify CUSTOMER only (not vendor)
+        await customerNotification.findOneAndUpdate(
+          {
+            customerId: order.customerId,
+            orderId: order.orderId,
+            vendorId: order.vendorId,
+          },
+          {
+            $set: {
+              finalPrice: parsedFinalPrice,
+              checkoutURL,
+              message,
+              quotationId: order.quotationId,
+            },
+          },
+          { new: true, upsert: true }
+        );
+      } else if (actor === "customer") {
+        // Customer approved -> notify VENDOR only (not customer)
+        await vendorNotification.create({
+          vendorId: order.vendorId,
+          customerId: order.customerId,
+          orderId: order.orderId,
+          quotationId: order.quotationId,
+          message,
+          serviceId: order.service_id,
+          type: "order_pending",
+        });
+      } else {
+        // fallback (shouldn't normally happen) -> notify the opposite party based on approvals
+        if (approvals.vendor === true) {
+          await customerNotification.findOneAndUpdate(
+            {
+              customerId: order.customerId,
+              orderId: order.orderId,
+              vendorId: order.vendorId,
+            },
+            {
+              $set: {
+                finalPrice: parsedFinalPrice,
+                checkoutURL,
+                message,
+                quotationId: order.quotationId,
+              },
+            },
+            { new: true, upsert: true }
+          );
+        } else if (approvals.customer === true) {
+          await vendorNotification.create({
+            vendorId: order.vendorId,
+            customerId: order.customerId,
+            orderId: order.orderId,
+            quotationId: order.quotationId,
+            message,
+            serviceId: order.service_id,
+            type: "order_pending",
+          });
+        }
+      }
+
+      return res.status(200).json({
+        message: `Approval updated for ${userType}. Waiting for the other party.`,
+        data: order,
+        checkoutURL,
+      });
+    }
   } catch (error) {
     console.error("🔥 Approval update error:", error.message);
     return res
