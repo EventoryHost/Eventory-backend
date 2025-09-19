@@ -99,6 +99,28 @@ router.get("/:vendor_id", async (req, res) => {
   }
 });
 
+// Get notifications filtered by vendorId + serviceId
+router.get("/:vendorId/:serviceId/vendorNotification", async (req, res) => {
+  try {
+    const { vendorId, serviceId } = req.params;
+
+    const notifications = await vendorNotification
+      .find({ vendorId, serviceId })
+      .sort({ timestamp: -1 });
+
+    const unreadCount = await vendorNotification.countDocuments({ vendorId, serviceId, read: false });
+
+    res.status(200).json({ 
+      message: "Notifications fetched successfully",
+      data: notifications,
+      unreadCount 
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch notifications", error: error.message });
+  }
+});
+
+
 /**
  * @swagger
  * /api/vendors/{vendorId}/vendorNotification:
