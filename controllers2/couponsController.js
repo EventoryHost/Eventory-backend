@@ -200,6 +200,7 @@ export const getCouponHistory = async (req, res) => {
 export const validateCoupon = async (req, res) => {
   try {
     const { vendorId, couponCode, originalAmount } = req.body;
+    console.log(vendorId, couponCode, originalAmount);
 
     if (!vendorId || !couponCode || !originalAmount) {
       return res.status(400).json({
@@ -213,7 +214,8 @@ export const validateCoupon = async (req, res) => {
       return res.status(400).json({ success: false, valid: false, error: 'Original amount must be greater than 0' });
     }
 
-    const vendor = await Vendor.findOne({ id: vendorId });
+    const vendor = await Vendor.findOne({ vendor_id: vendorId });
+
     const coupon = await Coupons.findOne({
       coupon_code: couponCode.toUpperCase(),
       is_active: true
