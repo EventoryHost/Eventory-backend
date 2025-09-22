@@ -135,22 +135,24 @@ function getVendorType(serviceIds) {
     photographer: "Photographers & Videographers",
     makeupArtist: "Makeup Artist",
     "makeup-artist": "Makeup Artist",
-    "dj-artist": "DJ Artist",
-  };
+    "djArtist": "DJ Artist",
+    djArtist: "DJ Artist",
+  }; 
+
 
   if (serviceIds && serviceIds.length > 0) {
-    return typeMap[serviceIds[0].serType] || "Service Provider";
+    return typeMap[serviceIds[serviceIds.length - 1].serType] || typeMap[serviceIds[serviceIds.length].serType] || "Service Provider";
   }
 
   return "Service Provider";
 }
 
-async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDetails) {
+async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   let browser = null;
   let page = null;
 
   try {
-    const templatePath = path.resolve("templates", "invoiceTemplate.html");
+    const templatePath = path.resolve("templates", "onboardInvoiceTemplate.html");
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
@@ -188,21 +190,18 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
     const isDelhiPincode = customer.businessDetails.pinCode.toString().startsWith("1");
 
     // Create table rows with tax logic
-    let tableRows = [];
-
-    const items = orderDetails.items || [];
+    let tableRows = "";
 
     if (isDelhiPincode) {
       // Split into CGST and SGST rows for Delhi
       const cgstAmount = originalTaxAmount / 2;
       const sgstAmount = originalTaxAmount / 2;
 
-      for (let i = 0; i < items.length; i++) {
-
-        tableRows[i] = `
+      tableRows = `
         <tr>
           <td style="text-align: center;">1</td>
-          <td>${items[i].name}</td>
+          <td>Eventory Vendor Registration</td>
+          <td style="text-align: center;">${vendorType}</td>
           <td style="text-align: center;">Rs ${originalNetAmount.toFixed(2)}</td>
           <td style="text-align: center;">9%</td>
           <td style="text-align: center;">CGST</td>
@@ -219,11 +218,9 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
           <td style="text-align: center;">Rs ${sgstAmount.toFixed(2)}</td>
         </tr>
       `;
-      }
     } else {
       // Single IGST row for other states
-      for (let i = 0; i < items.length; i++) {
-        tableRows = `
+      tableRows = `
         <tr>
           <td style="text-align: center;">1</td>
           <td>Eventory Vendor Registration</td>
@@ -235,7 +232,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
           <td style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
         </tr>
       `;
-      }
     }
 
     // Apply the same logic to discount rows
@@ -361,7 +357,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
       pdfBuffer,
       `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
-    console.log("Invoice uploaded to S3:", invoiceUrl);
 
     await axios.post(
       `${process.env.URL}/api/add-vendor-invoice`,
@@ -370,14 +365,12 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
         invoiceUrl,
       },
     );
-
     await sendInvoiceEmail({
       to: customer.email || "event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com",
       name: customer.name,
       pdfBuffer,
       pdfFileName: `invoice-${paymentDetails.invoiceNumber}.pdf`
     });
-
 
     await sendInvoiceToWhatsApp(
       invoiceUrl,

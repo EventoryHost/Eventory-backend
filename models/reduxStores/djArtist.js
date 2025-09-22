@@ -11,7 +11,6 @@ const djArtistSchema = Schema({
     completed: { type: Boolean, default: false },
     serviceName: { type: String },
     name: { type: String },
-    contact: { type: String },
     description: { type: String },
     address: { type: String },
     serviceAreas: { type: [String] },
