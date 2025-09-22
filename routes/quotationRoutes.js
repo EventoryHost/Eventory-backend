@@ -14,32 +14,62 @@ import vendorNotification from "../models/vendorNotification.js";
 export default (io) => {
   const router = express.Router();
 
+  router.get("/by-service", async (req, res) => {
+    try {
+      const { service_id } = req.query;
+
+      console.log("Service ID:", service_id); // Debug log
+
+      if (!service_id) {
+        return res.status(400).json({ message: "service_id is required" });
+      }
+
+      const quotations = await Quotation.find({ service_id });
+
+      console.log("Quotations:", quotations); // Debug log
+
+      if (quotations.length === 0) {
+        return res.status(404).json({
+          message: `No quotations found for service_id: ${service_id}`,
+        });
+      }
+
+      res.status(200).json({
+        message: "Quotations retrieved successfully!",
+        data: quotations,
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Error retrieving quotations by service ID",
+        error: error.message,
+      });
+    }
+  });
+
   router.post("/", async (req, res) => {
     try {
       const parsedNumberOfGuest = Number(req.body.number_of_guest);
 
-    if (isNaN(parsedNumberOfGuest)) {
-      return res
-        .status(400)
-        .json({ error: "Budget and Number of Guests must be valid numbers." });
-    }
+      if (isNaN(parsedNumberOfGuest)) {
+        return res.status(400).json({
+          error: "Budget and Number of Guests must be valid numbers.",
+        });
+      }
 
-    // Block duplicate quotations only if there is an existing one that is not Rejected
-    const existingActiveQuotation = await Quotation.findOne({
-      user_id: req.body.user_id,
-      vendor_id: req.body.vendor_id,
-      service_id: req.body.service_id,
-      status: { $ne: "Rejected" },
-    });
+      // Block duplicate quotations only if there is an existing one that is not Rejected
+      const existingActiveQuotation = await Quotation.findOne({
+        user_id: req.body.user_id,
+        vendor_id: req.body.vendor_id,
+        service_id: req.body.service_id,
+        status: { $ne: "Rejected" },
+      });
 
-    if (existingActiveQuotation) {
-      return res
-        .status(400)
-        .json({
+      if (existingActiveQuotation) {
+        return res.status(400).json({
           message:
             "Quotation already exists and is active for this service with this vendor",
         });
-    }
+      }
 
       const newQuotation = new Quotation({
         user_id: req.body.user_id,
@@ -57,8 +87,8 @@ export default (io) => {
         event_type: req.body.event_type,
       });
 
-    const customer = await Customer.findOne({ id: req.body.user_id });
-    const vendor = await Vendor.findOne({ id: req.body.vendor_id });
+      const customer = await Customer.findOne({ id: req.body.user_id });
+      const vendor = await Vendor.findOne({ id: req.body.vendor_id });
 
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
@@ -69,10 +99,12 @@ export default (io) => {
       const newNotification = new vendorNotification({
         vendorId: savedQuotation.vendor_id,
         customerId: savedQuotation.user_id,
+        serviceId: savedQuotation.service_id,
         message: `New quotation request from ${savedQuotation.user_name}`,
         quotationId: savedQuotation.id,
-        type: "quotation", // Set the type
+        type: "quotation",
       });
+
       await newNotification.save();
 
       // The 'io' instance is now available here!
@@ -87,13 +119,15 @@ export default (io) => {
         customer.quotations = [];
       }
 
-    // Always record the new quotation reference; allow multiple entries for same service
-    if (!customer.quotations.some((q) => q.quotationId === savedQuotation.id)) {
-      customer.quotations.push({
-        serviceId: req.body.service_id,
-        quotationId: savedQuotation.id,
-      });
-    }
+      // Always record the new quotation reference; allow multiple entries for same service
+      if (
+        !customer.quotations.some((q) => q.quotationId === savedQuotation.id)
+      ) {
+        customer.quotations.push({
+          serviceId: req.body.service_id,
+          quotationId: savedQuotation.id,
+        });
+      }
 
       await customer.save();
 
@@ -102,22 +136,26 @@ export default (io) => {
         data: savedQuotation,
       });
 
-    setImmediate(() => {
-      sendConfirmationMessageToWhatsapp({
-        customer_mobile: customer.mobile,
-        customer_name: customer.name,
-        id: newQuotation.id,
+      setImmediate(() => {
+        sendConfirmationMessageToWhatsapp({
+          customer_mobile: customer.mobile,
+          customer_name: customer.name,
+          id: newQuotation.id,
+        });
+
+        sendVendorQuotationMessage(
+          vendor.mobile,
+          vendor.name,
+          "https://www.eventory.in/dashboard?q=quotations"
+        );
       });
-      
-      sendVendorQuotationMessage(vendor.mobile,vendor.name,"https://www.eventory.in/dashboard?q=quotations");
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error creating quotation",
-      error: error.message,
-    });
-  }
-});
+    } catch (error) {
+      res.status(500).json({
+        message: "Error creating quotation",
+        error: error.message,
+      });
+    }
+  });
 
   router.get("/", async (req, res) => {
     try {

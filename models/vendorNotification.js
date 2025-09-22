@@ -5,6 +5,9 @@ const vendorNotificationSchema = new mongoose.Schema({
   vendorId: String,
   customerId: String,
   message: String,
+  serviceId: {
+    type: String,
+  },
   quotationId: {
     type: String,
   },
@@ -13,7 +16,7 @@ const vendorNotificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'quotation',
+      'quotation',  
       'order_request',
       'order_approved',
       "order_pending",
