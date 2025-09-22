@@ -135,17 +135,19 @@ function getVendorType(serviceIds) {
     photographer: "Photographers & Videographers",
     makeupArtist: "Makeup Artist",
     "makeup-artist": "Makeup Artist",
-    "dj-artist": "DJ Artist",
-  };
+    "djArtist": "DJ Artist",
+    djArtist: "DJ Artist",
+  }; 
+
 
   if (serviceIds && serviceIds.length > 0) {
-    return typeMap[serviceIds[0].serType] || "Service Provider";
+    return typeMap[serviceIds[serviceIds.length - 1].serType] || typeMap[serviceIds[serviceIds.length].serType] || "Service Provider";
   }
 
   return "Service Provider";
 }
 
-async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDetails) {
+async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   let browser = null;
   let page = null;
 
@@ -355,7 +357,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
       pdfBuffer,
       `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
-    console.log("Invoice uploaded to S3:", invoiceUrl);
 
     await axios.post(
       `${process.env.URL}/api/add-vendor-invoice`,
@@ -364,14 +365,12 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails, orderDet
         invoiceUrl,
       },
     );
-
     await sendInvoiceEmail({
       to: customer.email || "event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com",
       name: customer.name,
       pdfBuffer,
       pdfFileName: `invoice-${paymentDetails.invoiceNumber}.pdf`
     });
-
 
     await sendInvoiceToWhatsApp(
       invoiceUrl,

@@ -32,17 +32,18 @@ async function pollSQS() {
           } else {
             await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
           }
-            const delCommand = new DeleteMessageCommand({
-              QueueUrl: queueUrl,
-              ReceiptHandle: message.ReceiptHandle
-            });
-            await sqs.send(delCommand);
-          } catch (err) {
-            console.error("Invoice generation failed:", err);
-          }
+          
+          const delCommand = new DeleteMessageCommand({
+            QueueUrl: queueUrl,
+            ReceiptHandle: message.ReceiptHandle
+          });
+          await sqs.send(delCommand);
+        } catch (err) {
+          console.error("Invoice generation failed:", err);
         }
-    }
+      }
     }
   }
+}
 
-  pollSQS().catch(console.error);
+pollSQS().catch(console.error);
