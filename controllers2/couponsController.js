@@ -1,7 +1,7 @@
 import { Vendor } from '../models2/vendor.js';
-import Coupons from '../models2/coupons.js';
+import Coupons from '../models2/coupons.js'; // new model import
 
-// Helper function to calculate new discount eligibility
+// Helper: update eligibility after using a coupon
 const calculateNewEligibility = (currentEligibility, usedDiscount) => {
   let newEligibility = [];
 
@@ -18,120 +18,132 @@ const calculateNewEligibility = (currentEligibility, usedDiscount) => {
     default:
       newEligibility = currentEligibility;
   }
+
   return newEligibility;
 };
 
-// Helper function to get eligibility message
+// Helper: eligibility message
 const getEligibilityMessage = (eligibleDiscounts) => {
-  if (eligibleDiscounts.length === 0) {
+  if (!eligibleDiscounts || eligibleDiscounts.length === 0) {
     return 'You cannot use any more coupons in the future';
   }
   return `You can use ${eligibleDiscounts.join(', ')}% discount coupons in the future`;
 };
+// Helper: derive eligible discount percentages from vendor record
+const deriveEligibleDiscounts = (highestDiscount) => {
+  const highest = Number(highestDiscount) || 0;
+  switch (highest) {
+    case 100:
+      return [];
+    case 50:
+      return [25];
+    case 25:
+      return [];
+    default:
+      // default starting set of allowed discounts (change if your business rule differs)
+      return [25, 50, 100];
+  }
+};
 
-// Get available coupons for a vendor
+// 📌 Get available coupons (updated to use new Vendor schema fields)
 export const getAvailableCoupons = async (req, res) => {
   try {
-    const { vendorId } = req.params;
-    const vendor = await Vendor.findOne({ id: vendorId });
+    const { vendor_id } = req.params;
 
+    const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
       return res.status(404).json({ success: false, error: 'Vendor not found' });
     }
 
-    // Get all active coupons
-    const allCoupons = await Coupons.find({ is_active: true });
+    // Ensure arrays exist to avoid crashes
+    const usedCoupons = Array.isArray(vendor.coupons_used) ? vendor.coupons_used : [];
+    const highestUsed = vendor.highest_discount_ever_applied || 0;
 
-    // Filter based on vendor's eligibility
-    const availableCoupons = allCoupons.filter(coupon =>
-      vendor.couponDetails.canUseDiscounts.includes(coupon.coupon_value)
-    );
+    // Determine what discount levels this vendor is allowed to use
+    const eligibleDiscounts = deriveEligibleDiscounts(highestUsed);
 
-    res.json({
+    // Fetch all active coupons
+    const allActiveCoupons = await Coupons.find({ is_active: true });
+
+    // Filter: only those coupons whose coupon_value is in eligibleDiscounts
+    // and that the vendor has not already used (coupon_code not present in coupons_used)
+    const availableCoupons = allActiveCoupons.filter(coupon => {
+      // Defensive checks in case fields are missing on coupon
+      const value = typeof coupon.coupon_value === 'number' ? coupon.coupon_value : Number(coupon.coupon_value);
+      const code = coupon.coupon_code ? String(coupon.coupon_code) : '';
+      return eligibleDiscounts.includes(value) && !usedCoupons.includes(code);
+    });
+
+    return res.json({
       success: true,
       data: {
         availableCoupons,
         vendorEligibility: {
-          canUse: vendor.couponDetails.canUseDiscounts,
-          highestUsed: vendor.couponDetails.highestDiscountUsed,
-          totalCouponsUsed: vendor.couponDetails.appliedCoupons.length
+          canUse: eligibleDiscounts,
+          highestUsed, // maps to vendor.highest_discount_ever_applied
+          totalCouponsUsed: usedCoupons.length
         }
       }
     });
   } catch (error) {
     console.error('Error getting available coupons:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// Apply coupon during payment
+// 📌 Apply coupon
 export const applyCoupon = async (req, res) => {
   try {
-    const { vendorId, couponCode, couponDetails } = req.body;
+    const { vendor_id, coupon_code, couponDetails } = req.body;
 
-    if (!vendorId || !couponCode || !couponDetails) {
-      return res.status(400).json({ success: false, error: 'Missing required fields: vendorId, couponCode, couponDetails' });
+    if (!vendor_id || !coupon_code || !couponDetails) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
-    if (
-      couponDetails.finalAmount === undefined ||
-      couponDetails.savings === undefined ||
-      couponDetails.discount === undefined
-    ) {
-      return res.status(400).json({ success: false, error: 'Invalid couponDetails structure' });
-    }
-
-    const vendor = await Vendor.findOne({ id: vendorId });
+    const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
       return res.status(404).json({ success: false, error: 'Vendor not found' });
     }
 
     const coupon = await Coupons.findOne({
-      coupon_code: couponCode.toUpperCase(),
+      coupon_code: coupon_code.toUpperCase(),
       is_active: true
     });
     if (!coupon) {
       return res.status(404).json({ success: false, error: 'Invalid or inactive coupon code' });
     }
 
-    if (coupon.coupon_value !== couponDetails.discount) {
-      return res.status(400).json({ success: false, error: 'Coupon details mismatch. Please revalidate the coupon.' });
+    // Prevent reusing the same coupon
+    if (vendor.coupons_used.includes(coupon.coupon_code)) {
+      return res.status(400).json({ success: false, error: 'Coupon already used' });
     }
 
-    if (!vendor.couponDetails.canUseDiscounts.includes(coupon.coupon_value)) {
+    // Validate coupon value matches what frontend sent
+    if (coupon.coupon_value !== couponDetails.discount) {
+      return res.status(400).json({ success: false, error: 'Coupon details mismatch' });
+    }
+
+    const currentHighest = vendor.highest_discount_ever_applied || 0;
+    const eligibleDiscounts = deriveEligibleDiscounts(currentHighest);
+
+    // Check if vendor is eligible to use this discount
+    if (!eligibleDiscounts.includes(coupon.coupon_value)) {
       return res.status(403).json({
         success: false,
         error: `You cannot use ${coupon.coupon_value}% discount coupons`,
-        availableDiscounts: vendor.couponDetails.canUseDiscounts
+        availableDiscounts: eligibleDiscounts
       });
     }
 
     const originalAmount = couponDetails.finalAmount + couponDetails.savings;
 
-    const updatedCanUseDiscounts = calculateNewEligibility(
-      vendor.couponDetails.canUseDiscounts,
-      coupon.coupon_value
-    );
+    // Update vendor record
+    vendor.coupons_used.push(coupon.coupon_code);
+    vendor.highest_discount_ever_applied = Math.max(currentHighest, coupon.coupon_value);
+    vendor.last_coupon_used_at = new Date();
+    await vendor.save();
 
-    const couponUsage = {
-      couponCode: coupon.coupon_code,
-      discount: coupon.coupon_value,
-      appliedAt: new Date(),
-      originalAmount,
-      discountAmount: couponDetails.savings,
-      finalAmount: couponDetails.finalAmount
-    };
-
-    await Vendor.findOneAndUpdate(
-      { id: vendorId },
-      {
-        $push: { 'couponDetails.appliedCoupons': couponUsage },
-        $set: {
-          'couponDetails.highestDiscountUsed': Math.max(vendor.couponDetails.highestDiscountUsed, coupon.coupon_value),
-          'couponDetails.canUseDiscounts': updatedCanUseDiscounts
-        }
-      }
-    );
+    const newEligibility = deriveEligibleDiscounts(vendor.highest_discount_ever_applied);
 
     res.json({
       success: true,
@@ -150,8 +162,9 @@ export const applyCoupon = async (req, res) => {
           savings: couponDetails.savings
         },
         futureEligibility: {
-          canUseDiscounts: updatedCanUseDiscounts,
-          message: getEligibilityMessage(updatedCanUseDiscounts)
+          canUseDiscounts: newEligibility,
+          totalCouponsUsed: vendor.coupons_used.length,
+          highestDiscountEver: vendor.highest_discount_ever_applied
         }
       }
     });
@@ -161,32 +174,44 @@ export const applyCoupon = async (req, res) => {
   }
 };
 
-// Vendor coupon history
+// 📌 Get coupon history
 export const getCouponHistory = async (req, res) => {
   try {
-    const { vendorId } = req.params;
-    const vendor = await Vendor.findOne({ id: vendorId }).select('couponDetails name');
+    const { vendor_id } = req.params;
 
+    // Find vendor by vendor_id
+    const vendor = await Vendor.findOne({ vendor_id }).select('vendor_id vendor_mobile coupons_used highest_discount_ever_applied last_coupon_used_at');
     if (!vendor) {
       return res.status(404).json({ success: false, error: 'Vendor not found' });
     }
 
-    const totalSavings = vendor.couponDetails.appliedCoupons.reduce(
-      (sum, coupon) => sum + coupon.discountAmount,
-      0
-    );
+    // Fetch details of all coupons this vendor has used
+    const usedCoupons = await Coupons.find({
+      coupon_code: { $in: vendor.coupons_used }
+    });
+
+    // If you want total savings → requires summing coupon_value% of some originalAmount
+    // Since schema does not persist savings, we can only show discount percentages
+    // If needed, integrate with transactions/payments collection
 
     res.json({
       success: true,
       data: {
-        vendorName: vendor.name,
-        couponHistory: vendor.couponDetails.appliedCoupons,
+        vendorId: vendor.vendor_id,
+        vendorMobile: vendor.vendor_mobile,
+        couponHistory: usedCoupons.map(c => ({
+          code: c.coupon_code,
+          discount: c.coupon_value,
+          family: c.coupon_family
+        })),
         currentStatus: {
-          highestDiscountUsed: vendor.couponDetails.highestDiscountUsed,
-          canUseDiscounts: vendor.couponDetails.canUseDiscounts,
-          totalCouponsUsed: vendor.couponDetails.appliedCoupons.length,
-          totalSavings,
-          eligibilityMessage: getEligibilityMessage(vendor.couponDetails.canUseDiscounts)
+          highestDiscountUsed: vendor.highest_discount_ever_applied,
+          totalCouponsUsed: vendor.coupons_used.length,
+          lastCouponUsedAt: vendor.last_coupon_used_at,
+          availableDiscounts: deriveEligibleDiscounts(vendor.highest_discount_ever_applied),
+          eligibilityMessage: getEligibilityMessage(
+            deriveEligibleDiscounts(vendor.highest_discount_ever_applied)
+          )
         }
       }
     });
@@ -196,44 +221,43 @@ export const getCouponHistory = async (req, res) => {
   }
 };
 
-// Validate coupon before applying
+
+// 📌 Validate coupon before applying
 export const validateCoupon = async (req, res) => {
   try {
-    const { vendorId, couponCode, originalAmount } = req.body;
+    const { vendor_id, coupon_code, originalAmount } = req.body; 
 
-    if (!vendorId || !couponCode || !originalAmount) {
-      return res.status(400).json({
-        success: false,
-        valid: false,
-        error: 'vendorId, couponCode, and originalAmount are required'
-      });
+    if (!vendor_id || !coupon_code || !originalAmount) {
+      return res.status(400).json({ success: false, valid: false, error: 'Missing fields' });
     }
 
     if (originalAmount <= 0) {
-      return res.status(400).json({ success: false, valid: false, error: 'Original amount must be greater than 0' });
+      return res.status(400).json({ success: false, valid: false, error: 'Amount must be > 0' });
     }
 
-    const vendor = await Vendor.findOne({ id: vendorId });
-    const coupon = await Coupons.findOne({
-      coupon_code: couponCode.toUpperCase(),
-      is_active: true
-    });
-
+    // 🔹 Find vendor and coupon
+    const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
       return res.status(404).json({ success: false, valid: false, error: 'Vendor not found' });
     }
 
+    const coupon = await Coupons.findOne({
+      coupon_code: coupon_code.toUpperCase(),
+      is_active: true
+    });
     if (!coupon) {
       return res.status(404).json({ success: false, valid: false, error: 'Invalid or inactive coupon code' });
     }
 
-    const canUse = vendor.couponDetails.canUseDiscounts.includes(coupon.coupon_value);
+    // 🔹 Derive eligibility from vendor's record
+    const eligibleDiscounts = deriveEligibleDiscounts(vendor.highest_discount_ever_applied);
+    const alreadyUsed = vendor.coupons_used.includes(coupon.coupon_code);
+    const canUse = eligibleDiscounts.includes(coupon.coupon_value) && !alreadyUsed;
 
     let pricingDetails = null;
     if (canUse) {
       const discountAmount = (originalAmount * coupon.coupon_value) / 100;
       const finalAmount = originalAmount - discountAmount;
-
       pricingDetails = {
         originalAmount,
         discountPercentage: coupon.coupon_value,
@@ -247,19 +271,28 @@ export const validateCoupon = async (req, res) => {
       success: true,
       valid: canUse,
       data: {
-        coupon: canUse ? {
-          code: coupon.coupon_code,
-          discount: coupon.coupon_value,
-          family: coupon.coupon_family
-        } : null,
+        coupon: canUse
+          ? {
+              code: coupon.coupon_code,
+              discount: coupon.coupon_value,
+              family: coupon.coupon_family
+            }
+          : null,
         pricing: pricingDetails,
         message: canUse
-          ? `Valid! ${coupon.coupon_value}% discount from ${coupon.coupon_family} - Save ₹${pricingDetails.savings}`
-          : `You cannot use ${coupon.coupon_value}% discount coupons. Available: ${vendor.couponDetails.canUseDiscounts.join(', ')}%`,
+          ? `✅ Valid! ${coupon.coupon_value}% discount from ${coupon.coupon_family} family - Save ₹${pricingDetails.savings}`
+          : alreadyUsed
+            ? `❌ You have already used coupon ${coupon.coupon_code}`
+            : `❌ You cannot use ${coupon.coupon_value}% discount coupons. Available: ${eligibleDiscounts.join(', ')}%`,
         vendorEligibility: {
-          canUse: vendor.couponDetails.canUseDiscounts,
-          highestUsed: vendor.couponDetails.highestDiscountUsed,
-          reason: !canUse ? `You have already used a ${vendor.couponDetails.highestDiscountUsed}% discount coupon` : null
+          canUse: eligibleDiscounts,
+          highestUsed: vendor.highest_discount_ever_applied,
+          totalCouponsUsed: vendor.coupons_used.length,
+          reason: !canUse
+            ? alreadyUsed
+              ? `Coupon ${coupon.coupon_code} already used`
+              : `You already used a ${vendor.highest_discount_ever_applied}% coupon`
+            : null
         }
       }
     });
@@ -269,19 +302,23 @@ export const validateCoupon = async (req, res) => {
   }
 };
 
-// Deactivate coupon (admin)
+// 📌 Deactivate coupon (admin)
 export const deactivateCoupon = async (req, res) => {
   try {
-    const { couponCode } = req.params;
+    const { coupon_code } = req.params;
+
+    if (!coupon_code) {
+      return res.status(400).json({ success: false, error: "Coupon code is required" });
+    }
 
     const coupon = await Coupons.findOneAndUpdate(
-      { coupon_code: couponCode.toUpperCase() },
+      { coupon_code: coupon_code.toUpperCase(), is_active: true }, // only if active
       { is_active: false, coupon_updated_at: new Date() },
       { new: true }
     );
 
     if (!coupon) {
-      return res.status(404).json({ success: false, error: 'Coupon not found' });
+      return res.status(404).json({ success: false, error: "Coupon not found or already inactive" });
     }
 
     res.json({
@@ -290,32 +327,31 @@ export const deactivateCoupon = async (req, res) => {
       data: coupon
     });
   } catch (error) {
-    console.error('Error deactivating coupon:', error);
+    console.error("Error deactivating coupon:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
-// Get all coupons (admin)
+// 📌 Get all coupons
 export const getAllCoupons = async (req, res) => {
   try {
     const { isActive } = req.query;
     const filter = {};
 
     if (isActive !== undefined) {
-      filter.is_active = isActive === 'true';
+      filter.is_active = isActive === "true"; // string → boolean
     }
 
-    const coupons = await Coupons.find(filter).sort({ coupon_family: 1, coupon_value: -1 });
+    const coupons = await Coupons.find(filter)
+      .sort({ coupon_family: 1, coupon_value: -1 });
 
     res.json({
       success: true,
-      data: {
-        coupons,
-        count: coupons.length
-      }
+      count: coupons.length,
+      data: coupons
     });
   } catch (error) {
-    console.error('Error getting all coupons:', error);
+    console.error("Error getting all coupons:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
