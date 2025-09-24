@@ -13,15 +13,26 @@ const makeupArtistSchema = Schema({
   latitude: { type: Number },
   completed: { type: Boolean, default: false }, // Flag for section completion
   name: { type: String },
-  eventSize: { type: String },  description: { type: String },
+  eventSize: { type: String },
+  description: { type: String },
   eventTypes: { type: [String] },
   typesOfMakeupArtists: { type: [String] },
   serviceAreas: { type: [String] },
   onsiteMakeup: { type: Boolean },
   customization: { type: Boolean },
   serviceTypes: { type: [String] },
-  photos: { type: [String] },
-  videos: { type: [String] },
+  photos: [
+    {
+      original: { type: String },
+      preview: { type: String },
+    },
+  ],
+  videos: [
+    {
+      original: { type: String },
+      preview: { type: String },
+    },
+  ],
   socialMedia: { type: String },
   websiteUrl: { type: String },
   priceStarts: { type: String },

@@ -54,13 +54,25 @@ const decoratorSchema = Schema({
   themesElement: {
     completed: { type: Boolean, default: false }, // Flag for section completion
     themeElements: { type: [String], required: true },
-    themePhotos: { type: [String], required: true },
-    themeVideos: { type: [String], required: true },
+    themePhotos:  [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+    themeVideos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
   },
   additionalDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    photos: { type: [String], required: true },
-    videos: { type: [String], required: true },
+    photos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+    videos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
     clientTestimonials: { type: String },
     awards: { type: String },
     website: { type: String },

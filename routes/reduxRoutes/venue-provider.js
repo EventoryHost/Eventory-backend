@@ -62,6 +62,35 @@ router.post("/", async (req, res) => {
     const existingDetails = await VenueModel.findOne({ id });
 
     if (existingDetails) {
+      // Handle photos and videos properly as objects with original and preview properties
+      if (venueData.photos && typeof venueData.photos === 'string') {
+        // Convert string URL to proper object format
+        venueData.photos = [{
+          original: venueData.photos,
+          preview: venueData.photos.replace('original', 'preview')
+        }];
+      } else if (Array.isArray(venueData.photos) && venueData.photos.length > 0 && typeof venueData.photos[0] === 'string') {
+        // Convert array of strings to array of objects
+        venueData.photos = venueData.photos.map(photo => ({
+          original: photo,
+          preview: photo.replace('original', 'preview')
+        }));
+      }
+      
+      if (venueData.videos && typeof venueData.videos === 'string') {
+        // Convert string URL to proper object format
+        venueData.videos = [{
+          original: venueData.videos,
+          preview: venueData.videos.replace('original', 'preview').replace('.mp4', '.webp')
+        }];
+      } else if (Array.isArray(venueData.videos) && venueData.videos.length > 0 && typeof venueData.videos[0] === 'string') {
+        // Convert array of strings to array of objects
+        venueData.videos = venueData.videos.map(video => ({
+          original: video,
+          preview: video.replace('original', 'preview').replace('.mp4', '.webp')
+        }));
+      }
+      
       const updatedDetails = await VenueModel.findOneAndUpdate(
         { id },
         { $set: venueData },
@@ -72,6 +101,35 @@ router.post("/", async (req, res) => {
         data: updatedDetails,
       });
     } else {
+      // Handle photos and videos properly as objects with original and preview properties
+      if (venueData.photos && typeof venueData.photos === 'string') {
+        // Convert string URL to proper object format
+        venueData.photos = [{
+          original: venueData.photos,
+          preview: venueData.photos.replace('original', 'preview')
+        }];
+      } else if (Array.isArray(venueData.photos) && venueData.photos.length > 0 && typeof venueData.photos[0] === 'string') {
+        // Convert array of strings to array of objects
+        venueData.photos = venueData.photos.map(photo => ({
+          original: photo,
+          preview: photo.replace('original', 'preview')
+        }));
+      }
+      
+      if (venueData.videos && typeof venueData.videos === 'string') {
+        // Convert string URL to proper object format
+        venueData.videos = [{
+          original: venueData.videos,
+          preview: venueData.videos.replace('original', 'preview').replace('.mp4', '.webp')
+        }];
+      } else if (Array.isArray(venueData.videos) && venueData.videos.length > 0 && typeof venueData.videos[0] === 'string') {
+        // Convert array of strings to array of objects
+        venueData.videos = venueData.videos.map(video => ({
+          original: video,
+          preview: video.replace('original', 'preview').replace('.mp4', '.webp')
+        }));
+      }
+      
       const newVenueDetails = new VenueModel({ id, ...venueData });
       await newVenueDetails.save();
       return res.status(201).json({

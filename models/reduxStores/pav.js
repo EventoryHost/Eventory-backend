@@ -29,8 +29,18 @@ const photographerSchema = Schema(
         workers: [{ name: String, min: String, max: String }],
       },
     },
-    photos: { type: [String] },
-    videos: { type: [String] },
+    photos: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
+    videos: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     fullName: { type: String },
     description: { type: String },
     eventType: { type: String, default: "Photographer" },

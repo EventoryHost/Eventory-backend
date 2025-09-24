@@ -54,9 +54,66 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // Process photos and videos to ensure they have the correct structure
+    const processedData = { ...data };
+
+    // Handle photos conversion
+    if (processedData.photos) {
+      if (typeof processedData.photos === 'string') {
+        try {
+          processedData.photos = JSON.parse(processedData.photos);
+        } catch (e) {
+          // If it's not valid JSON, treat it as a single URL string
+          processedData.photos = [{ original: processedData.photos, preview: processedData.photos }];
+        }
+      }
+
+      // Ensure each photo is in the correct format
+      if (Array.isArray(processedData.photos)) {
+        processedData.photos = processedData.photos.map(photo => {
+          if (typeof photo === 'string') {
+            return { original: photo, preview: photo };
+          } else if (typeof photo === 'object' && photo.original) {
+            return {
+              original: photo.original,
+              preview: photo.preview || photo.original
+            };
+          }
+          return photo;
+        });
+      }
+    }
+
+    // Handle videos conversion
+    if (processedData.videos) {
+      if (typeof processedData.videos === 'string') {
+        try {
+          processedData.videos = JSON.parse(processedData.videos);
+        } catch (e) {
+          // If it's not valid JSON, treat it as a single URL string
+          processedData.videos = [{ original: processedData.videos, preview: processedData.videos }];
+        }
+      }
+
+      // Ensure each video is in the correct format
+      if (Array.isArray(processedData.videos)) {
+        processedData.videos = processedData.videos.map(video => {
+          if (typeof video === 'string') {
+            return { original: video, preview: video };
+          } else if (typeof video === 'object' && video.original) {
+            return {
+              original: video.original,
+              preview: video.preview || video.original
+            };
+          }
+          return video;
+        });
+      }
+    }
+
     const updatedDetails = await DjArtistModel.findOneAndUpdate(
       { id },
-      { $set: data },
+      { $set: processedData },
       {
         new: true,
         upsert: true,

@@ -76,11 +76,111 @@ const createDecorator = async (req, res) => {
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || "";
     const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
-    const themePhotosUrl = req.body.themephotos || [];
-    const themeVideosUrl = req.body.themevideos || [];
+    // Check both camelCase and lowercase versions to ensure compatibility
+    let themePhotosUrl = req.body.themePhotos || req.body.themephotos || [];
+    let themeVideosUrl = req.body.themeVideos || req.body.themevideos || [];
+    let photosUrl = req.body.photos || [];
+    let videosUrl = req.body.videos || [];
 
-    const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];
+    // Process themePhotos - handle JSON strings from frontend
+    if (Array.isArray(themePhotosUrl)) {
+      themePhotosUrl = themePhotosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof themePhotosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(themePhotosUrl);
+        themePhotosUrl = [parsed];
+      } catch (e) {
+        themePhotosUrl = [themePhotosUrl];
+      }
+    }
+
+    // Process themeVideos - handle JSON strings from frontend
+    if (Array.isArray(themeVideosUrl)) {
+      themeVideosUrl = themeVideosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof themeVideosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(themeVideosUrl);
+        themeVideosUrl = [parsed];
+      } catch (e) {
+        themeVideosUrl = [themeVideosUrl];
+      }
+    }
+
+    // Process photos - handle JSON strings from frontend
+    if (Array.isArray(photosUrl)) {
+      photosUrl = photosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof photosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(photosUrl);
+        photosUrl = [parsed];
+      } catch (e) {
+        photosUrl = [photosUrl];
+      }
+    }
+
+    // Process videos - handle JSON strings from frontend
+    if (Array.isArray(videosUrl)) {
+      videosUrl = videosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof videosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(videosUrl);
+        videosUrl = [parsed];
+      } catch (e) {
+        videosUrl = [videosUrl];
+      }
+    }
     const eventTypes = {
       types: req.body.typesOfEvents || [],
       wedding: req.body.weddingEvents || [],
@@ -88,8 +188,6 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
-
-    console.log("Service Areas received:", req.body.serviceAreas);
 
     // Calculate profile completion
     const fieldsToCheck = [
@@ -171,16 +269,132 @@ const createDecorator = async (req, res) => {
       },
       themesElement: {
         themeElements: req.body.themeElements,
-        themePhotos: Array.isArray(themePhotosUrl)
-          ? themePhotosUrl
-          : [themePhotosUrl],
+        themePhotos: Array.isArray(themePhotosUrl) 
+          ? themePhotosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'string') {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl
+                };
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : themePhotosUrl ? [{ 
+              original: themePhotosUrl, 
+              preview: themePhotosUrl
+            }] : [],
         themeVideos: Array.isArray(themeVideosUrl)
-          ? themeVideosUrl
-          : [themeVideosUrl],
+          ? themeVideosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'string') {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl
+                };
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : themeVideosUrl ? [{ 
+              original: themeVideosUrl, 
+              preview: themeVideosUrl 
+            }] : [],
       },
       additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        photos: Array.isArray(photosUrl) 
+          ? photosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'string') {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl
+                };
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : photosUrl ? [{ 
+              original: photosUrl, 
+              preview: photosUrl
+            }] : [],
+        videos: Array.isArray(videosUrl) 
+          ? videosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'string') {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl
+                };
+              }
+              return { 
+                original: url, 
+                preview: url
+              };
+            })
+          : videosUrl ? [{ 
+              original: videosUrl, 
+              preview: videosUrl
+            }] : [],
         clientTestimonials: req.body.clientTestimonials,
         awards: req.body.awards,
         website: req.body.websiteurl,

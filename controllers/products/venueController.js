@@ -235,8 +235,36 @@ const createVenue = async (req, res) => {
 
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const insurancePolicyFileUrl = req.body.insurancePolicy || [];
-    const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];
+    
+    // Parse photos data properly - handle array of stringified JSON objects
+    let photosUrl = req.body.photos || [];
+    if (Array.isArray(photosUrl)) {
+      photosUrl = photosUrl.map(photo => {
+        if (typeof photo === 'string') {
+          try {
+            return JSON.parse(photo);
+          } catch (e) {
+            return { original: photo, preview: photo };
+          }
+        }
+        return photo;
+      });
+    }
+    
+    // Parse videos data properly - handle array of stringified JSON objects
+    let videosUrl = req.body.videos || [];
+    if (Array.isArray(videosUrl)) {
+      videosUrl = videosUrl.map(video => {
+        if (typeof video === 'string') {
+          try {
+            return JSON.parse(video);
+          } catch (e) {
+            return { original: video, preview: video };
+          }
+        }
+        return video;
+      });
+    }
 
     console.log("Hit3");
     // Create a new venue object
@@ -291,9 +319,9 @@ const createVenue = async (req, res) => {
       },
 
       additionalDetails: {
-        completed: false, // Will be updated based on completion
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        completed: false, 
+        photos: photosUrl,
+        videos: videosUrl,
         awards: req.body.awards,
         clientTestimonials: req.body.clientTestimonials,
         instagramURL: req.body.instagramURL,

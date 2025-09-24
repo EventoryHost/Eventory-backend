@@ -72,8 +72,15 @@ const catererSchema = new Schema({
       ll: { type: Number, required: true },
       ul: { type: Number, required: true },
     },
-    photos: { type: [String], required: true },
-    videos: { type: [String], required: true },
+    photos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
+
+    videos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
     tasting_sessions: { type: Boolean, required: true },
     business_licenses: { type: Boolean, required: false },
     food_safety_certificates: { type: [String], required: true },
