@@ -3,12 +3,16 @@ import { Cashfree, CFEnvironment } from "cashfree-pg";
 import generateInvoice from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
 import { Vendor } from "../models2/vendor.js";
-import { Quotation } from "../models/quotation.js";
+import Quotations from "../models2/quotations.js";
 import { sendEmailInvoice } from "../controllers2/sesController.js";
 import { generatePaymentId } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
 import { Invoices } from "../models2/invoices.js";
+import EMNotifications from "../models2/emNotifications.js";
+import customerNotification from "../models2/customerNotifications.js";
+import VendorNotifications from "../models2/vendorNotifications.js";
+import { Customer } from "../models2/customer.js";
 
 dotenv.config();
 
@@ -24,8 +28,6 @@ const cashfree =
     : new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
 
 const createOrder = async (req, res) => {
-  // console.log("✅ [createOrder] API Hit:", req.method, req.originalUrl);
-  // console.log("➡️ Request body:", req.body);
 
   var { amount, currency, customer_details } = req.body;
   amount = parseFloat(amount);
@@ -42,10 +44,7 @@ const createOrder = async (req, res) => {
       },
     };
 
-    // console.log("📤 [createOrder] Sending to Cashfree:", request);
-
     const response = await cashfree.PGCreateOrder(request);
-    // console.log("✅ [createOrder] Cashfree response:", response.data);
 
     return res.json(response.data);
   } catch (error) {
@@ -89,6 +88,7 @@ const verifyPayment = async (req, res) => {
 
     const vendor = await Vendor.findOne({ vendor_id: ven_id });
     const sqsMessage = {
+      type : "vendorOnboarded",
       customer: vendor,
       paymentDetails: formattedDetails,
     };
@@ -125,6 +125,7 @@ async function sendInvoice(req, res) {
 
     const vendor = await Vendor.findOne({ vendor_id: ven_id });
     const sqsMessage = {
+      type: "vendorOnboarded",
       customer: vendor,
       paymentDetails: formattedDetails,
     };
@@ -230,12 +231,28 @@ const getPaymentSession = async (req, res) => {
   }
 };
 
-const verifyCustomerPayment = async (req, res) => {
-  // console.log("✅ [Server] verifyCustomerPayment endpoint hit");
-  const { order_id, quotation_id } = req.body;
+function buildPayoutsHeaders() {
+  const payoutsClientId = process.env.CASHFREE_CLIENT_ID_PAYOUTS; // set in env
+  const payoutsSecret = process.env.CASHFREE_CLIENT_SECRET_PAYOUTS; // set in env
+  const rawKey = process.env.CASHFREE_PUBLIC_KEY_PAYOUTS.replace(/\n/g, "\n").trim();
+  const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = generateSignature(payoutsClientId, publicKey, timestamp);
 
-  // console.log("➡️ order_id:", order_id);
-  // console.log("➡️ quotation_id:", quotation_id);
+  return {
+    "Content-Type": "application/json",
+    "x-api-version": "2024-01-01",
+    "x-client-id": payoutsClientId,
+    "x-client-secret": payoutsSecret,
+    "x-cf-signature": signature, // header name per your 2FA setup
+    "x-cf-timestamp": String(timestamp), // send timestamp used for signature
+  };
+}
+
+const N = (v) => Number(v ?? 0)
+
+const verifyCustomerPayment = async (req, res) => {
+  const { order_id, quotation_id, order_amount, payment_type } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -260,25 +277,69 @@ const verifyCustomerPayment = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+// not being  used
+// const savePaymentInvoice = async (req, res) => {
+//   try {
+//     const invoice = new Invoices({
+//       ...req.body
+//     });
 
-const savePaymentInvoice = async (req, res) => {
+//     const savedInvoice = await invoice.save(); 
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Invoice saved successfully",
+//       data: savedInvoice
+//     });
+//   } catch (error) {
+//     console.error("Error saving invoice:", error);
+//     return res.status(400).json({
+//       success: false,
+//       message: error.message || "Failed to save invoice"
+//     });
+//   }
+// };
+
+const getPaymentByOrderId = async (req, res) => {
+  const { order_id } = req.body;
+
+  if (!order_id) {
+    return res.status(400).json({ message: "Missing required field: order_id" });
+  }
+
   try {
-    const invoice = new Invoices({
-      ...req.body
-    });
+    const clientId = process.env.CASHFREE_CLIENT_ID_PG;
+    const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
+    const apiVersion = "2025-01-01";
 
-    const savedInvoice = await invoice.save(); 
+    const headers = {
+      "x-client-id": clientId,
+      "x-client-secret": clientSecret,
+      "x-api-version": apiVersion,
+      "Content-Type": "application/json",
+    };
 
-    return res.status(201).json({
-      success: true,
-      message: "Invoice saved successfully",
-      data: savedInvoice
+    const url = process.env.IS_DEV === "true"
+      ? `https://sandbox.cashfree.com/pg/orders/${order_id}/payments`
+      : `https://api.cashfree.com/pg/orders/${order_id}/payments`;
+
+    const response = await axios.get(url, { headers });
+
+    const paymentData = response.data;
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Payment details fetched successfully",
+      order_id,
+      payments: paymentData,
     });
   } catch (error) {
-    console.error("Error saving invoice:", error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || "Failed to save invoice"
+    console.error("❌ getPaymentByOrderId error:", error?.response?.data || error.message);
+
+    return res.status(500).json({
+      status: "FAILED",
+      message: "Failed to fetch payment details",
+      error: error?.response?.data || error.message,
     });
   }
 };
@@ -290,5 +351,6 @@ export default {
   handleWebhook,
   getPaymentSession,
   verifyCustomerPayment,
-  savePaymentInvoice
+  // savePaymentInvoice,
+  getPaymentByOrderId
 };
