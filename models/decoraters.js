@@ -58,10 +58,7 @@ const decoratorSchema = Schema({
       original: { type: String },
       preview: { type: String }
     }],
-    themeVideos: [{ 
-      original: { type: String },
-      preview: { type: String }
-    }],
+    themeVideos: { type: [String], required: true },
   },
   additionalDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
@@ -69,10 +66,7 @@ const decoratorSchema = Schema({
       original: { type: String },
       preview: { type: String }
     }],
-    videos: [{ 
-      original: { type: String },
-      preview: { type: String }
-    }],
+    videos: { type: [String], required: true },
     clientTestimonials: { type: String },
     awards: { type: String },
     website: { type: String },

@@ -132,12 +132,7 @@ const photographerSchema = Schema({
         preview: { type: String },
       },
     ],
-    videos: [
-      {
-        original: { type: String },
-        preview: { type: String },
-      },
-    ],
+    videos: { type: [String], required: true },
     clientTestimonials: { type: String },
     awards: { type: String },
     website: { type: String },

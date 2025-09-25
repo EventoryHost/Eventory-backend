@@ -59,11 +59,7 @@ const venueSchema = new Schema({
     original: { type: String },
     preview: { type: String }
   }],
-
-  videos: [{ 
-    original: { type: String },
-    preview: { type: String }
-  }],
+  videos: { type: [String], required: true },
   instagramURL: { type: String },
   websiteURL: { type: String },
   awards: { type: String },

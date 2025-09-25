@@ -76,11 +76,7 @@ const catererSchema = new Schema({
       original: { type: String },
       preview: { type: String }
     }],
-
-    videos: [{ 
-      original: { type: String },
-      preview: { type: String }
-    }],
+    videos: { type: [String], required: true },
     tasting_sessions: { type: Boolean, required: true },
     business_licenses: { type: Boolean, required: false },
     food_safety_certificates: { type: [String], required: true },

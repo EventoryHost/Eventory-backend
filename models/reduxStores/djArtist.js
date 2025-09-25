@@ -23,12 +23,7 @@ const djArtistSchema = Schema({
         preview: { type: String },
       },
     ],
-    videos: [
-      {
-        original: { type: String },
-        preview: { type: String },
-      },
-    ],
+    videos: { type: [String]},
     awards: { type: String },
     instagramURL: { type: String },
     websiteURL: { type: String },

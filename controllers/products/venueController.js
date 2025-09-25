@@ -254,16 +254,14 @@ const createVenue = async (req, res) => {
     // Parse videos data properly - handle array of stringified JSON objects
     let videosUrl = req.body.videos || [];
     if (Array.isArray(videosUrl)) {
-      videosUrl = videosUrl.map(video => {
-        if (typeof video === 'string') {
-          try {
-            return JSON.parse(video);
-          } catch (e) {
-            return { original: video, preview: video };
-          }
-        }
-        return video;
-      });
+      videosUrl = videosUrl.filter(video => typeof video === 'string' && video.length > 0);
+    } else if (typeof videosUrl === 'string') {
+      try {
+        const arr = JSON.parse(videosUrl);
+        videosUrl = Array.isArray(arr) ? arr.filter(video => typeof video === 'string' && video.length > 0) : [];
+      } catch (e) {
+        videosUrl = [videosUrl];
+      }
     }
 
     console.log("Hit3");

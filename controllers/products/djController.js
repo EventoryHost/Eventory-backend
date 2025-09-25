@@ -250,42 +250,8 @@ const createDjArtist = async (req, res) => {
               return null;
             }).filter(item => item !== null) 
           : [],
-        videos: Array.isArray(videos) 
-          ? videos.map(url => {
-              if (typeof url === 'object' && url.original && url.preview) {
-                return url;
-              } else if (typeof url === 'object' && url.original) {
-                return {
-                  original: url.original,
-                  preview: url.preview || url.original
-                };
-              } else if (typeof url === 'string' && url.length > 0) {
-                // Generate preview URL from original
-                let previewUrl = url;
-                
-                // Generate preview URL for images (change to .webp)
-                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
-                }
-                // Generate preview URL for videos (change to .mp4)
-                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
-                }
-                // Fallback for older format
-                else if (url.includes('/original-')) {
-                  previewUrl = url.replace('/original-', '/preview-');
-                  if (!previewUrl.endsWith('.mp4')) {
-                    previewUrl = previewUrl.replace(/\.[^.]+$/, '.mp4');
-                  }
-                }
-                
-                return { 
-                  original: url, 
-                  preview: previewUrl 
-                };
-              }
-              return null;
-            }).filter(item => item !== null)
+        videos: Array.isArray(videos)
+          ? videos.filter(url => typeof url === 'string' && url.length > 0)
           : [],
         awards: req.body.awards,
         instagramUrl: req.body.instagramUrl,

@@ -27,12 +27,7 @@ const makeupArtistSchema = Schema({
       preview: { type: String },
     },
   ],
-  videos: [
-    {
-      original: { type: String },
-      preview: { type: String },
-    },
-  ],
+  videos: { type: [String], required: true },
   socialMedia: { type: String },
   websiteUrl: { type: String },
   priceStarts: { type: String },

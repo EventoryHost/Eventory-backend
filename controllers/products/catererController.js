@@ -110,29 +110,23 @@ const createCaterer = async (req, res) => {
       }
     }
 
+    // Normalize videos to an array of plain string URLs
     if (Array.isArray(videos)) {
-      videos = videos.map(item => {
-        if (typeof item === 'string') {
-          try {
-            const parsed = JSON.parse(item);
-            if (parsed.original || parsed.preview) {
-              return parsed;
-            }
-            return item; 
-          } catch (e) {
-            return item;
-          }
-        }
-        return item; 
-      });
+      videos = videos.map(item => (typeof item === 'string' ? item : String(item))).filter(Boolean);
     } else if (typeof videos === 'string') {
-      try {
-        const parsed = JSON.parse(videos);
-        videos = [parsed];
-      } catch (e) {
+      if (videos.startsWith('[')) {
+        try {
+          const arr = JSON.parse(videos);
+          videos = Array.isArray(arr) ? arr.map(item => (typeof item === 'string' ? item : String(item))).filter(Boolean) : [];
+        } catch (e) {
+          videos = videos.includes(',') ? videos.split(',').map(url => url.trim()).filter(Boolean) : [videos];
+        }
+      } else if (videos.includes(',')) {
+        videos = videos.split(',').map(url => url.trim()).filter(Boolean);
+      } else {
         videos = [videos];
       }
-    }    
+    }
     const fieldsToCheck = [
       req.body.name,
       req.body.managerName,
@@ -271,43 +265,7 @@ const createCaterer = async (req, res) => {
           }
           return { original: url, preview: url };
         }) : [],
-        videos: Array.isArray(videos) ? videos.map(url => {
-          // If it's already an object with original and preview, use it directly
-          if (typeof url === 'object' && url.original && url.preview) {
-            return {
-              original: url.original,
-              preview: url.preview
-            };
-          }
-          // If it's just an object with original, generate preview
-          if (typeof url === 'object' && url.original) {
-            let previewUrl = url.original;
-            if (url.original.includes('/original-')) {
-              previewUrl = url.original.replace('/original-', '/preview-');
-              // For videos, ensure .mp4 extension for preview
-              if (!previewUrl.endsWith('.mp4')) {
-                previewUrl = previewUrl.replace(/\.[^.]+$/, '.mp4');
-              }
-            }
-            return {
-              original: url.original,
-              preview: previewUrl
-            };
-          }
-          // If it's a string, generate both original and preview
-          if (typeof url === 'string') {
-            let previewUrl = url;
-            if (url.includes('/original-')) {
-              previewUrl = url.replace('/original-', '/preview-');
-              // For videos, ensure .mp4 extension for preview
-              if (!previewUrl.endsWith('.mp4')) {
-                previewUrl = previewUrl.replace(/\.[^.]+$/, '.mp4');
-              }
-            }
-            return { original: url, preview: previewUrl };
-          }
-          return { original: url, preview: url };
-        }) : [],
+        videos: Array.isArray(videos) ? videos.filter(url => typeof url === 'string' && url.length > 0) : [],
         tasting_sessions: req.body.tasting_sessions === "true",
         business_licenses: req.body.business_licenses === "true",
         food_safety_certificates: Array.isArray(foodSafetyCertificates)

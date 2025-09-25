@@ -29,19 +29,13 @@ const DecoratorSchema = new mongoose.Schema(
       original: { type: String },
       preview: { type: String }
     }],
-    themeVideos: [{ 
-      original: { type: String },
-      preview: { type: String }
-    }],
+    themeVideos: { type: [String], required: true },
     photos: [{ 
       original: { type: String },
       preview: { type: String }
     }],
 
-    videos: [{ 
-      original: { type: String },
-      preview: { type: String }
-    }],
+    videos: { type: [String], required: true },
     clientTestimonials: { type: String },
     Recongnition_awards: { type: String },
     intstagramurl: { type: String },

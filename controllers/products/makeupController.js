@@ -244,34 +244,9 @@ const createMakeupArtist = async (req, res) => {
               ? [{ original: photos, preview: photos }] 
               : []),
         videos: Array.isArray(videos) 
-          ? videos.map(url => {
-              if (typeof url === 'object' && url.original && url.preview) {
-                return url;
-              } else if (typeof url === 'string') {
-                // Generate preview URL from original
-                let previewUrl = url;
-                
-                // Generate preview URL for images (change to .webp)
-                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
-                }
-                // Generate preview URL for videos (change to .mp4)
-                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
-                }
-                
-                return { 
-                  original: url, 
-                  preview: previewUrl
-                };
-              }
-              return { 
-                original: url, 
-                preview: url
-              };
-            }) 
+          ? videos.filter(url => typeof url === 'string' && url.length > 0)
           : (videos && typeof videos === 'string' 
-              ? [{ original: videos, preview: videos }] 
+              ? [videos]
               : []),
         socialMedia: req.body.socialMedia || "",
         websiteUrl: req.body.websiteUrl || "",

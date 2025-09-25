@@ -88,26 +88,14 @@ router.post("/", async (req, res) => {
     if (processedData.videos) {
       if (typeof processedData.videos === 'string') {
         try {
-          processedData.videos = JSON.parse(processedData.videos);
+          const arr = JSON.parse(processedData.videos);
+          processedData.videos = Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.length > 0) : [];
         } catch (e) {
-          // If it's not valid JSON, treat it as a single URL string
-          processedData.videos = [{ original: processedData.videos, preview: processedData.videos }];
+          // If not valid JSON, treat as single URL string
+          processedData.videos = [processedData.videos];
         }
-      }
-
-      // Ensure each video is in the correct format
-      if (Array.isArray(processedData.videos)) {
-        processedData.videos = processedData.videos.map(video => {
-          if (typeof video === 'string') {
-            return { original: video, preview: video };
-          } else if (typeof video === 'object' && video.original) {
-            return {
-              original: video.original,
-              preview: video.preview || video.original
-            };
-          }
-          return video;
-        });
+      } else if (Array.isArray(processedData.videos)) {
+        processedData.videos = processedData.videos.filter(v => typeof v === 'string' && v.length > 0);
       }
     }
 

@@ -52,11 +52,7 @@ const CateringSchema = new mongoose.Schema(
       original: { type: String },
       preview: { type: String }
     }],
-
-    videos: [{ 
-      original: { type: String },
-      preview: { type: String }
-    }],
+    videos: { type: [String], required: true },
     tastingSessions: { type: Boolean }, // Tasting sessions offered
     businessLicenses: { type: Boolean }, // Business licenses held
     foodSafety: { type: Boolean }, // Food safety certificates held

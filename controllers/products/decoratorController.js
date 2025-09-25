@@ -109,24 +109,11 @@ const createDecorator = async (req, res) => {
 
     // Process themeVideos - handle JSON strings from frontend
     if (Array.isArray(themeVideosUrl)) {
-      themeVideosUrl = themeVideosUrl.map(item => {
-        if (typeof item === 'string') {
-          try {
-            const parsed = JSON.parse(item);
-            if (parsed.original || parsed.preview) {
-              return parsed;
-            }
-            return item;
-          } catch (e) {
-            return item;
-          }
-        }
-        return item;
-      });
+      themeVideosUrl = themeVideosUrl.filter(item => typeof item === 'string' && item.length > 0);
     } else if (typeof themeVideosUrl === 'string') {
       try {
-        const parsed = JSON.parse(themeVideosUrl);
-        themeVideosUrl = [parsed];
+        const arr = JSON.parse(themeVideosUrl);
+        themeVideosUrl = Array.isArray(arr) ? arr.filter(item => typeof item === 'string' && item.length > 0) : [];
       } catch (e) {
         themeVideosUrl = [themeVideosUrl];
       }
@@ -159,24 +146,11 @@ const createDecorator = async (req, res) => {
 
     // Process videos - handle JSON strings from frontend
     if (Array.isArray(videosUrl)) {
-      videosUrl = videosUrl.map(item => {
-        if (typeof item === 'string') {
-          try {
-            const parsed = JSON.parse(item);
-            if (parsed.original || parsed.preview) {
-              return parsed;
-            }
-            return item;
-          } catch (e) {
-            return item;
-          }
-        }
-        return item;
-      });
+      videosUrl = videosUrl.filter(item => typeof item === 'string' && item.length > 0);
     } else if (typeof videosUrl === 'string') {
       try {
-        const parsed = JSON.parse(videosUrl);
-        videosUrl = [parsed];
+        const arr = JSON.parse(videosUrl);
+        videosUrl = Array.isArray(arr) ? arr.filter(item => typeof item === 'string' && item.length > 0) : [];
       } catch (e) {
         videosUrl = [videosUrl];
       }
@@ -269,132 +243,45 @@ const createDecorator = async (req, res) => {
       },
       themesElement: {
         themeElements: req.body.themeElements,
-        themePhotos: Array.isArray(themePhotosUrl) 
+        themePhotos: Array.isArray(themePhotosUrl)
           ? themePhotosUrl.map(url => {
               if (typeof url === 'object' && url.original && url.preview) {
                 return url;
-              } else if (typeof url === 'string') {
-                // Generate preview URL from original
+              }
+              if (typeof url === 'string') {
+                // keep photo objects for schema that expects objects
                 let previewUrl = url;
-                
-                // Generate preview URL for images (change to .webp)
                 if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
                   previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
                 }
-                // Generate preview URL for videos (change to .mp4)
-                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
-                }
-                
-                return { 
-                  original: url, 
-                  preview: previewUrl
-                };
+                return { original: url, preview: previewUrl };
               }
-              return { 
-                original: url, 
-                preview: url
-              };
+              return url;
             })
-          : themePhotosUrl ? [{ 
-              original: themePhotosUrl, 
-              preview: themePhotosUrl
-            }] : [],
+          : themePhotosUrl ? [{ original: themePhotosUrl, preview: themePhotosUrl }] : [],
+        // themeVideos must be an array of plain string URLs per schema. Normalize inputs to string array.
         themeVideos: Array.isArray(themeVideosUrl)
-          ? themeVideosUrl.map(url => {
-              if (typeof url === 'object' && url.original && url.preview) {
-                return url;
-              } else if (typeof url === 'string') {
-                // Generate preview URL from original
-                let previewUrl = url;
-                
-                // Generate preview URL for images (change to .webp)
-                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
-                }
-                // Generate preview URL for videos (change to .mp4)
-                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
-                }
-                
-                return { 
-                  original: url, 
-                  preview: previewUrl
-                };
-              }
-              return { 
-                original: url, 
-                preview: url
-              };
-            })
-          : themeVideosUrl ? [{ 
-              original: themeVideosUrl, 
-              preview: themeVideosUrl 
-            }] : [],
+          ? themeVideosUrl.map(v => (typeof v === 'string' ? v : (v && v.original ? v.original : ''))).filter(Boolean)
+          : (typeof themeVideosUrl === 'string' ? (themeVideosUrl ? [themeVideosUrl] : []) : []),
       },
       additionalDetails: {
-        photos: Array.isArray(photosUrl) 
+        photos: Array.isArray(photosUrl)
           ? photosUrl.map(url => {
               if (typeof url === 'object' && url.original && url.preview) {
                 return url;
-              } else if (typeof url === 'string') {
-                // Generate preview URL from original
+              }
+              if (typeof url === 'string') {
                 let previewUrl = url;
-                
-                // Generate preview URL for images (change to .webp)
                 if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
                   previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
                 }
-                // Generate preview URL for videos (change to .mp4)
-                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
-                }
-                
-                return { 
-                  original: url, 
-                  preview: previewUrl
-                };
+                return { original: url, preview: previewUrl };
               }
-              return { 
-                original: url, 
-                preview: url
-              };
+              return url;
             })
-          : photosUrl ? [{ 
-              original: photosUrl, 
-              preview: photosUrl
-            }] : [],
-        videos: Array.isArray(videosUrl) 
-          ? videosUrl.map(url => {
-              if (typeof url === 'object' && url.original && url.preview) {
-                return url;
-              } else if (typeof url === 'string') {
-                // Generate preview URL from original
-                let previewUrl = url;
-                
-                // Generate preview URL for images (change to .webp)
-                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
-                }
-                // Generate preview URL for videos (change to .mp4)
-                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
-                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
-                }
-                
-                return { 
-                  original: url, 
-                  preview: previewUrl
-                };
-              }
-              return { 
-                original: url, 
-                preview: url
-              };
-            })
-          : videosUrl ? [{ 
-              original: videosUrl, 
-              preview: videosUrl
-            }] : [],
+          : photosUrl ? [{ original: photosUrl, preview: photosUrl }] : [],
+        // videos must be stored as plain strings per schema. Normalize to string array.
+        videos: Array.isArray(videosUrl) ? videosUrl.map(v => (typeof v === 'string' ? v : (v && v.original ? v.original : ''))).filter(Boolean) : (typeof videosUrl === 'string' ? (videosUrl ? [videosUrl] : []) : []),
         clientTestimonials: req.body.clientTestimonials,
         awards: req.body.awards,
         website: req.body.websiteurl,

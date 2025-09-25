@@ -35,12 +35,7 @@ const photographerSchema = Schema(
         preview: { type: String },
       },
     ],
-    videos: [
-      {
-        original: { type: String },
-        preview: { type: String },
-      },
-    ],
+    videos: { type: [String], required: true },
     fullName: { type: String },
     description: { type: String },
     eventType: { type: String, default: "Photographer" },

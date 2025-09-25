@@ -33,12 +33,7 @@ const djArtistSchema = Schema({
                 preview: { type: String },
             },
         ],
-        videos: [
-            {
-                original: { type: String },
-                preview: { type: String },
-            },
-        ],
+        videos: { type: [String], required: true },
         awards : { type: String, },
         instagramUrl : { type: String, },
         websiteUrl : { type: String, },
@@ -46,7 +41,7 @@ const djArtistSchema = Schema({
         priceStartingFrom: { type: Number, required: true },
     },
     policies: {
-        completed: { type: Boolean, default: false }, // Flag for section completion
+        completed: { type: Boolean, dezfault: false }, // Flag for section completion
         termsAndConditions: { type: [String] },
         cancellationPolicy: { type: [String] },
         agreementUrl: { type: String },

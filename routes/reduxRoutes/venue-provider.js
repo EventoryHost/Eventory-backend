@@ -78,17 +78,14 @@ router.post("/", async (req, res) => {
       }
       
       if (venueData.videos && typeof venueData.videos === 'string') {
-        // Convert string URL to proper object format
-        venueData.videos = [{
-          original: venueData.videos,
-          preview: venueData.videos.replace('original', 'preview').replace('.mp4', '.webp')
-        }];
-      } else if (Array.isArray(venueData.videos) && venueData.videos.length > 0 && typeof venueData.videos[0] === 'string') {
-        // Convert array of strings to array of objects
-        venueData.videos = venueData.videos.map(video => ({
-          original: video,
-          preview: video.replace('original', 'preview').replace('.mp4', '.webp')
-        }));
+        try {
+          const arr = JSON.parse(venueData.videos);
+          venueData.videos = Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.length > 0) : [];
+        } catch (e) {
+          venueData.videos = [venueData.videos];
+        }
+      } else if (Array.isArray(venueData.videos)) {
+        venueData.videos = venueData.videos.filter(v => typeof v === 'string' && v.length > 0);
       }
       
       const updatedDetails = await VenueModel.findOneAndUpdate(

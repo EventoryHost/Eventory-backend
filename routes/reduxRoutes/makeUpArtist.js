@@ -78,14 +78,14 @@ router.post("/", async (req, res) => {
     // Handle videos
     if (processedData.videos) {
       if (typeof processedData.videos === 'string') {
-        processedData.videos = [{ original: processedData.videos, preview: processedData.videos }];
+        try {
+          const arr = JSON.parse(processedData.videos);
+          processedData.videos = Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.length > 0) : [];
+        } catch (e) {
+          processedData.videos = [processedData.videos];
+        }
       } else if (Array.isArray(processedData.videos)) {
-        processedData.videos = processedData.videos.map(video => {
-          if (typeof video === 'string') {
-            return { original: video, preview: video };
-          }
-          return video;
-        });
+        processedData.videos = processedData.videos.filter(v => typeof v === 'string' && v.length > 0);
       }
     }
     
