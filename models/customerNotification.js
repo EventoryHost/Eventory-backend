@@ -29,6 +29,18 @@ const customerNotificationSchema = new mongoose.Schema({
   quotationId: {
     type: String,
   },
+  type: {
+    type: String,
+    enum: [
+      'quotation',  
+      'order_request',
+      'order_approved',
+      "order_pending",
+      'payment_done',
+      'misc',
+      "booking_confirmed",
+    ],
+  },
   createdAt: {
     type: Date,
     default: Date.now,
