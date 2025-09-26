@@ -13,26 +13,33 @@ import { Customer } from "../models/customer.js";
 import adminNotification from "../models/adminNotification.js";
 import customerNotification from "../models/customerNotification.js";
 import vendorNotification from "../models/vendorNotification.js";
+import DjArtist from "../models/djArtist.js";
+
+const prefixToModelMap = {
+  cat: { Model: Caterer, vendorType: "caterer" },
+  dec: { Model: Decorator, vendorType: "decorator" },
+  mak: { Model: MakeupArtist, vendorType: "makeup" },
+  pav: { Model: Photographer, vendorType: "photographer" },
+  veu: { Model: Venue, vendorType: "venue" },
+  dj: { Model: DjArtist, vendorType: "dj" },
+  // future vendors can be added here (e.g., mc: { Model: MCAnchor, vendorType: "mc" })
+};
 
 function modelFromServiceId(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
-  const prefix = serviceId.slice(0, 3).toLowerCase();
 
-  switch (prefix) {
-    case "cat":
-      return { Model: Caterer, vendorType: "caterer" };
-    case "dec":
-      return { Model: Decorator, vendorType: "decorator" };
-    case "mak":
-      return { Model: MakeupArtist, vendorType: "makeup" };
-    case "pav":
-      return { Model: Photographer, vendorType: "photographer" };
-    case "veu":
-      return { Model: Venue, vendorType: "venue" };
-    default:
-      return null;
+  const lowerId = serviceId.toLowerCase();
+
+  // find the first matching prefix dynamically
+  for (const prefix of Object.keys(prefixToModelMap)) {
+    if (lowerId.startsWith(prefix)) {
+      return prefixToModelMap[prefix];
+    }
   }
+
+  return null; // no matching vendor
 }
+
 
 function getStatusColor(paymentDetails) {
   if (!paymentDetails) return "yellow";
@@ -399,6 +406,9 @@ export const addOfflineEvent = async (req, res) => {
       case "makeup-artist":
         vendorModel = MakeupArtist;
         break;
+      case "dj-vendor":
+        vendorModel = DjArtist;
+        break;
       default:
         return res.status(400).json({ message: "Invalid vendor type" });
     }
@@ -468,6 +478,9 @@ export const editOfflineEvent = async (req, res) => {
       case "makeup-artist":
         vendorModel = MakeupArtist;
         break;
+      case "dj-vendor":
+        vendorModel = DjArtist;
+        break;
       default:
         return res.status(400).json({ message: "Invalid vendor type" });
     }
@@ -535,6 +548,12 @@ export const deleteOfflineEvent = async (req, res) => {
       case "photographer":
         vendorModel = Photographer;
         break;
+      case "makeup-artist":
+        vendorModel = MakeupArtist;
+        break;
+        case "dj-vendor":
+        vendorModel = DjArtist;
+        break;
       default:
         return res.status(400).json({ message: "Invalid vendor type" });
     }
@@ -597,6 +616,9 @@ export const getVendorBookings = async (req, res) => {
         break;
       case "makeup-artist":
         vendorModel = MakeupArtist;
+        break;
+      case "dj-vendor":
+        vendorModel = DjArtist;
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type." });
@@ -700,6 +722,9 @@ export const getAllVendorServiceSchedules = async (req, res) => {
         case "makeup-artist":
         case "makeupartist":
           vendorModel = MakeupArtist;
+          break;
+        case "dj-vendor":
+          vendorModel = DjArtist;
           break;
         default:
           continue;
