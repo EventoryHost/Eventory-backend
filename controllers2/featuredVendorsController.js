@@ -50,7 +50,7 @@ async function getFeaturedVendors(req, res) {
       name: decorator.business_details.business_registration_name  || "Krishna Vendors",
       rating: decorator.rating || "4.5",
       price: decorator.additional_details.prices_starts_from  || "4000",
-      category: caterer.service_type || ["Decorator"],
+      category: decorator.service_type || ["Decorator"],
       img:
         decorator.additional_details.asset_images[0] ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
