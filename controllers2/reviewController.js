@@ -15,25 +15,25 @@ const vendorModels = {
 };
 
 // Function to update vendor's average rating
-async function updateVendorRating(service_id, service_type) {
-  const VendorModel = vendorModels[service_type];
-  if (!VendorModel) return;
+// async function updateVendorRating(service_id, service_type) {
+//   const VendorModel = vendorModels[service_type];
+//   if (!VendorModel) return;
 
-  console.log(VendorModel);
+//   console.log(VendorModel);
 
-  const result = await Reviews.aggregate([
-    { $match: { service_id } },
-    { $group: { _id: "$service_id", avgRating: { $avg: "$rating" } } },
-  ]);
+//   const result = await Reviews.aggregate([
+//     { $match: { service_id } },
+//     { $group: { _id: "$service_id", avgRating: { $avg: "$rating" } } },
+//   ]);
 
-  console.log(result);
+//   console.log(result);
 
-  const avgRating =
-    result.length > 0 ? parseFloat(result[0].avgRating.toFixed(1)) : 0;
+//   const avgRating =
+//     result.length > 0 ? parseFloat(result[0].avgRating.toFixed(1)) : 0;
 
    
-  await VendorModel.findOneAndUpdate({ service_id }, { rating: avgRating });
-}
+//   await VendorModel.findOneAndUpdate({ service_id }, { rating: avgRating });
+// }
 
 // Create a new review
 export const createReview = async (req, res) => {
@@ -64,7 +64,7 @@ export const createReview = async (req, res) => {
       media_video
     });
 
-    await updateVendorRating(service_id, service_type);
+    // await updateVendorRating(service_id, service_type);
 
     return res
       .status(201)
@@ -79,11 +79,16 @@ export const createReview = async (req, res) => {
 // Get all reviews for a specific vendor
 export const getReviewsByVendor = async (req, res) => {
   try {
-    const service_id = req.query.service_id;
+    const { service_id, vendor_id } = req.query;
 
     console.log("Service ID:", service_id);
+    console.log("Vendor ID:", vendor_id);
 
-    const reviews = await Reviews.find({ service_id });
+    if (!service_id || !vendor_id) {
+      return res.status(400).json({ error: "Missing service_id or vendor_id" });
+    }
+
+    const reviews = await Reviews.find({ service_id, vendor_id });
     return res.status(200).json({ reviews });
   } catch (error) {
     return res
@@ -95,8 +100,8 @@ export const getReviewsByVendor = async (req, res) => {
 // Update a review
 export const updateReview = async (req, res) => {
   try {
-    const { feedback_id } = req.params;
-    const updatedReview = await Reviews.findByIdAndUpdate(feedback_id, req.body, {
+    const { id } = req.params;
+    const updatedReview = await Reviews.findByIdAndUpdate(id, req.body, {
       new: true,
     });
 
@@ -104,7 +109,7 @@ export const updateReview = async (req, res) => {
       return res.status(404).json({ error: "Review not found" });
     }
 
-    await updateVendorRating(updatedReview.service_id, updatedReview.service_type);
+    // await updateVendorRating(updatedReview.service_id, updatedReview.service_type);
     return res
       .status(200)
       .json({ message: "Review updated successfully", review: updatedReview });
@@ -118,14 +123,14 @@ export const updateReview = async (req, res) => {
 // Delete a review
 export const deleteReview = async (req, res) => {
   try {
-    const { feedback_id } = req.params;
-    const deletedReview = await Reviews.findByIdAndDelete(feedback_id);
+    const { id } = req.params;
+    const deletedReview = await Reviews.findByIdAndDelete(id);
 
     if (!deletedReview) {
       return res.status(404).json({ error: "Review not found" });
     }
 
-    await updateVendorRating(deletedReview.service_id, deletedReview.service_type);
+    // await updateVendorRating(deletedReview.service_id, deletedReview.service_type);
     return res.status(200).json({ message: "Review deleted successfully" });
   } catch (error) {
     return res
