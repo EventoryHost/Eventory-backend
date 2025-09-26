@@ -298,6 +298,9 @@ export const getServiceByServiceId = async (req, res) => {
       case "Makeup-Artist":
         serviceData = await MakeupArtist.findOne({ id: serviceId });
         break;
+      case "DJ-Vendor":
+        serviceData = await DjArtist.findOne({ id: serviceId });
+        break;
       default:
         return res.status(400).json({ error: "Invalid service type" });
     }

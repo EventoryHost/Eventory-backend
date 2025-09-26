@@ -54,7 +54,7 @@ const createDjArtist = async (req, res) => {
     console.log("Received Data:", req.body);
 
     const alreadyExists = await DjArtist.findOne({
-      name: req.body.name,
+      "basicDetails.name": req.body.serviceName, // Check service name field
       venId: req.body.venId,
     });
 
@@ -66,8 +66,8 @@ const createDjArtist = async (req, res) => {
     const videos = req.body.videos || [];
 
     const fieldsToCheck = [
-      req.body.serviceName,
-      req.body.name,
+      req.body.serviceName, // Service name (will be stored in 'name' field)
+      req.body.name, // Manager name (will be stored in 'managerName' field)
       req.body.contact,
       req.body.description,
       req.body.address,
@@ -105,8 +105,8 @@ const createDjArtist = async (req, res) => {
     const newDjArtist = new DjArtist({
       basicDetails: {
         profileCompletion,
-        serviceName: req.body.serviceName,
-        name: req.body.name,
+        name: req.body.serviceName, // Service name goes to 'name' field
+        managerName: req.body.name, // Manager name goes to 'managerName' field
         contact: req.body.contact,
         description: req.body.description,
         address: req.body.address,
@@ -114,6 +114,8 @@ const createDjArtist = async (req, res) => {
         location: {
           lat: parseFloat(req.body.latitude),
           lng: parseFloat(req.body.longitude),
+          pincode: req.body.pincode ? parseInt(req.body.pincode) : undefined,
+          googleMapsAddress: req.body.address,
         },
       },
       serviceDetails: {
