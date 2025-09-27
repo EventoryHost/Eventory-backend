@@ -12,26 +12,20 @@ import {
   // updateCoupon
 } from "../controllers2/couponsController.js";
 
-// ✅ Create a new coupon (Admin only)
-// router.post("/", createCoupon);
-
-// ✅ Update an existing coupon (Admin only)
-// router.put("/:couponCode", updateCoupon);
-
 // ✅ Get available coupons for a vendor
-router.get("/available/:vendorId", getAvailableCoupons);
+router.get("/available/:vendor_id", getAvailableCoupons);
 
 // ✅ Apply coupon during payment
 router.post("/apply", applyCoupon);
 
 // ✅ Get vendor's coupon usage history
-router.get("/history/:vendorId", getCouponHistory);
+router.get("/history/:vendor_id", getCouponHistory);
 
 // ✅ Validate coupon before applying
 router.post("/validate", validateCoupon);
 
 // ✅ Deactivate a coupon
-router.patch("/deactivate/:couponCode", deactivateCoupon);
+router.patch("/deactivate/:coupon_code", deactivateCoupon);
 
 // ✅ Get all coupons (Admin)
 router.get("/admin/all", getAllCoupons);

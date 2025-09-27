@@ -289,7 +289,7 @@ const createCaterer = async (req, res) => {
 
   
     vendor.services.push(
-      savedCaterer.vendor_id,
+      savedCaterer.service_id,
     );
     await vendor.save();
     

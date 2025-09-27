@@ -129,6 +129,6 @@ customerSchema.index({ customer_created_at: -1 });
 customerSchema.index({ customer_updated_at: -1 });
 customerSchema.index({ customer_id: 1 });
 
-const Customer = mongoose.model('Customer', customerSchema);
+const Customer = mongoose.model('Customers', customerSchema);
 
 export { Customer, customerSchema };

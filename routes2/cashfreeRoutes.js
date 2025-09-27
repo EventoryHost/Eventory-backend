@@ -17,8 +17,8 @@ cashfreeRoutes.post("/webhook", cashfreeController.handleWebhook);
 
 cashfreeRoutes.post("/verify-customer-payment", cashfreeController.verifyCustomerPayment);
 
-// cashfreeRoutes.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
+cashfreeRoutes.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
 
-cashfreeRoutes.post("/payment-invoice", cashfreeController.savePaymentInvoice);
+// cashfreeRoutes.post("/payment-invoice", cashfreeController.savePaymentInvoice);
 
 export default cashfreeRoutes;

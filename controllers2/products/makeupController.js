@@ -40,7 +40,6 @@ const checkCompletion = (section) => {
 
 const updateSectionCompletion = async (id) => {
   try {
-    console.log("vendorrrrrrrrrrrrrrrrrrrrr", id);
     const makeupArtist = await MakeupArtist.findOne({ vendor_id: id });
     if (!makeupArtist) throw new Error("Makeup artist not found");
 
@@ -71,34 +70,24 @@ const updateSectionCompletion = async (id) => {
 
 const createMakeupArtist = async (req, res) => {
   try {
-    console.log("Starting createMakeupArtist function...");
-    console.log("Request Body:", req.body);
-
     // Check if artist already exists
     const alreadyExists = await MakeupArtist.findOne({
       vendor_id: req.body.vendor_id,
     });
 
     if (alreadyExists) {
-      console.log("Error: Makeup artist already exists.");
       return res.status(400).json({ message: "Makeup artist already exists" });
     }
 
     const service_id = generateUniqueId("MKA");
-    console.log("Generated service_id:", service_id);
 
     const asset_images = req.body.asset_images || [];
     const asset_videos = req.body.asset_videos || [];
 
     // Find temporary makeup data
-    console.log(
-      "Searching for tempMakeupData with vendor_id:",
-      req.body.vendor_id
-    );
     const tempMakeupData = await MakeupArtistModel.findOne({
       vendor_id: req.body.vendor_id,
     });
-    console.log("Found tempMakeupData:", tempMakeupData);
 
     const agreementUrl = tempMakeupData?.agreement_url || " ";
     const agreementSignedAt = tempMakeupData?.agreement_signed_at || new Date();
@@ -159,13 +148,8 @@ const createMakeupArtist = async (req, res) => {
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-    console.log(
-      "Calculated profile completion score:",
-      profile_completion_score
-    );
-
+   
     // Construct the new document
-    console.log("Constructing new MakeupArtist document...");
     const newMakeupArtist = new MakeupArtist({
       vendor_id: req.body.vendor_id,
       service_areas: req.body.service_areas || [],
@@ -243,35 +227,22 @@ const createMakeupArtist = async (req, res) => {
       profile_completion_score: profile_completion_score || 0,
     });
 
-    console.log("Attempting to save the new document...");
     const savedMakeupArtist = await newMakeupArtist.save();
-    console.log("Successfully saved MakeupArtist document.");
 
     // Associate with vendor
-    console.log("Searching for vendor with vendor_id:", req.body.vendor_id);
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      console.log(
-        "Error: Vendor not found. Deleting new MakeupArtist document."
-      );
       await MakeupArtist.findByIdAndDelete(savedMakeupArtist.vendor_id);
       return res.status(404).json({ message: "Vendor not found" });
     }
-    console.log("Found vendor:", vendor);
-
-    console.log(`MAKEUP ARTIST ID (Vendor ID): ${savedMakeupArtist.vendor_id}`);
-    console.log("Attempting to push document ID into vendor services array...");
-    vendor.services.push(savedMakeupArtist.vendor_id); // Changed to push _id, as this is the likely fix
+   
+    vendor.services.push(savedMakeupArtist.service_id); // Changed to push _id, as this is the likely fix
     console.log(
       "Successfully pushed new service ID. Saving vendor document..."
     );
     await vendor.save();
-    console.log("Vendor document saved successfully.");
-
-    // Update section completion and profile completion
-    console.log("Updating section completion...");
+  
     await updateSectionCompletion(savedMakeupArtist.vendor_id);
-    console.log("Section completion updated.");
 
     process.env.IS_DEV !== "true" &&
       sendEmailToSlack({

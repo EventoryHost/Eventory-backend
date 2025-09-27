@@ -267,7 +267,7 @@ const createPhotographer = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.services.push(savedPAV.vendor_id);
+    vendor.services.push(savedPAV.service_id);
     await vendor.save();
     await updateSectionCompletion(savedPAV.vendor_id);
     process.env.IS_DEV !== "true" &&
