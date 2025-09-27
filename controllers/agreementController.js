@@ -577,28 +577,14 @@ const generateAndStoreAgreement = async (req, res) => {
     }
 
     console.log("Starting PDF generation...");
-    
-    // TEMPORARY: Make agreement generation optional
-    try {
-      // Generate PDF
-      const result = await generateAgreementPDF(serviceType, vendorId, agreementData);
-      console.log("PDF generated successfully");
+    // Generate PDF
+    const result = await generateAgreementPDF(serviceType, vendorId, agreementData);
+    console.log("PDF generated successfully");
 
-      console.log("Updating service model...");
-      // Update service model
-      await updateServiceModelWithAgreement(serviceType, vendorId, result.agreementUrl);
-      console.log("Service model updated successfully");
-    } catch (playwrightError) {
-      console.log("Playwright error (making agreement optional):", playwrightError.message);
-      console.log("Skipping agreement generation for now...");
-      
-      // Return success without generating PDF
-      return res.json({
-        success: true,
-        message: "Agreement generation skipped (temporarily disabled)",
-        agreementUrl: null,
-      });
-    }
+    console.log("Updating service model...");
+    // Update service model
+    await updateServiceModelWithAgreement(serviceType, vendorId, result.agreementUrl);
+    console.log("Service model updated successfully");
 
     // Let's verify the update by fetching the record again
     switch (serviceType.toLowerCase()) {
@@ -651,14 +637,11 @@ const generateAndStoreAgreement = async (req, res) => {
         break;
     }
 
-    // Only return the success response if we actually generated the PDF
-    if (result && result.agreementUrl) {
-      res.json({
-        success: true,
-        message: "Agreement generated and stored successfully",
-        agreementUrl: result.agreementUrl,
-      });
-    }
+    res.json({
+      success: true,
+      message: "Agreement generated and stored successfully",
+      agreementUrl: result.agreementUrl,
+    });
   } catch (error) {
     console.error("Error in generateAndStoreAgreement:", error);
     console.error("Error stack:", error.stack);
