@@ -7,26 +7,28 @@ import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
 import DjArtist from "../models/djArtist.js";
 
+const prefixToModelMap = {
+  cat: { Model: Caterer, vendorType: "caterer" },
+  dec: { Model: Decorator, vendorType: "decorator" },
+  mak: { Model: MakeupArtist, vendorType: "makeup" },
+  pav: { Model: Photographer, vendorType: "photographer" },
+  veu: { Model: Venue, vendorType: "venue" },
+  dj: { Model: DjArtist, vendorType: "dj" },
+  // future vendors can be added here (e.g., mc: { Model: MCAnchor, vendorType: "mc" })
+};
 function modelFromServiceId(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
-  const prefix = serviceId.slice(0, 3).toLowerCase();
 
-  switch (prefix) {
-    case "cat":
-      return { Model: Caterer, vendorType: "caterer" };
-    case "dec":
-      return { Model: Decorator, vendorType: "decorator" };
-    case "mak":
-      return { Model: MakeupArtist, vendorType: "makeup" };
-    case "pav":
-      return { Model: Photographer, vendorType: "photographer" };
-    case "veu":
-      return { Model: Venue, vendorType: "venue" };
-    case "dj":
-      return { Model: DjArtist, vendorType: "dj" };
-    default:
-      return null;
+  const lowerId = serviceId.toLowerCase();
+
+  // find the first matching prefix dynamically
+  for (const prefix of Object.keys(prefixToModelMap)) {
+    if (lowerId.startsWith(prefix)) {
+      return prefixToModelMap[prefix];
+    }
   }
+
+  return null; // no matching vendor
 }
 
 
@@ -106,6 +108,7 @@ export const getVendorLimit = async (req, res) => {
       "Prop Rental": propRental,
       "Photographers & Videographers": Photographer,
       "Makeup Artist": MakeupArtist,
+      "DJ-Vendor": DjArtist,
     };
 
     model = vendorModels[vendortype];
@@ -171,6 +174,7 @@ export const addReviews = async (req, res) => {
       photographer: Photographer,
       propRental: propRental,
       makeupArtist: MakeupArtist,
+      djArtist: DjArtist,
     };
 
     const Model = models[type];
@@ -275,7 +279,7 @@ export const handleSearch = async (req, res) => {
 
 export const getServiceByServiceId = async (req, res) => {
   const { serviceType, serviceId } = req.params;
-  // console.log("📥 Received:", serviceType, serviceId);
+  console.log("📥 Received:", serviceType, serviceId);
 
   try {
     let serviceData;
@@ -299,6 +303,9 @@ export const getServiceByServiceId = async (req, res) => {
         break;
       case "Makeup-Artist":
         serviceData = await MakeupArtist.findOne({ id: serviceId });
+        break;
+      case "DJ-Vendor":
+        serviceData = await DjArtist.findOne({ id: serviceId });
         break;
       default:
         return res.status(400).json({ error: "Invalid service type" });
