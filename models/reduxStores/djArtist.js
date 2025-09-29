@@ -9,11 +9,14 @@ const djArtistSchema = Schema({
     isVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 0 },
     completed: { type: Boolean, default: false },
-    serviceName: { type: String },
-    name: { type: String },
+    name: { type: String }, // Service name
+    managerName: { type: String }, // Manager name
     description: { type: String },
     address: { type: String },
     serviceAreas: { type: [String] },
+    pincode: { type: Number },
+    latitude: { type: Number },
+    longitude: { type: Number },
     eventTypes: { type: [String] },
     musicGenres: { type: [String] },
     regionalSpecializations: { type: [String] },
