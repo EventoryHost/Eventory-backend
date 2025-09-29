@@ -3,6 +3,7 @@ import { Decorator } from "../../models/decoraters.js";
 import { DecoratorModel } from "../../models/reduxStores/decorator.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import VendorNotification from "../../models/vendorNotification.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -40,16 +41,16 @@ const updateSectionCompletion = async (id) => {
     }
 
     decorator.basicDetails.completed = checkCompletion(
-      decorator.basicDetails || {},
+      decorator.basicDetails || {}
     );
     decorator.themesOffered.completed = checkCompletion(
-      decorator.themesOffered || {},
+      decorator.themesOffered || {}
     );
     decorator.themesElement.completed = checkCompletion(
-      decorator.themesElement || {},
+      decorator.themesElement || {}
     );
     decorator.additionalDetails.completed = checkCompletion(
-      decorator.additionalDetails || {},
+      decorator.additionalDetails || {}
     );
     decorator.policies.completed = checkCompletion(decorator.policies || {});
 
@@ -126,16 +127,18 @@ const createDecorator = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const eventSize = parseRange(req.body.eventSize);
     console.log("decorator:", req.body);
-    
+
     // Fetch agreement data from temporary decorator collection
-    const tempDecoratorData = await DecoratorModel.findOne({ id: req.body.venId });
+    const tempDecoratorData = await DecoratorModel.findOne({
+      id: req.body.venId,
+    });
     const agreementUrl = tempDecoratorData?.agreementUrl || null;
     const agreementSignedAt = tempDecoratorData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for decorator:", agreementUrl);
     }
-    
+
     const newDecorator = new Decorator({
       basicDetails: {
         name: req.body.name,
@@ -215,6 +218,21 @@ const createDecorator = async (req, res) => {
     });
     await vendor.save();
 
+    // 🔹 Create and save the new bank details notification
+    const bankDetailsNotification = new VendorNotification({
+      vendorId: vendor.id,
+      serviceId: savedVenue.id,
+      message:
+        "Please add your bank details in the settings to start accepting payments for bookings.",
+      type: "bank_details_prompt",
+    });
+
+    console.log(
+      `bankDetailsNotification in text is ${bankDetailsNotification}`
+    );
+
+    await bankDetailsNotification.save();
+
     // Update section completion and profile completion
     await updateSectionCompletion(savedDecorator.id);
     res.status(201).json(savedDecorator);
@@ -258,5 +276,4 @@ const getDecoratorById = async (req, res) => {
   }
 };
 
-
-export default { createDecorator, getAllDecorators , getDecoratorById };
+export default { createDecorator, getAllDecorators, getDecoratorById };

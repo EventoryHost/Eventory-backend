@@ -23,6 +23,7 @@ const vendorNotificationSchema = new mongoose.Schema({
       'payment_done',
       'misc',
       "booking_confirmed",
+      'bank_details_prompt',
     ],
     required: true,
   },

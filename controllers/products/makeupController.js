@@ -2,6 +2,7 @@ import MakeupArtist from "../../models/makeupArtists.js";
 import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import VendorNotification from "../../models/vendorNotification.js";
 
 
 const getFileUrls = (files, fieldName) => {
@@ -210,6 +211,21 @@ const createMakeupArtist = async (req, res) => {
       });
       await vendor.save();
     }
+
+        // 🔹 Create and save the new bank details notification
+        const bankDetailsNotification = new VendorNotification({
+          vendorId: vendor.id,
+          serviceId: savedVenue.id,
+          message:
+            "Please add your bank details in the settings to start accepting payments for bookings.",
+          type: "bank_details_prompt",
+        });
+    
+        console.log(
+          `bankDetailsNotification in text is ${bankDetailsNotification}`
+        );
+    
+        await bankDetailsNotification.save();
 
     // Update section completion and profile completion
     await updateSectionCompletion(savedMakeupArtist.id);

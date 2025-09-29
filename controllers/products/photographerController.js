@@ -3,6 +3,7 @@ import Photographer from "../../models/photographers.js";
 import PAVModel from "../../models/reduxStores/pav.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
+import VendorNotification from "../../models/vendorNotification.js";
 
 
 const getFileUrls = (files, fieldName) => {
@@ -282,6 +283,21 @@ const createPhotographer = async (req, res) => {
       serId: saved.id,
     });
     await vendor.save();
+
+        // 🔹 Create and save the new bank details notification
+        const bankDetailsNotification = new VendorNotification({
+          vendorId: vendor.id,
+          serviceId: savedVenue.id,
+          message:
+            "Please add your bank details in the settings to start accepting payments for bookings.",
+          type: "bank_details_prompt",
+        });
+    
+        console.log(
+          `bankDetailsNotification in text is ${bankDetailsNotification}`
+        );
+    
+        await bankDetailsNotification.save();
 
     // Call to update section completion
     await updateSectionCompletion(newPhotographer.id);

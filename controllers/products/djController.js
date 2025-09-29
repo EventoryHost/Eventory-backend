@@ -1,6 +1,7 @@
 import DjArtist from "../../models/djArtist.js";
 import DjArtistModel from "../../models/reduxStores/djArtist.js";
 import { Vendor as User } from "../../models/users.js";
+import VendorNotification from "../../models/vendorNotification.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -94,10 +95,12 @@ const createDjArtist = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     // Fetch agreement data from temporary DJ artist collection
-    const tempDjArtistData = await DjArtistModel.findOne({ id: req.body.venId });
+    const tempDjArtistData = await DjArtistModel.findOne({
+      id: req.body.venId,
+    });
     const agreementUrl = tempDjArtistData?.agreementUrl || null;
     const agreementSignedAt = tempDjArtistData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for DJ artist:", agreementUrl);
     }
@@ -158,6 +161,21 @@ const createDjArtist = async (req, res) => {
 
     await vendor.save();
 
+    // 🔹 Create and save the new bank details notification
+    const bankDetailsNotification = new VendorNotification({
+      vendorId: vendor.id,
+      serviceId: savedVenue.id,
+      message:
+        "Please add your bank details in the settings to start accepting payments for bookings.",
+      type: "bank_details_prompt",
+    });
+
+    console.log(
+      `bankDetailsNotification in text is ${bankDetailsNotification}`
+    );
+
+    await bankDetailsNotification.save();
+
     await updateSectionCompletion(savedDjArtist.id);
 
     return res.status(201).json(savedDjArtist);
@@ -202,4 +220,4 @@ const getDjArtistById = async (req, res) => {
   }
 };
 
-export default { createDjArtist, getAllDjArtist , getDjArtistById }; // ✅ Proper export
+export default { createDjArtist, getAllDjArtist, getDjArtistById }; // ✅ Proper export

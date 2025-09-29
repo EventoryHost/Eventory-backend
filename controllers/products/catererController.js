@@ -3,6 +3,7 @@ import { CateringModel } from "../../models/reduxStores/catering.js";
 import { Vendor as User } from "../../models/users.js";
 import calculateProfileCompletion from "../../utils/calculateCompletion.js";
 import parseRange from "../../utils/parseRange.js";
+import VendorNotification from "../../models/vendorNotification.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -43,17 +44,17 @@ const updateSectionCompletion = async (venId) => {
 
     // Ensure each section exists before checking completion
     caterer.basicDetails.completed = checkCompletion(
-      caterer.basicDetails || {},
+      caterer.basicDetails || {}
     );
     caterer.menuDetails.completed = checkCompletion(caterer.menuDetails || {});
     caterer.eventDetails.completed = checkCompletion(
-      caterer.eventDetails || {},
+      caterer.eventDetails || {}
     );
     caterer.staffAndEquipmentDetails.completed = checkCompletion(
-      caterer.staffAndEquipmentDetails || {},
+      caterer.staffAndEquipmentDetails || {}
     );
     caterer.additionalDetails.completed = checkCompletion(
-      caterer.additionalDetails || {},
+      caterer.additionalDetails || {}
     );
     caterer.policies.completed = checkCompletion(caterer.policies || {});
 
@@ -101,9 +102,9 @@ const createCaterer = async (req, res) => {
       req.body.service_style_offered,
       req.body.vegOrNonVeg,
       menu.length > 0 ||
-      (req.body.appetizers?.length > 0 &&
-        req.body.beverages?.length > 0 &&
-        req.body.main_course?.length > 0),
+        (req.body.appetizers?.length > 0 &&
+          req.body.beverages?.length > 0 &&
+          req.body.main_course?.length > 0),
       req.body.special_dietary_options?.length > 0,
       req.body.customizable,
       req.body.additional_services?.length > 0,
@@ -129,19 +130,24 @@ const createCaterer = async (req, res) => {
     // Get agreement data from temporary catering data
     let agreementUrl = null;
     let agreementSignedAt = null;
-    
+
     try {
-      const tempCateringData = await CateringModel.findOne({ id: req.body.venId });
+      const tempCateringData = await CateringModel.findOne({
+        id: req.body.venId,
+      });
       if (tempCateringData && tempCateringData.agreementUrl) {
         agreementUrl = tempCateringData.agreementUrl;
         agreementSignedAt = tempCateringData.agreementSignedAt;
         console.log("Found agreement data in temp catering:", {
           agreementUrl,
-          agreementSignedAt
+          agreementSignedAt,
         });
       }
     } catch (tempDataError) {
-      console.warn("Could not fetch agreement data from temporary catering:", tempDataError.message);
+      console.warn(
+        "Could not fetch agreement data from temporary catering:",
+        tempDataError.message
+      );
     }
 
     // Create new caterer document
@@ -206,7 +212,6 @@ const createCaterer = async (req, res) => {
       },
     });
 
-
     const savedCaterer = await newCaterer.save();
 
     // Update section completion and profile completion
@@ -224,6 +229,24 @@ const createCaterer = async (req, res) => {
       serId: savedCaterer.id,
     });
     await vendor.save();
+
+    console.log(`Creating notification for bank accoutn addition zzzzzz `);
+
+    //Notification to Vendor to fill the bank details
+    const bankDetailsNotification = new VendorNotification({
+      vendorId: vendor.id,
+      serviceId: savedCaterer.id,
+      message:
+        "Please add your bank details in the settings to start accepting payments for bookings.",
+      type: "bank_details_prompt",
+    });
+
+    console.log(
+      `bankDetailsNotification in tetx is ${bankDetailsNotification}`
+    );
+
+    await bankDetailsNotification.save();
+
     res.status(201).json(savedCaterer);
   } catch (error) {
     console.error(error);
@@ -265,5 +288,4 @@ const getCatererById = async (req, res) => {
   }
 };
 
-
-export default { createCaterer, getAllCaterers , getCatererById };
+export default { createCaterer, getAllCaterers, getCatererById };
