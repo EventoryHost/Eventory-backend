@@ -35,25 +35,36 @@ const checkCompletion = (section) => {
 // Update section completion for a photographer
 const updateSectionCompletion = async (id) => {
   try {
-    const photographer = await PhotographerVideographer.findOne({ id });
+    const photographer = await PhotographerVideographer.findOne({ vendor_id: id });
 
     if (!photographer) {
       throw new Error("Photographer not found");
     }
 
-    // Update completion status for each section
-    photographer.basicDetails.completed = checkCompletion(
-      photographer.basicDetails || {}
-    );
-    photographer.consultationDetails.completed = checkCompletion(
-      photographer.consultationDetails || {}
-    );
-    photographer.additionalDetails.completed = checkCompletion(
-      photographer.additionalDetails || {}
-    );
-    photographer.policies.completed = checkCompletion(
-      photographer.policies || {}
-    );
+    // Update completion status for each section - FIX: Use correct property names
+    if (photographer.basic_details) {
+      photographer.basic_details.completed = checkCompletion(
+        photographer.basic_details || {}
+      );
+    }
+    
+    if (photographer.service_details) {
+      photographer.service_details.completed = checkCompletion(
+        photographer.service_details || {}
+      );
+    }
+    
+    if (photographer.additional_details) {
+      photographer.additional_details.completed = checkCompletion(
+        photographer.additional_details || {}
+      );
+    }
+    
+    if (photographer.policies) {
+      photographer.policies.completed = checkCompletion(
+        photographer.policies || {}
+      );
+    }
 
     await photographer.save();
   } catch (error) {
@@ -61,7 +72,6 @@ const updateSectionCompletion = async (id) => {
     throw error;
   }
 };
-
 const createPhotographer = async (req, res) => {
     
     try {
@@ -118,6 +128,8 @@ const createPhotographer = async (req, res) => {
 
     } = req.body;
 
+    console.log("Line 121 Request Body:", req.body);
+
     // Fetch agreement data from temporary PAV collection
     const tempPAVData = await ReduxPhotographerVideographerModel.findOne({
       vendor_id: req.body.vendor_id,
@@ -144,7 +156,7 @@ const createPhotographer = async (req, res) => {
         business_contact_number: req.body.business_contact_number,
         business_address: req.body.business_address,
         business_description: req.body.business_description,
-        pan_number: req.body.pan_number,
+        pan: req.body.pan,
         category: req.body.category,
         service_type: req.body.service_type,
         business_registration_name: req.body.business_registration_name,
@@ -153,6 +165,8 @@ const createPhotographer = async (req, res) => {
         team_size: req.body.team_size,
         years_of_operation: req.body.years_of_operation,
         annual_revenue: req.body.annual_revenue,
+        landmark: req.body.landmark,
+        operational_cities: req.body.operational_cities || [],
         annual_bookings: req.body.annual_bookings,
         pincode: req.body.pincode,
         service_id: service_id,
