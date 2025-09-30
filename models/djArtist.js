@@ -40,17 +40,22 @@ const djArtistSchema = Schema({
         regionalSpecializations: { type: [String], required: true },
         servicesOffered: { type: [String], required: true },
     },
-    additionalDetails: {
-        photos: { type: [String], required: true },
+    additionalDetails:{
+        photos: [
+            {
+                original: { type: String },
+                preview: { type: String },
+            },
+        ],
         videos: { type: [String], required: true },
-        awards: { type: String, },
-        instagramUrl: { type: String, },
-        websiteUrl: { type: String, },
-        testimonials: { type: String, },
+        awards : { type: String, },
+        instagramUrl : { type: String, },
+        websiteUrl : { type: String, },
+        testimonials : { type: String, },
         priceStartingFrom: { type: Number, required: true },
     },
     policies: {
-        completed: { type: Boolean, default: false }, // Flag for section completion
+        completed: { type: Boolean, dezfault: false }, // Flag for section completion
         termsAndConditions: { type: [String] },
         cancellationPolicy: { type: [String] },
         agreementUrl: { type: String },

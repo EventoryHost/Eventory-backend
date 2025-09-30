@@ -1,7 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 
-
 const djArtistSchema = Schema({
     id: { type: String, unique: true }, 
     pageNumber: { type: Number, default: 1 },
@@ -21,8 +20,13 @@ const djArtistSchema = Schema({
     musicGenres: { type: [String] },
     regionalSpecializations: { type: [String] },
     servicesOffered: { type: [String] },
-    photos: { type: [String] },
-    videos: { type: [String] },
+    photos: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
+    videos: { type: [String]},
     awards: { type: String },
     instagramURL: { type: String },
     websiteURL: { type: String },
@@ -33,7 +37,6 @@ const djArtistSchema = Schema({
     agreementUrl: { type: String },
     agreementSignedAt: { type: Date },
 });
-
 
 const DjArtistModel = model("ReduxDjArtist", djArtistSchema);
 

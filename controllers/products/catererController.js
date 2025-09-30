@@ -82,11 +82,51 @@ const createCaterer = async (req, res) => {
 
     // Handle file uploads and array conversions
     const menu = req.body.menu || [];
-    const photos = req.body.photos || [];
-    const videos = req.body.videos || [];
+    let photos = req.body.photos || [];
+    let videos = req.body.videos || [];
     const foodSafetyCertificates = req.body.food_safety_certificates || []; // 🔹 FIXED: Defined foodSafetyCertificates
 
-    // Profile completion check
+    if (Array.isArray(photos)) {
+      photos = photos.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item; 
+          } catch (e) {
+            return item;
+          }
+        }
+        return item; 
+      });
+    } else if (typeof photos === 'string') {
+      try {
+        const parsed = JSON.parse(photos);
+        photos = [parsed];
+      } catch (e) {
+        photos = [photos];
+      }
+    }
+
+    // Normalize videos to an array of plain string URLs
+    if (Array.isArray(videos)) {
+      videos = videos.map(item => (typeof item === 'string' ? item : String(item))).filter(Boolean);
+    } else if (typeof videos === 'string') {
+      if (videos.startsWith('[')) {
+        try {
+          const arr = JSON.parse(videos);
+          videos = Array.isArray(arr) ? arr.map(item => (typeof item === 'string' ? item : String(item))).filter(Boolean) : [];
+        } catch (e) {
+          videos = videos.includes(',') ? videos.split(',').map(url => url.trim()).filter(Boolean) : [videos];
+        }
+      } else if (videos.includes(',')) {
+        videos = videos.split(',').map(url => url.trim()).filter(Boolean);
+      } else {
+        videos = [videos];
+      }
+    }
     const fieldsToCheck = [
       req.body.name,
       req.body.managerName,
@@ -126,7 +166,6 @@ const createCaterer = async (req, res) => {
     const profileCompletion =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-    // Get agreement data from temporary catering data
     let agreementUrl = null;
     let agreementSignedAt = null;
     
@@ -189,8 +228,44 @@ const createCaterer = async (req, res) => {
         priceStartingFrom: parseInt(req.body.priceStartingFrom, 10) || 0,
         minimum_order_requirements: req.body.minimum_order_requirements,
         advance_booking_period: parseRange(req.body.advance_booking_period),
-        photos: Array.isArray(photos) ? photos : [photos],
-        videos: Array.isArray(videos) ? videos : [videos],
+        photos: Array.isArray(photos) ? photos.map(url => {
+          // If it's already an object with original and preview, use it directly
+          if (typeof url === 'object' && url.original && url.preview) {
+            return {
+              original: url.original,
+              preview: url.preview
+            };
+          }
+          // If it's just an object with original, generate preview
+          if (typeof url === 'object' && url.original) {
+            let previewUrl = url.original;
+            if (url.original.includes('/original-')) {
+              previewUrl = url.original.replace('/original-', '/preview-');
+              // For images, change extension to .webp
+              if (url.original.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                previewUrl = previewUrl.replace(/\.(jpg|jpeg|png|gif)$/i, '.webp');
+              }
+            }
+            return {
+              original: url.original,
+              preview: previewUrl
+            };
+          }
+          // If it's a string, generate both original and preview
+          if (typeof url === 'string') {
+            let previewUrl = url;
+            if (url.includes('/original-')) {
+              previewUrl = url.replace('/original-', '/preview-');
+              // For images, change extension to .webp
+              if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                previewUrl = previewUrl.replace(/\.(jpg|jpeg|png|gif)$/i, '.webp');
+              }
+            }
+            return { original: url, preview: previewUrl };
+          }
+          return { original: url, preview: url };
+        }) : [],
+        videos: Array.isArray(videos) ? videos.filter(url => typeof url === 'string' && url.length > 0) : [],
         tasting_sessions: req.body.tasting_sessions === "true",
         business_licenses: req.body.business_licenses === "true",
         food_safety_certificates: Array.isArray(foodSafetyCertificates)

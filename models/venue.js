@@ -73,8 +73,11 @@ const venueSchema = new Schema({
   },
 
   additionalDetails: {
-    completed: { type: Boolean, default: false }, // Flag for section completion
-    photos: { type: [String], required: true },
+    completed: { type: Boolean, default: false }, 
+    photos: [{ 
+        original: { type: String },
+        preview: { type: String }
+    }],    
     videos: { type: [String], required: true },
     awards: { type: String },
     clientTestimonials: { type: String },
