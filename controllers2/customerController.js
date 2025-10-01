@@ -1,12 +1,13 @@
-import { Caterer } from "../models/caterer.js";
-import { Customer } from "../models/customer.js";
-import Photographer from "../models/photographers.js";
-import { Decorator } from "../models/decoraters.js";
+import { Caterer } from "../models2/caterer.js";
+import { Customer } from "../models2/customer.js";
+import PhotographerVideographer from "../models2/photographerVideographer.js";
+import { Decorator } from "../models2/decorator.js";
 import PropRental from "../models/props.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import MakeupArtist from "../models2/makeupArtist.js";
 import jwt from "jsonwebtoken";
-import { Venue } from "../models/venue.js";
-import  customerNotification  from "../models/customerNotification.js";
+import VenueProvider from "../models2/venueProvider.js";
+import  customerNotification  from "../models2/customerNotifications.js";
+import Quotations  from "../models2/quotations.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -28,7 +29,7 @@ export const getCustomer = async (req, res) => {
     if (phone && !phone.startsWith("+91")) {
       phone = "+91" + phone;
     }
-    const customer = await Customer.findOne({ mobile: phone });
+    const customer = await Customer.findOne({ contact_number: phone });
     if(!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
@@ -40,39 +41,47 @@ export const getCustomer = async (req, res) => {
 
 export const getBooking = async (req, res) => {
   try {
-    const serviceId = req.params.serId;
-    const customerId = req.params.cusId;
-    const booking = await Customer.findOne({
-      id: customerId,
-      quotations: { $elemMatch: { serviceId: serviceId } },
+    const { service_id, customer_id } = req.params;
+
+    // Look directly in Quotations collection
+    const booking = await Quotations.findOne({
+      service_id: service_id,
+      customer_id: customer_id
     });
+
     if (!booking) {
       return res.status(204).json({ message: "No bookings found" });
     }
+
     res.status(200).json(booking);
-  } catch {
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
-};
+}
 
 export const addFavourite = async (req, res) => {
   try {
-    const customerId = req.params.cusId;
-    const serviceId = req.params.serviceId; 
+    const customer_id = req.params.customer_id;
+    const service_id = req.params.service_id; 
 
-    const customer = await Customer.findOne({ id: customerId });
+    console.log("customer_id", customer_id);
+    const customer = await Customer.findOne({ customer_id: customer_id });
+  
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    if (!Array.isArray(customer.favoriteServices)) {
-      customer.favoriteServices = [];
+    if (!Array.isArray(customer.wishlisted_services)) {
+      customer.wishlisted_services = [];
     }
-    if (customer.favoriteServices.includes(serviceId)) {
+    if (customer.wishlisted_services.includes(service_id)) {
       return res.status(400).json({ message: "Service already added to favorites" });
     }
 
-    customer.favoriteServices.push(serviceId);
+    customer.wishlisted_services.push(service_id);
+    console.log("Hellow")
     await customer.save();
+    console.log("byeew")
+
 
     res.status(200).json({ message: "Added to favorites", customer });
   } catch (error) {
@@ -201,17 +210,17 @@ export const getFavoriteServices = async (req, res) => {
 
 export const getFavoriteServiceIds = async (req, res) => {
   try {
-    const customerId = req.params.cusId;
-    const customer = await Customer.findOne({ id: customerId });
+    const customer_id = req.params.customer_id;
+    const customer = await Customer.findOne({ customer_id: customer_id });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    if (!customer.favoriteServices) {
-      customer.favoriteServices = [];
+    if (!customer.wishlisted_services) {
+      customer.wishlisted_services = [];
     }
-    res.status(200).json(customer.favoriteServices);
+    res.status(200).json(customer.wishlisted_services);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -219,22 +228,22 @@ export const getFavoriteServiceIds = async (req, res) => {
 
 export const removeFavourite = async (req, res) => {
   try {
-    const serviceId = req.params.serviceId;
-    const customerId = req.params.cusId;
-    const customer = await Customer.findOne({ id: customerId });
+    const service_id = req.params.service_id;
+    const customer_id = req.params.customer_id;
+    const customer = await Customer.findOne({ customer_id: customer_id });
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    if (!customer.favoriteServices) {
-      customer.favoriteServices = [];
+    if (!customer.wishlisted_services) {
+      customer.wishlisted_services = [];
     }
-    if (!customer.favoriteServices.includes(serviceId)) {
+    if (!customer.wishlisted_services.includes(service_id)) {
       return res
         .status(400)
         .json({ message: "Service not found in favourites" });
     }
-    customer.favoriteServices = customer.favoriteServices.filter(
-      (id) => id !== serviceId,
+    customer.wishlisted_services = customer.wishlisted_services.filter(
+      (id) => id !== service_id,
     );
     await customer.save();
     res.status(200).json(customer);
@@ -274,7 +283,7 @@ export const updateCustomer = async (req, res) => {
     if (!mobileFromBody) return res.status(400).json({ message: "Phone number missing" });
 
     const customer = await Customer.findOneAndUpdate(
-      { mobile: mobileFromBody },
+      { customer_number : mobileFromBody },
       { $set: updates },
       { new: true, runValidators: true }
     );
@@ -292,7 +301,7 @@ export const getCustomerById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const customer = await Customer.findOne({ id: id }).select("-password");
+    const customer = await Customer.findOne({ customer_id: id }).select("-password");
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });

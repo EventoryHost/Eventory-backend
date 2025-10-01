@@ -105,4 +105,4 @@ quotationsSchema.pre('save', function(next) {
 // Check if model already exists to prevent OverwriteModelError
 const Quotations = mongoose.models.Quotations || mongoose.model('Quotations', quotationsSchema);
 
-export default Quotations;
+export default Quotations

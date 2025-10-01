@@ -131,6 +131,6 @@ chatSchema.index({ chat_updated_at: -1 });
 chatSchema.index({ chat_started_at: -1 });
 
 // Check if model already exists to prevent OverwriteModelError
-const Chat = mongoose.models.Chat || mongoose.model('Chat', chatSchema);
+const Chat2 = mongoose.models.Chat || mongoose.model('Chat2', chatSchema);
 
-export default Chat;
+export default Chat2;
