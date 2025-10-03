@@ -1,8 +1,8 @@
-import Photographer from "../../models/photographers.js";
+import photographerVideographer from "../../models2/photographerVideographer.js"; 
 
 export const checkPhotographerProfileCompletion = async (photographerId) => {
   try {
-    const photographer = await Photographer.findOne({ service_id: photographerId });
+    const photographer = await photographerVideographer.findOne({ service_id: photographerId });
 
     if (!photographer) {
       throw new Error("Photographer not found");
@@ -27,7 +27,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
     // Update completed flag for basic details
-    await Photographer.findOneAndUpdate(
+    await photographerVideographer.findOneAndUpdate(
       { service_id: photographerId },
       {
         "basic_details.is_completed": basicDetailsComplete,
@@ -48,7 +48,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
     console.log(`Service details check: ------- ${serviceDetailsComplete}`);
 
     // Update completed flag for service details
-    await Photographer.findOneAndUpdate(
+    await photographerVideographer.findOneAndUpdate(
       { service_id: photographerId },
       {
         "service_details.is_completed": serviceDetailsComplete,
@@ -71,7 +71,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
     );
 
     // Update completed flag for additional details
-    await Photographer.findOneAndUpdate(
+    await photographerVideographer.findOneAndUpdate(
       { service_id: photographerId },
       {
         "additional_details.is_completed": additionalDetailsComplete,
@@ -96,7 +96,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
     const policiesComplete = cancellationComplete && termsComplete;
 
     // Update completed flag for policies
-    await Photographer.findOneAndUpdate(
+    await photographerVideographer.findOneAndUpdate(
       { service_id: photographerId },
       {
         "policies.is_completed": policiesComplete,

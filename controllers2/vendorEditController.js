@@ -156,14 +156,23 @@ export const updateServiceDetails = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
+    
+    const serviceObj = vendor.service_types.find(
+      (service) => service.service_id === serId
+    );
 
-    const service = vendor.services.find((serviceId) => serviceId === serId);
+    console.log(serviceObj);
+    if (!serviceObj) {
+      return res
+        .status(404)
+        .json({ error: "Service not found in vendor's service_types" });
+    }
 
-    const { serType } = service;
+    const serType = serviceObj.service_name;
     let updatedService;
 
     // Step 2: Update the respective service based on service type
-    switch (serType) {
+    switch (serType.toLowerCase()) {
       case "caterer":
         updatedService = await Caterer.findOneAndUpdate(
           { service_id: serId },
@@ -228,8 +237,9 @@ export const updateServiceDetails = async (req, res) => {
     }
 
     const isVerified = checkVerification(updatedService, serType);
+    console.log(isVerified,"isverified")
     console.log(`Verification status for ${serType}: ${isVerified}`);
-    await updatedService.updateOne({ is_active });
+    await updatedService.updateOne({ is_active: isVerified});
 
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
@@ -238,7 +248,7 @@ export const updateServiceDetails = async (req, res) => {
     );
 
     await updatedService.updateOne({
-      "profile_completion_score": profileCompletion,
+      profile_completion_score: profileCompletion,
     });
 
     return res
@@ -253,8 +263,8 @@ export const updateServiceDetails = async (req, res) => {
 //helper variables and functions
 export const serviceFields = {
   caterer: [
-    "business_details.business_name",
-    "business_details.manager_name",
+    // "business_details.business_name",
+    // "business_details.manager_name",
     "basic_details.min_booking_capacity",
     "basic_details.description",
     "basic_details.cuisine_specialities",
@@ -267,7 +277,7 @@ export const serviceFields = {
     "event_details.event_types_catered",
     "event_details.additional_services_for_any_event",
     "event_details.staff_provided",
-    "additional_details.min_booking_capacity",
+    "additional_details.max_booking_period",
     "additional_details.min_booking_period",
     "additional_details.asset_images",
     "additional_details.asset_videos",
@@ -277,26 +287,26 @@ export const serviceFields = {
     "additional_details.prices_starts_from",
     "policies.cancellation_policy",
     "policies.terms_and_conditions",
-],
-decorator: [
-  "business_details.business_name",
-  "basic_details.avg_setup_duration",
-  "basic_details.description",
-  "basic_details.event_types_decorated",
-  "theme_details.themes_offered",
-  "theme_details.is_colour_scheme_assistance_provided",
-  "theme_details.is_venue_adaptability",
-  "theme_details.is_theme_customization_allowed",
-  "theme_details.theme_elements_available",
-  "theme_details.theme_portfolio_images",
-  "theme_details.theme_portfolio_videos",
-  "additional_details.prices_starts_from",
-  "additional_details.min_booking_period",
-  "additional_details.is_theme_proposals_provided",
-  "additional_details.is_proposal_revision_possible",
-  "policies.cancellation_policy",
-  "policies.terms_and_conditions",
-],
+  ],
+  decorator: [
+    // "business_details.business_name",
+    "basic_details.avg_setup_duration",
+    "basic_details.description",
+    "basic_details.event_types_decorated",
+    "theme_details.themes_offered",
+    "theme_details.is_colour_scheme_assistance_provided",
+    "theme_details.is_venue_adaptability",
+    "theme_details.is_theme_customization_allowed",
+    "theme_details.theme_elements_available",
+    "theme_details.theme_portfolio_images",
+    "theme_details.theme_portfolio_videos",
+    "additional_details.prices_starts_from",
+    "additional_details.min_booking_period",
+    "additional_details.is_theme_proposals_provided",
+    "additional_details.is_proposal_revision_possible",
+    "policies.cancellation_policy",
+    "policies.terms_and_conditions",
+  ],
   djArtist: [
     "basicDetails.name",
     "basicDetails.contact",
@@ -316,7 +326,7 @@ decorator: [
     "policies.cancellationPolicy",
   ],
   makeupArtist: [
-    "business_details.business_name",
+    // "business_details.business_name",
     "basic_details.min_booking_capacity",
     "basic_details.max_booking_capacity",
     "basic_details.description",
@@ -328,33 +338,33 @@ decorator: [
     "additional_details.asset_images",
     "policies.terms_and_conditions",
     "policies.cancellation_policy",
-],
+  ],
 
-pav: [
-  "business_details.business_name",
-  "basic_details.min_booking_capacity",
-  "basic_details.max_booking_capacity",
-  "basic_details.description",
-  "basic_details.event_types_captured",
-  "additional_details.prices_starts_from",
-  "service_details.types_of_styles_offered",
-  "service_details.types_of_equipment_available",
-  "service_details.add_ons_upgrade_available",
-  "service_details.final_delivery_methods",
-  "service_details.types_of_styles_offered",
-  "service_details.types_of_equipment_available",
-  "service_details.add_ons_upgrade_available",
-  "service_details.final_delivery_methods",
-  "basic_details.do_initial_customer_consultation",
-  "basic_details.send_proposals_to_clients",
-  "basic_details.do_post_production_services",
-  "basic_details.do_destination_events",
-  "basic_details.do_advance_setup",
-  "policies.terms_and_conditions",
-  "policies.cancellation_policy",
-  "additional_details.asset_images",
-  "additional_details.asset_videos",
-],
+  pav: [
+    // "business_details.business_name",
+    "basic_details.min_booking_capacity",
+    "basic_details.max_booking_capacity",
+    "basic_details.description",
+    "basic_details.event_types_captured",
+    "additional_details.prices_starts_from",
+    "service_details.types_of_styles_offered",
+    "service_details.types_of_equipment_available",
+    "service_details.add_ons_upgrade_available",
+    "service_details.final_delivery_methods",
+    "service_details.types_of_styles_offered",
+    "service_details.types_of_equipment_available",
+    "service_details.add_ons_upgrade_available",
+    "service_details.final_delivery_methods",
+    "basic_details.do_initial_customer_consultation",
+    "basic_details.send_proposals_to_clients",
+    "basic_details.do_post_production_services",
+    "basic_details.do_destination_events",
+    "basic_details.do_advance_setup",
+    "policies.terms_and_conditions",
+    "policies.cancellation_policy",
+    "additional_details.asset_images",
+    "additional_details.asset_videos",
+  ],
 
   "venue-provider": [
     "basic_details.venue_name",
@@ -372,12 +382,12 @@ pav: [
     "policies.cancellation_policy",
     "additional_details.asset_images",
     "additional_details.asset_videos",
-],
+  ],
 };
 
 export const calculateProfileCompletion = (serviceData, serviceType) => {
   console.log(`Calculating profile completion for ${serviceType} service...`);
-  const requiredFields = serviceFields[serviceType];
+  const requiredFields = serviceFields[serviceType.toLowerCase()];
   if (!requiredFields) {
     throw new Error(`Unknown service type: ${serviceType}`);
   }

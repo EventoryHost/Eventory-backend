@@ -1,4 +1,4 @@
-import { Decorator } from "../../models/decoraters.js";
+import { Decorator }  from "../../models2/decorator.js";
 
 export const checkDecoratorProfileCompletion = async (decoratorId) => {
   try {
@@ -13,7 +13,7 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
       decorator.basic_details.avg_setup_duration &&
       decorator.basic_details.description &&
       decorator.basic_details.event_types_decorated.length > 0 &&
-      decorator.basic_details.service_location_decorator;
+      decorator.basic_details.service_location_decorator !== null;
 
     // Log the result of the basic details check
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
@@ -30,9 +30,9 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
     const themesOfferedComplete =
       decorator.theme_details.themes_offered.length > 0 &&
       decorator.theme_details.is_prop_selection_available &&
-      decorator.theme_details.any_custom_design_process &&
+      decorator.theme_details.any_custom_design_process.trim() !== "" &&
       decorator.theme_details.is_colour_scheme_assistance_provided &&
-      decorator.theme_details.theme_customization_allowed &&
+      decorator.theme_details.is_theme_customization_allowed &&
       decorator.theme_details.is_venue_adaptability &&
       decorator.theme_details.theme_elements_available.length > 0 &&
       decorator.theme_details.theme_portfolio_images.length > 0 &&
@@ -55,9 +55,9 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
       decorator.additional_details.asset_videos.length > 0 &&
       decorator.additional_details.min_booking_period &&
       decorator.additional_details.max_booking_period &&
-      decorator.additional_details.prices_starting_from &&
-      decorator.additional_details.ig_socials_link &&
-      decorator.additional_details.web_social_link &&
+      decorator.additional_details.prices_starts_from &&
+      decorator.additional_details.ig_socials_link.trim() !== "" &&
+      decorator.additional_details.web_social_link.trim() !== "" &&
       decorator.additional_details.is_theme_proposals_provided &&
       decorator.additional_details.is_proposal_revision_possible;
 

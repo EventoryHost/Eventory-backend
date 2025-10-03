@@ -1,8 +1,8 @@
-import { Venue } from "../../models/venue.js";
+import VenueProvider from "../../models2/venueProvider.js";
 
 export const checkVenueProfileCompletion = async (venueId) => {
   try {
-    const venue = await Venue.findOne({ service_id: venueId });
+    const venue = await VenueProvider.findOne({ service_id: venueId });
 
     if (!venue) {
       throw new Error("Venue not found");
@@ -22,7 +22,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
 
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
-    await Venue.findOneAndUpdate(
+    await VenueProvider.findOneAndUpdate(
       { service_id: venueId },
       {
         "basic_details.is_completed": basicDetailsComplete,
@@ -42,7 +42,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
 
     console.log(`Feature details check: ------- ${featureDetailsComplete}`);
 
-    await Venue.findOneAndUpdate(
+    await VenueProvider.findOneAndUpdate(
       { service_id: venueId },
       {
         "feature_details.is_completed": featureDetailsComplete,
@@ -64,7 +64,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
       `Additional details check: ------- ${additionalDetailsComplete}`
     );
 
-    await Venue.findOneAndUpdate(
+    await VenueProvider.findOneAndUpdate(
       { service_id: venueId },
       {
         "additional_details.is_completed": additionalDetailsComplete,
@@ -89,7 +89,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
     console.log(`Policies check--------------: ${policiesComplete}`);
 
     // Update the policies completion status in the database
-    await Venue.findOneAndUpdate(
+    await VenueProvider.findOneAndUpdate(
       { id: venueId },
       {
         "policies.is_completed": policiesComplete,
