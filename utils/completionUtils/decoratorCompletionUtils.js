@@ -2,97 +2,84 @@ import { Decorator } from "../../models/decoraters.js";
 
 export const checkDecoratorProfileCompletion = async (decoratorId) => {
   try {
-    const decorator = await Decorator.findOne({ id: decoratorId });
+    const decorator = await Decorator.findOne({ service_id: decoratorId });
 
     if (!decorator) {
       throw new Error("Decorator not found");
     }    // Check if basic details are complete (only check for non-empty fields)
     const basicDetailsComplete =
-      decorator.basicDetails.name &&
-      decorator.basicDetails.eventSize &&
-      decorator.basicDetails.description &&
-      decorator.basicDetails.eventTypes.types.length > 0 &&
-      decorator.basicDetails.serviceAreas?.length > 0;
+      decorator.basic_details.point_of_contact &&
+      decorator.basic_details.service_contact_number &&
+      decorator.basic_details.avg_setup_duration &&
+      decorator.basic_details.description &&
+      decorator.basic_details.event_types_decorated.length > 0 &&
+      decorator.basic_details.service_location_decorator;
 
     // Log the result of the basic details check
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
     // Update completed flag for basic details
     await Decorator.findOneAndUpdate(
-      { id: decoratorId },
+      { service_id: decoratorId },
       {
-        "basicDetails.completed": basicDetailsComplete,
+        "basic_details.is_completed": basicDetailsComplete,
       },
     );
 
     // Check if themes offered are complete (only check for non-empty fields)
     const themesOfferedComplete =
-      decorator.themesOffered.themesOffered.length > 0 &&
-      decorator.themesOffered.propSelection != null &&
-      decorator.themesOffered.colorSchemeAssistance != null &&
-      decorator.themesOffered.themeCustomization != null &&
-      decorator.themesOffered.venueAdaptability != null;
+      decorator.theme_details.themes_offered.length > 0 &&
+      decorator.theme_details.is_prop_selection_available &&
+      decorator.theme_details.any_custom_design_process &&
+      decorator.theme_details.is_colour_scheme_assistance_provided &&
+      decorator.theme_details.theme_customization_allowed &&
+      decorator.theme_details.is_venue_adaptability &&
+      decorator.theme_details.theme_elements_available.length > 0 &&
+      decorator.theme_details.theme_portfolio_images.length > 0 &&
+      decorator.theme_details.theme_portfolio_videos.length > 0;
 
     // Log the result of the themes offered check
     console.log(`Themes offered check: ----- ${themesOfferedComplete}`);
 
     // Update completed flag for themes offered
     await Decorator.findOneAndUpdate(
-      { id: decoratorId },
+      { service_id: decoratorId },
       {
-        "themesOffered.completed": themesOfferedComplete,
-      },
-    );
-
-    // Check if themes elements are complete (only check for non-empty fields)
-    const themesElementComplete =
-      decorator.themesElement.themeElements.length > 0 &&
-      decorator.themesElement.themePhotos.length > 0 &&
-      decorator.themesElement.themeVideos.length > 0;
-
-    // Log the result of the themes elements check
-    console.log(`Themes elements check: ----- ${themesElementComplete}`);
-
-    // Update completed flag for themes element
-    await Decorator.findOneAndUpdate(
-      { id: decoratorId },
-      {
-        "themesElement.completed": themesElementComplete,
+        "theme_details.is_completed": themesOfferedComplete,
       },
     );
 
     // Check if additional details are complete (only check for non-empty fields)
     const additionalDetailsComplete =
-      decorator.additionalDetails.photos.length > 0 &&
-      decorator.additionalDetails.videos.length > 0 &&
-      decorator.additionalDetails.advanceBookingPeriod &&
-      decorator.additionalDetails.priceStartingFrom != null &&
-      decorator.additionalDetails.themeProposels != null &&
-      // decorator.additionalDetails.proposalRevisions != null &&
-      decorator.additionalDetails.clientTestimonials != null &&
-      // decorator.additionalDetails.awards &&
-      // decorator.additionalDetails.website &&
-      decorator.additionalDetails.instagram != null;
+      decorator.additional_details.asset_images.length > 0 &&
+      decorator.additional_details.asset_videos.length > 0 &&
+      decorator.additional_details.min_booking_period &&
+      decorator.additional_details.max_booking_period &&
+      decorator.additional_details.prices_starting_from &&
+      decorator.additional_details.ig_socials_link &&
+      decorator.additional_details.web_social_link &&
+      decorator.additional_details.is_theme_proposals_provided &&
+      decorator.additional_details.is_proposal_revision_possible;
 
     // Log the result of the additional details check
     console.log(`Additional details check: ----- ${additionalDetailsComplete}`);
 
     // Update completed flag for additional details
     await Decorator.findOneAndUpdate(
-      { id: decoratorId },
+      { service_id: decoratorId },
       {
-        "additionalDetails.completed": additionalDetailsComplete,
+        "additional_details.is_completed": additionalDetailsComplete,
       },
     );
 
     // Check if policies are complete (cancellation and terms only, just checking if non-empty)
     const cancellationComplete =
-      decorator.policies.cancellationPolicy &&
-      decorator.policies.cancellationPolicy.trim() !== "";
+      decorator.policies.cancellation_policy &&
+      decorator.policies.cancellation_policy.trim() !== "";
 
     const termsComplete =
-      decorator.policies.termsAndConditions &&
-      decorator.policies.termsAndConditions.trim() !== "";
+      decorator.policies.terms_and_conditions &&
+      decorator.policies.terms_and_conditions.trim() !== "";
 
     // Log the result of the policies check
     console.log(
@@ -107,9 +94,9 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
 
     // Update completed flag for policies
     await Decorator.findOneAndUpdate(
-      { id: decoratorId },
+      { service_id: decoratorId },
       {
-        "policies.completed": policiesComplete,
+        "policies.is_completed": policiesComplete,
       },
     );
 

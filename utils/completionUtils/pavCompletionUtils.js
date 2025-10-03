@@ -2,99 +2,68 @@ import Photographer from "../../models/photographers.js";
 
 export const checkPhotographerProfileCompletion = async (photographerId) => {
   try {
-    const photographer = await Photographer.findOne({ id: photographerId });
+    const photographer = await Photographer.findOne({ service_id: photographerId });
 
     if (!photographer) {
       throw new Error("Photographer not found");
     }
 
     // Check if basic details are complete
-    const basicDetailsComplete =
-      photographer.basicDetails.name &&
-      photographer.basicDetails.description &&
-      photographer.basicDetails.eventSize &&
-      photographer.basicDetails.eventTypes.length > 0 &&
-      photographer.basicDetails.serviceAreas &&
-      photographer.basicDetails.serviceAreas.length > 0;
+    const basicDetailsComplete = 
+    photographer.basic_details.point_of_contact &&
+    photographer.basic_details.service_contact_number &&
+    photographer.basic_details.description &&
+    photographer.basic_details.min_booking_capacity &&
+    photographer.basic_details.max_booking_capacity &&
+    photographer.basic_details.event_types_captured.length > 0 &&
+    photographer.basic_details.send_proposals_to_clients &&
+    photographer.basic_details.do_initial_customer_consultation &&
+    photographer.basic_details.do_destination_events &&
+    photographer.basic_details.do_advance_setup &&
+    photographer.basic_details.do_post_production_services &&
+    photographer.basic_details.service_location_pav;
 
     // Log the result of the basic details check
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
     // Update completed flag for basic details
     await Photographer.findOneAndUpdate(
-      { id: photographerId },
+      { service_id: photographerId },
       {
-        "basicDetails.completed": basicDetailsComplete,
+        "basic_details.is_completed": basicDetailsComplete,
       },
     );
 
-    // Check if Videography section is complete
-    const videographyComplete =
-      photographer.Videography.equipmentAvailable.length > 0 &&
-      photographer.Videography.typesOfStyles.length > 0 &&
-      photographer.Videography.addonsOrUpgradeAvailable.length > 0 &&
-      photographer.Videography.finalDeliveryMethods.length > 0;
+    // Check if service details are complete
+    const serviceDetailsComplete = 
+    photographer.service_details.type_of_service &&
+    photographer.service_details.types_of_equipment_available.length > 0 &&
+    photographer.service_details.types_of_styles_offered.length > 0 &&
+    photographer.service_details.add_ons_upgrade_available.length > 0 &&
+    photographer.service_details.final_delivery_methods.length > 0 &&
+    photographer.service_details.service_offering_type && 
+    photographer.service_details.delivery_timeline;
 
-    // Log the result of the videography check
-    console.log(`Videography check: ------- ${videographyComplete}`);
+    // Log the result of the service details check
+    console.log(`Service details check: ------- ${serviceDetailsComplete}`);
 
-    // Update completed flag for videography
+    // Update completed flag for service details
     await Photographer.findOneAndUpdate(
-      { id: photographerId },
+      { service_id: photographerId },
       {
-        "Videography.completed": videographyComplete,
-      },
-    );
-
-    // Check if Photography section is complete
-    const photographyComplete =
-      photographer.Photography.equipmentAvailable.length > 0 &&
-      photographer.Photography.typesOfStyles.length > 0 &&
-      photographer.Photography.addonsOrUpgradeAvailable.length > 0 &&
-      photographer.Photography.finalDeliveryMethods.length > 0;
-
-    // Log the result of the photography check
-    console.log(`Photography check: ------- ${photographyComplete}`);
-
-    // Update completed flag for photography
-    await Photographer.findOneAndUpdate(
-      { id: photographerId },
-      {
-        "Photography.completed": photographyComplete,
-      },
-    );
-
-    // Check if consultation details are complete
-    const consultationComplete =
-      photographer.consultationDetails.duration &&
-      photographer.consultationDetails.PackageTypes &&
-      photographer.consultationDetails.proposalsToClients &&
-      photographer.consultationDetails.freeInitialConsultation &&
-      photographer.consultationDetails.bookingDeposit &&
-      photographer.consultationDetails.availableForDestinationEvents &&
-      photographer.consultationDetails.AdvanceSetup &&
-      photographer.consultationDetails.postProductionServices;
-
-    // Log the result of the consultation check
-    console.log(`Consultation details check: ------- ${consultationComplete}`);
-
-    // Update completed flag for consultation details
-    await Photographer.findOneAndUpdate(
-      { id: photographerId },
-      {
-        "consultationDetails.completed": consultationComplete,
+        "service_details.is_completed": serviceDetailsComplete,
       },
     );
 
     // Check if additional details are complete
     const additionalDetailsComplete =
-      photographer.additionalDetails.photos.length > 0 &&
-      photographer.additionalDetails.videos.length > 0 &&
-      photographer.additionalDetails.clientTestimonials != null &&
-      photographer.additionalDetails.awards != null &&
-      photographer.additionalDetails.website != null &&
-      photographer.additionalDetails.instagram != null &&
-      photographer.additionalDetails.priceStartingFrom != null;
+      photographer.additional_details.asset_images.length > 0 &&
+      photographer.additional_details.asset_videos.length > 0 &&
+      photographer.additional_details.min_booking_period &&
+      photographer.additional_details.max_booking_period &&
+      photographer.additional_details.prices_starts_from &&
+      photographer.additional_details.ig_socials_link &&
+      photographer.additional_details.web_social_link ;
 
     // Log the result of the additional details check
     console.log(
@@ -103,20 +72,20 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
 
     // Update completed flag for additional details
     await Photographer.findOneAndUpdate(
-      { id: photographerId },
+      { service_id: photographerId },
       {
-        "additionalDetails.completed": additionalDetailsComplete,
+        "additional_details.is_completed": additionalDetailsComplete,
       },
     );
 
     // Check if policies are complete (cancellation and terms only)
     const cancellationComplete =
-      typeof photographer.policies.cancellationPolicy === "string" &&
-      photographer.policies.cancellationPolicy.trim() !== "";
+      typeof photographer.policies.cancellation_policy === "string" &&
+      photographer.policies.cancellation_policy.trim() !== "";
 
     const termsComplete =
-      typeof photographer.policies.termsAndConditions === "string" &&
-      photographer.policies.termsAndConditions.trim() !== "";
+      typeof photographer.policies.terms_and_conditions === "string" &&
+      photographer.policies.terms_and_conditions.trim() !== "";
 
     // Log the result of the policies check
     console.log(
@@ -128,9 +97,9 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
 
     // Update completed flag for policies
     await Photographer.findOneAndUpdate(
-      { id: photographerId },
+      { service_id: photographerId },
       {
-        "policies.completed": policiesComplete,
+        "policies.is_completed": policiesComplete,
       },
     );
 
