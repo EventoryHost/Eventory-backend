@@ -1,4 +1,3 @@
-import { Reviews }  from "../models2/reviews.js";
 import { Venue } from "../models/venue.js";
 import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decoraters.js";

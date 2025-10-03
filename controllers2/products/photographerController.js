@@ -128,8 +128,6 @@ const createPhotographer = async (req, res) => {
 
     } = req.body;
 
-    console.log("Line 121 Request Body:", req.body);
-
     // Fetch agreement data from temporary PAV collection
     const tempPAVData = await ReduxPhotographerVideographerModel.findOne({
       vendor_id: req.body.vendor_id,

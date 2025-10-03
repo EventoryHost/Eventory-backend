@@ -138,7 +138,6 @@ const getVendor = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found." });
     }
 
-    console.log("✅ Vendor found:", vendor);
     res.status(200).json(vendor);
 
   } catch (error) {

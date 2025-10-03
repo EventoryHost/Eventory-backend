@@ -82,16 +82,17 @@ const createCaterer = async (req, res) => {
     const asset_images = req.body.asset_images || [];
     const asset_videos = req.body.asset_videos || [];
     const food_safety_certificates = req.body.food_safety_certificates || [];
-    
+
     const tempCatererData = await ReduxCatererModel.findOne({
-          vendor_id: req.body.vendor_id,
-        });
-        const agreementUrl = tempCatererData?.agreement_url || " ";
-      const agreementSignedAt = tempCatererData?.agreement_signed_at || new Date();
-    
-        if (agreementUrl) {
-          console.log("Found agreement data for venue:", agreementUrl);
-        }
+      vendor_id: req.body.vendor_id,
+    });
+    const agreementUrl = tempCatererData?.agreement_url || " ";
+    const agreementSignedAt =
+      tempCatererData?.agreement_signed_at || new Date();
+
+    if (agreementUrl) {
+      console.log("Found agreement data for venue:", agreementUrl);
+    }
 
     // Profile completion check
     const fieldsToCheck = [
@@ -143,16 +144,16 @@ const createCaterer = async (req, res) => {
       req.body.gst,
       req.body.pan || null,
       req.body.verification_type,
-      req.body.team_size ,
+      req.body.team_size,
       req.body.years_of_operation,
-      req.body.business_address ,
+      req.body.business_address,
       req.body.landmark,
       req.body.pincode,
       req.body.operational_cities,
       req.body.annual_revenue,
       req.body.annual_bookings,
       req.body.account_type,
-      req.body.vendor_id
+      req.body.vendor_id,
     ];
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
@@ -195,21 +196,24 @@ const createCaterer = async (req, res) => {
         regional_specialities: req.body.regional_specialities || [],
         service_style_offered: req.body.service_style_offered || [],
         service_location_caterer: {
-          service_address: req.body.address, 
+          service_address: req.body.address,
           lat: req.body.latitude,
           lon: req.body.longitude,
           service_pincode: parseInt(req.body.pincode, 10),
           google_map_link: req.body.google_map_link,
         },
       },
-    
+
       event_details: {
         is_completed: profile_completion_score?.event_details || false,
         event_types_catered: req.body.event_types_catered || [],
-        additional_services_for_any_event: req.body.additional_services_for_any_event || [],
+        additional_services_for_any_event:
+          req.body.additional_services_for_any_event || [],
         staff_provided: req.body.staff_provided || [],
         equipment_provided: req.body.equipment_provided || [],
-        menu: Array.isArray(req.body.menu) ? req.body.menu : [req.body.menu].filter(Boolean),
+        menu: Array.isArray(req.body.menu)
+          ? req.body.menu
+          : [req.body.menu].filter(Boolean),
         veg_or_nonveg: req.body.veg_or_nonveg,
         appetizers: req.body.appetizers || [],
         main_course: req.body.main_course || [],
@@ -217,13 +221,15 @@ const createCaterer = async (req, res) => {
         special_dietary_options: req.body.special_dietary_options || [],
         pre_set_menus: req.body.pre_set_menus || [],
         menu_customizable:
-          req.body.menu_customizable === "true" || req.body.menu_customizable === true,
+          req.body.menu_customizable === "true" ||
+          req.body.menu_customizable === true,
       },
-    
+
       additional_details: {
         is_completed: profile_completion_score?.additional_details || false,
         min_booking_period: parseInt(req.body.min_booking_period, 10),
-        max_booking_period: parseInt(req.body.max_booking_period, 10) || undefined,
+        max_booking_period:
+          parseInt(req.body.max_booking_period, 10) || undefined,
         asset_images: Array.isArray(req.body.asset_images)
           ? req.body.asset_images
           : [req.body.asset_images].filter(Boolean),
@@ -236,20 +242,22 @@ const createCaterer = async (req, res) => {
         is_business_license_available:
           req.body.is_business_license_available === "true" ||
           req.body.is_business_license_available === true,
-        food_safety_certificates: Array.isArray(req.body.food_safety_certificates)
+        food_safety_certificates: Array.isArray(
+          req.body.food_safety_certificates
+        )
           ? req.body.food_safety_certificates
           : [req.body.food_safety_certificates].filter(Boolean),
         prices_starts_from: parseInt(req.body.prices_starts_from, 10),
       },
-    
+
       policies: {
         is_completed: profile_completion_score?.policies || false,
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
         agreement_url: agreementUrl,
-        agreement_signed_at: agreementSignedAt
+        agreement_signed_at: agreementSignedAt,
       },
-    
+
       business_details: {
         is_completed: profile_completion_score?.business_details || false,
         service_id: service_id,
@@ -268,16 +276,16 @@ const createCaterer = async (req, res) => {
         annual_revenue: req.body.annual_revenue,
         annual_bookings: req.body.annual_bookings,
       },
-    
+
       bank_details: {
         account_type: req.body.account_type,
         service_id: service_id,
-        vendor_id: req.body.vendor_id
+        vendor_id: req.body.vendor_id,
       },
-    
+
       profile_completion_score: profile_completion_score || 0,
     });
-    
+
     const savedCaterer = await newCaterer.save();
 
     // Associate with vendor
@@ -287,12 +295,9 @@ const createCaterer = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-  
-    vendor.services.push(
-      savedCaterer.service_id,
-    );
+    vendor.services.push(savedCaterer.service_id);
     await vendor.save();
-    
+
     // Update section completion and profile completion
     await updateSectionCompletion(savedCaterer.vendor_id);
 

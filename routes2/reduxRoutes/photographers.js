@@ -8,10 +8,7 @@ const router = express.Router();
 // POST or PUT route to save or update photographer details
 // Route: /photographer-details/
 router.post("/", async (req, res) => {
-    const { vendor_id, pavData } = req.body; 
-
-    console.log("Line 12: Received photographer details:", { vendor_id, pavData });
-  
+    const { vendor_id, pavData } = req.body;   
     if (!vendor_id) {
       return res.status(400).json({ message: "Vendor ID is required." });
     }
