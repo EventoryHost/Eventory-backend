@@ -104,7 +104,7 @@ router.get("/fetch", fetchBooking);
  *       200:
  *         description: Booking updated
  */
-router.put("/:bookingId", updateBooking);
+router.put("/:event_id", updateBooking);
 
 /**
  * @swagger
@@ -123,7 +123,7 @@ router.put("/:bookingId", updateBooking);
  *       200:
  *         description: Booking deleted
  */
-router.delete("/:bookingId", deleteBooking);
+router.delete("/:event_id", deleteBooking);
 
 /**
  * @swagger
