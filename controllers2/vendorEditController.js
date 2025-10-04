@@ -170,6 +170,8 @@ export const updateServiceDetails = async (req, res) => {
     }
 
     const serType = serviceObj.service_name;
+    console.log(`Serrrrrrobj is ${serviceObj}`);
+    console.log(serType , serId);
     let updatedService;
 
     // Step 2: Update the respective service based on service type
@@ -199,7 +201,7 @@ export const updateServiceDetails = async (req, res) => {
         await checkPhotographerProfileCompletion(serId);
         break;
       case "venue-provider":
-        updatedService = await Venue.findOneAndUpdate(
+        updatedService = await VenueProvider.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
           { new: true }
@@ -213,6 +215,7 @@ export const updateServiceDetails = async (req, res) => {
           { new: true }
         );
         break;
+      case "makeup-artist":  
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { service_id: serId },
@@ -238,7 +241,6 @@ export const updateServiceDetails = async (req, res) => {
     }
 
     const isVerified = checkVerification(updatedService, serType);
-    console.log(isVerified,"isverified")
     console.log(`Verification status for ${serType}: ${isVerified}`);
     await updatedService.updateOne({ is_active: isVerified});
 
@@ -327,6 +329,20 @@ export const serviceFields = {
     "policies.cancellationPolicy",
   ],
   makeupArtist: [
+    // "business_details.business_name",
+    "basic_details.min_booking_capacity",
+    "basic_details.max_booking_capacity",
+    "basic_details.description",
+    "basic_details.event_types_makeup",
+    "basic_details.types_of_makeup_artists_available",
+    "service_details.is_onsite_makeup_available",
+    "service_details.is_customization_possible",
+    "service_details.service_types",
+    "additional_details.asset_images",
+    "policies.terms_and_conditions",
+    "policies.cancellation_policy",
+  ],
+  "makeup-artist": [
     // "business_details.business_name",
     "basic_details.min_booking_capacity",
     "basic_details.max_booking_capacity",
@@ -430,7 +446,7 @@ const checkVerification = (service, serType) => {
 
   let fieldsToCheck = [];
 
-  switch (serType) {
+  switch (serType.toLowerCase()) {
     case "caterer":
       fieldsToCheck = [
         // basic_details fields
@@ -507,7 +523,7 @@ const checkVerification = (service, serType) => {
     case "decorator":
       fieldsToCheck = [
         // business_details field
-        { path: "business_details.business_name", label: "Service Name" },
+        // { path: "business_details.business_name", label: "Service Name" },
 
         // basic_details fields
         {
@@ -565,10 +581,10 @@ const checkVerification = (service, serType) => {
       ];
       break;
     case "pav":
-      const fieldsToCheck = [
+      fieldsToCheck = [
         // business_details field
-        { path: "business_details.business_name", label: "Business Name" },
-        { path: "business_details.manager_name", label: "Manager Name" },
+        // { path: "business_details.business_name", label: "Business Name" },
+        // { path: "business_details.manager_name", label: "Manager Name" },
 
         // basic_details fields
         {
@@ -637,8 +653,8 @@ const checkVerification = (service, serType) => {
     case "venue-provider":
       fieldsToCheck = [
         // business_details fields
-        { path: "business_details.business_name", label: "Business Name" },
-        { path: "business_details.manager_name", label: "Manager Name" },
+        // { path: "business_details.business_name", label: "Business Name" },
+        // { path: "business_details.manager_name", label: "Manager Name" },
 
         {
           path: "basic_details.min_booking_capacity",
@@ -676,6 +692,76 @@ const checkVerification = (service, serType) => {
         { path: "policies.cancellation_policy", label: "Cancellation Policy" },
         { path: "policies.terms_and_conditions", label: "Terms & Conditions" },
       ];
+      case "makeup-artist":
+        fieldsToCheck = [
+          // business_details field
+          // { path: "business_details.business_name", label: "Service Name" },
+
+          // basic_details fields
+          {
+            path: "basic_details.min_booking_capacity",
+            label: "Minimum Booking Capacity",
+          },
+          {
+            path: "basic_details.max_booking_capacity",
+            label: "Maximum Booking Capacity",
+          },
+          { path: "basic_details.description", label: "Description" },
+          {
+            path: "basic_details.event_types_makeup",
+            label: "Event Types Makeup",
+          },
+          {
+            path: "basic_details.types_of_makeup_artists_available",
+            label: "Types of Makeup Artists",
+          },
+          {
+            path: "service_details.is_onsite_makeup_available",
+            label: "Onsite Makeup Available",
+          },
+          {
+            path: "service_details.is_customization_possible",
+            label: "Customization",
+          },
+          {
+            path: "service_details.service_types",
+            label: "Service Types",
+          },
+
+          // additional_details fields
+          {
+            path: "additional_details.asset_images",
+            label: "Additional Photos",
+          },
+          {
+            path: "additional_details.asset_videos",
+            label: "Additional Videos",
+          },
+          {
+            path: "additional_details.min_booking_period",
+            label: "Advance Booking Period",
+          },
+          {
+            path: "additional_details.max_booking_period",
+            label: "Advance Booking Period",
+          },
+          {
+            path: "additional_details.prices_starts_from",
+            label: "Price Starting From",
+          },
+          {
+            path: "additional_details.ig_socials_link",
+            label: "Instagram Socials",
+          },          
+          {
+            path: "additional_details.web_social_link",
+            label: "Website Socials",
+          },
+
+          // policies fields
+          { path: "policies.cancellation_policy", label: "Cancellation Policy" },
+          { path: "policies.terms_and_conditions", label: "Terms & Conditions" },
+        ];
       break;
     // Add criteria for other service types as needed
 
