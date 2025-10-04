@@ -1,6 +1,7 @@
 import { Vendor } from "../models2/vendor.js";
 import { Caterer } from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
+import {Invoices} from "../models2/invoices.js";
 import Photographer from "../models2/photographerVideographer.js";
 import PropRental from "../models/props.js";
 import VenueProvider from "../models2/venueProvider.js";
@@ -705,4 +706,39 @@ const checkVerification = (service, serType) => {
   });
 
   return allFieldsValid;
+};
+
+export const addVendorInvoice = async (req, res) => {
+  const { invoice_url, vendor_id, service_id, type, customer_id, event_id } =
+    req.body;
+
+  console.log(
+    `Received request to add invoice for vendor ${vendor_id} with URL ${invoice_url}`
+  );
+
+  try {
+    const vendor = await Vendor.findOne({ vendor_id });
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    // Save the invoice in invoices collection
+    const invoice = new Invoices({
+      invoice_url,
+      vendor_id,
+      service_id,
+      type,
+      customer_id,
+      event_id,
+    });
+
+    await invoice.save();
+
+    return res.status(200).json({
+      message: "Invoice added successfully",
+    });
+  } catch (error) {
+    console.error("Error adding invoice:", error);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
 };

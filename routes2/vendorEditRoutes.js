@@ -7,12 +7,12 @@ import PropRental from "../models/props.js";
 import  VenueProvider  from "../models2/venueProvider.js";
 import MakeupArtist from "../models2/makeupArtist.js";
 import DjArtist from "../models/djArtist.js";
-import {Invoices} from "../models2/invoices.js";
 import {
   updateVendorAndService,
   updateDetails,
   updateServiceDetails,
   serviceFields,
+  addVendorInvoice
 
 } from "../controllers2/vendorEditController.js";
 
@@ -28,37 +28,6 @@ router.post("/updateService/:serviceId", updateDetails);
 router.put("/updateService/:serId", updateServiceDetails);
 
 // 4. Get service fields
-router.post("/add-vendor-invoice", async (req, res) => {
-  const { invoice_url, vendor_id, service_id, type, customer_id, event_id } =
-    req.body;
-
-  console.log(
-    `Received request to add invoice for vendor ${vendor_id} with URL ${invoice_url}`
-  );
-
-  const vendor = await Vendor.findOne({ vendor_id });
-  if (!vendor) {
-    return res.status(404).json({ message: "Vendor not found" });
-  }
-
-  try {
-    //Save the invoice in invoices collection
-    const invoice = new Invoices({
-      invoice_url,
-      vendor_id,
-      service_id,
-      type,
-      customer_id,
-      event_id,
-    });
-    await invoice.save();
-    return res.status(200).json({
-      message: "Invoice added successfully",
-    });
-  } catch (error) {
-    console.error("Error adding invoice:", error);
-    return res.status(500).json({ message: "Internal Server Error", error });
-  }
-});
+router.post("/add-vendor-invoice", addVendorInvoice);
 
 export default router;
