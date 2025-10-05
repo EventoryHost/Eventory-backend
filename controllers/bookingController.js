@@ -366,18 +366,27 @@ export const getAllBookings = async (req, res) => {
   }
 };
 
+// addOfflineEvent
 export const addOfflineEvent = async (req, res) => {
   try {
-    const { title, start, end, calendarId, type, description, color } =
-      req.body;
-    const { serId } = req.query; // Extract vendor ID from query parameters
+    const { title, start, end, calendarId, type, description, color } = req.body;
+    const { serId } = req.query;
 
     if (!serId || !title || !start || !end || !type || !color) {
-      console.log("hit", req.body);
       return res.status(400).json({
-        message:
-          "Missing required fields: serId, title, start, end, type, color",
+        message: "Missing required fields: serId, title, start, end, type, color",
       });
+    }
+
+    // Expect start/end to be ISO UTC strings (from frontend fix). Coerce and validate.
+    const startDate = new Date(start);   // e.g., 2025-10-15T04:30:00.000Z
+    const endDate = new Date(end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ message: "Invalid start or end datetime" });
+    }
+    if (endDate <= startDate) {
+      return res.status(400).json({ message: "end must be after start" });
     }
 
     const colorOptions = {
@@ -389,55 +398,32 @@ export const addOfflineEvent = async (req, res) => {
     };
 
     let vendorModel;
-
     switch (type) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "pav":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-      case "dj-vendor":
-        vendorModel = DjArtist;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid vendor type" });
+      case "venue-provider": vendorModel = Venue; break;
+      case "caterer": vendorModel = Caterer; break;
+      case "decorator": vendorModel = Decorator; break;
+      case "pav": vendorModel = Photographer; break;
+      case "makeup-artist": vendorModel = MakeupArtist; break;
+      case "dj-vendor": vendorModel = DjArtist; break;
+      default: return res.status(400).json({ message: "Invalid vendor type" });
     }
 
-    // Find the vendor by its ID field
     const vendor = await vendorModel.findOne({ id: serId });
+    if (!vendor) return res.status(404).json({ message: `${type} not found` });
 
-    if (!vendor) {
-      return res.status(404).json({ message: `${type} not found` });
-    }
+    if (!Array.isArray(vendor.schedule)) vendor.schedule = [];
 
-    // Create an event object
     const event = {
-      calendarId: generateUniqueId("cal"), // Example: "upcoming"
-      id: vendor.schedule.length + 1, // Generate a unique ID (consider using a better approach)
+      calendarId: generateUniqueId("cal"),
+      id: vendor.schedule.length + 1,
       title,
       description,
-      start: new Date(start), // Convert to Date object
-      end: new Date(end),
-      color: colorOptions[color], // Use the color mapping or fallback to the provided color
+      start: startDate,
+      end: endDate,
+      color: colorOptions[color] ?? color,
     };
 
-    // console.log(event);
-    // Validate the event object against the eventSchema
-
-    // Push the new event to the schedule array
     vendor.schedule.push(event);
-
-    // Save the updated vendor document
     await vendor.save();
 
     return res.status(200).json({ message: "Event added successfully", event });
@@ -447,66 +433,67 @@ export const addOfflineEvent = async (req, res) => {
   }
 };
 
+
+// editOfflineEvent
 export const editOfflineEvent = async (req, res) => {
   try {
     const { serId, type, calendarId, updatedEventData } = req.body.data;
 
-    console.log("Received Data:", req.body.data);
-
     if (!serId || !calendarId || !type || !updatedEventData) {
       return res.status(400).json({
-        message:
-          "Missing required fields: serId, calendarId, type, or updatedEventData",
+        message: "Missing required fields: serId, calendarId, type, or updatedEventData",
       });
     }
 
     let vendorModel;
-
     switch (type.toLowerCase()) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "photographer":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-      case "dj-vendor":
-        vendorModel = DjArtist;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid vendor type" });
+      case "venue-provider": vendorModel = Venue; break;
+      case "caterer": vendorModel = Caterer; break;
+      case "decorator": vendorModel = Decorator; break;
+      case "photographer": vendorModel = Photographer; break;
+      case "makeup-artist": vendorModel = MakeupArtist; break;
+      case "dj-vendor": vendorModel = DjArtist; break;
+      default: return res.status(400).json({ message: "Invalid vendor type" });
     }
 
     const vendor = await vendorModel.findOne({ id: serId });
+    if (!vendor) return res.status(404).json({ message: `${type} not found` });
 
-    if (!vendor) {
-      return res.status(404).json({ message: `${type} not found` });
-    }
-
-    if (!Array.isArray(vendor.schedule)) {
-      vendor.schedule = [];
-    }
+    if (!Array.isArray(vendor.schedule)) vendor.schedule = [];
 
     const index = vendor.schedule.findIndex(
-      (event) => event.calendarId === updatedEventData.calendarId,
+      (event) => event.calendarId === updatedEventData.calendarId
     );
-
     if (index === -1) {
       return res.status(404).json({ message: "Event not found in schedule" });
     }
 
-    // Update only the fields that are provided in updatedEventData
+    // Build a safe update object
+    const patch = { ...updatedEventData };
+
+    if (patch.start) {
+      const s = new Date(patch.start);
+      if (isNaN(s.getTime())) {
+        return res.status(400).json({ message: "Invalid start datetime" });
+      }
+      patch.start = s; // keep as Date (UTC)
+    }
+
+    if (patch.end) {
+      const e = new Date(patch.end);
+      if (isNaN(e.getTime())) {
+        return res.status(400).json({ message: "Invalid end datetime" });
+      }
+      patch.end = e; // keep as Date (UTC)
+    }
+
+    if (patch.start && patch.end && patch.end <= patch.start) {
+      return res.status(400).json({ message: "end must be after start" });
+    }
+
     vendor.schedule[index] = {
       ...vendor.schedule[index],
-      ...updatedEventData,
+      ...patch,
     };
 
     await vendor.save();
@@ -520,6 +507,7 @@ export const editOfflineEvent = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 export const deleteOfflineEvent = async (req, res) => {
   try {
