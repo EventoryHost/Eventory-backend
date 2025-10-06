@@ -148,6 +148,7 @@ const createPhotographer = async (req, res) => {
       vendor_id: req.body.vendor_id,
       service_type: "Photographer-Videographer",
       service_areas: req.body.service_areas || [],
+      service_id: service_id,
 
       // Business Details
       business_details: {
