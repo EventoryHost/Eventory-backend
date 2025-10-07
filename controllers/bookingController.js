@@ -511,9 +511,8 @@ export const editOfflineEvent = async (req, res) => {
 
 export const deleteOfflineEvent = async (req, res) => {
   try {
-    const { serId, type } = req.body.data; // Extract parameters
-    const calendarId = req.body.data.calenderId; // Extract calendarId from query parameters
-    console.log("Received Data:", req.body.data);
+    const { serId, type, calendarId } = req.body.data; // Extract parameters
+    console.log("Received Data:", req.body.data); 
 
     if (!serId || !calendarId || !type) {
       return res
