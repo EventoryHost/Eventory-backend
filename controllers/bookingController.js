@@ -378,8 +378,7 @@ export const addOfflineEvent = async (req, res) => {
       });
     }
 
-    // Expect start/end to be ISO UTC strings (from frontend fix). Coerce and validate.
-    const startDate = new Date(start);   // e.g., 2025-10-15T04:30:00.000Z
+    const startDate = new Date(start);  
     const endDate = new Date(end);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -468,7 +467,6 @@ export const editOfflineEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found in schedule" });
     }
 
-    // Build a safe update object
     const patch = { ...updatedEventData };
 
     if (patch.start) {
@@ -476,7 +474,7 @@ export const editOfflineEvent = async (req, res) => {
       if (isNaN(s.getTime())) {
         return res.status(400).json({ message: "Invalid start datetime" });
       }
-      patch.start = s; // keep as Date (UTC)
+      patch.start = s; 
     }
 
     if (patch.end) {
@@ -484,7 +482,7 @@ export const editOfflineEvent = async (req, res) => {
       if (isNaN(e.getTime())) {
         return res.status(400).json({ message: "Invalid end datetime" });
       }
-      patch.end = e; // keep as Date (UTC)
+      patch.end = e; 
     }
 
     if (patch.start && patch.end && patch.end <= patch.start) {
@@ -511,8 +509,7 @@ export const editOfflineEvent = async (req, res) => {
 
 export const deleteOfflineEvent = async (req, res) => {
   try {
-    const { serId, type, calendarId } = req.body.data; // Extract parameters
-    console.log("Received Data:", req.body.data); 
+    const { serId, type, calendarId } = req.body.data; 
 
     if (!serId || !calendarId || !type) {
       return res
@@ -545,27 +542,22 @@ export const deleteOfflineEvent = async (req, res) => {
         return res.status(400).json({ message: "Invalid vendor type" });
     }
 
-    // Find the vendor by its ID
     const vendor = await vendorModel.findOne({ id: serId });
 
     if (!vendor) {
       return res.status(404).json({ message: `${type} not found` });
     }
 
-    // Filter out the event that matches the given calendarId
     const updatedSchedule = vendor.schedule.filter(
       (event) => event.calendarId !== calendarId,
     );
 
-    // If no change in schedule, it means the event was not found
     if (updatedSchedule.length === vendor.schedule.length) {
       return res.status(404).json({ message: "Event not found in schedule" });
     }
 
-    // Update the vendor's schedule
     vendor.schedule = updatedSchedule;
 
-    // Save the updated vendor document
     await vendor.save();
 
     return res.status(200).json({ message: "Event deleted successfully" });
@@ -578,13 +570,6 @@ export const deleteOfflineEvent = async (req, res) => {
 export const getVendorBookings = async (req, res) => {
   try {
     const { year, month, serId, type } = req.query;
-
-    // if (!year || !month) {
-    //   return res.status(400).json({ error: "Year and month are required." });
-    // }
-
-    // const startOfMonth = new Date(year, month - 1, 1);
-    // const endOfMonth = new Date(year, month, 0, 23, 59, 59);
 
     let vendorModel;
 
@@ -611,19 +596,15 @@ export const getVendorBookings = async (req, res) => {
         return res.status(400).json({ error: "Invalid vendor type." });
     }
 
-    const vendor = await vendorModel.findOne({ id: serId }, "schedule");
-    // console.log(startOfMonth, endOfMonth);
-    const offlineBookings =
-      vendor?.schedule.filter((booking) => {
-        const bookingDate = new Date(booking.startDate);
-        return bookingDate;
-        // return bookingDate >= startOfMonth && bookingDate <= endOfMonth;
-      }) || [];
+    const vendor = await vendorModel.findOne({ id: serId }, { schedule: 1 }).lean();
+    const schedule = Array.isArray(vendor?.schedule) ? vendor.schedule : [];
 
-    const onlineBookings = await Booking.find({
-      serviceId: serId,
-      // startDate: { $gte: startOfMonth, $lte: endOfMonth },
+    const offlineBookings = schedule.filter((ev) => {
+      const evId = ev?.id;
+      return !(typeof evId === 'string' && evId.startsWith('eve'));
     });
+
+    const onlineBookings = await Booking.find({ serviceId: serId }).lean();
 
     res.status(200).json({
       offlineBookings,
