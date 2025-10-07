@@ -1,5 +1,6 @@
 import { Vendor } from '../models/users.js';
 import { Coupon } from '../models/coupon.js';
+import { Customer } from '../models/customer.js';
 
 // Helper function to calculate new discount eligibility
 const calculateNewEligibility = (currentEligibility, usedDiscount) => {
@@ -395,5 +396,250 @@ export const getAllCoupons = async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+};
+
+
+export const getAvailableCouponsForCustomer = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    const customer = await Customer.findOne({ id: customerId });
+    if (!customer) {
+      return res.status(404).json({ success: false, error: 'Customer not found' });
+    }
+
+    const allCoupons = await Coupon.find({ isActive: true });
+    const availableCoupons = allCoupons.filter(c =>
+      customer.couponDetails.canUseDiscounts.includes(c.discount)
+    );
+
+    res.json({
+      success: true,
+      data: {
+        availableCoupons,
+        customerEligibility: {
+          canUse: customer.couponDetails.canUseDiscounts,
+          highestUsed: customer.couponDetails.highestDiscountUsed,
+          totalCouponsUsed: customer.couponDetails.appliedCoupons.length,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error getting available coupons (customer):', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// POST /api/coupons/customers/validate
+export const validateCouponForCustomer = async (req, res) => {
+  try {
+    const { customerId, couponCode, originalAmount } = req.body;
+
+    if (!customerId || !couponCode || !originalAmount) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        error: 'customerId, couponCode, and originalAmount are required',
+      });
+    }
+    if (originalAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        error: 'Original amount must be greater than 0',
+      });
+    }
+
+    const customer = await Customer.findOne({ id: customerId });
+    const coupon = await Coupon.findOne({
+      code: couponCode.toUpperCase(),
+      isActive: true,
+    });
+
+    if (!customer) {
+      return res.status(404).json({ success: false, valid: false, error: 'Customer not found' });
+    }
+    if (!coupon) {
+      return res.status(404).json({ success: false, valid: false, error: 'Invalid or inactive coupon code' });
+    }
+
+    const canUse = customer.couponDetails.canUseDiscounts.includes(coupon.discount);
+
+    let pricingDetails = null;
+    if (canUse) {
+      const discountAmount = (originalAmount * coupon.discount) / 100;
+      const finalAmount = originalAmount - discountAmount;
+      pricingDetails = {
+        originalAmount,
+        discountPercentage: coupon.discount,
+        discountAmount,
+        finalAmount,
+        savings: discountAmount,
+      };
+    }
+
+    res.json({
+      success: true,
+      valid: canUse,
+      data: {
+        coupon: canUse ? { code: coupon.code, discount: coupon.discount, team: coupon.team } : null,
+        pricing: pricingDetails,
+        message: canUse
+          ? `Valid! ${coupon.discount}% discount from ${coupon.team} team - Save ₹${pricingDetails.savings}`
+          : `You cannot use ${coupon.discount}% discount coupons. Available: ${customer.couponDetails.canUseDiscounts.join(', ')}%`,
+        customerEligibility: {
+          canUse: customer.couponDetails.canUseDiscounts,
+          highestUsed: customer.couponDetails.highestDiscountUsed,
+          reason: !canUse ? `You have already used a ${customer.couponDetails.highestDiscountUsed}% discount coupon` : null,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error validating coupon (customer):', error);
+    res.status(500).json({ success: false, valid: false, error: error.message });
+  }
+};
+
+// POST /api/coupons/customers/apply
+export const applyCouponForCustomer = async (req, res) => {
+  try {
+    const { customerId, couponCode, couponDetails } = req.body;
+
+    if (!customerId || !couponCode || !couponDetails) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: customerId, couponCode, couponDetails',
+      });
+    }
+    if (
+      couponDetails.finalAmount === undefined ||
+      couponDetails.finalAmount === null ||
+      couponDetails.savings === undefined ||
+      couponDetails.savings === null ||
+      couponDetails.discount === undefined ||
+      couponDetails.discount === null
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid couponDetails structure' });
+    }
+
+    const customer = await Customer.findOne({ id: customerId });
+    if (!customer) {
+      return res.status(404).json({ success: false, error: 'Customer not found' });
+    }
+
+    const coupon = await Coupon.findOne({
+      code: couponCode.toUpperCase(),
+      isActive: true,
+    });
+    if (!coupon) {
+      return res.status(404).json({ success: false, error: 'Invalid or inactive coupon code' });
+    }
+
+    if (coupon.discount !== couponDetails.discount) {
+      return res.status(400).json({
+        success: false,
+        error: 'Coupon details mismatch. Please revalidate the coupon.',
+      });
+    }
+
+    if (!customer.couponDetails.canUseDiscounts.includes(coupon.discount)) {
+      return res.status(403).json({
+        success: false,
+        error: `You cannot use ${coupon.discount}% discount coupons`,
+        availableDiscounts: customer.couponDetails.canUseDiscounts,
+      });
+    }
+
+    const originalAmount = couponDetails.finalAmount + couponDetails.savings;
+
+    const updatedCanUseDiscounts = calculateNewEligibility(
+      customer.couponDetails.canUseDiscounts,
+      coupon.discount
+    );
+
+    const couponUsage = {
+      couponCode: coupon.code,
+      discount: coupon.discount,
+      appliedAt: new Date(),
+      originalAmount,
+      discountAmount: couponDetails.savings,
+      finalAmount: couponDetails.finalAmount,
+    };
+
+    await Customer.findOneAndUpdate(
+      { id: customerId },
+      {
+        $push: { 'couponDetails.appliedCoupons': couponUsage },
+        $set: {
+          'couponDetails.highestDiscountUsed': Math.max(
+            customer.couponDetails.highestDiscountUsed,
+            coupon.discount
+          ),
+          'couponDetails.canUseDiscounts': updatedCanUseDiscounts,
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Coupon applied successfully',
+      data: {
+        couponDetails: {
+          code: coupon.code,
+          discount: coupon.discount,
+          team: coupon.team,
+        },
+        paymentDetails: {
+          originalAmount,
+          discountAmount: couponDetails.savings,
+          finalAmount: couponDetails.finalAmount,
+          discountPercentage: coupon.discount,
+          savings: couponDetails.savings,
+        },
+        futureEligibility: {
+          canUseDiscounts: updatedCanUseDiscounts,
+          message: getEligibilityMessage(updatedCanUseDiscounts),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error applying coupon (customer):', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// GET /api/coupons/customers/history/:customerId
+export const getCustomerCouponHistory = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    const customer = await Customer.findOne({ id: customerId }).select('couponDetails name');
+    if (!customer) {
+      return res.status(404).json({ success: false, error: 'Customer not found' });
+    }
+
+    const totalSavings = customer.couponDetails.appliedCoupons.reduce(
+      (sum, c) => sum + c.discountAmount,
+      0
+    );
+
+    res.json({
+      success: true,
+      data: {
+        customerName: customer.name,
+        couponHistory: customer.couponDetails.appliedCoupons,
+        currentStatus: {
+          highestDiscountUsed: customer.couponDetails.highestDiscountUsed,
+          canUseDiscounts: customer.couponDetails.canUseDiscounts,
+          totalCouponsUsed: customer.couponDetails.appliedCoupons.length,
+          totalSavings,
+          eligibilityMessage: getEligibilityMessage(customer.couponDetails.canUseDiscounts),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error getting coupon history (customer):', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };

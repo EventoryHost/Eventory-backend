@@ -1,5 +1,6 @@
 import { mongoose, Schema as _Schema } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { couponUsageSchema } from "./coupon.js";
 const Schema = _Schema;
 
 const CustomerSchema = new Schema({
@@ -24,6 +25,18 @@ const CustomerSchema = new Schema({
     },
   ],
   favoriteServices: [{ type: String }],
+  couponDetails: {
+    appliedCoupons: [couponUsageSchema],
+    highestDiscountUsed: {
+      type: Number,
+      default: 0,
+      enum: [0, 25, 50, 100],
+    },
+    canUseDiscounts: {
+      type: [Number],
+      default: [25, 50, 100],
+    },
+  },
 });
 
 const Customer = mongoose.model("Customer", CustomerSchema);

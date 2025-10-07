@@ -153,4 +153,9 @@ router.patch('/deactivate/:couponCode', deactivateCoupon);
 
 router.get('/admin/all', getAllCoupons);
 
+router.get('/customers/available/:customerId', getAvailableCouponsForCustomer);
+router.post('/customers/apply', applyCouponForCustomer);
+router.get('/customers/history/:customerId', getCustomerCouponHistory);
+router.post('/customers/validate', validateCouponForCustomer);
+
 export default router;
