@@ -1,8 +1,8 @@
-import { Venue } from "../../models/venue.js";
+import VenueProvider from "../../models2/venueProvider.js";
 
 export const checkVenueProfileCompletion = async (venueId) => {
   try {
-    const venue = await Venue.findOne({ id: venueId });
+    const venue = await VenueProvider.findOne({ service_id: venueId });
 
     if (!venue) {
       throw new Error("Venue not found");
@@ -10,98 +10,79 @@ export const checkVenueProfileCompletion = async (venueId) => {
 
     // Check if basic details are complete
     const basicDetailsComplete =
-      venue.basicDetails.name != null &&
-      venue.basicDetails.managerName != null &&
-      venue.basicDetails.capacity != null &&
-      venue.basicDetails.serviceAreas != null &&
-      venue.basicDetails.serviceAreas.length > 0 &&
-      venue.basicDetails.operatingHours.openingTime != null &&
-      venue.basicDetails.operatingHours.closingTime != null;
-    // venue.basicDetails.address != null &&
-    // venue.basicDetails.description != null
+      venue.basic_details.point_of_contact != null &&
+      venue.basic_details.service_contact_number != null &&
+      venue.basic_details.description != null &&
+      venue.basic_details.min_booking_capacity != null &&
+      venue.basic_details.max_booking_capacity != null &&
+      venue.basic_details.venue_name != null &&
+      venue.basic_details.service_type_details.length > 0 &&
+      venue.basic_details.event_types_venue.length > 0 &&
+      venue.basic_details.service_location_venue != null;
 
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
-    await Venue.findOneAndUpdate(
-      { id: venueId },
+    await VenueProvider.findOneAndUpdate(
+      { service_id: venueId },
       {
-        "basicDetails.completed": basicDetailsComplete,
-      },
+        "basic_details.is_completed": basicDetailsComplete,
+      }
     );
 
     // Check if feature details are complete
     const featureDetailsComplete =
-      venue.featureDetails.catererServices != null &&
-      venue.featureDetails.decorServices != null &&
-      venue.featureDetails.venueTypes != null &&
-      venue.featureDetails.audioVisualEquipment != null &&
-      venue.featureDetails.accessibilityFeatures != null &&
-      venue.featureDetails.restrictionsPolicies != null &&
-      venue.featureDetails.specialFeatures != null &&
-      venue.featureDetails.facilities != null;
+  venue.feature_details.in_house_catering != null && // This is a boolean
+  venue.feature_details.in_house_decoration != null && // This is a boolean
+  venue.feature_details.venue_types_available.length > 0 &&
+  venue.feature_details.av_eqp_available_at_venue.length > 0 &&
+  venue.feature_details.accessibility_features_of_venue.length > 0 &&
+  venue.feature_details.restriction_policies_on_venue.length > 0 &&
+  venue.feature_details.special_features_in_venue.length > 0 &&
+  venue.feature_details.fascilities_at_venue.length > 0;
 
     console.log(`Feature details check: ------- ${featureDetailsComplete}`);
 
-    await Venue.findOneAndUpdate(
-      { id: venueId },
+    await VenueProvider.findOneAndUpdate(
+      { service_id: venueId },
       {
-        "featureDetails.completed": featureDetailsComplete,
-      },
+        "feature_details.is_completed": featureDetailsComplete,
+      }
     );
 
     // Check if additional details are complete
-    const additionalDetailsComplete = Boolean(
-      venue.additionalDetails.photos.length > 0 &&
-        venue.additionalDetails.videos.length > 0 &&
-        venue.additionalDetails.awards != null &&
-        venue.additionalDetails.clientTestimonials != null &&
-        venue.additionalDetails.advanceBookingPeriod != null &&
-        venue.additionalDetails.priceStartingFrom != null,
-    );
+    const additionalDetailsComplete =
+    venue.additional_details.asset_images.length > 0 &&
+    venue.additional_details.asset_videos.length > 0 &&
+    !!venue.additional_details.min_booking_period &&
+    !!venue.additional_details.max_booking_period &&
+    !!venue.additional_details.prices_starts_from &&
+    !!venue.additional_details.ig_socials_link &&
+    !!venue.additional_details.web_social_link;
 
     console.log(
-      `Additional details check: ------- ${additionalDetailsComplete}`,
+      `Additional details check: ------- ${additionalDetailsComplete}`
     );
 
-    await Venue.findOneAndUpdate(
-      { id: venueId },
+    await VenueProvider.findOneAndUpdate(
+      { service_id: venueId },
       {
-        "additionalDetails.completed": additionalDetailsComplete,
-      },
+        "additional_details.is_completed": additionalDetailsComplete,
+      }
     );
 
     // Check if policies are complete
-    const cancellationComplete =
-      Array.isArray(venue.policies.cancellationPolicy) &&
-      venue.policies.cancellationPolicy.length > 0 &&
-      venue.policies.cancellationPolicy[0].trim().length > 0;
-
-    const termsComplete =
-      Array.isArray(venue.policies.termsAndConditions) &&
-      venue.policies.termsAndConditions.length > 0 &&
-      venue.policies.termsAndConditions[0].trim().length > 0;
-
-    const insuranceComplete =
-      Array.isArray(venue.policies.insurancePolicy) &&
-      venue.policies.insurancePolicy.length > 0 &&
-      venue.policies.insurancePolicy[0].trim().length > 0;
-
-    // console.log(`cancellationComplete is ${cancellationComplete}`); // Debugging line
-    // console.log(`termsComplete is ${termsComplete}`); // Debugging line
-    // console.log(`insuranceComplete is ${insuranceComplete}`); // Debugging line
-
-    const policiesComplete = Boolean(
-      cancellationComplete && termsComplete && insuranceComplete,
-    );
+    const policiesComplete =
+      !!venue.policies.cancellation_policy &&
+      !!venue.policies.terms_and_conditions;
 
     console.log(`Policies check--------------: ${policiesComplete}`);
 
     // Update the policies completion status in the database
-    await Venue.findOneAndUpdate(
+    await VenueProvider.findOneAndUpdate(
       { id: venueId },
       {
-        "policies.completed": policiesComplete,
-      },
+        "policies.is_completed": policiesComplete,
+      }
     );
 
     return true;

@@ -33,6 +33,10 @@ const invoicesSchema = new mongoose.Schema({
     unique: true,
     default: () => generateUniqueId("INV")
   },
+  invoice_url: {
+    type: String,
+    required: true
+  },
   type: {
     type: String,
     required: true,

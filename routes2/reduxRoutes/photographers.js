@@ -9,6 +9,8 @@ const router = express.Router();
 // Route: /photographer-details/
 router.post("/", async (req, res) => {
     const { vendor_id, pavData } = req.body; 
+
+    console.log("Line 12: Received photographer details:", { vendor_id, pavData });
   
     if (!vendor_id) {
       return res.status(400).json({ message: "Vendor ID is required." });

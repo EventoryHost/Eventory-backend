@@ -15,12 +15,12 @@ const customerSchema = new mongoose.Schema({
   contact_number: {
     type: String,
     required: true,
-    validate: {
-      validator: function(v) {
-        return /^[6-9]\d{9}$/.test(v);
-      },
-      message: props => `${props.value} is not a valid Indian mobile number!`
-    }
+    // validate: {
+    //   validator: function(v) {
+    //     return /^[6-9]\d{9}$/.test(v);
+    //   },
+    //   message: props => `${props.value} is not a valid Indian mobile number!`
+    // }
   },
   email_address: {
     type: String,

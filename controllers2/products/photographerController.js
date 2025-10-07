@@ -35,27 +35,66 @@ const checkCompletion = (section) => {
 // Update section completion for a photographer
 const updateSectionCompletion = async (id) => {
   try {
-    const photographer = await PhotographerVideographer.findOne({ id });
+    console.log(`Starting updateSectionCompletion for vendor ID: ${id}`);
+
+    const photographer = await PhotographerVideographer.findOne({
+      vendor_id: id,
+    });
 
     if (!photographer) {
+      console.log(
+        `Photographer not found for vendor ID: ${id}. Throwing error.`
+      );
       throw new Error("Photographer not found");
     }
 
-    // Update completion status for each section
-    photographer.basicDetails.completed = checkCompletion(
-      photographer.basicDetails || {}
-    );
-    photographer.consultationDetails.completed = checkCompletion(
-      photographer.consultationDetails || {}
-    );
-    photographer.additionalDetails.completed = checkCompletion(
-      photographer.additionalDetails || {}
-    );
-    photographer.policies.completed = checkCompletion(
-      photographer.policies || {}
+    console.log(
+      `Found photographer with vendor ID: ${id}. Starting completion check.`
     );
 
+    // Update completion status for each section - FIX: Use correct property names
+    if (photographer.basic_details) {
+      console.log("Checking basic_details completion...");
+      photographer.basic_details.is_completed = checkCompletion(
+        photographer.basic_details || {}
+      );
+      console.log(
+        `basic_details completion status: ${photographer.basic_details.completed}`
+      );
+    }
+
+    if (photographer.service_details) {
+      console.log("Checking service_details completion...");
+      photographer.service_details.is_completed = checkCompletion(
+        photographer.service_details || {}
+      );
+      console.log(
+        `service_details completion status: ${photographer.service_details.completed}`
+      );
+    }
+
+    if (photographer.additional_details) {
+      console.log("Checking additional_details completion...");
+      photographer.additional_details.is_completed = checkCompletion(
+        photographer.additional_details || {}
+      );
+      console.log(
+        `additional_details completion status: ${photographer.additional_details.completed}`
+      );
+    }
+
+    if (photographer.policies) {
+      console.log("Checking policies completion...");
+      photographer.policies.is_completed = checkCompletion(
+        photographer.policies || {}
+      );
+      console.log(
+        `policies completion status: ${photographer.policies.completed}`
+      );
+    }
+
     await photographer.save();
+    console.log(`Successfully saved photographer data for vendor ID: ${id}.`);
   } catch (error) {
     console.error("Error in updateSectionCompletion:", error);
     throw error;
@@ -63,9 +102,8 @@ const updateSectionCompletion = async (id) => {
 };
 
 const createPhotographer = async (req, res) => {
-    
-    try {
-      const service_id = generateUniqueId("PAV");
+  try {
+    const service_id = generateUniqueId("PAV");
     const alreadyExists = await PhotographerVideographer.findOne({
       vendor_id: req.body.vendor_id,
     });
@@ -115,8 +153,9 @@ const createPhotographer = async (req, res) => {
       // Policies
       cancellation_policy,
       terms_and_conditions,
-
     } = req.body;
+
+    console.log("Line 121 Request Body:", req.body);
 
     // Fetch agreement data from temporary PAV collection
     const tempPAVData = await ReduxPhotographerVideographerModel.findOne({
@@ -127,8 +166,11 @@ const createPhotographer = async (req, res) => {
 
     //check if the above fields are null
     if (agreement_url || agreement_signed_at) {
-        console.log("Found agreement data for photographer:", agreement_url);
-        console.log("Found agreement data for photographer:", agreement_signed_at);
+      console.log("Found agreement data for photographer:", agreement_url);
+      console.log(
+        "Found agreement data for photographer:",
+        agreement_signed_at
+      );
     }
 
     // Create new PhotographerVideographer document
@@ -136,6 +178,7 @@ const createPhotographer = async (req, res) => {
       vendor_id: req.body.vendor_id,
       service_type: "Photographer-Videographer",
       service_areas: req.body.service_areas || [],
+      service_id: service_id,
 
       // Business Details
       business_details: {
@@ -144,7 +187,7 @@ const createPhotographer = async (req, res) => {
         business_contact_number: req.body.business_contact_number,
         business_address: req.body.business_address,
         business_description: req.body.business_description,
-        pan_number: req.body.pan_number,
+        pan: req.body.pan,
         category: req.body.category,
         service_type: req.body.service_type,
         business_registration_name: req.body.business_registration_name,
@@ -153,6 +196,8 @@ const createPhotographer = async (req, res) => {
         team_size: req.body.team_size,
         years_of_operation: req.body.years_of_operation,
         annual_revenue: req.body.annual_revenue,
+        landmark: req.body.landmark,
+        operational_cities: req.body.operational_cities || [],
         annual_bookings: req.body.annual_bookings,
         pincode: req.body.pincode,
         service_id: service_id,
@@ -180,7 +225,7 @@ const createPhotographer = async (req, res) => {
         do_advance_setup,
         do_post_production_services,
         service_location_pav: {
-          service_address: req.body.address, 
+          service_address: req.body.address,
           lat: service_lat,
           lon: service_lon,
           service_pincode,
@@ -272,7 +317,7 @@ const createPhotographer = async (req, res) => {
     await updateSectionCompletion(savedPAV.vendor_id);
     process.env.IS_DEV !== "true" &&
       sendEmailToSlack({
-        name: savedPAV.business_details.business_name,
+        name: savedPAV.business_details.business_registration_name,
         type: savedPAV.service_type,
       });
 
