@@ -64,6 +64,10 @@ const updateSectionCompletion = async (venId) => {
 const createVenue = async (req, res) => {
   try {
     // Check if the venue already exists for the given vendor ID
+    if (!req.body.service_type && req.body.service_type_business) {
+      req.body.service_type = req.body.service_type_business;
+    }
+
     const alreadyExists = await VenueProvider.findOne({
       vendor_id: req.body.vendor_id,
       point_of_contact: req.body.point_of_contact,
@@ -79,11 +83,10 @@ const createVenue = async (req, res) => {
     const cancellationPolicyFileUrl = req.body.policies?.cancellation_policy;
     const insurancePolicyFileUrl = req.body.policies?.insurance_policy;
     const asset_images = req.body.additional_details?.asset_images || [];
-    const asset_videos = req.body.additional_details?.asset_videos || [];
-    const operatingHours = req.body.basic_details?.service_location_venue; // Fetch agreement data from temporary venue collection
+    const asset_videos = req.body.additional_details?.asset_videos || []; // Fetch agreement data from temporary venue collection
 
     const tempVenueData = await ReduxVenueProviderModel.findOne({
-      id: req.body.vendor_id,
+      vendor_id: req.body.vendor_id,
     });
     const agreementUrl = tempVenueData?.agreement_url || null;
     const agreementSignedAt = tempVenueData?.agreement_signed_at || null;
@@ -153,8 +156,9 @@ const createVenue = async (req, res) => {
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
     const newVenue = new VenueProvider({
       vendor_id: req.body.vendor_id,
-      service_type: req.body.service_type,
+      service_type: req.body.service_type || "Venue-Provider",
       service_areas: req.body.service_areas || [],
+      service_id: service_id,
 
       // Business Details
       business_details: {
@@ -163,9 +167,9 @@ const createVenue = async (req, res) => {
         business_contact_number: req.body.business_contact_number,
         business_address: req.body.business_address,
         business_description: req.body.business_description,
-        pan_number: req.body.pan_number,
+        pan: req.body.pan,
         category: req.body.category,
-        service_type: req.body.service_type,
+        service_type: req.body.service_type || "Venue-Provider",
         business_registration_name: req.body.business_registration_name,
         gst: req.body.gst,
         verification_type: req.body.verification_type,
@@ -173,8 +177,10 @@ const createVenue = async (req, res) => {
         years_of_operation: req.body.years_of_operation,
         annual_revenue: req.body.annual_revenue,
         annual_bookings: req.body.annual_bookings,
+        landmark: req.body.landmark || "",
         pincode: req.body.pincode,
         service_id: service_id,
+        operational_cities: req.body.operational_cities || [],
       },
 
       // Bank Details
@@ -237,7 +243,6 @@ const createVenue = async (req, res) => {
       policies: {
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
-        insurancePolicy: insurancePolicyFileUrl,
         agreement_url: agreementUrl,
         agreement_signed_at: agreementSignedAt,
       },

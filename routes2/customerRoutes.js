@@ -52,7 +52,7 @@ router.patch("/update-customer/:id", updateCustomer);
  *     summary: Add a vendor to customer's favorites
  *     tags: [Customer]
  */
-router.post("/add-fav/:cusId/:serviceId", addFavourite);
+router.post("/add-fav/:customer_id/:service_id", addFavourite);
 
 /**
  * @swagger
@@ -61,7 +61,7 @@ router.post("/add-fav/:cusId/:serviceId", addFavourite);
  *     summary: Get favorite service IDs for a customer
  *     tags: [Customer]
  */
-router.get("/get-fav-id/:cusId", getFavoriteServiceIds);
+router.get("/get-fav-id/:customer_id", getFavoriteServiceIds);
 
 /**
  * @swagger
@@ -70,7 +70,7 @@ router.get("/get-fav-id/:cusId", getFavoriteServiceIds);
  *     summary: Get bookings for a customer and service
  *     tags: [Customer]
  */
-router.get("/get-booking/:cusId/:serId", getBooking);
+router.get("/get-booking/:customer_id/:service_id", getBooking);
 
 /**
  * @swagger
@@ -79,7 +79,7 @@ router.get("/get-booking/:cusId/:serId", getBooking);
  *     summary: Remove vendor from customer's favorites
  *     tags: [Customer]
  */
-router.delete("/remove-fav/:cusId/:serviceId", removeFavourite);
+router.delete("/remove-fav/:customer_id/:service_id", removeFavourite);
 
 /**
  * @swagger

@@ -16,7 +16,7 @@ import {
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { Vendor } from "../models2/vendor.js";
-import { Customer } from "../models/customer.js";
+import { Customer } from "../models2/customer.js";
 
 // EMAIL ADDRESS LOGIC CHANGED
 
@@ -174,10 +174,9 @@ const signUp = async (req, res) => {
         UserPoolId: process.env.COGNITO_USER_POOL_ID,
         Username: `+91${mobile}`,
       });
-      console.log("deleteeeeeeeee", deleteCommand);
       const res = await cognito.send(deleteCommand);
       try {
-        console.log("ressss", res);
+        console.log("res", res);
       } catch (error) {
         console.log("err", error);
       }
@@ -398,10 +397,11 @@ const verifyCustomerLoginOtp = async (req, res) => {
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
     var data = await cognito.send(command);
-    let user = await Customer.findOne({ mobile: `+91${mobile}` });
+    let user = await Customer.findOne({ contact_number : `+91${mobile}` });
     if (!user) {
       try {
-        const customer = new Customer({ name, mobile: `+91${mobile}` });
+        console.log("flow was here")
+        const customer = new Customer({ customer_name: name, contact_number: `+91${mobile}` });
         await customer.save();
         const token = jwt.sign(
           { id: customer.id, mobile: customer.mobile, name: customer.name },
@@ -505,7 +505,7 @@ const userExists = async (credential) => {
 const CustomerExists = async (credential) => {
   console.log(credential);
   const user = await Customer.findOne({
-    $or: [{ email: credential }, { mobile: credential }],
+    $or: [{ email_address: credential }, { contact_number: credential }],
   });
   console.log(user);
   return user;

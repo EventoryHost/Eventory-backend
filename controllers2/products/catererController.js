@@ -185,6 +185,7 @@ const createCaterer = async (req, res) => {
     const newCaterer = new Caterer({
       vendor_id: req.body.vendor_id,
       service_areas: req.body.service_areas || [],
+      service_id: service_id,
       basic_details: {
         is_completed: profile_completion_score?.basic_details || false,
         point_of_contact: req.body.point_of_contact,
