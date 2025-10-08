@@ -1,5 +1,6 @@
 import { Vendor } from '../models/users.js';
 import { Coupon } from '../models/coupon.js';
+import { CustomerCoupon } from '../models/customerCoupon.js';
 import { Customer } from '../models/customer.js';
 
 // Helper function to calculate new discount eligibility
@@ -406,15 +407,15 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
 
     const customer = await Customer.findOne({ id: customerId });
     if (!customer) {
-      return res.status(404).json({ success: false, error: 'Customer not found' });
+      return res.status(404).json({ success: false, error: "Customer not found" });
     }
 
-    const allCoupons = await Coupon.find({ isActive: true });
-    const availableCoupons = allCoupons.filter(c =>
+    const allCoupons = await CustomerCoupon.find({ isActive: true });
+    const availableCoupons = allCoupons.filter((c) =>
       customer.couponDetails.canUseDiscounts.includes(c.discount)
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         availableCoupons,
@@ -426,52 +427,44 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error getting available coupons (customer):', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Error getting available coupons (customer):", error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
 // POST /api/coupons/customers/validate
+// Body: { customerId, couponCode, convenienceFee, currentTotal }
+// Rule: discount applies ONLY on convenienceFee, and reduces currentTotal by that amount
+// controllers/customerCouponController.js (validate)
 export const validateCouponForCustomer = async (req, res) => {
   try {
-    const { customerId, couponCode, originalAmount } = req.body;
+    const { customerId, couponCode, convenienceFee, currentTotal } = req.body;
 
-    if (!customerId || !couponCode || !originalAmount) {
+    if (!customerId || !couponCode || convenienceFee == null || currentTotal == null) {
       return res.status(400).json({
-        success: false,
-        valid: false,
-        error: 'customerId, couponCode, and originalAmount are required',
-      });
-    }
-    if (originalAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        valid: false,
-        error: 'Original amount must be greater than 0',
+        success: false, valid: false,
+        error: "customerId, couponCode, convenienceFee, and currentTotal are required",
       });
     }
 
     const customer = await Customer.findOne({ id: customerId });
-    const coupon = await Coupon.findOne({
-      code: couponCode.toUpperCase(),
-      isActive: true,
-    });
+    if (!customer) return res.status(404).json({ success: false, valid: false, error: "Customer not found" });
 
-    if (!customer) {
-      return res.status(404).json({ success: false, valid: false, error: 'Customer not found' });
-    }
-    if (!coupon) {
-      return res.status(404).json({ success: false, valid: false, error: 'Invalid or inactive coupon code' });
-    }
+    const coupon = await CustomerCoupon.findOne({ code: String(couponCode).toUpperCase(), isActive: true });
+    if (!coupon) return res.status(404).json({ success: false, valid: false, error: "Invalid or inactive coupon code" });
 
     const canUse = customer.couponDetails.canUseDiscounts.includes(coupon.discount);
 
     let pricingDetails = null;
     if (canUse) {
-      const discountAmount = (originalAmount * coupon.discount) / 100;
-      const finalAmount = originalAmount - discountAmount;
+      const fee = Math.max(0, Number(convenienceFee) || 0);
+      const total = Math.max(0, Number(currentTotal) || 0);
+      const rawDiscount = (fee * coupon.discount) / 100;
+      const discountAmount = Math.min(rawDiscount, fee);
+      const finalAmount = Math.max(0, total - discountAmount);
+
       pricingDetails = {
-        originalAmount,
+        originalAmount: total,
         discountPercentage: coupon.discount,
         discountAmount,
         finalAmount,
@@ -479,15 +472,15 @@ export const validateCouponForCustomer = async (req, res) => {
       };
     }
 
-    res.json({
+    return res.json({
       success: true,
       valid: canUse,
       data: {
         coupon: canUse ? { code: coupon.code, discount: coupon.discount, team: coupon.team } : null,
         pricing: pricingDetails,
         message: canUse
-          ? `Valid! ${coupon.discount}% discount from ${coupon.team} team - Save ₹${pricingDetails.savings}`
-          : `You cannot use ${coupon.discount}% discount coupons. Available: ${customer.couponDetails.canUseDiscounts.join(', ')}%`,
+          ? `Valid! ${coupon.discount}% off convenience fee - Save ₹${pricingDetails.savings}`
+          : `You cannot use ${coupon.discount}% discount coupons. Available: ${customer.couponDetails.canUseDiscounts.join(", ")}%`,
         customerEligibility: {
           canUse: customer.couponDetails.canUseDiscounts,
           highestUsed: customer.couponDetails.highestDiscountUsed,
@@ -496,12 +489,14 @@ export const validateCouponForCustomer = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error validating coupon (customer):', error);
-    res.status(500).json({ success: false, valid: false, error: error.message });
+    return res.status(500).json({ success: false, valid: false, error: error.message });
   }
 };
 
+
 // POST /api/coupons/customers/apply
+// Body: { customerId, couponCode, couponDetails: { code, discount, finalAmount, savings } }
+// Note: originalAmount = finalAmount + savings (final total context), usage embedded on Customer
 export const applyCouponForCustomer = async (req, res) => {
   try {
     const { customerId, couponCode, couponDetails } = req.body;
@@ -509,37 +504,34 @@ export const applyCouponForCustomer = async (req, res) => {
     if (!customerId || !couponCode || !couponDetails) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: customerId, couponCode, couponDetails',
+        error: "Missing required fields: customerId, couponCode, couponDetails",
       });
     }
-    if (
-      couponDetails.finalAmount === undefined ||
-      couponDetails.finalAmount === null ||
-      couponDetails.savings === undefined ||
-      couponDetails.savings === null ||
-      couponDetails.discount === undefined ||
-      couponDetails.discount === null
-    ) {
-      return res.status(400).json({ success: false, error: 'Invalid couponDetails structure' });
+    const { finalAmount, savings, discount } = couponDetails || {};
+    if (finalAmount == null || savings == null || discount == null) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid couponDetails structure",
+      });
     }
 
     const customer = await Customer.findOne({ id: customerId });
     if (!customer) {
-      return res.status(404).json({ success: false, error: 'Customer not found' });
+      return res.status(404).json({ success: false, error: "Customer not found" });
     }
 
-    const coupon = await Coupon.findOne({
-      code: couponCode.toUpperCase(),
+    const coupon = await CustomerCoupon.findOne({
+      code: String(couponCode).toUpperCase(),
       isActive: true,
     });
     if (!coupon) {
-      return res.status(404).json({ success: false, error: 'Invalid or inactive coupon code' });
+      return res.status(404).json({ success: false, error: "Invalid or inactive coupon code" });
     }
 
-    if (coupon.discount !== couponDetails.discount) {
+    if (coupon.discount !== discount) {
       return res.status(400).json({
         success: false,
-        error: 'Coupon details mismatch. Please revalidate the coupon.',
+        error: "Coupon details mismatch. Please revalidate the coupon.",
       });
     }
 
@@ -551,7 +543,7 @@ export const applyCouponForCustomer = async (req, res) => {
       });
     }
 
-    const originalAmount = couponDetails.finalAmount + couponDetails.savings;
+    const originalAmount = Number(finalAmount) + Number(savings);
 
     const updatedCanUseDiscounts = calculateNewEligibility(
       customer.couponDetails.canUseDiscounts,
@@ -563,27 +555,27 @@ export const applyCouponForCustomer = async (req, res) => {
       discount: coupon.discount,
       appliedAt: new Date(),
       originalAmount,
-      discountAmount: couponDetails.savings,
-      finalAmount: couponDetails.finalAmount,
+      discountAmount: Number(savings),
+      finalAmount: Number(finalAmount),
     };
 
     await Customer.findOneAndUpdate(
       { id: customerId },
       {
-        $push: { 'couponDetails.appliedCoupons': couponUsage },
+        $push: { "couponDetails.appliedCoupons": couponUsage },
         $set: {
-          'couponDetails.highestDiscountUsed': Math.max(
+          "couponDetails.highestDiscountUsed": Math.max(
             customer.couponDetails.highestDiscountUsed,
             coupon.discount
           ),
-          'couponDetails.canUseDiscounts': updatedCanUseDiscounts,
+          "couponDetails.canUseDiscounts": updatedCanUseDiscounts,
         },
       }
     );
 
-    res.json({
+    return res.json({
       success: true,
-      message: 'Coupon applied successfully',
+      message: "Coupon applied successfully",
       data: {
         couponDetails: {
           code: coupon.code,
@@ -592,10 +584,10 @@ export const applyCouponForCustomer = async (req, res) => {
         },
         paymentDetails: {
           originalAmount,
-          discountAmount: couponDetails.savings,
-          finalAmount: couponDetails.finalAmount,
+          discountAmount: Number(savings),
+          finalAmount: Number(finalAmount),
           discountPercentage: coupon.discount,
-          savings: couponDetails.savings,
+          savings: Number(savings),
         },
         futureEligibility: {
           canUseDiscounts: updatedCanUseDiscounts,
@@ -604,8 +596,8 @@ export const applyCouponForCustomer = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error applying coupon (customer):', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Error applying coupon (customer):", error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -614,9 +606,9 @@ export const getCustomerCouponHistory = async (req, res) => {
   try {
     const { customerId } = req.params;
 
-    const customer = await Customer.findOne({ id: customerId }).select('couponDetails name');
+    const customer = await Customer.findOne({ id: customerId }).select("couponDetails name");
     if (!customer) {
-      return res.status(404).json({ success: false, error: 'Customer not found' });
+      return res.status(404).json({ success: false, error: "Customer not found" });
     }
 
     const totalSavings = customer.couponDetails.appliedCoupons.reduce(
@@ -624,7 +616,7 @@ export const getCustomerCouponHistory = async (req, res) => {
       0
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         customerName: customer.name,
@@ -639,7 +631,7 @@ export const getCustomerCouponHistory = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error getting coupon history (customer):', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Error getting coupon history (customer):", error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };

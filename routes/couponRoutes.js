@@ -6,7 +6,11 @@ import {
   getCouponHistory,
   validateCoupon,
   deactivateCoupon,
-  getAllCoupons
+  getAllCoupons,
+  getAvailableCouponsForCustomer,
+  applyCouponForCustomer,
+  getCustomerCouponHistory,
+  validateCouponForCustomer
 } from '../controllers/couponController.js';
 
 /**
