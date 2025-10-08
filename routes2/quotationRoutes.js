@@ -88,7 +88,7 @@ router.post("/", async (req, res) => {
         .json({ error: "Budget and Number of Guests must be valid numbers." });
     }
 
-    const newQuotation = new Quotation({
+    const newQuotation = new Quotations({
       customer_id: req.body.customer_id,
       vendor_id: req.body.vendor_id,
       service_id: req.body.service_id,
@@ -98,34 +98,26 @@ router.post("/", async (req, res) => {
       event_start: new Date(req.body.event_start),
       event_end: new Date(req.body.event_end),
       guest_count: parsedNumberOfGuest,
-      customer_requirements : req.body.customer_requirements,
+      customer_requirements: req.body.customer_requirements,
       event_type: req.body.event_type,
-      quote_status: req.body.quote_status,
+      quote_status: req.body.quote_status || 'Pending', 
       location_type: req.body.location_type,
     });
-
-    const customer = await Customer.findOne({ id: req.body.user_id });
-
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
+    
+    // Check for pre-save validation errors (e.g., event_start >= event_end)
+    await newQuotation.validate();
+    
+    // Check if a quotation already exists for this service from the same customer
+    const existingQuotation = await Quotations.findOne({
+      customer_id: req.body.customer_id,
+      service_id: req.body.service_id,
+    });
+    
+    if (existingQuotation) {
+      return res.status(400).json({ message: "Quotation already created for this service by this customer." });
     }
 
     const savedQuotation = await newQuotation.save();
-
-    if (!customer.quotations) {
-      customer.quotations = [];
-    }
-
-    if (customer.quotations.find(q => q.serviceId === req.body.service_id)) {
-      return res.status(400).json({ message: "Quotation already created for this service" });
-    }
-
-    customer.quotations.push({
-      serviceId: req.body.service_id,
-      quotationId: savedQuotation.id,
-    });
-
-    await customer.save();
 
     res.status(201).json({
       message: "Quotation created successfully!",
@@ -133,10 +125,12 @@ router.post("/", async (req, res) => {
     });
 
     setImmediate(() => {
+      // The `customer` object is no longer needed to find the mobile number
+      // as `customer_contact_number` is now part of the `quotation` schema.
       sendConfirmationMessageToWhatsapp({
-        customer_mobile: customer.mobile,
-        customer_name: customer.name,
-        id: newQuotation.id,
+        customer_mobile: savedQuotation.customer_contact_number,
+        customer_name: savedQuotation.customer_name,
+        id: savedQuotation.quotation_id, // Use the new `quotation_id` field
       });
     });
   } catch (error) {
@@ -178,7 +172,7 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ message: "vendor_id is required" });
     }
 
-    const quotations = await Quotation.find({ vendor_id });
+    const quotations = await Quotations.find({ vendor_id });
 
     if (quotations.length === 0) {
       return res.status(404).json({ message: `No quotations found for vendor_id: ${vendor_id}` });
@@ -212,7 +206,7 @@ router.get("/", async (req, res) => {
  */
 router.get("/all", async (req, res) => {
   try {
-    const quotations = await Quotation.find();
+    const quotations = await Quotations.find();
 
     if (quotations.length === 0) {
       return res.status(404).json({ message: "No quotations found" });
@@ -261,43 +255,44 @@ router.get("/all", async (req, res) => {
  */
 router.patch("/", async (req, res) => {
   try {
-    const { id, status } = req.body;
-
-    const updateResult = await Quotation.updateOne({ id }, { $set: { status } });
-
-    if (updateResult.modifiedCount === 0) {
-      return res.status(404).json({ message: "Quotation not found or unchanged" });
+    const { quotation_id, quote_status } = req.body;
+    if (!quotation_id || !quote_status) {
+      return res.status(400).json({ message: "quotation_id and quote_status are required" });
     }
 
-    const updatedQuotation = await Quotation.findOne({ id });
+    const updatedQuotation = await Quotations.findOneAndUpdate(
+      { quotation_id },
+      { $set: { quote_status: quote_status } },
+      { new: true } // Return the updated document
+    );
 
     if (!updatedQuotation) {
-      return res.status(404).json({ message: "Quotation not found after update" });
+      return res.status(404).json({ message: "Quotation not found" });
     }
 
-    if (status === "Accepted") {
-      const { user_id, vendor_id, service_id } = updatedQuotation;
+    if (updatedQuotation.quote_status === "Accepted") {
+      const { customer_id, vendor_id, service_id, quotation_id } = updatedQuotation;
 
-      const existingChat = await Chat.findOne({
-        cusId: user_id,
-        venId: vendor_id,
-        serId: service_id,
+      const existingChat = await Chat2.findOne({
+        customer_id, // Matches new schema
+        vendor_id,    // Matches new schema
+        service_id,   // Matches new schema
       });
 
       if (!existingChat) {
-        await Chat.create({
-          chatId: id,
-          cusId: user_id,
-          venId: vendor_id,
-          serId: service_id,
-          rmId: "admin-rm",
+        await Chat2.create({
+          chat_id: quotation_id,
+          customer_id,             
+          vendor_id,               
+          service_id,              
+          em_id: "admin-rm",       
         });
       }
     }
 
     res.status(200).json({
       message: "Quotation updated successfully!",
-      data: updatedQuotation.status,
+      data: updatedQuotation.quote_status,
     });
   } catch (error) {
     res.status(500).json({
@@ -346,7 +341,7 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const quotation = await Quotation.findOne({ id });
+    const quotation = await Quotations.findOne({ quotation_id : id });
 
     if (!quotation) {
       return res.status(404).json({ message: "Quotation not found" });
