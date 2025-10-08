@@ -480,7 +480,7 @@ export const validateCouponForCustomer = async (req, res) => {
         pricing: pricingDetails,
         message: canUse
           ? `Valid! ${coupon.discount}% off convenience fee - Save ₹${pricingDetails.savings}`
-          : `You cannot use ${coupon.discount}% discount coupons. Available: ${customer.couponDetails.canUseDiscounts.join(", ")}%`,
+          : `You have already used a ${customer.couponDetails.highestDiscountUsed}% discount coupon`,
         customerEligibility: {
           canUse: customer.couponDetails.canUseDiscounts,
           highestUsed: customer.couponDetails.highestDiscountUsed,

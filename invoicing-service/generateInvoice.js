@@ -413,14 +413,16 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const invoiceNumber = invoiceCount + 1;
 
     const items = Array.isArray(paymentDetails.items) ? paymentDetails.items : [];
-    const totalAmount = Number(paymentDetails.amount) || 0;
-    const discountAmount = Number(paymentDetails.discount) || 0;
-    const finalAmount = Math.max(0, totalAmount - discountAmount);
-    const convinienceFee = Number(paymentDetails.convinienceFee) || 0;
+    const totalAmount = Number(paymentDetails.amount) || 0;             // pre-discount total
+    const discountAmount = Number(paymentDetails.discount) || 0;        // absolute coupon discount
+    const finalAmount = Math.max(0, totalAmount - discountAmount);      // discounted total
+    const convinienceFee = Number(paymentDetails.convinienceFee) || 0;  // original (fee + tax) bundle
     const commissionFee = Number(paymentDetails.commissionFee) || 0;
+    const couponCode = (paymentDetails.couponCode || "").toString().toUpperCase()
+
     const paymentMethod =
-      discountAmount >= totalAmount
-        ? "Eventory-Coupon-Code"
+      discountAmount > 0
+        ? "KCWELC50"
         : paymentDetails.method || "Online";
     const paymentType = paymentDetails.paymentType || null;
     const paidAmountNum = (() => {
@@ -483,12 +485,12 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     });
 
     if (discountAmount > 0) {
-      const couponCode = (paymentDetails.couponCode || "DISCOUNT").toUpperCase();
+      const couponCodeRow = couponCode || "DISCOUNT";
       tableRows += `
         <tr>
           <td style="text-align:center;">${runningSerial}</td>
           <td>Discount</td>
-          <td style="text-align:center;">${couponCode}</td>
+          <td style="text-align:center;">${couponCodeRow}</td>
           <td style="text-align:center;"></td>
           <td style="text-align:center;"></td>
           <td style="text-align:center;"></td>
@@ -499,11 +501,21 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       runningSerial++;
     }
 
+    const discountTotalsRow =
+      discountAmount > 0
+        ? `
+      <tr class="total-row">
+        <td colspan="7" style="text-align:right;font-weight:bold;">Discount${couponCode ? ` (${couponCode})` : ""}:</td>
+        <td style="font-weight:bold;color:#16A34A">- Rs ${discountAmount.toFixed(2)}</td>
+      </tr>`
+        : "";
+
     const totalRow = `
       <tr class="total-row">
         <td colspan="7" style="text-align:right;font-weight:bold;border-top: 2px solid #000">Convenience Fee:</td>
         <td style="font-weight:bold;border-top: 2px solid #000">Rs ${convinienceFee.toFixed(2)}</td>
       </tr>
+      ${discountTotalsRow}
       <tr class="total-row">
         <td colspan="7" style="text-align:right;font-weight:bold;">Total to be paid:</td>
         <td style="font-weight:bold;">Rs ${finalAmount.toFixed(2)}</td>
