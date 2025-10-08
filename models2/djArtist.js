@@ -140,7 +140,7 @@ const djArtistSchema = new Schema({
     type: String,
     required: true,
     unique: true,
-    default: () => generateUniqueId("dj")
+    default: () => generateUniqueId("DJS")
   },
   vendor_id: {
     type: String,
