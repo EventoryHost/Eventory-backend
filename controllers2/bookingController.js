@@ -1,10 +1,11 @@
 import { Events } from "../models2/events.js";
-import { Caterer } from "../models/caterer.js";
-import { Decorator } from "../models/decoraters.js";
-import { eventSchema, Venue } from "../models/venue.js";
-import Photographer from "../models/photographers.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import { Caterer } from "../models2/caterer.js";
+import { Decorator } from "../models2/decorator.js";
+import VenueProvider  from "../models2/venueProvider.js";
+import Photographer from "../models2/photographerVideographer.js";
+import MakeupArtist from "../models2/makeupArtist.js";
 import generateUniqueId from "../utils/generateId.js";
+import { Calendar } from "../models2/calendar.js";
 
 export const createBooking = async (req, res) => {
    try {
@@ -127,17 +128,26 @@ export const getAllBookings = async (req, res) => {
 };
 
 export const addOfflineEvent = async (req, res) => {
+  //type -> service_type
   try {
-    const { title, start, end, calendarId, type, description, color } =
-      req.body;
-    const { serId } = req.query; // Extract vendor ID from query parameters
+    const { event_start, event_end, type, event_description, event_highlight } = req.body;
+    const { service_id } = req.query;
 
-    if (!serId || !title || !start || !end || !type || !color) {
-      console.log("hit", req.body);
+    if (!service_id || !event_start || !event_end || !type || !event_highlight || !event_description) {
       return res.status(400).json({
-        message:
-          "Missing required fields: serId, title, start, end, type, color",
+        message: "Missing required fields: serId, title, start, end, type, color",
       });
+    }
+
+    // Expect start/end to be ISO UTC strings (from frontend fix). Coerce and validate.
+    const startDate = new Date(event_start);   // e.g., 2025-10-15T04:30:00.000Z
+    const endDate = new Date(event_end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ message: "Invalid start or end datetime" });
+    }
+    if (endDate <= startDate) {
+      return res.status(400).json({ message: "end must be after start" });
     }
 
     const colorOptions = {
@@ -148,56 +158,19 @@ export const addOfflineEvent = async (req, res) => {
       "#F050E3": "purple",
     };
 
-    let vendorModel;
+    const calendar = new Calendar({
+      service_id: service_id,
+      event_start: startDate,
+      event_end: endDate,
+      event_description: event_description,
+      event_highlight: event_highlight,
+      event_source: 'EXTERNAL',
+      event_type: 'booked'
+    });
 
-    switch (type) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "pav":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid vendor type" });
-    }
+    await calendar.save();
 
-    // Find the vendor by its ID field
-    const vendor = await vendorModel.findOne({ id: serId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: `${type} not found` });
-    }
-
-    // Create an event object
-    const event = {
-      calendarId: generateUniqueId("cal"), // Example: "upcoming"
-      id: vendor.schedule.length + 1, // Generate a unique ID (consider using a better approach)
-      title,
-      description,
-      start: new Date(start), // Convert to Date object
-      end: new Date(end),
-      color: colorOptions[color], // Use the color mapping or fallback to the provided color
-    };
-
-    // console.log(event);
-    // Validate the event object against the eventSchema
-
-    // Push the new event to the schedule array
-    vendor.schedule.push(event);
-
-    // Save the updated vendor document
-    await vendor.save();
-
-    return res.status(200).json({ message: "Event added successfully", event });
+    return res.status(200).json({ message: "Event added successfully", calendar });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -206,128 +179,52 @@ export const addOfflineEvent = async (req, res) => {
 
 export const editOfflineEvent = async (req, res) => {
   try {
-    const { serId, type, calendarId, updatedEventData } = req.body.data;
+    const { event_id, updatedEventData } = req.body;
 
-    console.log("Received Data:", req.body.data);
+    console.log("Received Data:", req.body);
 
-    if (!serId || !calendarId || !type || !updatedEventData) {
+    // Validation
+    if ( !event_id || !updatedEventData) {
       return res.status(400).json({
-        message:
-          "Missing required fields: serId, calendarId, type, or updatedEventData",
+        message: "Missing required fields: service_id, event_id, or updatedEventData",
       });
     }
 
-    let vendorModel;
-
-    switch (type.toLowerCase()) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "photographer":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid vendor type" });
+    // Find the calendar entry by event_id
+    const calendar = await Calendar.findOne({ event_id });
+    if (!calendar) {
+      return res.status(404).json({ message: "Event not found" });
     }
 
-    const vendor = await vendorModel.findOne({ id: serId });
+    // Update allowed fields
+    Object.assign(calendar, updatedEventData);
 
-    if (!vendor) {
-      return res.status(404).json({ message: `${type} not found` });
-    }
-
-    if (!Array.isArray(vendor.schedule)) {
-      vendor.schedule = [];
-    }
-
-    const index = vendor.schedule.findIndex(
-      (event) => event.calendarId === updatedEventData.calendarId,
-    );
-
-    if (index === -1) {
-      return res.status(404).json({ message: "Event not found in schedule" });
-    }
-
-    // Update only the fields that are provided in updatedEventData
-    vendor.schedule[index] = {
-      ...vendor.schedule[index],
-      ...updatedEventData,
-    };
-
-    await vendor.save();
+    // Save the updated calendar
+    await calendar.save();
 
     return res.status(200).json({
       message: "Event updated successfully",
-      updatedEvent: vendor.schedule[index],
+      updatedCalendar: calendar,
     });
   } catch (error) {
-    console.error("Error in editOfflineEvent:", error);
+    console.error("Error updating offline event:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 export const deleteOfflineEvent = async (req, res) => {
   try {
-    const { serId, type } = req.body.data; // Extract parameters
-    const calendarId = req.body.data.calenderId; // Extract calendarId from query parameters
-    console.log("Received Data:", req.body.data);
+    const { event_id } = req.body; // Extract parameters
+    console.log("Received Data:", req.body); 
 
-    if (!serId || !calendarId || !type) {
+    if (!event_id) {
       return res
         .status(400)
-        .json({ message: "Missing required fields: serId, calendarId, type" });
+        .json({ message: "Missing event_id" });
     }
 
-    let vendorModel;
-
-    switch (type) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "photographer":
-        vendorModel = Photographer;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid vendor type" });
-    }
-
-    // Find the vendor by its ID
-    const vendor = await vendorModel.findOne({ id: serId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: `${type} not found` });
-    }
-
-    // Filter out the event that matches the given calendarId
-    const updatedSchedule = vendor.schedule.filter(
-      (event) => event.calendarId !== calendarId,
-    );
-
-    // If no change in schedule, it means the event was not found
-    if (updatedSchedule.length === vendor.schedule.length) {
-      return res.status(404).json({ message: "Event not found in schedule" });
-    }
-
-    // Update the vendor's schedule
-    vendor.schedule = updatedSchedule;
-
-    // Save the updated vendor document
-    await vendor.save();
+    //delete the calendar by event_id
+    await Calendar.deleteOne({ event_id });
 
     return res.status(200).json({ message: "Event deleted successfully" });
   } catch (error) {
@@ -337,75 +234,53 @@ export const deleteOfflineEvent = async (req, res) => {
 };
 
 export const getVendorBookings = async (req, res) => {
-  try {
-    const { year, month, serId, type } = req.query;
+ try {
+    const { service_id } = req.query;
 
-    // if (!year || !month) {
-    //   return res.status(400).json({ error: "Year and month are required." });
-    // }
-
-    // const startOfMonth = new Date(year, month - 1, 1);
-    // const endOfMonth = new Date(year, month, 0, 23, 59, 59);
-
-    let vendorModel;
-
-    switch (type) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "photographer":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-      default:
-        return res.status(400).json({ error: "Invalid vendor type." });
+    if (!service_id) {
+      return res.status(400).json({ message: "service_id is required" });
     }
 
-    const vendor = await vendorModel.findOne({ id: serId }, "schedule");
-    // console.log(startOfMonth, endOfMonth);
-    const offlineBookings =
-      vendor?.schedule.filter((booking) => {
-        const bookingDate = new Date(booking.startDate);
-        return bookingDate;
-        // return bookingDate >= startOfMonth && bookingDate <= endOfMonth;
-      }) || [];
+    // Fetch all calendar entries for this vendor
+    const allBookings = await Calendar.find({ service_id });
 
-    const onlineBookings = await Booking.find({
-      serviceId: serId,
-      // startDate: { $gte: startOfMonth, $lte: endOfMonth },
-    });
+    // Separate based on prefix or event_source
+    const offlineBookings = allBookings.filter(
+      (booking) => booking.event_source === "EXTERNAL" || booking.event_id.startsWith("EXTY")
+    );
 
-    res.status(200).json({
+    const onlineBookings = allBookings.filter(
+      (booking) => booking.event_source === "EVENTORY" || booking.event_id.startsWith("EVTY")
+    );
+
+    // Respond
+    return res.status(200).json({
+      success: true,
+      totalBookings: allBookings.length,
+      offlineCount: offlineBookings.length,
+      onlineCount: onlineBookings.length,
       offlineBookings,
       onlineBookings,
     });
   } catch (error) {
     console.error("Error fetching bookings:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 // GET /api/bookings/:bookingId
 export const getBookingById = async (req, res) => {
   try {
-    const { bookingId } = req.params;
-
-    if (!bookingId) {
-      return res.status(400).json({ message: "Booking ID is required" });
+    const { event_id } = req.params;
+    console.log("Received event ID:", event_id);
+    if (!event_id) {
+      return res.status(400).json({ message: "Event ID is required" });
     }
 
-    const booking = await Booking.findOne({ bookingid: bookingId });
+    const booking = await Events.findOne({ event_id });
 
     if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     res.status(200).json({ booking });
@@ -417,13 +292,13 @@ export const getBookingById = async (req, res) => {
 
 export const getBookingsByCustomer = async (req, res) => {
   try {
-    const { customerId } = req.params;
+    const { customer_id } = req.params;
 
-    if (!customerId) {
+    if (!customer_id) {
       return res.status(400).json({ message: "Customer ID is required" });
     }
 
-    const bookings = await Booking.find({ customerId });
+    const bookings = await Events.find({ customer_id });
 
     if (!bookings || bookings.length === 0) {
       return res.status(404).json({ message: "No bookings found for this customer" });
@@ -435,6 +310,9 @@ export const getBookingsByCustomer = async (req, res) => {
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
+// rm admin api for getting services of a vendor
+// NOT UPDATED YET 
 export const getAllVendorServiceSchedules = async (req, res) => {
   const { vendorId, services } = req.body;
 

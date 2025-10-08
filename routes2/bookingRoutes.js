@@ -19,6 +19,47 @@ const router = express.Router();
 
 /**
  * @swagger
+ * /api/bookings/delete-offline-booking:
+ *   patch:
+ *     summary: Delete an offline booking
+ *     tags:
+ *       - Bookings
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               event_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Offline event deleted
+ */
+router.delete("/delete-offline-booking", deleteOfflineEvent);
+
+/**
+ * @swagger
+ * /api/bookings/{bookingId}:
+ *   get:
+ *     summary: Get booking by ID
+ *     tags:
+ *       - Bookings
+ *     parameters:
+ *       - name: bookingId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booking details
+ */
+router.get('/get-by-id/:event_id', getBookingById);
+
+/**
+ * @swagger
  * /api/bookings:
  *   post:
  *     summary: Create a new booking
@@ -160,29 +201,9 @@ router.get("/all", getAllBookings);
  *       200:
  *         description: Offline event added
  */
-router.patch("/add-offline-booking", addOfflineEvent);
+router.post("/add-offline-booking", addOfflineEvent);
 
-/**
- * @swagger
- * /api/bookings/delete-offline-booking:
- *   patch:
- *     summary: Delete an offline booking
- *     tags:
- *       - Bookings
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               event_id:
- *                 type: string
- *     responses:
- *       200:
- *         description: Offline event deleted
- */
-router.patch("/delete-offline-booking", deleteOfflineEvent);
+
 
 /**
  * @swagger
@@ -221,24 +242,7 @@ router.patch("/edit-offline-booking", editOfflineEvent);
  */
 router.get("/get-vendor-bookings", getVendorBookings);
 
-/**
- * @swagger
- * /api/bookings/{bookingId}:
- *   get:
- *     summary: Get booking by ID
- *     tags:
- *       - Bookings
- *     parameters:
- *       - name: bookingId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Booking details
- */
-router.get('/:bookingId', getBookingById);
+
 
 /**
  * @swagger
@@ -257,7 +261,7 @@ router.get('/:bookingId', getBookingById);
  *       200:
  *         description: Customer's bookings
  */
-router.get("/customer/:customerId", getBookingsByCustomer);
+router.get("/customer/:customer_id", getBookingsByCustomer);
 
 /**
  * @swagger
