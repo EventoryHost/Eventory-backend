@@ -306,4 +306,20 @@ const getAllDecorators = async (req, res) => {
   }
 };
 
-export default { createDecorator, getAllDecorators };
+const getDecoratorById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const decorator = await Decorator.findOne({ service_id: id });
+
+    if (!decorator) {
+      return res.status(404).json({ message: "Decorator not found" });
+    }
+
+    res.status(200).json(decorator);
+  } catch (error) {
+    console.error("Error fetching decorator:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export default { createDecorator, getAllDecorators, getDecoratorById };
