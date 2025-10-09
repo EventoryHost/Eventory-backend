@@ -421,8 +421,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const couponCode = (paymentDetails.couponCode || "").toString().toUpperCase()
 
     const paymentMethod =
-      discountAmount > 0
-        ? "KCWELC50"
+      discountAmount >= totalAmount
+        ? "Eventory-Coupon-Code"
         : paymentDetails.method || "Online";
     const paymentType = paymentDetails.paymentType || null;
     const paidAmountNum = (() => {
