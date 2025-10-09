@@ -541,7 +541,6 @@ const verifyCustomerPayment = async (req, res) => {
       finalOrder?.paymentDetails?.couponCode ||
       null;
 
-    // absolute discount on (convenienceFee + taxOnConvenience) bundle
     const discountAbs =
       typeof couponDiscount === "number"
         ? Number(couponDiscount)
@@ -637,7 +636,7 @@ const verifyCustomerPayment = async (req, res) => {
         baseAmount: N(cp.baseAmount || 0),
         convenienceFee: N(cp.convenienceFee || 0),
         taxOnConvenience: N(cp.taxOnConvenience || 0),
-        discount: discountForInvoice, // NEW: surface discount here, too
+        discount: discountForInvoice,
       },
       vendorReceivable: {
         total: N(vr.total || 0),
@@ -654,7 +653,6 @@ const verifyCustomerPayment = async (req, res) => {
       bookingId: bookingId,
     };
 
-    console.log("payment sqs msg", paymentDetailsMsg)
 
     const sqsMessage = {
       type: "bookingPayment",

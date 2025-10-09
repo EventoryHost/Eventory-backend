@@ -26,7 +26,7 @@ const CustomerSchema = new Schema({
   ],
   favoriteServices: [{ type: String }],
   couponDetails: {
-    appliedCoupons: [customerCouponUsageSchema], // FIX: usage subdocs embedded
+    appliedCoupons: [customerCouponUsageSchema],
     highestDiscountUsed: { type: Number, default: 0, enum: [0, 25, 50, 100] },
     canUseDiscounts: { type: [Number], default: [25, 50, 100] },
   },
