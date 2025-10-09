@@ -261,6 +261,11 @@ const createVenue = async (req, res) => {
     }
     
     vendor.services.push(savedVenue.service_id);
+    vendor.service_types.push({
+      "service_name" : "Venue-Provider",
+      "service_status" : "Inactive",
+      "service_id" : savedVenue.service_id
+    })
     
     await vendor.save();
     

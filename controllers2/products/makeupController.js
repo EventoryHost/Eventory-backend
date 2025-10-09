@@ -321,6 +321,11 @@ const createMakeupArtist = async (req, res) => {
     }
    
     vendor.services.push(savedMakeupArtist.service_id); // Changed to push _id, as this is the likely fix
+    vendor.service_types.push({
+      "service_name" : "Makeup-Artist",
+      "service_status" : "Inactive",
+      "service_id" : savedMakeupArtist.service_id
+    })
     console.log(
       "Successfully pushed new service ID. Saving vendor document..."
     );

@@ -266,6 +266,11 @@ const createDecorator = async (req, res) => {
     }
 
     vendor.services.push(savedDecorator.service_id);
+     vendor.service_types.push({
+      "service_name" : "Decorator",
+      "service_status" : "Inactive",
+      "service_id" : savedDecorator.service_id
+    })
     await vendor.save();
 
     // Update section completion

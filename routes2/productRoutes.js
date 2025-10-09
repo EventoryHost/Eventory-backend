@@ -11,7 +11,7 @@ import makeupController from "../controllers2/products/makeupController.js";
 // import giftController from "../controllers/products/giftController.js";
 // import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers2/products/photographerController.js";
-// import vendorController from "../controllers/products/vendorController.js";
+import vendorController from "../controllers2/products/vendorController.js";
 // import { getAllServices } from "../controllers/servicesController.js";
 // import searchProducts from "../controllers/productController.js";
 
@@ -168,5 +168,33 @@ router.post(
 );
 
 // router.get("/search/", searchProducts);
+
+// Adding vendor-specific routes
+router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
+
+// Add Bank Details route
+router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+/**
+ * @swagger
+ * /vendor/{vendorId}/bank-details:
+ *   get:
+ *     summary: Get vendor's bank details
+ *     tags: [Vendors]
+ */
+router.get("/vendor/:vendor_id/bank-details", vendorController.getBankDetails);
+
+/**
+ * @swagger
+ * /vendor/{vendorId}/delete-bank-details:
+ *   delete:
+ *     summary: Delete vendor's bank details
+ *     tags: [Vendors]
+ */
+// In your backend routes file (e.g., routes.js or similar)
+router.delete(
+  "/vendor/:vendor_id/bank-details",
+  vendorController.deleteBankDetails,
+);
+
 
 export default router;

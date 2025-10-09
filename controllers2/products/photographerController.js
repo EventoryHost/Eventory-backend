@@ -313,6 +313,11 @@ const createPhotographer = async (req, res) => {
     }
 
     vendor.services.push(savedPAV.service_id);
+    vendor.service_types.push({
+      "service_name" : "Photographer-Videographer",
+      "service_status" : "Inactive",
+      "service_id" : savedPAV.service_id
+    })
     await vendor.save();
     await updateSectionCompletion(savedPAV.vendor_id);
     process.env.IS_DEV !== "true" &&

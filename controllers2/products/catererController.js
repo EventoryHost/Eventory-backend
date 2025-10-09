@@ -292,6 +292,11 @@ const createCaterer = async (req, res) => {
     vendor.services.push(
       savedCaterer.service_id,
     );
+   vendor.service_types.push({
+      "service_name" : "Caterer",
+      "service_status" : "Inactive",
+      "service_id" : savedCaterer.service_id
+    })
     await vendor.save();
     
     // Update section completion and profile completion
