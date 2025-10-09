@@ -158,11 +158,15 @@ export const updateServiceDetails = async (req, res) => {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
     
-    const serviceObj = vendor.service_types.find(
-      (service) => service.service_id === serId
-    );
+    // New schema: services and service_types are parallel arrays
+    const serviceIndex = vendor.services.indexOf(serId);
+    if (serviceIndex === -1) {
+      return res.status(404).json({ error: "Service not found in vendor's services" });
+    }
 
+    const serviceObj = vendor.service_types[serviceIndex];
     console.log(serviceObj);
+    
     if (!serviceObj) {
       return res
         .status(404)

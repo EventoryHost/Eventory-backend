@@ -1,47 +1,55 @@
-import Quotations  from "../models2/quotations.js";
+import { Quotation } from "../models/quotation.js";
 import APIFeatures from "../utils/apiFeatures.js";
 
 const getQuotations = async (req, res, next) => {
   try {
     const {
+      minBudget,
+      maxBudget,
       start_date,
       end_date,
       minCapacity,
       maxCapacity,
       status,
-      customer_id,
+      user_id,
       limit,
       page,
     } = req.query;
 
     const filter = {};
 
-    // New guest count field: guest_count
+    if (minBudget && maxBudget) {
+      filter.budget = {
+        $gte: parseInt(minBudget, 10),
+        $lte: parseInt(maxBudget, 10),
+      };
+    }
+
+    // Pass correct format from frontend
+    if (start_date && end_date) {
+      filter.start_date = { $gte: new Date(start_date) };
+      filter.end_date = { $lte: new Date(end_date) };
+    }
+
     if (minCapacity && maxCapacity) {
-      filter.guest_count = {
+      filter.number_of_guest = {
         $gte: parseInt(minCapacity, 10),
         $lte: parseInt(maxCapacity, 10),
       };
     }
 
-    // New date fields: event_start and event_end
-    if (start_date && end_date) {
-      filter.event_start = { $gte: new Date(start_date) };
-      filter.event_end = { $lte: new Date(end_date) };
-    }
-
     if (status) {
-      filter.quote_status  = status; // Filter by status
+      filter.status = status; // Filter by status
     }
 
-    if (customer_id) {
-      filter.customer_id  = customer_id; // Filter by user_id
+    if (user_id) {
+      filter.user_id = user_id; // Filter by user_id
     }
     console.log("Ak", filter);
 
-    const totalDocuments = await Quotations.countDocuments(filter);
+    const totalDocuments = await Quotation.countDocuments(filter);
 
-    const features = new APIFeatures(Quotations.find(filter), req.query)
+    const features = new APIFeatures(Quotation.find(filter), req.query)
       .sort()
       .limitFields()
       .paginate();
@@ -50,6 +58,8 @@ const getQuotations = async (req, res, next) => {
 
     const limitValue = Number(req.query.limit) || 10;
     const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    // console.log("api", quotations);
 
     res.status(200).json({
       status: "success",

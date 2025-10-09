@@ -560,13 +560,13 @@ const isNewCustomer = async (mobile) => {
 };
 
 const updateProfilePic = async (req, res) => {
-  const vendorId = req.params.id; // This should be your custom ID, e.g., 'ven20241024155014318'
+  const vendorId = req.params.id; // This should be your custom ID, e.g., 'VEN20241024155014318'
 
   try {
-    // Use `findOneAndUpdate` with the custom id field
-    const updatedVendor = await User.findOneAndUpdate(
-      { id: vendorId }, // Query by the custom ID field
-      { profilePic: req.file.location }, // Store the path of the uploaded file
+    // Use `findOneAndUpdate` with the custom vendor_id field
+    const updatedVendor = await Vendor.findOneAndUpdate(
+      { vendor_id: vendorId }, // Query by the custom vendor_id field
+      { profile_picture: req.file.location }, // Store the path of the uploaded file
       { new: true } // Return the updated document
     );
 
