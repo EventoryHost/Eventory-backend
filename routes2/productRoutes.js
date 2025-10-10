@@ -170,7 +170,7 @@ router.post(
 // router.get("/search/", searchProducts);
 
 // Adding vendor-specific routes
-router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
+router.get("/:service_id/:vendor_id", vendorController.getVendorByIdAndCategory);
 
 // Add Bank Details route
 router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
