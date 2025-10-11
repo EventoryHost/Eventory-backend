@@ -14,7 +14,7 @@ import {
   getCustomerNotifications,
   markNotificationAsRead,
   markAllCustomerNotificationsAsRead,
-} from "../controllers/chatController.js";
+} from "../controllers2/chatController.js";
 import {
   getCustomerById,
   getCustomer,
@@ -124,7 +124,7 @@ router.get("/:chatId/search/:qId", getMessageContext);
  *     summary: Pin message in chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/pin/:messageId", pinMessageInChat);
+router.post("/chat/:chat_id/pin/:message_id", pinMessageInChat);
 
 /**
  * @swagger
@@ -133,7 +133,7 @@ router.post("/chat/:chatId/pin/:messageId", pinMessageInChat);
  *     summary: Unpin message in chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
+router.post("/chat/:chat_id/unpin/:message_id", unpinMessageInChat);
 
 /**
  * @swagger
@@ -142,7 +142,7 @@ router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
  *     summary: Block a chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/block", blockChat);
+router.post("/chat/:chat_id/block", blockChat);
 
 /**
  * @swagger
@@ -151,7 +151,7 @@ router.post("/chat/:chatId/block", blockChat);
  *     summary: Unblock a chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/unblock", unblockChat);
+router.post("/chat/:chat_id/unblock", unblockChat);
 
 /**
  * @swagger
@@ -160,7 +160,7 @@ router.post("/chat/:chatId/unblock", unblockChat);
  *     summary: Get pinned messages in chat
  *     tags: [Chat]
  */
-router.get("/chat/:chatId/pinned", getPinnedMessages);
+router.get("/:chat_id/pinned-messages", getPinnedMessages);
 
 /**
  * @swagger
