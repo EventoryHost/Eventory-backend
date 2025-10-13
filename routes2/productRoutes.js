@@ -171,4 +171,32 @@ router.post(
 
 // router.get("/search/", searchProducts);
 
+// Adding vendor-specific routes
+router.get("/:service_id/:vendor_id", vendorController.getVendorByIdAndCategory);
+
+// Add Bank Details route
+router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+/**
+ * @swagger
+ * /vendor/{vendorId}/bank-details:
+ *   get:
+ *     summary: Get vendor's bank details
+ *     tags: [Vendors]
+ */
+router.get("/vendor/:vendor_id/bank-details", vendorController.getBankDetails);
+
+/**
+ * @swagger
+ * /vendor/{vendorId}/delete-bank-details:
+ *   delete:
+ *     summary: Delete vendor's bank details
+ *     tags: [Vendors]
+ */
+// In your backend routes file (e.g., routes.js or similar)
+router.delete(
+  "/vendor/:vendor_id/bank-details",
+  vendorController.deleteBankDetails,
+);
+
+
 export default router;

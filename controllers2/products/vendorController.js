@@ -37,8 +37,6 @@ export const findService = async (vendor_id, service_id) => {
     throw new Error("Invalid service_id prefix");
   }
 
-  console.log("ServiceModel", ServiceModel.modelName); // will log model name
-
   const service = await ServiceModel.findOne({ vendor_id, service_id });
 
   if (!service) {
@@ -49,28 +47,38 @@ export const findService = async (vendor_id, service_id) => {
 };
 
 // Function to get a vendor by ID and category
-const getVendorByIdAndCategory = async (req, res) => {
+export const getVendorByIdAndCategory = async (req, res) => {
   try {
-    const { vendor, id } = req.params; // Extract vendor (category) and id from request params
+    const { service_id, vendor_id } = req.params;
 
-    // Check if the passed vendor category exists in the vendorModels map
-    const VendorModel = vendorModels[vendor];
-
-    if (!VendorModel) {
-      return res.status(400).json({ message: "Invalid vendor category" });
+    // Validate input
+    if (!service_id || !vendor_id) {
+      return res.status(400).json({ message: "service_id and vendor_id are required" });
     }
 
-    // Find vendor by both ID and category model
-    const foundVendor = await VendorModel.findOne({ id: id });
+    // ✅ Get the correct Mongoose model based on prefix
+    const ServiceModel = getServiceModel(service_id);
+    if (!ServiceModel) {
+      return res.status(400).json({ message: "Invalid service_id prefix" });
+    }
 
-    if (!foundVendor) {
+    // ✅ Fetch vendor/service document
+    const vendor = await ServiceModel.findOne({ service_id, vendor_id });
+
+    if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    res.json(foundVendor);
+    res.status(200).json({
+      message: "Vendor fetched successfully",
+      vendor,
+    });
   } catch (error) {
     console.error("Error fetching vendor:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Error fetching vendor",
+      error: error.message,
+    });
   }
 };
 

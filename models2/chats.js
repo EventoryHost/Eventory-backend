@@ -73,7 +73,7 @@ const chatSchema = new Schema({
     }
   }
 }, {
-  collection: 'chats'
+  collection: 'chat2'
 });
 
 // Pre-save middleware to update chat_updated_at and last_message_updated_at on every save

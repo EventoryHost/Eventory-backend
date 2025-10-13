@@ -2,6 +2,7 @@ import Quotations from "../models2/quotations.js";
 import Chat2 from "../models2/chats.js"; // New import
 import APIFeatures from "../utils/apiFeatures.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers2/waController.js"; // New import
+import CustomerNotification from "../models2/customerNotifications.js";
 
 // Create a new quotation
 const createQuotation = async (req, res) => {
@@ -18,20 +19,30 @@ const createQuotation = async (req, res) => {
       guest_count,
       customer_requirements,
       event_type,
-      quote_status = 'Pending',
+      quote_status = "Pending",
       location_type,
     } = req.body;
 
     const parsedNumberOfGuest = Number(guest_count);
 
     if (isNaN(parsedNumberOfGuest)) {
-      return res.status(400).json({ error: "Number of Guests must be a valid number." });
+      return res
+        .status(400)
+        .json({ error: "Number of Guests must be a valid number." });
     }
 
     // Check if a quotation already exists for this service from the same customer
-    const existingQuotation = await Quotations.findOne({ customer_id, service_id });
+    const existingQuotation = await Quotations.findOne({
+      customer_id,
+      service_id,
+    });
     if (existingQuotation) {
-      return res.status(400).json({ message: "Quotation already created for this service by this customer." });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Quotation already created for this service by this customer.",
+        });
     }
 
     const newQuotation = new Quotations({
@@ -49,7 +60,7 @@ const createQuotation = async (req, res) => {
       quote_status,
       location_type,
     });
-    
+
     // Check for pre-save validation errors (e.g., event_start >= event_end)
     await newQuotation.validate();
 
@@ -87,7 +98,9 @@ const getQuotationsByVendorId = async (req, res) => {
     const quotations = await Quotations.find({ vendor_id });
 
     if (quotations.length === 0) {
-      return res.status(404).json({ message: `No quotations found for vendor_id: ${vendor_id}` });
+      return res
+        .status(404)
+        .json({ message: `No quotations found for vendor_id: ${vendor_id}` });
     }
 
     res.status(200).json({
@@ -128,7 +141,9 @@ const updateQuotationStatus = async (req, res) => {
   try {
     const { quotation_id, quote_status } = req.body;
     if (!quotation_id || !quote_status) {
-      return res.status(400).json({ message: "quotation_id and quote_status are required" });
+      return res
+        .status(400)
+        .json({ message: "quotation_id and quote_status are required" });
     }
 
     const updatedQuotation = await Quotations.findOneAndUpdate(
@@ -142,8 +157,15 @@ const updateQuotationStatus = async (req, res) => {
     }
 
     if (updatedQuotation.quote_status === "Accepted") {
+      console.log(`This ran ${updatedQuotation.quote_status}`);
       const { customer_id, vendor_id, service_id } = updatedQuotation;
-      const existingChat = await Chat2.findOne({ customer_id, vendor_id, service_id });
+      const existingChat = await Chat2.findOne({
+        customer_id,
+        vendor_id,
+        service_id,
+      });
+
+      console.log(`Is chat exist ${existingChat}`);
 
       if (!existingChat) {
         await Chat2.create({
@@ -154,6 +176,19 @@ const updateQuotationStatus = async (req, res) => {
           em_id: "admin-rm",
         });
       }
+      //Notification for the customer which tells him that the quotation has been accepted by vendor
+      const customerNotification = await CustomerNotification.create({
+        customer_id,
+        quotation_id,
+        chat_id: quotation_id,
+        notification_type: "chat_message",
+        message: "Your quotation has been accepted by the vendor. You can now start a conversation with them in the Quotations tab.",
+        read: false,
+        updated_at: new Date().toISOString(),
+      });
+
+      console.log(customerNotification);
+
     }
 
     res.status(200).json({
@@ -251,11 +286,11 @@ const getQuotations = async (req, res, next) => {
   }
 };
 
-export { 
-    createQuotation,
-    getQuotationsByVendorId,
-    getAllQuotations,
-    updateQuotationStatus,
-    getQuotationById,
-    getQuotations,
+export {
+  createQuotation,
+  getQuotationsByVendorId,
+  getAllQuotations,
+  updateQuotationStatus,
+  getQuotationById,
+  getQuotations,
 };
