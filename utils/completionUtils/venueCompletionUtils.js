@@ -10,15 +10,20 @@ export const checkVenueProfileCompletion = async (venueId) => {
 
     // Check if basic details are complete
     const basicDetailsComplete =
-      venue.basic_details.point_of_contact != null &&
-      venue.basic_details.service_contact_number != null &&
-      venue.basic_details.description != null &&
-      venue.basic_details.min_booking_capacity != null &&
-      venue.basic_details.max_booking_capacity != null &&
-      venue.basic_details.venue_name != null &&
-      venue.basic_details.service_type_details.length > 0 &&
+      !!venue.basic_details.point_of_contact &&
+      !!venue.basic_details.service_contact_number &&
+      !!venue.basic_details.description &&
+      !!venue.basic_details.min_booking_capacity &&
+      !!venue.basic_details.max_booking_capacity &&
+      !!venue.basic_details.venue_name &&
+      Array.isArray(venue.basic_details.event_types_venue) &&
       venue.basic_details.event_types_venue.length > 0 &&
-      venue.basic_details.service_location_venue != null;
+      !!venue.basic_details.service_location_venue?.service_address &&
+      !!venue.basic_details.service_location_venue?.lat &&
+      !!venue.basic_details.service_location_venue?.lon &&
+      !!venue.basic_details.service_location_venue?.service_pincode &&
+      Array.isArray(venue.service_areas) &&
+      venue.service_areas.length > 0;
 
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
 
@@ -31,14 +36,22 @@ export const checkVenueProfileCompletion = async (venueId) => {
 
     // Check if feature details are complete
     const featureDetailsComplete =
-  venue.feature_details.in_house_catering != null && // This is a boolean
-  venue.feature_details.in_house_decoration != null && // This is a boolean
-  venue.feature_details.venue_types_available.length > 0 &&
-  venue.feature_details.av_eqp_available_at_venue.length > 0 &&
-  venue.feature_details.accessibility_features_of_venue.length > 0 &&
-  venue.feature_details.restriction_policies_on_venue.length > 0 &&
-  venue.feature_details.special_features_in_venue.length > 0 &&
-  venue.feature_details.fascilities_at_venue.length > 0;
+      venue.feature_details.in_house_catering !== undefined &&
+      venue.feature_details.in_house_catering !== null &&
+      venue.feature_details.in_house_decoration !== undefined &&
+      venue.feature_details.in_house_decoration !== null &&
+      Array.isArray(venue.feature_details.venue_types_available) &&
+      venue.feature_details.venue_types_available.length > 0 &&
+      Array.isArray(venue.feature_details.av_eqp_available_at_venue) &&
+      venue.feature_details.av_eqp_available_at_venue.length > 0 &&
+      Array.isArray(venue.feature_details.accessibility_features_of_venue) &&
+      venue.feature_details.accessibility_features_of_venue.length > 0 &&
+      Array.isArray(venue.feature_details.restriction_policies_on_venue) &&
+      venue.feature_details.restriction_policies_on_venue.length > 0 &&
+      Array.isArray(venue.feature_details.special_features_in_venue) &&
+      venue.feature_details.special_features_in_venue.length > 0 &&
+      Array.isArray(venue.feature_details.fascilities_at_venue) &&
+      venue.feature_details.fascilities_at_venue.length > 0;
 
     console.log(`Feature details check: ------- ${featureDetailsComplete}`);
 
@@ -49,15 +62,15 @@ export const checkVenueProfileCompletion = async (venueId) => {
       }
     );
 
-    // Check if additional details are complete
+    // Check if additional details are complete (social links are optional)
     const additionalDetailsComplete =
-    venue.additional_details.asset_images.length > 0 &&
-    venue.additional_details.asset_videos.length > 0 &&
-    !!venue.additional_details.min_booking_period &&
-    !!venue.additional_details.max_booking_period &&
-    !!venue.additional_details.prices_starts_from &&
-    !!venue.additional_details.ig_socials_link &&
-    !!venue.additional_details.web_social_link;
+      Array.isArray(venue.additional_details.asset_images) &&
+      venue.additional_details.asset_images.length > 0 &&
+      Array.isArray(venue.additional_details.asset_videos) &&
+      venue.additional_details.asset_videos.length > 0 &&
+      !!venue.additional_details.min_booking_period &&
+      !!venue.additional_details.max_booking_period &&
+      !!venue.additional_details.prices_starts_from;
 
     console.log(
       `Additional details check: ------- ${additionalDetailsComplete}`
@@ -77,13 +90,31 @@ export const checkVenueProfileCompletion = async (venueId) => {
 
     console.log(`Policies check--------------: ${policiesComplete}`);
 
-    // Update the policies completion status in the database
+    // Update the policies completion status in the database (Fixed: using service_id instead of id)
     await VenueProvider.findOneAndUpdate(
-      { id: venueId },
+      { service_id: venueId },
       {
         "policies.is_completed": policiesComplete,
       }
     );
+
+    // Calculate overall profile completion score
+    const totalSections = 4; // basic, feature, additional, policies
+    let completedSections = 0;
+    
+    if (basicDetailsComplete) completedSections++;
+    if (featureDetailsComplete) completedSections++;
+    if (additionalDetailsComplete) completedSections++;
+    if (policiesComplete) completedSections++;
+    
+    const profileCompletionScore = Math.round((completedSections / totalSections) * 100);
+    
+    await VenueProvider.findOneAndUpdate(
+      { service_id: venueId },
+      { profile_completion_score: profileCompletionScore }
+    );
+
+    console.log(`Overall profile completion score: ${profileCompletionScore}%`);
 
     return true;
   } catch (error) {

@@ -158,6 +158,25 @@ export const updateServiceDetails = async (req, res) => {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
     
+    // Step 1.5: Handle vendor-level fields (email, mobile) if provided
+    let vendorUpdated = false;
+    if (updateData.email_address !== undefined) {
+      vendor.email_address = updateData.email_address;
+      vendorUpdated = true;
+      console.log(`Updating vendor email to: ${updateData.email_address}`);
+    }
+    if (updateData.vendor_mobile !== undefined) {
+      vendor.vendor_mobile = updateData.vendor_mobile;
+      vendorUpdated = true;
+      console.log(`Updating vendor mobile to: ${updateData.vendor_mobile}`);
+    }
+    
+    // Save vendor updates if any vendor-level fields were modified
+    if (vendorUpdated) {
+      await vendor.save();
+      console.log("Vendor-level fields updated successfully");
+    }
+    
     // New schema: services and service_types are parallel arrays
     const serviceIndex = vendor.services.indexOf(serId);
     if (serviceIndex === -1) {
@@ -197,6 +216,8 @@ export const updateServiceDetails = async (req, res) => {
         await checkDecoratorProfileCompletion(serId);
         break;
       case "pav":
+      case "photographer-videographer":
+      case "photographer videographer":
         updatedService = await Photographer.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
@@ -237,7 +258,14 @@ export const updateServiceDetails = async (req, res) => {
         await checkDjArtistProfileCompletion(serId);
         break;
       default:
-        return res.status(400).json({ error: "Unsupported service type" });
+        console.log("ERROR: Fell through to default case!");
+        console.log("Service type received:", serType);
+        console.log("Service type lowercase:", serType.toLowerCase());
+        return res.status(400).json({ 
+          error: "Unsupported service type",
+          received: serType,
+          receivedLowercase: serType.toLowerCase()
+        });
     }
 
     if (!updatedService) {
@@ -405,6 +433,10 @@ export const serviceFields = {
     "additional_details.asset_videos",
   ],
 };
+
+// Add aliases for service types
+serviceFields["photographer-videographer"] = serviceFields.pav;
+serviceFields["photographer videographer"] = serviceFields.pav;
 
 export const calculateProfileCompletion = (serviceData, serviceType) => {
   console.log(`Calculating profile completion for ${serviceType} service...`);
@@ -585,6 +617,8 @@ const checkVerification = (service, serType) => {
       ];
       break;
     case "pav":
+    case "photographer-videographer":
+    case "photographer videographer":
       fieldsToCheck = [
         // business_details field
         // { path: "business_details.business_name", label: "Business Name" },

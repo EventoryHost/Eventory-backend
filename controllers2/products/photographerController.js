@@ -357,4 +357,20 @@ const getAllPav = async (req, res) => {
   }
 };
 
-export default { createPhotographer, getAllPav };
+const getPhotographerById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const photographer = await PhotographerVideographer.findOne({ service_id: id });
+
+    if (!photographer) {
+      return res.status(404).json({ message: "Photographer not found" });
+    }
+
+    res.status(200).json(photographer);
+  } catch (error) {
+    console.error("Error fetching photographer:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export default { createPhotographer, getAllPav, getPhotographerById };

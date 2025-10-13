@@ -375,15 +375,16 @@ const getAllMakeupArtist = async (req, res) => {
 
 const getMakeupArtistById = async (req, res) => {
   try {
-    const makeupArtist = await MakeupArtist.findOne({
-      vendor_id: req.params.vendor_id,
-    });
+    const { id } = req.params;
+    const makeupArtist = await MakeupArtist.findOne({ service_id: id });
+
     if (!makeupArtist) {
       return res.status(404).json({ message: "Makeup artist not found" });
     }
     res.status(200).json(makeupArtist);
-  } catch (e) {
-    res.status(400).json({ message: e.message });
+  } catch (error) {
+    console.error("Error fetching makeup artist:", error);
+    res.status(400).json({ message: error.message });
   }
 };
 
