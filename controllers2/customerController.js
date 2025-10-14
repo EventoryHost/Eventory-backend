@@ -283,7 +283,7 @@ export const updateCustomer = async (req, res) => {
     if (!mobileFromBody) return res.status(400).json({ message: "Phone number missing" });
 
     const customer = await Customer.findOneAndUpdate(
-      { customer_number : mobileFromBody },
+      { contact_number: mobileFromBody }, // fixed to match schema
       { $set: updates },
       { new: true, runValidators: true }
     );

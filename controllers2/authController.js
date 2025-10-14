@@ -404,11 +404,12 @@ const verifyCustomerLoginOtp = async (req, res) => {
         console.log("flow was here")
         const customer = new Customer({ customer_name: name, contact_number: `+91${mobile}` });
         await customer.save();
-        const token = jwt.sign(
-          { id: customer.id, mobile: customer.mobile, name: customer.name },
-          process.env.JWT_SECRET,
-          { expiresIn: "24h" }
-        );
+        const payload = {
+          id: user.customer_id,                
+          mobile: user.contact_number, 
+          name: user.customer_name,      
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
         return res
           .status(200)
           .json({ message: "Login Success", token, user: customer });
@@ -417,7 +418,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
       }
     }
     const token = jwt.sign(
-      { id: user.id, mobile: user.mobile, name: user.name },
+      { id: user.customer_id, mobile: user.contact_number, name: user.customer_name },
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
