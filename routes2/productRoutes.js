@@ -11,7 +11,7 @@ import makeupController from "../controllers2/products/makeupController.js";
 // import giftController from "../controllers/products/giftController.js";
 // import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers2/products/photographerController.js";
-// import vendorController from "../controllers/products/vendorController.js";
+import vendorController from "../controllers2/products/vendorController.js";
 // import { getAllServices } from "../controllers/servicesController.js";
 // import searchProducts from "../controllers/productController.js";
 
