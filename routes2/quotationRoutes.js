@@ -8,6 +8,7 @@ import {
   getQuotations,
 } from "../controllers2/quotationController.js";
 
+export default (io) => {
 const router = express.Router();
 
 /**
@@ -76,7 +77,7 @@ const router = express.Router();
  * 500:
  * description: Server error
  */
-router.post("/", createQuotation);
+router.post("/", (req, res) => createQuotation(req, res, io));
 
 /**
  * @swagger
@@ -187,4 +188,5 @@ router.route("/myquotations").get(getQuotations);
  */
 router.get("/:id", getQuotationById);
 
-export default router;
+return router;
+}
