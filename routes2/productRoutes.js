@@ -14,6 +14,7 @@ import photographerController from "../controllers2/products/photographerControl
 // import vendorController from "../controllers/products/vendorController.js";
 // import { getAllServices } from "../controllers/servicesController.js";
 // import searchProducts from "../controllers/productController.js";
+import vendorController from "../controllers2/products/vendorController.js";
 
 const router = Router();
 

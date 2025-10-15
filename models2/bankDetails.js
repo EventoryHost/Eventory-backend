@@ -24,6 +24,9 @@ const bankDetailsSchema = new Schema({
   ifsc: {
     type: String
   },
+  beneficiary_id: {
+    type: String
+  },
   bank_created_at: {
     type: Date,
     default: () => {

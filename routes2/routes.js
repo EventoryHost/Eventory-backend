@@ -34,41 +34,43 @@ import photographerPersistenceRoutes from "../routes2/reduxRoutes/photographers.
 import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provider.js";
 import updatePageRoutes from "../routes2/updatePageRoutes.js";
 
-const MainRoutes = Router();
+export default function MainRoutes(io) {
+  const router = Router();
 
 // // Attach all routes here
-MainRoutes.use("/products", productRoutes);
-MainRoutes.use("/payment", cashfreeRoutes);
-MainRoutes.use("/auth", authRoutes);
-MainRoutes.use("/query", queryRoutes);
-MainRoutes.use("/email", emailRoutes);
-MainRoutes.use("/about-email", aboutEmailRoutes);
-MainRoutes.use("/files", fileRoutes);
-MainRoutes.use("/quotations", quotationRoutes);
-MainRoutes.use("/chats", chatRoutes);
-MainRoutes.use("/verification", verificationRoutes);
-MainRoutes.use("/bookings", BookingRoutes);
+router.use("/products", productRoutes);
+router.use("/payment", cashfreeRoutes);
+router.use("/auth", authRoutes);
+router.use("/query", queryRoutes);
+router.use("/email", emailRoutes);
+router.use("/about-email", aboutEmailRoutes);
+router.use("/files", fileRoutes);
+router.use("/quotations", quotationRoutes(io));
+router.use("/chats", chatRoutes);
+router.use("/verification", verificationRoutes);
+router.use("/bookings", BookingRoutes);
 // router.use("/service", serviceRouter);
 // router.use("/venue", venueRouter);
-MainRoutes.use("/featured-vendors", featuredVendorsRoutes);
-MainRoutes.use("/customer", customerRoutes);
-MainRoutes.use("/contact", contactRoutes);
-MainRoutes.use("/review", reviewRoutes);
+router.use("/featured-vendors", featuredVendorsRoutes);
+router.use("/customer", customerRoutes);
+router.use("/contact", contactRoutes);
+router.use("/review", reviewRoutes);
 // router.use("/rmadmin", rmadminRoutes);
-MainRoutes.use("/sales", salesRoutes);
+router.use("/sales", salesRoutes);
 // router.use("/vendors", Vendor);
-MainRoutes.use("/final-orders", finalOrders);
-MainRoutes.use("/agreements", agreementRoutes);
-MainRoutes.use("/coupons", couponRoutes);
-MainRoutes.use("/catering-details", catererPersistenceRoutes);
-MainRoutes.use("/decorator-details", decoratorPersistenceRoutes);
-MainRoutes.use("/makeup-artist-details", makeupArtistPersistenceRoutes);
-MainRoutes.use("/photographer-details", photographerPersistenceRoutes);
-MainRoutes.use("/venue-provider-details", venueProviderPersistenceRoutes);
-// MainRoutes.use("/business-details", businessDetailsRoutes); Not to be done
-MainRoutes.use("/update-page", updatePageRoutes);
-MainRoutes.use("/vendor-edit", vendorEditRoutes);
+router.use("/final-orders", finalOrders);
+router.use("/agreements", agreementRoutes);
+router.use("/coupons", couponRoutes);
+router.use("/catering-details", catererPersistenceRoutes);
+router.use("/decorator-details", decoratorPersistenceRoutes);
+router.use("/makeup-artist-details", makeupArtistPersistenceRoutes);
+router.use("/photographer-details", photographerPersistenceRoutes);
+router.use("/venue-provider-details", venueProviderPersistenceRoutes);
+// router.use("/business-details", businessDetailsRoutes); Not to be done
+router.use("/update-page", updatePageRoutes);
+router.use("/vendor-edit", vendorEditRoutes);
 // router.use("/webhook", waRoutes); 
 
 
-export default MainRoutes;
+return router;
+}

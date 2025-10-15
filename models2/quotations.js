@@ -91,16 +91,16 @@ quotationsSchema.index({ quotation_created_at: -1 });
 quotationsSchema.index({ event_start: 1 });
 
 // Pre-save middleware
-quotationsSchema.pre('save', function(next) {
-  this.quotation_updated_at = new Date();
+// quotationsSchema.pre('save', function(next) {
+//   this.quotation_updated_at = new Date();
   
   // Validate event dates
-  if (this.event_start && this.event_end && this.event_start >= this.event_end) {
-    next(new Error('Event end date must be after start date'));
-  } else {
-    next();
-  }
-});
+//   if (this.event_start && this.event_end && this.event_start >= this.event_end) {
+//     next(new Error('Event end date must be after start date'));
+//   } else {
+//     next();
+//   }
+// });
 
 // Check if model already exists to prevent OverwriteModelError
 const Quotations = mongoose.models.Quotations || mongoose.model('Quotations', quotationsSchema);

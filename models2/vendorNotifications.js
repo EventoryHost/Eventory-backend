@@ -25,6 +25,15 @@ const vendorNotificationsSchema = new Schema({
     type: Boolean,
     default: false
   },
+  notification_type: {
+    type: String,
+    required: true,
+    enum: ['chat_message', 'checkout_message']
+  },
+  message: {
+    type: String,
+    required: true // Message content
+  },
   updated_at: {
     type: String, // Changed to String to match ERD timestamp format
     default: () => new Date().toISOString()
