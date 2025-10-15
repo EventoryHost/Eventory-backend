@@ -42,7 +42,7 @@ const messageSchema = new Schema({
   }
 }, {
   timestamps: true,
-  collection: 'messages'
+  collection: 'Message2'
 });
 
 // Indexes for better performance
@@ -52,6 +52,6 @@ messageSchema.index({ message_type: 1 });
 messageSchema.index({ parent_message_id: 1 });
 
 // Check if model already exists to prevent OverwriteModelError
-const Message = mongoose.models.Message || mongoose.model('Message', messageSchema);
+const Message2 = mongoose.models.Message2 || mongoose.model('Message2', messageSchema);
+export default Message2;
 
-export default Message;

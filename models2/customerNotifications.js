@@ -10,7 +10,7 @@ const customerNotificationSchema = new mongoose.Schema({
   },
   order_id: {
     type: String,
-    required: true,
+    required: false,
     unique: true
     // Order ID for which the notification is created
   },

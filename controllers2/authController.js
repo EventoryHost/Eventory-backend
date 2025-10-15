@@ -403,11 +403,12 @@ const verifyCustomerLoginOtp = async (req, res) => {
         console.log("flow was here")
         const customer = new Customer({ customer_name: name, contact_number: `+91${mobile}` });
         await customer.save();
-        const token = jwt.sign(
-          { id: customer.id, mobile: customer.mobile, name: customer.name },
-          process.env.JWT_SECRET,
-          { expiresIn: "24h" }
-        );
+        const payload = {
+          id: user.customer_id,                
+          mobile: user.contact_number, 
+          name: user.customer_name,      
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
         return res
           .status(200)
           .json({ message: "Login Success", token, user: customer });
@@ -416,7 +417,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
       }
     }
     const token = jwt.sign(
-      { id: user.id, mobile: user.mobile, name: user.name },
+      { id: user.customer_id, mobile: user.contact_number, name: user.customer_name },
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
@@ -559,13 +560,13 @@ const isNewCustomer = async (mobile) => {
 };
 
 const updateProfilePic = async (req, res) => {
-  const vendorId = req.params.id; // This should be your custom ID, e.g., 'ven20241024155014318'
+  const vendorId = req.params.id; // This should be your custom ID, e.g., 'VEN20241024155014318'
 
   try {
-    // Use `findOneAndUpdate` with the custom id field
-    const updatedVendor = await User.findOneAndUpdate(
-      { id: vendorId }, // Query by the custom ID field
-      { profilePic: req.file.location }, // Store the path of the uploaded file
+    // Use `findOneAndUpdate` with the custom vendor_id field
+    const updatedVendor = await Vendor.findOneAndUpdate(
+      { vendor_id: vendorId }, // Query by the custom vendor_id field
+      { profile_picture: req.file.location }, // Store the path of the uploaded file
       { new: true } // Return the updated document
     );
 

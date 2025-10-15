@@ -1,0 +1,51 @@
+import express from "express";
+import upload from "../middlewares/uploads.js";
+import {
+  getMessagesByChatId,
+  uploadChatMedia,
+  searchMessages,
+  getMessageContext,
+  pinMessageInChat,
+  unpinMessageInChat,
+  blockChat,
+  unblockChat,
+  getPinnedMessages,
+  getBlockedChats,
+} from "../controllers2/chatController.js";
+
+const router = express.Router();
+//1. Get all messages by chat ID
+router.get("/:chatId/messages", getMessagesByChatId);
+
+//2. Upload media to a chat
+router.post("/upload-media", upload("chat").single("file"), uploadChatMedia);
+
+//3. Search messages within a chat
+router.get("/:chatId/search", searchMessages);
+
+//4. Get message context by query ID
+router.get("/:chatId/search/:qId", getMessageContext);
+
+//5. Pin a message in a chat
+router.post("/chat/:chat_id/pin/:message_id", pinMessageInChat);
+
+//6. Get pinned messages
+router.get("/:chat_id/pinned-messages", getPinnedMessages);
+
+
+//7. Unpin a message from a chat
+router.post("/chat/:chat_id/unpin/:message_id", unpinMessageInChat);
+
+//8. Block a chat
+router.post("/chat/:chat_id/block", blockChat);
+
+//9. Unblock a chat
+router.post("/chat/:chat_id/unblock", unblockChat);
+
+//10. Get pinned messages from chat
+// router.get("/chat/:chatId/pinned", getPinnedMessages);
+
+//11. Get all blocked chats
+router.get("/blocked", getBlockedChats);
+
+export default router;

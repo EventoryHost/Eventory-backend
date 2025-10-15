@@ -8,6 +8,8 @@ import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import MainRoutes from "../routes2/routes.js";
+import { handleSocketConnection } from "../controllers2/chatController.js";
+
 import authRoutes from "../routes2/authRoutes.js";
 import productRoutes from "../routes2/productRoutes.js";
 import {businessDetailsRoutes}  from "../routes2/reduxRoutes/businessDetails.js";
@@ -28,6 +30,8 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
+io.on("connection", (socket) => handleSocketConnection(socket, io));
 
 app.use(morgan("dev"));
 

@@ -11,26 +11,28 @@ import makeupController from "../controllers2/products/makeupController.js";
 // import giftController from "../controllers/products/giftController.js";
 // import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers2/products/photographerController.js";
-// import vendorController from "../controllers/products/vendorController.js";
-// import { getAllServices } from "../controllers/servicesController.js";
-// import searchProducts from "../controllers/productController.js";
+import vendorController from "../controllers2/products/vendorController.js";
+// import { getAllServices } from "../controllers2/servicesController.js";
+import searchProducts from "../controllers2/productController.js";
 
 const router = Router();
 
 router.get("/caterer", catererController.getAllCaterers);
+router.get("/caterer/:id", catererController.getCatererById);
 router.get("/decorator", decoratorController.getAllDecorators);
+router.get("/decorator/:id", decoratorController.getDecoratorById);
 // router.get("/event-planner", eventPlannerController.getAllEventPlanner);
 // router.get("/gift", giftController.getAllGift);
 // router.get("/invitation", invitationController.getAllInvitation);
 router.get("/makeup", makeupController.getAllMakeupArtist);
+router.get("/makeup/:id", makeupController.getMakeupArtistById);
 // router.get("/dj", djController.getAllDjArtist);
 router.get("/photographer", photographerController.getAllPav);
+router.get("/photographer/:id", photographerController.getPhotographerById);
 // router.get("/prop-rental", propController.getAllProp);
 router.get("/venue_provider", venueController.getAllVenues);
+router.get("/venue_provider/:id", venueController.getVenueById);
 // router.get("/service", getAllServices);
-
-// Adding vendor-specific routes
-// router.get("/:vendor/:id", vendorController.getVendorByIdAndCategory);
 
 // Add Bank Details route
 // router.post("/vendor/:vendorId/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
@@ -167,6 +169,34 @@ router.post(
   photographerController.createPhotographer,
 );
 
-// router.get("/search/", searchProducts);
+router.get("/search/", searchProducts);
+
+// Adding vendor-specific routes
+// router.get("/:service_id/:vendor_id", vendorController.getVendorByIdAndCategory);
+
+// // Add Bank Details route
+// router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+// /**
+//  * @swagger
+//  * /vendor/{vendorId}/bank-details:
+//  *   get:
+//  *     summary: Get vendor's bank details
+//  *     tags: [Vendors]
+//  */
+// router.get("/vendor/:vendor_id/bank-details", vendorController.getBankDetails);
+
+// /**
+//  * @swagger
+//  * /vendor/{vendorId}/delete-bank-details:
+//  *   delete:
+//  *     summary: Delete vendor's bank details
+//  *     tags: [Vendors]
+//  */
+// // In your backend routes file (e.g., routes.js or similar)
+// router.delete(
+//   "/vendor/:vendor_id/bank-details",
+//   vendorController.deleteBankDetails,
+// );
+
 
 export default router;

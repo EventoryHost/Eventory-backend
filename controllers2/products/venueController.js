@@ -261,6 +261,11 @@ const createVenue = async (req, res) => {
     }
     
     vendor.services.push(savedVenue.service_id);
+    vendor.service_types.push({
+      "service_name" : "Venue-Provider",
+      "service_status" : "Inactive",
+      "service_id" : savedVenue.service_id
+    })
     
     await vendor.save();
     
@@ -443,4 +448,29 @@ export const getVenueReviews = async (req, res) => {
   }
 };
 
-export default { createVenue, getAllVenues };
+export const getVenueById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Calculate completion before fetching
+    const { checkVenueProfileCompletion } = await import("../../utils/completionUtils/venueCompletionUtils.js");
+    try {
+      await checkVenueProfileCompletion(id);
+    } catch (completionError) {
+      console.warn("Error calculating venue completion:", completionError);
+      // Continue even if completion calculation fails
+    }
+    
+    const venue = await VenueProvider.findOne({ service_id: id });
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    res.status(200).json(venue);
+  } catch (error) {
+    console.error("Error fetching venue:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export default { createVenue, getAllVenues, getVenueById };

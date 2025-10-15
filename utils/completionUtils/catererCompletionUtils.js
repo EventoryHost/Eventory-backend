@@ -67,8 +67,10 @@ export const checkCatererProfileCompletion = async (catererId) => {
       caterer.additional_details.max_booking_period &&
       caterer.additional_details.asset_images.length > 0 &&
       caterer.additional_details.asset_videos.length > 0 &&
-      caterer.additional_details.is_tasting_session_provided &&
-      caterer.additional_details.is_business_license_available &&
+      caterer.additional_details.is_tasting_session_provided !== undefined &&
+      caterer.additional_details.is_tasting_session_provided !== null &&
+      caterer.additional_details.is_business_license_available !== undefined &&
+      caterer.additional_details.is_business_license_available !== null &&
       caterer.additional_details.food_safety_certificates.length > 0 &&
       caterer.additional_details.prices_starts_from != null;
 

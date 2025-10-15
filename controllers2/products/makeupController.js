@@ -321,6 +321,11 @@ const createMakeupArtist = async (req, res) => {
     }
    
     vendor.services.push(savedMakeupArtist.service_id); // Changed to push _id, as this is the likely fix
+    vendor.service_types.push({
+      "service_name" : "Makeup-Artist",
+      "service_status" : "Inactive",
+      "service_id" : savedMakeupArtist.service_id
+    })
     console.log(
       "Successfully pushed new service ID. Saving vendor document..."
     );
@@ -370,15 +375,16 @@ const getAllMakeupArtist = async (req, res) => {
 
 const getMakeupArtistById = async (req, res) => {
   try {
-    const makeupArtist = await MakeupArtist.findOne({
-      vendor_id: req.params.vendor_id,
-    });
+    const { id } = req.params;
+    const makeupArtist = await MakeupArtist.findOne({ service_id: id });
+
     if (!makeupArtist) {
       return res.status(404).json({ message: "Makeup artist not found" });
     }
     res.status(200).json(makeupArtist);
-  } catch (e) {
-    res.status(400).json({ message: e.message });
+  } catch (error) {
+    console.error("Error fetching makeup artist:", error);
+    res.status(400).json({ message: error.message });
   }
 };
 

@@ -9,18 +9,24 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     }
 
     // Check if basic details are complete
-    // Corrected code
     const basicDetailsComplete =
       !!artist.basic_details.point_of_contact &&
       !!artist.basic_details.service_contact_number &&
       !!artist.basic_details.min_booking_capacity &&
       !!artist.basic_details.max_booking_capacity &&
       !!artist.basic_details.description &&
+      Array.isArray(artist.basic_details.event_types_makeup) &&
       artist.basic_details.event_types_makeup.length > 0 &&
+      Array.isArray(artist.basic_details.types_of_makeup_artists_available) &&
       artist.basic_details.types_of_makeup_artists_available.length > 0 &&
-      !!artist.basic_details.service_location_make_up; // Make sure this check is part of the overall boolean expression
+      !!artist.basic_details.service_location_make_up?.service_address &&
+      !!artist.basic_details.service_location_make_up?.lat &&
+      !!artist.basic_details.service_location_make_up?.lon &&
+      !!artist.basic_details.service_location_make_up?.service_pincode &&
+      Array.isArray(artist.service_areas) &&
+      artist.service_areas.length > 0;
 
-      console.log(`Basic details check: ----- ${basicDetailsComplete}`);
+    console.log(`Basic details check: ----- ${basicDetailsComplete}`);
 
     await MakeupArtist.findOneAndUpdate(
       { service_id: artistId },
@@ -29,8 +35,11 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
 
     // Check if service_details are complete
     const serviceDetailsComplete =
-      artist.service_details.is_onsite_makeup_available &&
-      artist.service_details.is_customization_possible &&
+      artist.service_details.is_onsite_makeup_available !== undefined &&
+      artist.service_details.is_onsite_makeup_available !== null &&
+      artist.service_details.is_customization_possible !== undefined &&
+      artist.service_details.is_customization_possible !== null &&
+      Array.isArray(artist.service_details.service_types) &&
       artist.service_details.service_types.length > 0;
 
     console.log(`Service details check: ----- ${serviceDetailsComplete}`);
@@ -47,9 +56,8 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
       artist.additional_details.asset_videos.length > 0 &&
       !!artist.additional_details.min_booking_period &&
       !!artist.additional_details.max_booking_period &&
-      !!artist.additional_details.prices_starts_from &&
-      !!artist.additional_details.ig_socials_link &&
-      !!artist.additional_details.web_social_link;
+      !!artist.additional_details.prices_starts_from;
+      // Note: ig_socials_link and web_social_link are OPTIONAL fields
 
     console.log(`Additional details check: ----- ${additionalDetailsComplete}`);
     await MakeupArtist.findOneAndUpdate(
@@ -64,9 +72,27 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
 
     console.log(`Policies check: ----- ${policiesComplete}`);
     await MakeupArtist.findOneAndUpdate(
-      { id: artistId },
+      { service_id: artistId },
       { "policies.is_completed": policiesComplete }
     );
+
+    // Calculate overall profile completion score
+    const totalSections = 4; // basic, service, additional, policies
+    let completedSections = 0;
+    
+    if (basicDetailsComplete) completedSections++;
+    if (serviceDetailsComplete) completedSections++;
+    if (additionalDetailsComplete) completedSections++;
+    if (policiesComplete) completedSections++;
+    
+    const profileCompletionScore = Math.round((completedSections / totalSections) * 100);
+    
+    await MakeupArtist.findOneAndUpdate(
+      { service_id: artistId },
+      { profile_completion_score: profileCompletionScore }
+    );
+
+    console.log(`Overall profile completion score: ${profileCompletionScore}%`);
 
     return true;
   } catch (error) {

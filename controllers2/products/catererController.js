@@ -296,7 +296,15 @@ const createCaterer = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.services.push(savedCaterer.service_id);
+  
+    vendor.services.push(
+      savedCaterer.service_id,
+    );
+   vendor.service_types.push({
+      "service_name" : "Caterer",
+      "service_status" : "Inactive",
+      "service_id" : savedCaterer.service_id
+    })
     await vendor.save();
 
     // Update section completion and profile completion
@@ -336,4 +344,20 @@ const getAllCaterers = async (req, res) => {
   }
 };
 
-export default { createCaterer, getAllCaterers };
+const getCatererById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const caterer = await Caterer.findOne({ service_id: id });
+    
+    if (!caterer) {
+      return res.status(404).json({ message: "Caterer not found" });
+    }
+    
+    res.status(200).json(caterer);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+};
+
+export default { createCaterer, getAllCaterers, getCatererById };
