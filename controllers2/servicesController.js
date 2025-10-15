@@ -1,0 +1,294 @@
+import { Caterer } from "../models2/caterer.js";
+import { Decorator } from "../models2/decorator.js";
+import Photographer from "../models2/photographerVideographer.js";
+import propRental from "../models2/photographerVideographer.js";
+import VenueProvider from "../models2/venueProvider.js";
+import MakeupArtist from "../models2/makeupArtist.js";
+import { Venue } from "../models/venue.js";
+import Reviews from "../models2/reviews.js";
+// import { Service } from "../models2/service.js";
+
+export const getService = async (req, res) => {
+  const { vendor_type, vendor_id } = req.params;
+  console.log(vendor_type, vendor_id);
+  console.log(`vendor_type in lowercase is ${vendor_type.toLowerCase()}`);
+  try {
+    let vendorData;
+    // Fetch data based on vendor type
+    switch (vendor_type.toLowerCase()) {
+      case "caterer":
+        vendorData = await Caterer.findOne({ vendor_id });
+        break;
+      case "decorator":
+        vendorData = await Decorator.findOne({ vendor_id });
+        break;
+      case "venue_provider":
+        vendorData = await Venue.findOne({ vendor_id });
+        break;
+      case "prop_rental":
+        vendorData = await propRental.findOne({ vendor_id });
+        break;
+      case "photographer_videographer":
+        vendorData = await Photographer.findOne({ vendor_id });
+        break;
+      case "makeupartist":
+        vendorData = await MakeupArtist.findOne({ vendor_id });
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid vendor type" });
+    }
+
+    // Check if vendor data exists
+    if (!vendorData) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    // Send vendor data as response
+    return res.status(200).json(vendorData);
+  } catch (error) {
+    // Handle errors
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred: " + error.message });
+  }
+};
+
+export const getVendorLimit = async (req, res) => {
+  const { vendor_type, vendor_id } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 9;
+  console.log("🔥 Vendor type and ID:", vendor_type, vendor_id);
+  console.log(`vendor_type in lowercase is ${vendor_type.toLowerCase()}`);
+
+  if (page == 0) {
+  }
+
+  if (page < 0 || limit <= 0) {
+    return res
+      .status(400)
+      .json({ error: "Page and limit must be greater than 0" });
+  }
+
+  const skip = (page - 1) * limit;
+
+  try {
+    let model;
+
+    const vendorModels = {
+      caterer: Caterer,
+      decorator: Decorator,
+      venue_provider: VenueProvider,
+      prop_rental: propRental,
+      photographer_videographer: Photographer,
+      makeupartist: MakeupArtist,
+    };
+
+    model = vendorModels[vendor_type.toLowerCase()];
+    if (!model) {
+      return res.status(400).json({ error: "Invalid vendor type" });
+    }
+
+    const vendorData = await model
+      .findOne({ vendor_id })
+      .skip(skip)
+      .limit(limit);
+
+    if (!vendorData) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    const totalItems = await model.countDocuments({ id: vendor_id });
+
+    return res.status(200).json({
+      data: vendorData,
+      meta: {
+        currentPage: page,
+        limit: limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred: " + error.message });
+  }
+};
+
+export const addReviews = async (req, res) => {
+  try {
+    const {
+      service_id,
+      customer_id,
+      customer_name,
+      service_type,
+      rating,
+      review,
+      media_photo,
+      media_video,
+    } = req.body;
+
+    if (
+      !service_id ||
+      !customer_id ||
+      !customer_name ||
+      !service_type ||
+      !rating
+    ) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: service_id, customer_id, customer_name, service_type, rating",
+      });
+    }
+
+    const newReview = new Reviews({
+      service_id,
+      customer_id,
+      customer_name,
+      service_type,
+      rating,
+      review,
+      media_photo,
+      media_video,
+      // feedback_submitted_at is automatically handled by the schema's default
+    });
+
+    // Save the new review document to the 'reviews' collection
+    await newReview.save();
+
+    // Send the newly created review in the response
+    res.status(201).json({
+      message: "Review added successfully",
+      data: newReview,
+    });
+  } catch (error) {
+    console.error("Error adding review:", error);
+    res.status(500).json({ message: "An error occurred: " + error.message });
+  }
+};
+
+// export const getAllServices = async (req, res) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const itemsPerPage = 9;
+
+//     const skip = (page - 1) * itemsPerPage;
+
+//     const service = await Service.find().skip(skip).limit(itemsPerPage);
+
+//     const totalservices = await Service.countDocuments();
+
+//     res.status(200).json({
+//       data: service,
+//       currentPage: page,
+//       totalPages: Math.ceil(totalservices / itemsPerPage),
+//       totalItems: totalservices,
+//     });
+//   } catch (e) {
+//     res.status(400).json({ message: e.message });
+//   }
+// };
+
+export const handleSearch = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: "Query parameter is required." });
+    }
+
+    const regex = new RegExp(`^${query}`, "i");
+
+    const [
+      venues,
+      caterers,
+      decorators,
+      photographers_videographers,
+      makeup_artists,
+    ] = await Promise.all([
+      VenueProvider.find({ "basic_details.point_of_contact": regex }).select(
+        "business_details.business_name service_type service_id basic_details.point_of_contact"
+      ),
+      Caterer.find({ "basic_details.point_of_contact": regex }).select(
+        "business_details.business_name service_type service_id basic_details.point_of_contact"
+      ),
+      Decorator.find({ "basic_details.point_of_contact": regex }).select(
+        "business_details.business_name service_type service_id basic_details.point_of_contact"
+      ),
+      Photographer.find({ "basic_details.point_of_contact": regex }).select(
+        "business_details.business_name service_type service_id basic_details.point_of_contact"
+      ),
+      MakeupArtist.find({ "basic_details.point_of_contact": regex }).select(
+        "business_details.business_name service_type service_id basic_details.point_of_contact"
+      ),
+    ]);
+
+    const results = [
+      { service_type: "venue_provider", services: venues },
+      { service_type: "caterer", services: caterers },
+      { service_type: "decorator", services: decorators },
+      {
+        service_type: "photographer_videographer",
+        services: photographers_videographers,
+      },
+      { service_type: "makeup_artist", services: makeup_artists },
+    ];
+
+    const filteredResults = results.filter(
+      (group) => group.services.length > 0
+    );
+
+    res.json({ results: filteredResults });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getServiceByServiceId = async (req, res) => {
+  const { service_type, service_id } = req.params;
+  console.log("📥 Received:", service_type, service_id);
+
+  try {
+    let serviceData;
+
+    // Match service_type to the correct model
+    switch (service_type.toLowerCase()) {
+      case "caterer":
+        serviceData = await Caterer.findOne({ service_id });
+        break;
+      case "decorator":
+        serviceData = await Decorator.findOne({ service_id});
+        break;
+      case "venue_provider":
+        serviceData = await Venue.findOne({ service_id });
+        break;
+      case "prop_rental":
+        serviceData = await propRental.findOne({ service_id });
+        break;
+      case "photographer_videographer":
+        serviceData = await Photographer.findOne({ service_id });
+        break;
+      case "makeup_artist":
+        serviceData = await MakeupArtist.findOne({ service_id });
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid service type" });
+    }
+
+    // Check if the service was found
+    if (!serviceData) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    // Respond with service data
+    return res.status(200).json(serviceData);
+  } catch (error) {
+    console.error("❌ Error fetching service:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred: " + error.message });
+  }
+};
