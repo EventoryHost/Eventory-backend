@@ -12,8 +12,8 @@ import makeupController from "../controllers2/products/makeupController.js";
 // import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers2/products/photographerController.js";
 import vendorController from "../controllers2/products/vendorController.js";
-// import { getAllServices } from "../controllers/servicesController.js";
-// import searchProducts from "../controllers/productController.js";
+// import { getAllServices } from "../controllers2/servicesController.js";
+import searchProducts from "../controllers2/productController.js";
 
 const router = Router();
 
@@ -169,7 +169,7 @@ router.post(
   photographerController.createPhotographer,
 );
 
-// router.get("/search/", searchProducts);
+router.get("/search/", searchProducts);
 
 // Adding vendor-specific routes
 // router.get("/:service_id/:vendor_id", vendorController.getVendorByIdAndCategory);

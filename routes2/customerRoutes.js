@@ -12,7 +12,7 @@ import {
   getPinnedMessages,
   getBlockedChats,
   getCustomerNotifications,
-  markNotificationAsRead,
+  // markNotificationAsRead,
   markAllCustomerNotificationsAsRead,
 } from "../controllers2/chatController.js";
 import {
@@ -178,7 +178,7 @@ router.get("/blocked", getBlockedChats);
  *     summary: Get customer notifications
  *     tags: [Notifications]
  */
-router.get("/:customerId/customerNotifications", getCustomerNotifications);
+router.get("/:customer_id/customerNotifications", getCustomerNotifications);
 
 /**
  * @swagger
@@ -187,7 +187,7 @@ router.get("/:customerId/customerNotifications", getCustomerNotifications);
  *     summary: Mark notification as read
  *     tags: [Notifications]
  */
-router.patch("/notifications/read/:notificationId", markNotificationAsRead);
+// router.patch("/notifications/read/:notificationId", markNotificationAsRead);
 
 /**
  * @swagger
@@ -196,7 +196,7 @@ router.patch("/notifications/read/:notificationId", markNotificationAsRead);
  *     summary: Mark all customer notifications as read
  *     tags: [Notifications]
  */
-router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
+router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
 
 /**
  * @swagger

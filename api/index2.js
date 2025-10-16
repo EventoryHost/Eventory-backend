@@ -57,7 +57,7 @@ app.use(
 );
 // Migration routes
 app.use("/", router);
-app.use("/api", MainRoutes);
+app.use("/api", MainRoutes(io));
 
 
 app.get("/", (req, res) => {

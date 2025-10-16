@@ -3,9 +3,10 @@ import Chat2 from "../models2/chats.js"; // New import
 import APIFeatures from "../utils/apiFeatures.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers2/waController.js"; // New import
 import CustomerNotification from "../models2/customerNotifications.js";
+import vendorNotification from "../models2/vendorNotifications.js";
 
 // Create a new quotation
-const createQuotation = async (req, res) => {
+const createQuotation = async (req, res, io) => {
   try {
     const {
       customer_id,
@@ -65,6 +66,25 @@ const createQuotation = async (req, res) => {
     await newQuotation.validate();
 
     const savedQuotation = await newQuotation.save();
+
+     // 🧠 Create notification for vendor
+    const newNotification = new vendorNotification({
+      vendor_id: savedQuotation.vendor_id,
+      customer_id: savedQuotation.customer_id,
+      service_id: savedQuotation.service_id,
+      message: `New quotation request from ${savedQuotation.customer_name}`,
+      quotationId: savedQuotation.quotation_id,
+      notification_type: 'chat_message',
+    })
+
+    await newNotification.save();
+
+    if (io) {
+      io.to(`vendor-${savedQuotation.vendor_id}`).emit(
+        "newQuotationNotification",
+        newNotification.toObject()
+      );
+    }
 
     res.status(201).json({
       message: "Quotation created successfully!",
