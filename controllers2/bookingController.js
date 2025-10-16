@@ -234,29 +234,28 @@ export const deleteOfflineEvent = async (req, res) => {
 };
 
 export const getVendorBookings = async (req, res) => {
- try {
+  try {
     const { service_id } = req.query;
 
     if (!service_id) {
       return res.status(400).json({ message: "service_id is required" });
     }
 
-    // Fetch all calendar entries for this vendor
-    const allBookings = await Calendar.find({ service_id });
+    // Fetch offline bookings from Calendar collection
+    const offlineBookings = await Calendar.find({ 
+      service_id,
+      event_source: "EXTERNAL" 
+    });
 
-    // Separate based on prefix or event_source
-    const offlineBookings = allBookings.filter(
-      (booking) => booking.event_source === "EXTERNAL" || booking.event_id.startsWith("EXTY")
-    );
+    // Fetch online bookings from Events collection
+    const onlineBookings = await Events.find({ service_id });
 
-    const onlineBookings = allBookings.filter(
-      (booking) => booking.event_source === "EVENTORY" || booking.event_id.startsWith("EVTY")
-    );
+    const totalBookings = offlineBookings.length + onlineBookings.length;
 
     // Respond
     return res.status(200).json({
       success: true,
-      totalBookings: allBookings.length,
+      totalBookings: totalBookings,
       offlineCount: offlineBookings.length,
       onlineCount: onlineBookings.length,
       offlineBookings,
