@@ -194,56 +194,93 @@ export const addReviews = async (req, res) => {
 export const handleSearch = async (req, res) => {
   try {
     const { query } = req.query;
-
-    if (!query) {
+    if (!query || typeof query !== "string") {
       return res.status(400).json({ message: "Query parameter is required." });
     }
 
-    const regex = new RegExp(`^${query}`, "i");
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "i");
+
+    const project = {
+      "business_details.business_name": 1,
+      service_type: 1,
+      service_id: 1,
+      "basic_details.point_of_contact": 1,
+      _id: 0,
+    };
+
+    const limitPerType = 8;
 
     const [
       venues,
       caterers,
       decorators,
-      photographers_videographers,
-      makeup_artists,
+      pvs,
+      makeup,
     ] = await Promise.all([
-      VenueProvider.find({ "basic_details.point_of_contact": regex }).select(
-        "business_details.business_name service_type service_id basic_details.point_of_contact"
-      ),
-      Caterer.find({ "basic_details.point_of_contact": regex }).select(
-        "business_details.business_name service_type service_id basic_details.point_of_contact"
-      ),
-      Decorator.find({ "basic_details.point_of_contact": regex }).select(
-        "business_details.business_name service_type service_id basic_details.point_of_contact"
-      ),
-      Photographer.find({ "basic_details.point_of_contact": regex }).select(
-        "business_details.business_name service_type service_id basic_details.point_of_contact"
-      ),
-      MakeupArtist.find({ "basic_details.point_of_contact": regex }).select(
-        "business_details.business_name service_type service_id basic_details.point_of_contact"
-      ),
+      VenueProvider.find({
+        $or: [
+          { "basic_details.point_of_contact": regex },
+          { "business_details.business_name": regex },
+        ],
+      })
+        .select(project)
+        .limit(limitPerType)
+        .lean(),
+
+      Caterer.find({
+        $or: [
+          { "basic_details.point_of_contact": regex },
+          { "business_details.business_name": regex },
+        ],
+      })
+        .select(project)
+        .limit(limitPerType)
+        .lean(),
+
+      Decorator.find({
+        $or: [
+          { "basic_details.point_of_contact": regex },
+          { "business_details.business_name": regex },
+        ],
+      })
+        .select(project)
+        .limit(limitPerType)
+        .lean(),
+
+      Photographer.find({
+        $or: [
+          { "basic_details.point_of_contact": regex },
+          { "business_details.business_name": regex },
+        ],
+      })
+        .select(project)
+        .limit(limitPerType)
+        .lean(),
+
+      MakeupArtist.find({
+        $or: [
+          { "basic_details.point_of_contact": regex },
+          { "business_details.business_name": regex },
+        ],
+      })
+        .select(project)
+        .limit(limitPerType)
+        .lean(),
     ]);
 
     const results = [
       { service_type: "venue_provider", services: venues },
       { service_type: "caterer", services: caterers },
       { service_type: "decorator", services: decorators },
-      {
-        service_type: "photographer_videographer",
-        services: photographers_videographers,
-      },
-      { service_type: "makeup_artist", services: makeup_artists },
-    ];
+      { service_type: "photographer_videographer", services: pvs },
+      { service_type: "makeup_artist", services: makeup },
+    ].filter((g) => (g.services || []).length > 0);
 
-    const filteredResults = results.filter(
-      (group) => group.services.length > 0
-    );
-
-    res.json({ results: filteredResults });
+    return res.status(200).json({ results });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 

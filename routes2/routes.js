@@ -50,6 +50,7 @@ router.use("/chats", chatRoutes);
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);
+
 // router.use("/venue", venueRouter);
 router.use("/featured-vendors", featuredVendorsRoutes);
 router.use("/customer", customerRoutes);

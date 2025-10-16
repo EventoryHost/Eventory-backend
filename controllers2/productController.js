@@ -67,6 +67,13 @@ const searchVenues = async (query) => {
     matchStage["feature_details.venue_types_available"] = { $in: types };
   }
 
+  if (query.in_house_catering !== undefined) {
+    matchStage["feature_details.in_house_catering"] = String(query.in_house_catering) === "true";
+  }
+  if (query.in_house_decoration !== undefined) {
+    matchStage["feature_details.in_house_decoration"] = String(query.in_house_decoration) === "true";
+  }
+
   const page = query.page ? parseInt(query.page, 10) : 1;
   const limit = query.limit ? parseInt(query.limit, 10) : 9;
   const skip = (page - 1) * limit;
@@ -75,21 +82,10 @@ const searchVenues = async (query) => {
 
   // Add location relevance if location is provided
   if (query.location) {
+    const pincodes = await getPincodesList(query.location) || [];
+    pipeline.unshift({ $match: { service_areas: { $in: pincodes } } });
     pipeline.push(
-      {
-        $addFields: {
-          isMatch: {
-            $cond: {
-              if: {
-                // Corrected path: service_areas
-                $in: [query.location, { $ifNull: ["$service_areas", []] }],
-              },
-              then: 1,
-              else: 0,
-            },
-          },
-        },
-      },
+      { $addFields: { isMatch: { $cond: { if: { $in: [query.location, { $ifNull: ["$service_areas", []] }] }, then: 1, else: 0 } } } },
       { $sort: { isMatch: -1 } }
     );
   }
@@ -142,6 +138,11 @@ const searchVenues = async (query) => {
     }
   }
 
+  if (query.sort === "lth") pipeline.push({ $sort: { "additional_details.prices_starts_from": 1 } });
+  else if (query.sort === "htl") pipeline.push({ $sort: { "additional_details.prices_starts_from": -1 } });
+  else if (query.sort === "rating") pipeline.push({ $sort: { average_rating: -1, _id: -1 } });
+  else pipeline.push({ $sort: { _id: -1 } });
+
   // Continue with pagination
   pipeline.push(
     {
@@ -181,6 +182,12 @@ const searchVenues = async (query) => {
 
 const searchDecorators = async (query) => {
   const matchStage = {};
+
+  if (query.location) {
+    const pincodes = await getPincodesList(query.location) || [];
+    // narrow to service_areas by pincodes
+    if (pincodes.length) matchStage["service_areas"] = { $in: pincodes };
+  }
 
   // Event type
   if (query.event_types_decorated && query.event_types_decorated !== "All") {
@@ -310,6 +317,11 @@ const searchDecorators = async (query) => {
     }
   }
 
+  if (query.sort === "lth") pipeline.push({ $sort: { "additional_details.prices_starts_from": 1 } });
+  else if (query.sort === "htl") pipeline.push({ $sort: { "additional_details.prices_starts_from": -1 } });
+  else if (query.sort === "rating") pipeline.push({ $sort: { average_rating: -1, _id: -1 } });
+  else pipeline.push({ $sort: { _id: -1 } });
+
   // --- END: New logic for Reviews integration ---
 
   // Pagination with metadata
@@ -436,6 +448,12 @@ const searchCaterers = async (query) => {
       $match: matchStage,
     },
   ];
+  if (query.location) {
+    const pincodes = await getPincodesList(query.location) || [];
+    // narrow to service_areas by pincodes
+    if (pincodes.length) matchStage["service_areas"] = { $in: pincodes };
+  }
+
 
   // Add location-based sorting if location is provided
   if (query.location) {
@@ -460,6 +478,10 @@ const searchCaterers = async (query) => {
       }
     );
   }
+  if (query.sort === "lth") pipeline.push({ $sort: { "additional_details.prices_starts_from": 1 } });
+  else if (query.sort === "htl") pipeline.push({ $sort: { "additional_details.prices_starts_from": -1 } });
+  else if (query.sort === "rating") pipeline.push({ $sort: { average_rating: -1, _id: -1 } });
+  else pipeline.push({ $sort: { _id: -1 } });
 
   // --- START: New logic for Reviews integration ---
 
@@ -570,6 +592,12 @@ const searchCaterers = async (query) => {
 const searchMakeupArtists = async (query) => {
   const matchStage = {};
 
+  if (query.location) {
+    const pincodes = await getPincodesList(query.location) || [];
+    // narrow to service_areas by pincodes
+    if (pincodes.length) matchStage["service_areas"] = { $in: pincodes };
+  }
+
   // Type of Event
   if (query.event_types_makeup && query.event_types_makeup !== "All") {
     // Correct path: basic_details.event_types_makeup
@@ -620,6 +648,10 @@ const searchMakeupArtists = async (query) => {
     };
   }
 
+  if (query.is_onsite_makeup_available !== undefined) {
+    matchStage["service_details.is_onsite_makeup_available"] = String(query.is_onsite_makeup_available) === "true";
+  }
+
   // Service Types
   if (query.service_types) {
     const services = query.service_types.split(",").map((t) => t.trim());
@@ -661,6 +693,11 @@ const searchMakeupArtists = async (query) => {
       }
     );
   }
+
+  if (query.sort === "lth") pipeline.push({ $sort: { "additional_details.prices_starts_from": 1 } });
+  else if (query.sort === "htl") pipeline.push({ $sort: { "additional_details.prices_starts_from": -1 } });
+  else if (query.sort === "rating") pipeline.push({ $sort: { average_rating: -1, _id: -1 } });
+  else pipeline.push({ $sort: { _id: -1 } });
 
   // --- START: New logic for Reviews integration ---
 
@@ -768,173 +805,327 @@ const searchMakeupArtists = async (query) => {
   );
 };
 
-const searchAllVendors = async (query) => {
-    try {
-      const filters = {};
-  
-      // Location filter
-      if (query.location) {
-        const cityName = query.location;
-        // Use getPincodesList to get an array of pincodes
-        const pincodes = await getPincodesList(cityName);
-        
-        // Use the $in operator with the array of pincodes
-        filters["service_areas"] = { $in: pincodes };
-      }
-  
-      // Handle price range filtering
-      if (query.min_price || query.max_price) {
-        filters["additional_details.prices_starts_from"] = {};
-        if (query.min_price)
-          filters["additional_details.prices_starts_from"].$gte = parseInt(
-            query.min_price,
-            10
-          );
-        if (query.max_price)
-          filters["additional_details.prices_starts_from"].$lte = parseInt(
-            query.max_price,
-            10
-          );
-      }
-  
-      // Handle capacity filtering
-      if (query.min_capacity || query.max_capacity) {
-        const minCapacity = query.min_capacity ?
-          parseInt(query.min_capacity, 10) :
-          null;
-        const maxCapacity = query.max_capacity ?
-          parseInt(query.max_capacity, 10) :
-          null;
-  
-        if (minCapacity !== null && maxCapacity !== null) {
-          filters["basic_details.min_booking_capacity"] = { $lte: maxCapacity };
-          filters["basic_details.max_booking_capacity"] = { $gte: minCapacity };
-        } else if (minCapacity !== null) {
-          filters["basic_details.max_booking_capacity"] = { $gte: minCapacity };
-        } else if (maxCapacity !== null) {
-          filters["basic_details.min_booking_capacity"] = { $lte: maxCapacity };
-        }
-      }
-  
-      // Handle event types filtering
-      if (query.event_types) {
-        query.event_types = query.event_types.split(",");
-      }
-  
-      // Sorting logic
-      let sortStage = {};
-      if (query.sort === "lth") {
-        sortStage = { "additional_details.prices_starts_from": 1 };
-      } else if (query.sort === "htl") {
-        sortStage = { "additional_details.prices_starts_from": -1 };
-      } else {
-        sortStage = { _id: -1 };
-      }
-  
-      // Pagination
-      const page = query.page ? parseInt(query.page, 10) : 1;
-      const limit = query.limit ? parseInt(query.limit, 10) : 9;
-      const skip = (page - 1) * limit;
-  
-      const aggregatePipeline = (modelType) => {
-        const pipeline = [];
-  
-        pipeline.push({ $match: filters });
-        
-        if (query.event_types) {
-            let eventField = "";
-            switch (modelType) {
-                case "caterer": eventField = "event_details.event_types_catered"; break;
-                case "decorator": eventField = "basic_details.event_types_decorated"; break;
-                case "photographer":
-                case "makeup_artist":
-                case "venue_provider": eventField = "basic_details.event_types_venue"; break;
-            }
-            if (eventField) {
-                pipeline.push({ $match: { [eventField]: { $in: query.event_types } } });
-            }
-        }
-  
-        pipeline.push({
-          $lookup: {
-            from: "reviews",
-            localField: "service_id",
-            foreignField: "service_id",
-            as: "reviews",
-          },
-        }, {
-          $addFields: {
-            average_rating: { $avg: "$reviews.rating" },
-          },
-        });
-  
-        if (query.rating) {
-          const rating = parseInt(query.rating, 10);
-          if (rating === 0) {
-            pipeline.push({
-              $match: {
-                $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }],
-              },
-            });
-          } else {
-            pipeline.push({
-              $match: { average_rating: { $gte: rating } },
-            });
-          }
-        }
-        return pipeline;
-      };
-      
-      // Create separate pipelines for each vendor type
-      const venuePipeline = aggregatePipeline("venue_provider");
-      const catererPipeline = aggregatePipeline("caterer");
-      const decoratorPipeline = aggregatePipeline("decorator");
-      const photographerPipeline = aggregatePipeline("photographer");
-      const makeupArtistPipeline = aggregatePipeline("makeup_artist");
-  
-      // Execute all pipelines and combine
-      const [venues, caterers, decorators, photographers, makeupArtists] = await Promise.all([
-        VenueProvider.aggregate(venuePipeline),
-        Caterer.aggregate(catererPipeline),
-        Decorator.aggregate(decoratorPipeline),
-        Photographer.aggregate(photographerPipeline),
-        MakeupArtist.aggregate(makeupArtistPipeline)
-      ]);
-  
-      // Manually merge results and handle final sorting and pagination
-      let combinedResults = [...venues, ...caterers, ...decorators, ...photographers, ...makeupArtists];
-  
-      // Apply sorting
-      if (sortStage["additional_details.prices_starts_from"]) {
-        combinedResults.sort((a, b) => {
-          const aPrice = a.additional_details?.prices_starts_from || 0;
-          const bPrice = b.additional_details?.prices_starts_from || 0;
-          if (sortStage["additional_details.prices_starts_from"] === 1) {
-            return aPrice - bPrice;
-          } else {
-            return bPrice - aPrice;
-          }
-        });
-      } else {
-         combinedResults.sort((a, b) => b._id.getTimestamp() - a._id.getTimestamp());
-      }
-  
-      const totalResults = combinedResults.length;
-      const paginatedResults = combinedResults.slice(skip, skip + limit);
-      const totalPages = Math.ceil(totalResults / limit);
-  
-      return {
-        data: paginatedResults,
-        totalResults,
-        totalPages,
-        currentPage: page,
-      };
-      
-    } catch (error) {
-      console.error("Error fetching all vendors:", error);
-      throw new Error("Error fetching all vendors");
+const searchPAV = async (query) => {
+  const matchStage = {};
+
+  // Event type
+  if (query.event_types_captured && query.event_types_captured !== "All") {
+    // Schema path: basic_details.event_types_captured
+    matchStage["basic_details.event_types_captured"] = {
+      $in: [query.event_types_captured],
+    };
+  }
+
+  // Price range
+  if (query.min_price || query.max_price) {
+    // Schema path: additional_details.prices_starts_from
+    matchStage["additional_details.prices_starts_from"] = {};
+    if (query.min_price) {
+      matchStage["additional_details.prices_starts_from"].$gte = parseInt(
+        query.min_price,
+        10
+      );
     }
-  };
+    if (query.max_price) {
+      matchStage["additional_details.prices_starts_from"].$lte = parseInt(
+        query.max_price,
+        10
+      );
+    }
+  }
+
+  // Event size / capacity
+  const minCapacity = query.min_booking_capacity
+    ? parseInt(query.min_booking_capacity, 10)
+    : null;
+  const maxCapacity = query.max_booking_capacity
+    ? parseInt(query.max_booking_capacity, 10)
+    : null;
+
+  if (minCapacity !== null && maxCapacity !== null) {
+    // Schema paths: basic_details.min_booking_capacity/max_booking_capacity
+    matchStage["basic_details.min_booking_capacity"] = { $lte: maxCapacity };
+    matchStage["basic_details.max_booking_capacity"] = { $gte: minCapacity };
+  } else if (minCapacity !== null) {
+    matchStage["basic_details.max_booking_capacity"] = { $gte: minCapacity };
+  } else if (maxCapacity !== null) {
+    matchStage["basic_details.min_booking_capacity"] = { $lte: maxCapacity };
+  }
+
+  // Service type: photography|videography|both
+  if (query.type_of_service) {
+    // Schema path: service_details.type_of_service
+    matchStage["service_details.type_of_service"] = String(
+      query.type_of_service
+    ).toLowerCase();
+  }
+
+  // Styles
+  if (query.types_of_styles_offered) {
+    const styles = query.types_of_styles_offered
+      .split(",")
+      .map((s) => s.trim());
+    // Schema path: service_details.types_of_styles_offered
+    matchStage["service_details.types_of_styles_offered"] = { $in: styles };
+  }
+
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const skip = (page - 1) * limit;
+
+  const pipeline = [{ $match: matchStage }];
+
+  // Location prioritization (consistent with other type searches)
+  if (query.location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: { $in: [query.location, { $ifNull: ["$service_areas", []] }] },
+              then: 1,
+              else: 0,
+            },
+          },
+        },
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  // Reviews lookup and average rating
+  pipeline.push({
+    $lookup: {
+      from: "reviews",
+      localField: "service_id",
+      foreignField: "service_id",
+      as: "reviews",
+    },
+  });
+
+  pipeline.push({
+    $addFields: {
+      average_rating: { $avg: "$reviews.rating" },
+    },
+  });
+
+  // Rating filter (including 0 => no reviews or < 1 average)
+  if (query.rating) {
+    const rating = parseInt(query.rating, 10);
+    if (rating === 0) {
+      pipeline.push({
+        $match: {
+          $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }],
+        },
+      });
+    } else {
+      pipeline.push({
+        $match: { average_rating: { $gte: rating } },
+      });
+    }
+  }
+
+  // Pagination with metadata
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          {
+            $addFields: {
+              page: page,
+              totalPages: { $ceil: { $divide: ["$total", limit] } },
+            },
+          },
+        ],
+        data: [{ $skip: skip }, { $limit: limit }],
+      },
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page",
+      },
+    }
+  );
+
+  const result = await Photographer.aggregate(pipeline);
+
+  return (
+    result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page }
+  );
+};
+
+const searchAllVendors = async (query) => {
+  try {
+    const filters = {};
+
+    // Location filter
+    if (query.location) {
+      const cityName = query.location;
+      // Use getPincodesList to get an array of pincodes
+      const pincodes = await getPincodesList(cityName);
+
+      // Use the $in operator with the array of pincodes
+      filters["service_areas"] = { $in: pincodes };
+    }
+
+    // Handle price range filtering
+    if (query.min_price || query.max_price) {
+      filters["additional_details.prices_starts_from"] = {};
+      if (query.min_price)
+        filters["additional_details.prices_starts_from"].$gte = parseInt(
+          query.min_price,
+          10
+        );
+      if (query.max_price)
+        filters["additional_details.prices_starts_from"].$lte = parseInt(
+          query.max_price,
+          10
+        );
+    }
+
+    // Handle capacity filtering
+    if (query.min_capacity || query.max_capacity) {
+      const minCapacity = query.min_capacity ?
+        parseInt(query.min_capacity, 10) :
+        null;
+      const maxCapacity = query.max_capacity ?
+        parseInt(query.max_capacity, 10) :
+        null;
+
+      if (minCapacity !== null && maxCapacity !== null) {
+        filters["basic_details.min_booking_capacity"] = { $lte: maxCapacity };
+        filters["basic_details.max_booking_capacity"] = { $gte: minCapacity };
+      } else if (minCapacity !== null) {
+        filters["basic_details.max_booking_capacity"] = { $gte: minCapacity };
+      } else if (maxCapacity !== null) {
+        filters["basic_details.min_booking_capacity"] = { $lte: maxCapacity };
+      }
+    }
+
+    // Handle event types filtering
+    if (query.event_types) {
+      query.event_types = query.event_types.split(",");
+    }
+
+    // Sorting logic
+    let sortStage = {};
+    if (query.sort === "lth") {
+      sortStage = { "additional_details.prices_starts_from": 1 };
+    } else if (query.sort === "htl") {
+      sortStage = { "additional_details.prices_starts_from": -1 };
+    } else {
+      sortStage = { _id: -1 };
+    }
+
+    // Pagination
+    const page = query.page ? parseInt(query.page, 10) : 1;
+    const limit = query.limit ? parseInt(query.limit, 10) : 9;
+    const skip = (page - 1) * limit;
+
+    const aggregatePipeline = (modelType) => {
+      const pipeline = [];
+
+      pipeline.push({ $match: filters });
+
+      if (query.event_types) {
+        let eventField = "";
+        switch (modelType) {
+          case "caterer": eventField = "event_details.event_types_catered"; break; // already correct [attached_file:1]
+          case "decorator": eventField = "basic_details.event_types_decorated"; break; // already correct [attached_file:1]
+          case "photographer": eventField = "basic_details.event_types_captured"; break; // fix from event_types_venue [attached_file:1]
+          case "makeup_artist": eventField = "basic_details.event_types_makeup"; break; // fix from event_types_venue [attached_file:1]
+          case "venue_provider": eventField = "basic_details.event_types_venue"; break; // keep [attached_file:1]
+        }
+        if (eventField) {
+          pipeline.push({ $match: { [eventField]: { $in: query.event_types } } });
+        }
+      }
+
+      pipeline.push({
+        $lookup: {
+          from: "reviews",
+          localField: "service_id",
+          foreignField: "service_id",
+          as: "reviews",
+        },
+      }, {
+        $addFields: {
+          average_rating: { $avg: "$reviews.rating" },
+        },
+      });
+
+      if (query.rating) {
+        const rating = parseInt(query.rating, 10);
+        if (rating === 0) {
+          pipeline.push({
+            $match: {
+              $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }],
+            },
+          });
+        } else {
+          pipeline.push({
+            $match: { average_rating: { $gte: rating } },
+          });
+        }
+      }
+      return pipeline;
+    };
+
+    // Create separate pipelines for each vendor type
+    const venuePipeline = aggregatePipeline("venue_provider");
+    const catererPipeline = aggregatePipeline("caterer");
+    const decoratorPipeline = aggregatePipeline("decorator");
+    const photographerPipeline = aggregatePipeline("photographer");
+    const makeupArtistPipeline = aggregatePipeline("makeup_artist");
+
+    // Execute all pipelines and combine
+    const [venues, caterers, decorators, photographers, makeupArtists] = await Promise.all([
+      VenueProvider.aggregate(venuePipeline),
+      Caterer.aggregate(catererPipeline),
+      Decorator.aggregate(decoratorPipeline),
+      Photographer.aggregate(photographerPipeline),
+      MakeupArtist.aggregate(makeupArtistPipeline)
+    ]);
+
+    // Manually merge results and handle final sorting and pagination
+    let combinedResults = [...venues, ...caterers, ...decorators, ...photographers, ...makeupArtists];
+
+    // Apply sorting
+    if (sortStage["additional_details.prices_starts_from"]) {
+      combinedResults.sort((a, b) => {
+        const aPrice = a.additional_details?.prices_starts_from || 0;
+        const bPrice = b.additional_details?.prices_starts_from || 0;
+        if (sortStage["additional_details.prices_starts_from"] === 1) {
+          return aPrice - bPrice;
+        } else {
+          return bPrice - aPrice;
+        }
+      });
+    } else {
+      combinedResults.sort((a, b) => b._id.getTimestamp() - a._id.getTimestamp());
+    }
+
+    const totalResults = combinedResults.length;
+    const paginatedResults = combinedResults.slice(skip, skip + limit);
+    const totalPages = Math.ceil(totalResults / limit);
+
+    return {
+      data: paginatedResults,
+      totalResults,
+      totalPages,
+      currentPage: page,
+    };
+
+  } catch (error) {
+    console.error("Error fetching all vendors:", error);
+    throw new Error("Error fetching all vendors");
+  }
+};
 export const searchProducts = async (req, res, next) => {
   console.log("--- Starting searchProducts function ---");
   console.log("Received query parameters:", req.query);
