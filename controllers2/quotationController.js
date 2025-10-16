@@ -109,13 +109,17 @@ const createQuotation = async (req, res, io) => {
 // Get quotations by vendor ID
 const getQuotationsByVendorId = async (req, res) => {
   try {
-    const { vendor_id } = req.query;
+    const { vendor_id, service_id } = req.query;
 
     if (!vendor_id) {
       return res.status(400).json({ message: "vendor_id is required" });
     }
 
-    const quotations = await Quotations.find({ vendor_id });
+    if (!service_id) {
+      return res.status(400).json({ message: "service_id is required" });
+    }
+
+    const quotations = await Quotations.find({ vendor_id,service_id });
 
     if (quotations.length === 0) {
       return res
