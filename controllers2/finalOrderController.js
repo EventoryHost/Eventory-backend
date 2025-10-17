@@ -96,10 +96,11 @@ export const approveFinalOrder = async (req, res) => {
         },
         {
           $set: {
-            finalPrice: parsedFinalPrice,
+            final_amount: parsedFinalPrice,
             checkout_url,
             message,
-            quotationId: order.quotation_id,
+            chat_id: order.quotation_id,
+            quotation_id: order.quotation_id,
           },
         },
         { new: true, upsert: true }
@@ -107,15 +108,14 @@ export const approveFinalOrder = async (req, res) => {
 
       await vendorNotification.create({
         vendor_id: order.vendor_id,
-        customer_id: order.customer_id,
         service_id: order.service_id,
         order_id: order.order_id,
-        quotation_id: order.quotation_id,
+        chat_id: order.quotation_id,
+        notification_type: "checkout_message",
         message,
       });
 
       await adminNotification.create({
-        customer_id: order.customer_id,
         order_id: order.order_id,
         chat_id: order.quotation_id,
         em_id: order.em_id,
@@ -135,15 +135,14 @@ export const approveFinalOrder = async (req, res) => {
 
       await vendorNotification.create({
         vendor_id: order.vendor_id,
-        customer_id: order.customer_id,
         order_id: order.order_id,
-        quotation_id: order.quotation_id,
+        chat_id: order.quotation_id,
         service_id: order.service_id,
+        notification_type: "chat_message",
         message,
       });
 
       await adminNotification.create({
-        customer_id: order.customer_id,
         order_id: order.order_id,
         chat_id: order.quotation_id,
         em_id: order.em_id,
@@ -153,6 +152,7 @@ export const approveFinalOrder = async (req, res) => {
       await customerNotification.create({
         customer_id: order.customer_id,
         order_id: order.order_id,
+        chat_id: order.quotation_id,
         quotation_id: order.quotation_id,
         notification_type: "chat_message",
         message,
@@ -180,15 +180,14 @@ export const approveFinalOrder = async (req, res) => {
 
     await vendorNotification.create({
       vendor_id: order.vendor_id,
-      customer_id: order.customer_id,
       order_id: order.order_id,
-      quotation_id: order.quotation_id,
+      chat_id: order.quotation_id,
       service_id: order.service_id,
+      notification_type: "chat_message",
       message,
     });
 
     await adminNotification.create({
-      customer_id: order.customer_id,
       order_id: order.order_id,
       chat_id: order.quotation_id,
       em_id: order.em_id,
@@ -206,6 +205,7 @@ export const approveFinalOrder = async (req, res) => {
           final_amount: parsedFinalPrice,
           checkout_url,
           message,
+          chat_id: order.quotation_id,
           quotation_id: order.quotation_id,
         },
       },

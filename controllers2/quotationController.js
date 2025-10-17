@@ -70,10 +70,9 @@ const createQuotation = async (req, res, io) => {
      // 🧠 Create notification for vendor
     const newNotification = new vendorNotification({
       vendor_id: savedQuotation.vendor_id,
-      customer_id: savedQuotation.customer_id,
       service_id: savedQuotation.service_id,
+      chat_id: savedQuotation.quotation_id,
       message: `New quotation request from ${savedQuotation.customer_name}`,
-      quotationId: savedQuotation.quotation_id,
       notification_type: 'chat_message',
     })
 

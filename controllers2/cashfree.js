@@ -267,29 +267,16 @@ const verifyCustomerPayment = async (req, res) => {
   const { order_id, quotation_id, order_amount, payment_type, couponCode, couponDiscount, service_id } = req.body;
 
   try {
-    // const response = await cashfree.PGFetchOrder(order_id);
-    // console.log(response)
-    // if (!response.data || response.data.length === 0) {
-    //   return res.status(400).json({ error: "Payment not found" });
-    // }
-    // const payment = response.data;
-    // if (payment.order_status !== "PAID") {
-    //   return res.status(400).json({ error: "Payment not successful" });
-    // }
+    // Fetch the final order to get required IDs
+    const finalOrder = await Order.findOne({ quotation_id }).lean();
+    if (!finalOrder) {
+      return res.status(404).json({ error: "Final order not found for quotation_id" });
+    }
 
-    // const finalOrder = await Order.findOne({ quotation_id }).lean();
-    // if (!finalOrder) {
-    //   return res.status(404).json({ error: "Final order not found for quotation_id" });
-    // }
-
-    // const qoutation = await Quotation.findOne({ quotation_id }).lean();
-    // if (!qoutation) {
-    //   return res.status(404).json({ error: "Quotation not found for quotation_id" });
-    // }
-
-    // const internalOrderId = finalOrder.order_id;
-    // const vendor_id = finalOrder.vendor_id;
-    // const customer_id = finalOrder.customer_id;
+    const internalOrderId = finalOrder.order_id;
+    const vendor_id = finalOrder.vendor_id;
+    const customer_id = finalOrder.customer_id;
+    const em_id = finalOrder.em_id;
 
     // const receivableFromOrder =
     //   Number(
@@ -511,31 +498,27 @@ const verifyCustomerPayment = async (req, res) => {
     try {
       await adminNotification.create({
         order_id: internalOrderId,
-        // vendorId,
-        // customerId,
+        em_id: em_id,
+        chat_id: quotation_id,
         message: adminMessage,
-        // quotationId: quotation_id,
         read: false,
-        timestamp: new Date(),
       });
       await vendorNotification.create({
         order_id: internalOrderId,
         vendor_id,
-        // customerId,
+        service_id: service_id,
+        chat_id: quotation_id,
         message: vendorMessage,
-        // quotationId: quotation_id,
-        type: 'checkout_message',
+        notification_type: 'checkout_message',
         read: false,
-        timestamp: new Date(),
       });
       await customerNotification.create({
         customer_id,
-        // vendorId,
         order_id: internalOrderId,
+        chat_id: quotation_id,
         message: customerMessage,
-        quotation_id: quotation_id,
+        notification_type: 'checkout_message',
         read: false,
-        createdAt: new Date(),
       });
     } catch { }
 
