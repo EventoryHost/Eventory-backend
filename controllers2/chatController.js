@@ -1,7 +1,7 @@
 import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
 import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
 import Chat2 from "../models2/chats.js";
-import Message from "../models2/message2.js";
+import Message2 from "../models2/message2.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
@@ -130,7 +130,7 @@ export const handleSocketConnection = (socket, io) => {
             : null;
 
         // ------------------- CREATE MESSAGE -------------------
-        const message = new Message({
+        const message = new Message2({
           chat_id,
           sender,
           message_content,
@@ -196,7 +196,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // ✅ update sort fields to match new schema
-    const messages = await Message.find(query)
+    const messages = await Message2.find(query)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .populate({
@@ -245,7 +245,7 @@ export const searchMessages = async (req, res) => {
   }
 
   try {
-    const messages = await Message.find({
+    const messages = await Message2.find({
       chat_id,
       content: { $regex: q, $options: "i" },
     }).sort({ createdAt: -1 });
@@ -264,21 +264,21 @@ export const getMessageContext = async (req, res) => {
     return res.status(400).json({ error: "Invalid messageId (qId)" });
   }
   try {
-    const currentMessage = await Message.findOne({ message_id: qId });
+    const currentMessage = await Message2.findOne({ message_id: qId });
     if (!currentMessage) {
       return res
         .status(404)
         .json({ error: "Message not found in the given chat" });
     }
 
-    const olderMessages = await Message.find({
+    const olderMessages = await Message2.find({
       chat_id,
       _id: { $lt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: -1 })
       .limit(20);
 
-    const newerMessages = await Message.find({
+    const newerMessages = await Message2.find({
       chat_id,
       _id: { $gt: new mongoose.Types.ObjectId(qId) },
     })
@@ -505,7 +505,7 @@ export const getPinnedMessages = async (req, res) => {
     }
 
     // Find messages using message_id (not _id)
-    const pinnedMessages = await Message.find({
+    const pinnedMessages = await Message2.find({
       message_id: { $in: chat.pinned_chat_messages.map(id => new mongoose.Types.ObjectId(id)) },
     }).select("message_content message_type sender attachment_url message_sent_at");
 

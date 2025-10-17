@@ -7,7 +7,8 @@ import adminNotification from "../models2/emNotifications.js";
 export const createOrUpdateFinalOrder = async (req, res) => {
   try {
     const { order_id, ...updateData } = req.body;
-    
+    console.log("Received order data:", req.body);
+
     const order = await Order.findOneAndUpdate(
       { order_id },
       { $set: updateData },

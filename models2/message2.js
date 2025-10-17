@@ -38,7 +38,7 @@ const messageSchema = new Schema({
   },
   parent_message_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message'
+    ref: 'Message2'
   }
 }, {
   timestamps: true,
