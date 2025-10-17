@@ -33,6 +33,8 @@ import makeupArtistPersistenceRoutes from "../routes2/reduxRoutes/makeUpArtist.j
 import photographerPersistenceRoutes from "../routes2/reduxRoutes/photographers.js";
 import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provider.js";
 import updatePageRoutes from "../routes2/updatePageRoutes.js";
+import vendorNotificationRoutes from "../routes2/vendorNotificationRoutes.js";
+import customerNotificationRoutes from "../routes2/customerNotificationRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -70,6 +72,8 @@ router.use("/venue-provider-details", venueProviderPersistenceRoutes);
 // router.use("/business-details", businessDetailsRoutes); Not to be done
 router.use("/update-page", updatePageRoutes);
 router.use("/vendor-edit", vendorEditRoutes);
+router.use("/vendor-notifications", vendorNotificationRoutes);
+router.use("/customer-notifications", customerNotificationRoutes);
 // router.use("/webhook", waRoutes); 
 
 
