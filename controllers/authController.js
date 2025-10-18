@@ -276,7 +276,12 @@ const CustomerSignUp = async (req, res) => {
         pincode: "110001",
         invoices: [],
         quotations: [],
-        favoriteServices: []
+        favoriteServices: [],
+        couponDetails: {
+          appliedCoupons: [],
+          highestDiscountUsed: 0,
+          canUseDiscounts: [25, 50, 100],
+        },
       });
       await dummyCustomer.save();
       console.log("Dummy customer created with ID:", dummyCustomer.id);
@@ -460,7 +465,12 @@ const CustomerLogin = async (req, res) => {
           pincode: "110001",
           invoices: [],
           quotations: [],
-          favoriteServices: []
+          favoriteServices: [],
+          couponDetails: {
+            appliedCoupons: [],
+            highestDiscountUsed: 0,
+            canUseDiscounts: [25, 50, 100],
+          },
         });
         await dummyCustomer.save();
         console.log("Dummy customer created with ID:", dummyCustomer.id);
