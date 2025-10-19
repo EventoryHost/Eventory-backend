@@ -1,8 +1,11 @@
 import express from "express";
 import EMNotifications from "../models2/emNotifications.js";
+import EventManager from "../models2/eventManager.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
-
+const JWT_SECRET = process.env.JWT_SECRET; 
 /**
  * @swagger
  * /api/EMauth:
@@ -33,41 +36,66 @@ const router = express.Router();
  */
 
 // POST route for checking if a user exists
-router.post("/EMauth", async (req, res) => {
-  const { username, password } = req.body; // Destructure the request body
+router.post("/emauth", async (req, res) => {
+  const { user_name, password } = req.body; // Destructure the request body
 
   // Input validation: check if username and password are provided
-  if (!username || !password) {
+  if (!user_name || !password) {
     return res
       .status(400)
       .json({ success: false, message: "Username and password are required" });
   }
 
   try {
-    // Find the user by username in the EMadmin model
-    const user = await EMadmin.findOne({ username });
+    // 1️⃣ Find user by username
+    const user = await EventManager.findOne({ user_name });
 
     if (!user) {
-      // If the user does not exist
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
-    // If user exists (without password comparison)
+    // 2️⃣ Verify password
+    const isMatch = await bcrypt.compare(password, user.password); 
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    // 3️⃣ Generate JWT
+    const token = jwt.sign(
+      {
+        em_id: user.em_id,
+        user_name: user.user_name,
+        contact_name: user.contact_name,
+        role: "rmadmin",
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" } // 7-day expiry
+    );
+
+    // 4️⃣ Return token + user info
     return res.status(200).json({
       success: true,
-      message: "User authenticated successfully",
+      message: "Authenticated successfully",
+      token,
       user: {
-        adminId: user.adminId,
-        username: user.username,
+        em_id: user.em_id,
+        user_name: user.user_name,
+        contact_name: user.contact_name,
       },
     });
   } catch (err) {
-    console.error(err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error" });
+    console.error("Auth error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 });
 
