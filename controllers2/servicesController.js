@@ -1,56 +1,47 @@
-import { Caterer } from "../models2/caterer.js";
+
+import Caterer from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
-import Photographer from "../models2/photographerVideographer.js";
-import propRental from "../models2/photographerVideographer.js";
-import VenueProvider from "../models2/venueProvider.js";
 import MakeupArtist from "../models2/makeupArtist.js";
-import { Venue } from "../models/venue.js";
+import PhotographerVideographer from "../models2/photographerVideographer.js";
 import Reviews from "../models2/reviews.js";
+import VenueProvider from "../models2/venueProvider.js";
 // import { Service } from "../models2/service.js";
 
+
+
 export const getService = async (req, res) => {
-  const { vendor_type, vendor_id } = req.params;
-  console.log(vendor_type, vendor_id);
-  console.log(`vendor_type in lowercase is ${vendor_type.toLowerCase()}`);
+  const vendor_type = req.params.vendor_type;
+  const vendor_id = req.params.vendor_id;
+  console.log("normalized to", vendor_type, "and id", vendor_id);
   try {
     let vendorData;
-    // Fetch data based on vendor type
-    switch (vendor_type.toLowerCase()) {
+    switch (vendor_type) {
       case "caterer":
-        vendorData = await Caterer.findOne({ vendor_id });
+        vendorData = await Caterer.findOne({service_id: vendor_id });
         break;
       case "decorator":
-        vendorData = await Decorator.findOne({ vendor_id });
+        vendorData = await Decorator.findOne({service_id: vendor_id });
         break;
       case "venue_provider":
-        vendorData = await Venue.findOne({ vendor_id });
+        vendorData = await VenueProvider.findOne({service_id: vendor_id });
         break;
       case "prop_rental":
-        vendorData = await propRental.findOne({ vendor_id });
+        vendorData = await PropRental.findOne({service_id: vendor_id });
         break;
       case "photographer_videographer":
-        vendorData = await Photographer.findOne({ vendor_id });
+        vendorData = await PhotographerVideographer.findOne({service_id: vendor_id });
         break;
       case "makeupartist":
-        vendorData = await MakeupArtist.findOne({ vendor_id });
+        vendorData = await MakeupArtist.findOne({ service_id: vendor_id });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
     }
-
-    // Check if vendor data exists
-    if (!vendorData) {
-      return res.status(404).json({ error: "Vendor not found" });
-    }
-
-    // Send vendor data as response
+    if (!vendorData) return res.status(404).json({ error: "Vendor not found" });
     return res.status(200).json(vendorData);
   } catch (error) {
-    // Handle errors
     console.error(error);
-    return res
-      .status(500)
-      .json({ error: "An error occurred: " + error.message });
+    return res.status(500).json({ error: "An error occurred: " + error.message });
   }
 };
 
@@ -201,8 +192,9 @@ export const handleSearch = async (req, res) => {
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(escaped, "i");
 
+    // schemas use business_details.business_registration_name
     const project = {
-      "business_details.business_name": 1,
+      "business_details.business_registration_name": 1,
       service_type: 1,
       service_id: 1,
       "basic_details.point_of_contact": 1,
@@ -211,17 +203,11 @@ export const handleSearch = async (req, res) => {
 
     const limitPerType = 8;
 
-    const [
-      venues,
-      caterers,
-      decorators,
-      pvs,
-      makeup,
-    ] = await Promise.all([
+    const [venues, caterers, decorators, pavs, makeup] = await Promise.all([
       VenueProvider.find({
         $or: [
           { "basic_details.point_of_contact": regex },
-          { "business_details.business_name": regex },
+          { "business_details.business_registration_name": regex },
         ],
       })
         .select(project)
@@ -231,7 +217,7 @@ export const handleSearch = async (req, res) => {
       Caterer.find({
         $or: [
           { "basic_details.point_of_contact": regex },
-          { "business_details.business_name": regex },
+          { "business_details.business_registration_name": regex },
         ],
       })
         .select(project)
@@ -241,17 +227,17 @@ export const handleSearch = async (req, res) => {
       Decorator.find({
         $or: [
           { "basic_details.point_of_contact": regex },
-          { "business_details.business_name": regex },
+          { "business_details.business_registration_name": regex },
         ],
       })
         .select(project)
         .limit(limitPerType)
         .lean(),
 
-      Photographer.find({
+      PhotographerVideographer.find({
         $or: [
           { "basic_details.point_of_contact": regex },
-          { "business_details.business_name": regex },
+          { "business_details.business_registration_name": regex },
         ],
       })
         .select(project)
@@ -261,7 +247,7 @@ export const handleSearch = async (req, res) => {
       MakeupArtist.find({
         $or: [
           { "basic_details.point_of_contact": regex },
-          { "business_details.business_name": regex },
+          { "business_details.business_registration_name": regex },
         ],
       })
         .select(project)
@@ -273,7 +259,7 @@ export const handleSearch = async (req, res) => {
       { service_type: "venue_provider", services: venues },
       { service_type: "caterer", services: caterers },
       { service_type: "decorator", services: decorators },
-      { service_type: "photographer_videographer", services: pvs },
+      { service_type: "photographer_videographer", services: pavs },
       { service_type: "makeup_artist", services: makeup },
     ].filter((g) => (g.services || []).length > 0);
 
@@ -300,13 +286,10 @@ export const getServiceByServiceId = async (req, res) => {
         serviceData = await Decorator.findOne({ service_id});
         break;
       case "venue_provider":
-        serviceData = await Venue.findOne({ service_id });
-        break;
-      case "prop_rental":
-        serviceData = await propRental.findOne({ service_id });
+        serviceData = await VenueProvider.findOne({ service_id });
         break;
       case "photographer_videographer":
-        serviceData = await Photographer.findOne({ service_id });
+        serviceData = await PhotographerVideographer.findOne({ service_id });
         break;
       case "makeup_artist":
         serviceData = await MakeupArtist.findOne({ service_id });

@@ -314,21 +314,44 @@ const createMakeupArtist = async (req, res) => {
     const savedMakeupArtist = await newMakeupArtist.save();
 
     // Associate with vendor
-    const vendor = await Vendor.findOne({ vendor_id: vendor_id });
+    const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
-      await MakeupArtist.findByIdAndDelete(savedMakeupArtist.vendor_id);
+      await MakeupArtist.findByIdAndDelete(savedMakeupArtist._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
-   
-    vendor.services.push(savedMakeupArtist.service_id); // Changed to push _id, as this is the likely fix
-    vendor.service_types.push({
-      "service_name" : "Makeup-Artist",
-      "service_status" : "Inactive",
-      "service_id" : savedMakeupArtist.service_id
-    })
-    console.log(
-      "Successfully pushed new service ID. Saving vendor document..."
+
+    // Use the normalized label already determined earlier
+    const serviceTypeLabel = serviceType || "Makeup-Artist";
+
+    // 1) Make sure vendor.services contains the service_id once
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(savedMakeupArtist.service_id)) {
+      vendor.services.push(savedMakeupArtist.service_id);
+    }
+
+    // 2) Update existing service_types element by service_name (case-insensitive)
+    //    If absent (older records), create it once.
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+
+    const idx = vendor.service_types.findIndex(
+      (st) =>
+        st &&
+        typeof st.service_name === "string" &&
+        st.service_name.toLowerCase() === serviceTypeLabel.toLowerCase()
     );
+
+    const updatedEntry = {
+      service_name: serviceTypeLabel,
+      service_status: "Inactive", // default after creation; update later when fully verified/active
+      service_id: savedMakeupArtist.service_id,
+    };
+
+    if (idx >= 0) {
+      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    } else {
+      vendor.service_types.push(updatedEntry);
+    }
+
     await vendor.save();
   
     await updateSectionCompletion(savedMakeupArtist.vendor_id);
