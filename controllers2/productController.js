@@ -21,12 +21,6 @@ const searchVenues = async (query) => {
 
   const location = query.location;
 
-  // Type of Event
-  if (query.event_types_venue && query.event_types_venue !== "All") {
-    matchStage["basic_details.event_types_venue"] = {
-      $in: [query.event_types_venue],
-    };
-  }
 
   // Price Range
   if (query.min_price || query.max_price) {
@@ -110,31 +104,16 @@ const searchVenues = async (query) => {
   });
 
   // Filter by rating if the query parameter is provided
-  if (query.rating) {
+  if (query.rating != null && query.rating !== "") {
     const rating = parseInt(query.rating, 10);
-    if (rating === 0) {
-      pipeline.push({
-        $match: {
-          $or: [
-            {
-              average_rating: {
-                $lt: 1,
-              },
-            },
-            {
-              average_rating: null,
-            },
-          ], // Match vendors with no reviews
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          average_rating: {
-            $gte: rating,
-          },
-        },
-      });
+    if (!Number.isNaN(rating)) {
+      if (rating === 0) {
+        pipeline.push({
+          $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] }
+        });
+      } else {
+        pipeline.push({ $match: { average_rating: { $gte: rating } } });
+      }
     }
   }
 
@@ -289,31 +268,16 @@ const searchDecorators = async (query) => {
   });
 
   // Filter by rating if the query parameter is provided
-  if (query.rating) {
+  if (query.rating != null && query.rating !== "") {
     const rating = parseInt(query.rating, 10);
-    if (rating === 0) {
-      pipeline.push({
-        $match: {
-          $or: [
-            {
-              average_rating: {
-                $lt: 1,
-              },
-            },
-            {
-              average_rating: null,
-            },
-          ], // Match vendors with no reviews
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          average_rating: {
-            $gte: rating,
-          },
-        },
-      });
+    if (!Number.isNaN(rating)) {
+      if (rating === 0) {
+        pipeline.push({
+          $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] }
+        });
+      } else {
+        pipeline.push({ $match: { average_rating: { $gte: rating } } });
+      }
     }
   }
 
@@ -505,31 +469,16 @@ const searchCaterers = async (query) => {
   });
 
   // Filter by rating if the query parameter is provided
-  if (query.rating) {
+  if (query.rating != null && query.rating !== "") {
     const rating = parseInt(query.rating, 10);
-    if (rating === 0) {
-      pipeline.push({
-        $match: {
-          $or: [
-            {
-              average_rating: {
-                $lt: 1,
-              },
-            },
-            {
-              average_rating: null,
-            },
-          ], // Match caterers with no reviews
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          average_rating: {
-            $gte: rating,
-          },
-        },
-      });
+    if (!Number.isNaN(rating)) {
+      if (rating === 0) {
+        pipeline.push({
+          $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] }
+        });
+      } else {
+        pipeline.push({ $match: { average_rating: { $gte: rating } } });
+      }
     }
   }
 
@@ -721,33 +670,19 @@ const searchMakeupArtists = async (query) => {
   });
 
   // Filter by rating if the query parameter is provided
-  if (query.rating) {
+  if (query.rating != null && query.rating !== "") {
     const rating = parseInt(query.rating, 10);
-    if (rating === 0) {
-      pipeline.push({
-        $match: {
-          $or: [
-            {
-              average_rating: {
-                $lt: 1,
-              },
-            },
-            {
-              average_rating: null,
-            },
-          ], // Match vendors with no reviews
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          average_rating: {
-            $gte: rating,
-          },
-        },
-      });
+    if (!Number.isNaN(rating)) {
+      if (rating === 0) {
+        pipeline.push({
+          $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] }
+        });
+      } else {
+        pipeline.push({ $match: { average_rating: { $gte: rating } } });
+      }
     }
   }
+
 
   // --- END: New logic for Reviews integration ---
 
@@ -910,18 +845,16 @@ const searchPAV = async (query) => {
   });
 
   // Rating filter (including 0 => no reviews or < 1 average)
-  if (query.rating) {
+  if (query.rating != null && query.rating !== "") {
     const rating = parseInt(query.rating, 10);
-    if (rating === 0) {
-      pipeline.push({
-        $match: {
-          $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }],
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: { average_rating: { $gte: rating } },
-      });
+    if (!Number.isNaN(rating)) {
+      if (rating === 0) {
+        pipeline.push({
+          $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] }
+        });
+      } else {
+        pipeline.push({ $match: { average_rating: { $gte: rating } } });
+      }
     }
   }
 
@@ -1035,46 +968,51 @@ const searchAllVendors = async (query) => {
       if (query.event_types) {
         let eventField = "";
         switch (modelType) {
-          case "caterer": eventField = "event_details.event_types_catered"; break; // already correct [attached_file:1]
-          case "decorator": eventField = "basic_details.event_types_decorated"; break; // already correct [attached_file:1]
-          case "photographer": eventField = "basic_details.event_types_captured"; break; // fix from event_types_venue [attached_file:1]
-          case "makeup_artist": eventField = "basic_details.event_types_makeup"; break; // fix from event_types_venue [attached_file:1]
-          case "venue_provider": eventField = "basic_details.event_types_venue"; break; // keep [attached_file:1]
+          case "caterer": eventField = "event_details.event_types_catered"; break;
+          case "decorator": eventField = "basic_details.event_types_decorated"; break;
+          case "photographer": eventField = "basic_details.event_types_captured"; break;
+          case "makeup_artist": eventField = "basic_details.event_types_makeup"; break;
+          case "venue_provider": eventField = "basic_details.event_types_venue"; break; // do NOT filter venues by event type
         }
         if (eventField) {
           pipeline.push({ $match: { [eventField]: { $in: query.event_types } } });
         }
       }
 
-      pipeline.push({
-        $lookup: {
-          from: "reviews",
-          localField: "service_id",
-          foreignField: "service_id",
-          as: "reviews",
-        },
-      }, {
-        $addFields: {
-          average_rating: { $avg: "$reviews.rating" },
-        },
-      });
 
-      if (query.rating) {
+      pipeline.push(
+        {
+          $lookup: {
+            from: "reviews",
+            localField: "service_id",
+            foreignField: "service_id",
+            as: "reviews",
+          },
+        },
+        {
+          $addFields: {
+            average_rating: { $avg: "$reviews.rating" },
+          },
+        }
+      );
+
+      // Rating filter (opt-in)
+      if (query.rating != null && query.rating !== "") {
         const rating = parseInt(query.rating, 10);
-        if (rating === 0) {
-          pipeline.push({
-            $match: {
-              $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }],
-            },
-          });
-        } else {
-          pipeline.push({
-            $match: { average_rating: { $gte: rating } },
-          });
+        if (!Number.isNaN(rating)) {
+          if (rating === 0) {
+            pipeline.push({
+              $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] },
+            });
+          } else {
+            pipeline.push({ $match: { average_rating: { $gte: rating } } });
+          }
         }
       }
+
       return pipeline;
     };
+
 
     // Create separate pipelines for each vendor type
     const venuePipeline = aggregatePipeline("venue_provider");
