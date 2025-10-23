@@ -35,6 +35,7 @@ import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provide
 import updatePageRoutes from "../routes2/updatePageRoutes.js";
 import vendorNotificationRoutes from "../routes2/vendorNotificationRoutes.js";
 import customerNotificationRoutes from "../routes2/customerNotificationRoutes.js";
+import invoiceRoutes from "../routes2/invoiceRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -74,6 +75,7 @@ router.use("/update-page", updatePageRoutes);
 router.use("/vendor-edit", vendorEditRoutes);
 router.use("/vendor-notifications", vendorNotificationRoutes);
 router.use("/customer-notifications", customerNotificationRoutes);
+router.use("/invoices", invoiceRoutes);
 // router.use("/webhook", waRoutes); 
 
 
