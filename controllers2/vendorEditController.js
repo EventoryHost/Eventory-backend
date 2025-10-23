@@ -1,7 +1,8 @@
+import mongoose from "mongoose";
 import { Vendor } from "../models2/vendor.js";
 import { Caterer } from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
-import {Invoices} from "../models2/invoices.js";
+import { Invoices } from "../models2/invoices.js";
 import Photographer from "../models2/photographerVideographer.js";
 import PropRental from "../models/props.js";
 import VenueProvider from "../models2/venueProvider.js";
@@ -13,6 +14,17 @@ import { checkPhotographerProfileCompletion } from "../utils/completionUtils/pav
 import { checkVenueProfileCompletion } from "../utils/completionUtils/venueCompletionUtils.js";
 import { checkMakeupArtistProfileCompletion } from "../utils/completionUtils/makeupCompletionUtils.js";
 import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompletionUtils.js";
+
+import { Calendar } from "../models2/calendar.js";
+import Chat2 from "../models2/chats.js";
+import { Events } from "../models2/events.js";
+import Orders from "../models2/orders.js";
+import Quotations from "../models2/quotations.js";
+import Reviews from "../models2/reviews.js";
+import VendorNotifications from "../models2/vendorNotifications.js";
+import { Customer } from "../models2/customer.js";
+
+import { getServiceModel } from "../utils/serviceMapper.js";
 
 // 1. Update vendor-level fields + service_types
 export const updateVendorAndService = async (req, res) => {
@@ -157,7 +169,7 @@ export const updateServiceDetails = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ error: "Vendor or service not found" });
     }
-    
+
     // Step 1.5: Handle vendor-level fields (email, mobile) if provided
     let vendorUpdated = false;
     if (updateData.email_address !== undefined) {
@@ -170,22 +182,24 @@ export const updateServiceDetails = async (req, res) => {
       vendorUpdated = true;
       console.log(`Updating vendor mobile to: ${updateData.vendor_mobile}`);
     }
-    
+
     // Save vendor updates if any vendor-level fields were modified
     if (vendorUpdated) {
       await vendor.save();
       console.log("Vendor-level fields updated successfully");
     }
-    
+
     // New schema: services and service_types are parallel arrays
     const serviceIndex = vendor.services.indexOf(serId);
     if (serviceIndex === -1) {
-      return res.status(404).json({ error: "Service not found in vendor's services" });
+      return res
+        .status(404)
+        .json({ error: "Service not found in vendor's services" });
     }
 
     const serviceObj = vendor.service_types[serviceIndex];
     console.log(serviceObj);
-    
+
     if (!serviceObj) {
       return res
         .status(404)
@@ -194,7 +208,7 @@ export const updateServiceDetails = async (req, res) => {
 
     const serType = serviceObj.service_name;
     console.log(`Serrrrrrobj is ${serviceObj}`);
-    console.log(serType , serId);
+    console.log(serType, serId);
     let updatedService;
 
     // Step 2: Update the respective service based on service type
@@ -240,7 +254,7 @@ export const updateServiceDetails = async (req, res) => {
           { new: true }
         );
         break;
-      case "makeup-artist":  
+      case "makeup-artist":
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { service_id: serId },
@@ -261,10 +275,10 @@ export const updateServiceDetails = async (req, res) => {
         console.log("ERROR: Fell through to default case!");
         console.log("Service type received:", serType);
         console.log("Service type lowercase:", serType.toLowerCase());
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Unsupported service type",
           received: serType,
-          receivedLowercase: serType.toLowerCase()
+          receivedLowercase: serType.toLowerCase(),
         });
     }
 
@@ -274,7 +288,7 @@ export const updateServiceDetails = async (req, res) => {
 
     const isVerified = checkVerification(updatedService, serType);
     console.log(`Verification status for ${serType}: ${isVerified}`);
-    await updatedService.updateOne({ is_active: isVerified});
+    await updatedService.updateOne({ is_active: isVerified });
 
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
@@ -730,76 +744,76 @@ const checkVerification = (service, serType) => {
         { path: "policies.cancellation_policy", label: "Cancellation Policy" },
         { path: "policies.terms_and_conditions", label: "Terms & Conditions" },
       ];
-      case "makeup-artist":
-        fieldsToCheck = [
-          // business_details field
-          // { path: "business_details.business_name", label: "Service Name" },
+    case "makeup-artist":
+      fieldsToCheck = [
+        // business_details field
+        // { path: "business_details.business_name", label: "Service Name" },
 
-          // basic_details fields
-          {
-            path: "basic_details.min_booking_capacity",
-            label: "Minimum Booking Capacity",
-          },
-          {
-            path: "basic_details.max_booking_capacity",
-            label: "Maximum Booking Capacity",
-          },
-          { path: "basic_details.description", label: "Description" },
-          {
-            path: "basic_details.event_types_makeup",
-            label: "Event Types Makeup",
-          },
-          {
-            path: "basic_details.types_of_makeup_artists_available",
-            label: "Types of Makeup Artists",
-          },
-          {
-            path: "service_details.is_onsite_makeup_available",
-            label: "Onsite Makeup Available",
-          },
-          {
-            path: "service_details.is_customization_possible",
-            label: "Customization",
-          },
-          {
-            path: "service_details.service_types",
-            label: "Service Types",
-          },
+        // basic_details fields
+        {
+          path: "basic_details.min_booking_capacity",
+          label: "Minimum Booking Capacity",
+        },
+        {
+          path: "basic_details.max_booking_capacity",
+          label: "Maximum Booking Capacity",
+        },
+        { path: "basic_details.description", label: "Description" },
+        {
+          path: "basic_details.event_types_makeup",
+          label: "Event Types Makeup",
+        },
+        {
+          path: "basic_details.types_of_makeup_artists_available",
+          label: "Types of Makeup Artists",
+        },
+        {
+          path: "service_details.is_onsite_makeup_available",
+          label: "Onsite Makeup Available",
+        },
+        {
+          path: "service_details.is_customization_possible",
+          label: "Customization",
+        },
+        {
+          path: "service_details.service_types",
+          label: "Service Types",
+        },
 
-          // additional_details fields
-          {
-            path: "additional_details.asset_images",
-            label: "Additional Photos",
-          },
-          {
-            path: "additional_details.asset_videos",
-            label: "Additional Videos",
-          },
-          {
-            path: "additional_details.min_booking_period",
-            label: "Advance Booking Period",
-          },
-          {
-            path: "additional_details.max_booking_period",
-            label: "Advance Booking Period",
-          },
-          {
-            path: "additional_details.prices_starts_from",
-            label: "Price Starting From",
-          },
-          {
-            path: "additional_details.ig_socials_link",
-            label: "Instagram Socials",
-          },          
-          {
-            path: "additional_details.web_social_link",
-            label: "Website Socials",
-          },
+        // additional_details fields
+        {
+          path: "additional_details.asset_images",
+          label: "Additional Photos",
+        },
+        {
+          path: "additional_details.asset_videos",
+          label: "Additional Videos",
+        },
+        {
+          path: "additional_details.min_booking_period",
+          label: "Advance Booking Period",
+        },
+        {
+          path: "additional_details.max_booking_period",
+          label: "Advance Booking Period",
+        },
+        {
+          path: "additional_details.prices_starts_from",
+          label: "Price Starting From",
+        },
+        {
+          path: "additional_details.ig_socials_link",
+          label: "Instagram Socials",
+        },
+        {
+          path: "additional_details.web_social_link",
+          label: "Website Socials",
+        },
 
-          // policies fields
-          { path: "policies.cancellation_policy", label: "Cancellation Policy" },
-          { path: "policies.terms_and_conditions", label: "Terms & Conditions" },
-        ];
+        // policies fields
+        { path: "policies.cancellation_policy", label: "Cancellation Policy" },
+        { path: "policies.terms_and_conditions", label: "Terms & Conditions" },
+      ];
       break;
     // Add criteria for other service types as needed
 
@@ -866,3 +880,117 @@ export const addVendorInvoice = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
 };
+
+// 🛑 4. API endpoint to delete a service profile
+export const deleteServiceProfile = async (req, res) => {
+  // 🛑 1. Get vendorId from the request body (as requested)
+  const { vendor_id: vendorIdFromRequest } = req.body;
+  // 2. Get serviceId from the URL parameters
+  const serviceId = req.params.service_id;
+
+  // Use the vendorId from the body for the deletion
+  const vendorId = vendorIdFromRequest;
+
+  if (!vendorId || !serviceId) {
+    return res
+      .status(400)
+      .json({ message: "Vendor ID and Service ID are required for deletion." });
+  }
+
+  const { model: ServiceModel, name: serviceName } = getServiceModel(serviceId);
+
+  if (!ServiceModel) {
+    return res
+      .status(400)
+      .json({ message: "Invalid or unsupported service type detected." });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // --- 1. DELETE THE SERVICE PROFILE (e.g., Caterer, Decorator) ---
+    // Crucial check: ensures the vendorId matches the service profile
+    const deleteServiceProfileResult = await ServiceModel.deleteOne(
+      { service_id: serviceId, vendor_id: vendorId }, // 👈 Using vendorId from request body/frontend
+      { session }
+    );
+
+    if (deleteServiceProfileResult.deletedCount === 0) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: `${serviceName} profile not found or does not belong to the provided vendor ID.`,
+      });
+    }
+
+    // --- 2. CASCADE HARD DELETION ON ALL TRANSACTIONAL DATA (using serviceId) ---
+    // Delete events scheduled for this service
+    await Calendar.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all chat threads where this service is involved
+    await Chat2.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all event/booking records created for this service
+    await Events.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all invoices generated for this service
+    await Invoices.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all orders made for this service
+    await Orders.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all quotation requests made to this service
+    await Quotations.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all customer reviews submitted for this service
+    await Reviews.deleteMany({ service_id: serviceId }, { session });
+
+    // Delete all vendor notifications linked to this service
+    await VendorNotifications.deleteMany(
+      { service_id: serviceId },
+      { session }
+    );
+
+    // --- 3. UPDATE CUSTOMER WISHLISTS (Remove serviceId) ---
+    await Customer.updateMany(
+      { wishlisted_services: serviceId },
+      { $pull: { wishlisted_services: serviceId } },
+      { session }
+    );
+
+    // --- 4. UPDATE THE VENDOR MASTER PROFILE (Remove service entry) ---
+    const updateVendorResult = await Vendor.updateOne(
+      { vendor_id: vendorId },
+      {
+          $pull: {
+              // 🛑 CORRECTED: Pull the serviceId string from the 'services' array
+              services: serviceId, 
+              
+              // This remains correct, targeting the object in service_types array
+              service_types: { service_id: serviceId }
+          }
+      },
+      { session }
+  );
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      message: `${serviceName} service and all associated data permanently deleted.`,
+      vendorUpdateStatus: updateVendorResult.modifiedCount,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error(`Transaction aborted for service ${serviceId}:`, error);
+
+    return res.status(500).json({
+      message:
+        "A critical database error occurred. The deletion was rolled back to ensure data integrity.",
+      error: error.message,
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+// ... (helper variables and functions: serviceFields, calculateProfileCompletion, checkVerification, addVendorInvoice)
