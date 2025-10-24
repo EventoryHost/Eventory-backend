@@ -6,75 +6,84 @@ import { Events } from "../models2/events.js";
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const { invoice_url, type, vendor_id, service_id, customer_id, event_id } = req.body;
+    const { invoice_url, type, vendor_id, service_id, customer_id, event_id } =
+      req.body;
 
     // Validate required fields
     if (!invoice_url || !type || !vendor_id || !service_id) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: invoice_url, type, vendor_id, service_id"
+        message:
+          "Missing required fields: invoice_url, type, vendor_id, service_id",
       });
     }
 
     // Validate type enum
-    const validTypes = ['registration', 'advance_booking', 'booking', 'payment'];
+    const validTypes = [
+      "registration",
+      "advance_booking",
+      "booking",
+      "payment",
+    ];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid type. Must be one of: registration, advance_booking, booking, payment"
+        message:
+          "Invalid type. Must be one of: registration, advance_booking, booking, payment",
       });
     }
 
     // Validate customer_id based on type
-    if (type === 'registration' && customer_id) {
+    if (type === "registration" && customer_id) {
       return res.status(400).json({
         success: false,
-        message: "Customer ID should be null for registration type invoices"
+        message: "Customer ID should be null for registration type invoices",
       });
     }
 
-    if (type !== 'registration' && !customer_id) {
+    if (type !== "registration" && !customer_id) {
       return res.status(400).json({
         success: false,
-        message: "Customer ID is required for non-registration invoices"
+        message: "Customer ID is required for non-registration invoices",
       });
     }
 
     // Validate event_id based on type
-    if (type === 'registration' && event_id) {
+    if (type === "registration" && event_id) {
       return res.status(400).json({
         success: false,
-        message: "Event ID should be null for registration type invoices"
+        message: "Event ID should be null for registration type invoices",
       });
     }
 
     // Check if vendor exists
-    const vendor = await Vendor.findById(vendor_id);
+    const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
       return res.status(404).json({
         success: false,
-        message: "Vendor not found"
+        message: "Vendor not found",
       });
     }
 
     // Check if customer exists (for non-registration invoices)
     if (customer_id) {
-      const customer = await Customer.findById(customer_id);
+      const customer = await Customer.findOne({ customer_id });
+      console.log(customer);
       if (!customer) {
         return res.status(404).json({
           success: false,
-          message: "Customer not found"
+          message: "Customer not found",
         });
       }
     }
 
     // Check if event exists (if event_id is provided)
     if (event_id) {
-      const event = await Events.findById(event_id);
+      const event = await Events.findOne({ event_id });
       if (!event) {
         return res.status(404).json({
           success: false,
-          message: "Event not found"
+          message: "Event not found",
         });
       }
     }
@@ -85,8 +94,8 @@ export const createInvoice = async (req, res) => {
       type,
       vendor_id,
       service_id,
-      customer_id: type === 'registration' ? null : customer_id,
-      event_id: type === 'registration' ? null : event_id
+      customer_id: type === "registration" ? null : customer_id,
+      event_id: type === "registration" ? null : event_id,
     });
 
     await invoice.save();
@@ -94,15 +103,14 @@ export const createInvoice = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Invoice created successfully",
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error creating invoice:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -119,18 +127,18 @@ export const getInvoices = async (req, res) => {
       service_id,
       event_id,
       start_date,
-      end_date
+      end_date,
     } = req.query;
 
     // Build filter object
     const filter = {};
-    
+
     if (type) filter.type = type;
     if (vendor_id) filter.vendor_id = vendor_id;
     if (customer_id) filter.customer_id = customer_id;
     if (service_id) filter.service_id = service_id;
     if (event_id) filter.event_id = event_id;
-    
+
     // Date range filter
     if (start_date || end_date) {
       filter.invoice_created_at = {};
@@ -144,9 +152,9 @@ export const getInvoices = async (req, res) => {
       .sort({ invoice_created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('vendor_id', 'business_name contact_number email')
-      .populate('customer_id', 'name contact_number email')
-      .populate('event_id', 'event_name event_date venue');
+      .populate("vendor_id", "business_name contact_number email")
+      .populate("customer_id", "name contact_number email")
+      .populate("event_id", "event_name event_date venue");
 
     const total = await Invoices.countDocuments(filter);
 
@@ -157,16 +165,15 @@ export const getInvoices = async (req, res) => {
         current_page: parseInt(page),
         total_pages: Math.ceil(total / parseInt(limit)),
         total_records: total,
-        limit: parseInt(limit)
-      }
+        limit: parseInt(limit),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching invoices:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -176,29 +183,28 @@ export const getInvoiceById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const invoice = await Invoices.findById(id)
-      .populate('vendor_id', 'business_name contact_number email')
-      .populate('customer_id', 'name contact_number email')
-      .populate('event_id', 'event_name event_date venue');
+    const invoice = await Invoices.findOne({ invoice_id: id })
+      .populate("vendor_id", "business_name contact_number email")
+      .populate("customer_id", "name contact_number email")
+      .populate("event_id", "event_name event_date venue");
 
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error fetching invoice:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -209,28 +215,27 @@ export const getInvoiceByNumber = async (req, res) => {
     const { invoice_no } = req.params;
 
     const invoice = await Invoices.findOne({ invoice_no: parseInt(invoice_no) })
-      .populate('vendor_id', 'business_name contact_number email')
-      .populate('customer_id', 'name contact_number email')
-      .populate('event_id', 'event_name event_date venue');
+      .populate("vendor_id", "business_name contact_number email")
+      .populate("customer_id", "name contact_number email")
+      .populate("event_id", "event_name event_date venue");
 
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error fetching invoice:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -250,8 +255,8 @@ export const getInvoicesByVendor = async (req, res) => {
       .sort({ invoice_created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('customer_id', 'name contact_number email')
-      .populate('event_id', 'event_name event_date venue');
+      .populate("customer_id", "name contact_number email")
+      .populate("event_id", "event_name event_date venue");
 
     const total = await Invoices.countDocuments(filter);
 
@@ -262,16 +267,15 @@ export const getInvoicesByVendor = async (req, res) => {
         current_page: parseInt(page),
         total_pages: Math.ceil(total / parseInt(limit)),
         total_records: total,
-        limit: parseInt(limit)
-      }
+        limit: parseInt(limit),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching vendor invoices:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -291,8 +295,8 @@ export const getInvoicesByCustomer = async (req, res) => {
       .sort({ invoice_created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('vendor_id', 'business_name contact_number email')
-      .populate('event_id', 'event_name event_date venue');
+      .populate("vendor_id", "business_name contact_number email")
+      .populate("event_id", "event_name event_date venue");
 
     const total = await Invoices.countDocuments(filter);
 
@@ -303,16 +307,15 @@ export const getInvoicesByCustomer = async (req, res) => {
         current_page: parseInt(page),
         total_pages: Math.ceil(total / parseInt(limit)),
         total_records: total,
-        limit: parseInt(limit)
-      }
+        limit: parseInt(limit),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching customer invoices:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -329,8 +332,8 @@ export const getInvoicesByEvent = async (req, res) => {
       .sort({ invoice_created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('vendor_id', 'business_name contact_number email')
-      .populate('customer_id', 'name contact_number email');
+      .populate("vendor_id", "business_name contact_number email")
+      .populate("customer_id", "name contact_number email");
 
     const total = await Invoices.countDocuments({ event_id });
 
@@ -341,16 +344,15 @@ export const getInvoicesByEvent = async (req, res) => {
         current_page: parseInt(page),
         total_pages: Math.ceil(total / parseInt(limit)),
         total_records: total,
-        limit: parseInt(limit)
-      }
+        limit: parseInt(limit),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching event invoices:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -366,8 +368,14 @@ export const updateInvoice = async (req, res) => {
     delete updateData.invoice_id;
     delete updateData.invoice_created_at;
 
-    const invoice = await Invoices.findByIdAndUpdate(
-      id,
+    // const invoice = await Invoices.findByIdAndUpdate(
+    //   id,
+    //   updateData,
+    //   { new: true, runValidators: true }
+    // );
+
+    const invoice = await Invoices.findOneAndUpdate(
+      { invoice_id: id },
       updateData,
       { new: true, runValidators: true }
     );
@@ -375,22 +383,21 @@ export const updateInvoice = async (req, res) => {
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Invoice updated successfully",
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error updating invoice:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -400,26 +407,25 @@ export const deleteInvoice = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const invoice = await Invoices.findByIdAndDelete(id);
+    const invoice = await Invoices.findOneAndDelete({ invoice_id: id });
 
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Invoice deleted successfully"
+      message: "Invoice deleted successfully",
     });
-
   } catch (error) {
     console.error("Error deleting invoice:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -445,19 +451,19 @@ export const getInvoiceStats = async (req, res) => {
           _id: null,
           total_invoices: { $sum: 1 },
           registration_invoices: {
-            $sum: { $cond: [{ $eq: ["$type", "registration"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$type", "registration"] }, 1, 0] },
           },
           advance_booking_invoices: {
-            $sum: { $cond: [{ $eq: ["$type", "advance_booking"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$type", "advance_booking"] }, 1, 0] },
           },
           booking_invoices: {
-            $sum: { $cond: [{ $eq: ["$type", "booking"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$type", "booking"] }, 1, 0] },
           },
           payment_invoices: {
-            $sum: { $cond: [{ $eq: ["$type", "payment"] }, 1, 0] }
-          }
-        }
-      }
+            $sum: { $cond: [{ $eq: ["$type", "payment"] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     const result = stats[0] || {
@@ -465,20 +471,19 @@ export const getInvoiceStats = async (req, res) => {
       registration_invoices: 0,
       advance_booking_invoices: 0,
       booking_invoices: 0,
-      payment_invoices: 0
+      payment_invoices: 0,
     };
 
     res.status(200).json({
       success: true,
-      data: result
+      data: result,
     });
-
   } catch (error) {
     console.error("Error fetching invoice statistics:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -491,21 +496,20 @@ export const getRecentInvoices = async (req, res) => {
     const invoices = await Invoices.find()
       .sort({ invoice_created_at: -1 })
       .limit(parseInt(limit))
-      .populate('vendor_id', 'business_name')
-      .populate('customer_id', 'name')
-      .populate('event_id', 'event_name');
+      .populate("vendor_id", "business_name")
+      .populate("customer_id", "name")
+      .populate("event_id", "event_name");
 
     res.status(200).json({
       success: true,
-      data: invoices
+      data: invoices,
     });
-
   } catch (error) {
     console.error("Error fetching recent invoices:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
