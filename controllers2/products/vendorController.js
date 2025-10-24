@@ -179,6 +179,8 @@ export const addBankDetails = async (req, res) => {
     const { vendor_id } = req.params;
     const { bank_name, account_number, account_type, ifsc, service_id } = req.body;
 
+    console.log(req.params, req.body);
+
     if (!bank_name || !account_number || !account_type || !ifsc || !service_id || !vendor_id) {
       return res.status(400).json({ message: "All bank details fields are required" });
     }

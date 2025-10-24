@@ -142,7 +142,6 @@ const ordersSchema = new Schema({
   },
   location_type: {
     type: String,
-    required: true,
     enum: ['indoor', 'outdoor']
     // indoor when vendor visits customer, outdoor vice versa
   },

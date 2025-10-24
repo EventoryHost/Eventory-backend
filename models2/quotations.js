@@ -56,7 +56,6 @@ const quotationsSchema = new Schema({
   },
   location_type: {
     type: String,
-    required: true,
     enum: ['indoor', 'outdoor']
   },
   event_location: {
