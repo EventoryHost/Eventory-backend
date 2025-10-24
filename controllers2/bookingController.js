@@ -372,3 +372,42 @@ export const getAllVendorServiceSchedules = async (req, res) => {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+//to be done
+export const addBookingInvoice = async (req, res) => {
+  try {
+    const { bookingId, customerInvoiceUrl, vendorInvoiceUrl } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ error: 'bookingId is required' });
+    }
+
+    if (!customerInvoiceUrl && !vendorInvoiceUrl) {
+      return res.status(400).json({ error: 'At least one invoice URL is required' });
+    }
+
+    const update = {};
+    if (customerInvoiceUrl) update['$push'] = { 'invoices.customerInvoices': customerInvoiceUrl };
+    if (vendorInvoiceUrl) {
+      if (!update['$push']) update['$push'] = {};
+      update['$push']['invoices.vendorInvoices'] = vendorInvoiceUrl;
+    }
+
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { bookingid: bookingId },
+      update,
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ error: `Booking with id ${bookingId} not found` });
+    }
+
+    res.status(200).json({
+      message: 'Invoice URLs added successfully',
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    console.error('Error adding invoice URLs to booking:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

@@ -188,5 +188,57 @@ router.route("/myquotations").get(getQuotations);
  */
 router.get("/:id", getQuotationById);
 
+//to be done
+router.get("/", async (req, res) => {
+  try {
+    const { vendor_id } = req.query;
+
+    if (!vendor_id) {
+      return res.status(400).json({ message: "vendor_id is required" });
+    }
+
+    const quotations = await Quotation.find({ vendor_id });
+
+    if (quotations.length === 0) {
+      return res
+        .status(404)
+        .json({ message: `No quotations found for vendor_id: ${vendor_id}` });
+    }
+
+    res.status(200).json({
+      message: "Quotations retrieved successfully!",
+      data: quotations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving quotations",
+      error: error.message,
+    });
+  }
+});
+
+
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleteResult = await Quotation.deleteOne({ id });
+
+    if (deleteResult.deletedCount === 0) {
+      return res.status(404).json({ message: "Quotation not found" });
+    }
+
+    res.status(200).json({
+      message: "Quotation deleted successfully!",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting quotation",
+      error: error.message,
+    });
+  }
+});
+
 return router;
 }

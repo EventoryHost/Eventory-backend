@@ -22,7 +22,10 @@ import {
   addFavourite,
   removeFavourite,
   getFavoriteServiceIds,
-  getBooking
+  getBooking,
+  removeQuotationFromCustomer,
+  addCustomerInvoice,
+  getActiveBooking
 } from "../controllers2/customerController.js";
 
 const router = express.Router();
@@ -206,5 +209,10 @@ router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNoti
  *     tags: [Customer]
  */
 router.get("/:id", getCustomerById);
+
+//to be done 
+router.get("/get-active-booking/:cusId/:serId", getActiveBooking);
+router.post("/add-customer-invoice", addCustomerInvoice);
+router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
 
 export default router;

@@ -5,6 +5,7 @@ import {
   getServiceByServiceId,
   getVendorLimit,
   handleSearch,
+  updateScheduleColor
 } from "../controllers2/servicesController.js";
 
 const serviceRouter = Router();
@@ -121,4 +122,6 @@ serviceRouter.post("/review", addReviews);
 serviceRouter.get("/search", handleSearch);
 serviceRouter.get("/get-service/:service_type/:service_id", getServiceByServiceId);
 
+//to be done 
+serviceRouter.put("/update-schedule-color/:serviceId/:eventId", updateScheduleColor);
 export default serviceRouter;
