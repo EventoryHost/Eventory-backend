@@ -6,15 +6,15 @@ import { Events } from "../models2/events.js";
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const { invoice_url, type, vendor_id, service_id, customer_id, event_id } =
+    const { invoice_url, type, vendor_id, customer_id, event_id, service_id } =
       req.body;
 
     // Validate required fields
-    if (!invoice_url || !type || !vendor_id || !service_id) {
+    if (!invoice_url || !type || !vendor_id) {
       return res.status(400).json({
         success: false,
         message:
-          "Missing required fields: invoice_url, type, vendor_id, service_id",
+          "Missing required fields: invoice_url, type, vendor_id",
       });
     }
 

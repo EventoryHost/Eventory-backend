@@ -672,6 +672,7 @@ const verifyCustomerPayment = async (req, res) => {
 
     const paymentDetailsMsg = {
       paymentType: payment_type,
+      serviceId: serviceDoc.service_id,
       paidAmount: String(Number(paidAmount.toFixed(2))),
       method: paymentMethod,
       items,

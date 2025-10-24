@@ -48,7 +48,6 @@ const invoicesSchema = new mongoose.Schema({
   },
   service_id: {
     type: String,
-    required: true
   },
   customer_id: {
     type: String // Will be null when type=registration
