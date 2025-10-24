@@ -21,6 +21,12 @@ const vendorNotificationsSchema = new Schema({
     type: String,
     required: true
   },
+  quotation_id: {
+    type: String
+  },
+  booking_id: {
+    type: String
+  },
   read: {
     type: Boolean,
     default: false
