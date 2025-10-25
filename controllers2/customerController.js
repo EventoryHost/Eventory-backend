@@ -90,14 +90,14 @@ export const addFavourite = async (req, res) => {
 };
 
 export const getCustomerNotifications = async (req, res) => {
-  const { customerId } = req.params;
+  const { customer_id } = req.params;
 
   try {
-    if (!customerId) {
+    if (!customer_id) {
       return res.status(400).json({ message: "Customer ID is required" });
     }
 
-    const notifications = await customerNotification.find({ customerId });
+    const notifications = await customerNotification.find({ customer_id });
 
     return res.status(200).json({
       message: "Notifications retrieved successfully",
