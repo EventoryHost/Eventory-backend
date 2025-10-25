@@ -1,4 +1,5 @@
 import Order from "../models2/orders.js";
+import { Events } from "../models2/events.js";
 import customerNotification from "../models2/customerNotifications.js";
 import vendorNotification from "../models2/vendorNotifications.js";
 import adminNotification from "../models2/emNotifications.js";
@@ -365,6 +366,58 @@ export const updateSpecificTerms = async (req, res) => {
     console.error("Failed to update specific terms:", error);
     res.status(500).json({ 
       message: "Failed to update specific terms", 
+      error: error.message 
+    });
+  }
+};
+
+// ---------------------- SYNC PAYMENT DETAILS TO EVENTS ----------------------
+export const syncPaymentDetailsToEvents = async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const { paymentDetails, payment_method_details } = req.body;
+
+    // Get the order to find the associated event
+    const order = await Order.findOne({ order_id });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Find the associated event using customer_id and vendor_id
+    const event = await Events.findOne({
+      customer_id: order.customer_id,
+      vendor_id: order.vendor_id,
+      event_start: order.event_start,
+      event_end: order.event_end
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Associated event not found" });
+    }
+
+    // Update the event with payment details
+    const updateFields = {};
+    if (paymentDetails) {
+      updateFields.paymentDetails = paymentDetails;
+    }
+    if (payment_method_details) {
+      updateFields.payment_method_details = payment_method_details;
+    }
+
+    const updatedEvent = await Events.findOneAndUpdate(
+      { event_id: event.event_id },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    res.status(200).json({ 
+      message: "Payment details synced to event successfully", 
+      data: updatedEvent 
+    });
+  } catch (error) {
+    console.error("Failed to sync payment details to events:", error);
+    res.status(500).json({ 
+      message: "Failed to sync payment details to events", 
       error: error.message 
     });
   }
