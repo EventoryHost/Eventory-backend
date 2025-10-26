@@ -6,8 +6,8 @@ import PropRental from "../models/props.js";
 import MakeupArtist from "../models2/makeupArtist.js";
 import jwt from "jsonwebtoken";
 import VenueProvider from "../models2/venueProvider.js";
-import  customerNotification  from "../models2/customerNotifications.js";
-import Quotations  from "../models2/quotations.js";
+import customerNotification from "../models2/customerNotifications.js";
+import Quotations from "../models2/quotations.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -25,15 +25,15 @@ export const addCustomer = async (req, res) => {
 
 export const getCustomer = async (req, res) => {
   try {
-    let phone  = req.params.mobile;
+    let phone = req.params.mobile;
     if (phone && !phone.startsWith("+91")) {
       phone = "+91" + phone;
     }
     const customer = await Customer.findOne({ contact_number: phone });
-    if(!customer) {
+    if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    res.status(200).json({customer});
+    res.status(200).json({ customer });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -46,7 +46,7 @@ export const getBooking = async (req, res) => {
     // Look directly in Quotations collection
     const booking = await Quotations.findOne({
       service_id: service_id,
-      customer_id: customer_id
+      customer_id: customer_id,
     });
 
     if (!booking) {
@@ -57,16 +57,16 @@ export const getBooking = async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const addFavourite = async (req, res) => {
   try {
     const customer_id = req.params.customer_id;
-    const service_id = req.params.service_id; 
+    const service_id = req.params.service_id;
 
     console.log("customer_id", customer_id);
     const customer = await Customer.findOne({ customer_id: customer_id });
-  
+
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
@@ -74,14 +74,15 @@ export const addFavourite = async (req, res) => {
       customer.wishlisted_services = [];
     }
     if (customer.wishlisted_services.includes(service_id)) {
-      return res.status(400).json({ message: "Service already added to favorites" });
+      return res
+        .status(400)
+        .json({ message: "Service already added to favorites" });
     }
 
     customer.wishlisted_services.push(service_id);
-    console.log("Hellow")
+    console.log("Hellow");
     await customer.save();
-    console.log("byeew")
-
+    console.log("byeew");
 
     res.status(200).json({ message: "Added to favorites", customer });
   } catch (error) {
@@ -139,7 +140,10 @@ export const markNotificationAsRead = async (req, res) => {
     console.error("❌ Error marking notification as read:", error);
     return res
       .status(500)
-      .json({ message: "Failed to mark notification as read", error: error.message });
+      .json({
+        message: "Failed to mark notification as read",
+        error: error.message,
+      });
   }
 };
 
@@ -244,7 +248,7 @@ export const removeFavourite = async (req, res) => {
         .json({ message: "Service not found in favourites" });
     }
     customer.wishlisted_services = customer.wishlisted_services.filter(
-      (id) => id !== service_id,
+      (id) => id !== service_id
     );
     await customer.save();
     res.status(200).json(customer);
@@ -281,7 +285,8 @@ export const updateCustomer = async (req, res) => {
     if (!mobile) return res.status(403).json({ message: "Invalid token" });
 
     const { mobile: mobileFromBody, ...updates } = req.body;
-    if (!mobileFromBody) return res.status(400).json({ message: "Phone number missing" });
+    if (!mobileFromBody)
+      return res.status(400).json({ message: "Phone number missing" });
 
     const customer = await Customer.findOneAndUpdate(
       { contact_number: mobileFromBody }, // fixed to match schema
@@ -289,7 +294,8 @@ export const updateCustomer = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    if (!customer)
+      return res.status(404).json({ message: "Customer not found" });
 
     res.status(200).json(customer);
   } catch (error) {
@@ -302,7 +308,9 @@ export const getCustomerById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const customer = await Customer.findOne({ customer_id: id }).select("-password");
+    const customer = await Customer.findOne({ customer_id: id }).select(
+      "-password"
+    );
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -314,3 +322,95 @@ export const getCustomerById = async (req, res) => {
   }
 };
 
+export const getActiveBooking = async (req, res) => {
+  try {
+    const customer_id = req.params.customer_id;
+
+    // Find all quotation IDs recorded for this customer + service
+    const customer = await Customer.findOne({ customer_id });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const quotations = await Quotations.find({
+      customer_id,
+      quote_status: { $ne: "Rejected" },
+    });
+
+    if (!quotations || quotations.length === 0) {
+      return res.status(404).json({ message: "No active bookings found" });
+    }
+
+    return res.status(200).json({
+      message: "Active bookings retrieved successfully!",
+      data: quotations,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error retrieving active booking",
+      error: error.message,
+    });
+  }
+};
+
+// Add this new function to handle the deletion
+export const removeQuotationFromCustomer = async (req, res) => {
+  try {
+    const { customerId, quotationId } = req.params;
+
+    // Use findOneAndUpdate with the $pull operator to remove the object from the array
+    const updatedCustomer = await Customer.findOneAndUpdate(
+      { id: customerId },
+      { $pull: { quotations: { quotationId: quotationId } } },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedCustomer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    // Check if the quotation was actually removed
+    const wasQuotationRemoved = updatedCustomer.quotations.some(
+      (q) => q.quotationId === quotationId
+    );
+
+    if (wasQuotationRemoved) {
+      return res.status(404).json({
+        message: "Quotation object not found in customer's document.",
+      });
+    }
+
+    res.status(200).json({
+      message: "Quotation object removed from customer document successfully!",
+      customer: updatedCustomer,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error removing quotation object from customer document",
+      error: error.message,
+    });
+  }
+};
+
+export const addCustomerInvoice = async (req, res) => {
+  const { invoiceUrl, customerId } = req.body;
+  console.log(
+    `Received request to add invoice for customer ${customerId} with URL ${invoiceUrl}`
+  );
+
+  const customer = await Customer.findOne({ id: customerId });
+  if (!customer) {
+    return res.status(404).json({ message: "ustomer not found" });
+  }
+
+  try {
+    customer.invoices.push(invoiceUrl);
+    await customer.save();
+    return res.status(200).json({
+      message: "Invoice added successfully",
+    });
+  } catch (error) {
+    console.error("Error adding invoice:", error);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};

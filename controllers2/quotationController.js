@@ -309,6 +309,28 @@ const getQuotations = async (req, res, next) => {
   }
 };
 
+const deleteQuotation = async (req, res) => {
+  try {
+    const { quotation_id } = req.params;
+
+    const deleteResult = await Quotations.deleteOne({ quotation_id });
+
+    if (deleteResult.deletedCount === 0) {
+      return res.status(404).json({ message: "Quotation not found" });
+    }
+
+    return res.status(200).json({
+      message: "Quotation deleted successfully!",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error deleting quotation",
+      error: error.message,
+    });
+  }
+};
+
+
 export {
   createQuotation,
   getQuotationsByVendorId,
@@ -316,4 +338,5 @@ export {
   updateQuotationStatus,
   getQuotationById,
   getQuotations,
+  deleteQuotation
 };

@@ -23,8 +23,8 @@ import {
   removeFavourite,
   getFavoriteServiceIds,
   getBooking,
-  removeQuotationFromCustomer,
-  addCustomerInvoice,
+  // removeQuotationFromCustomer,
+  // addCustomerInvoice,
   getActiveBooking,
   markNotificationAsRead
 } from "../controllers2/customerController.js";
@@ -212,8 +212,8 @@ router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNoti
 router.get("/:id", getCustomerById);
 
 //to be done 
-router.get("/get-active-booking/:cusId/:serId", getActiveBooking);
-router.post("/add-customer-invoice", addCustomerInvoice);
-router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
+router.get("/get-active-booking/:customer_id", getActiveBooking);
+// router.post("/add-customer-invoice", addCustomerInvoice);
+// router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
 
 export default router;
