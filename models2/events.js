@@ -217,6 +217,46 @@ const eventsSchema = new mongoose.Schema({
   payment_method: {
     type: String
   },
+  paymentDetails: {
+    paymentMethod: {
+      type: String,
+      enum: ["Credit Card", "Debit Card", "Net Banking", "UPI", "Cash"]
+    },
+    transactionId: {
+      type: String
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
+      default: "Unpaid"
+    },
+    customerPayable: {
+      total: { type: Number, default: 0 },
+      baseAmount: { type: Number, default: 0 },
+      convenienceFee: { type: Number, default: 0 },
+      taxOnConvenience: { type: Number, default: 0 }
+    },
+    vendorReceivable: {
+      total: { type: Number, default: 0 },
+      baseAmount: { type: Number, default: 0 },
+      commission: { type: Number, default: 0 },
+      taxOnCommission: { type: Number, default: 0 }
+    }
+  },
+  payment_method_details: {
+    upi: {
+      channel: { type: String },
+      upi_id: { type: String },
+      upi_payer_ifsc: { type: String },
+      upi_payer_account_number: { type: String }
+    },
+    payment_amount: { type: Number },
+    payment_time: { type: String },
+    payment_completion_time: { type: String },
+    payment_status: { type: String },
+    payment_message: { type: String },
+    payment_group: { type: String }
+  },
   final_order_items: [cartItemSchema] // Array of cart items
 }, {
   collection: 'events'
