@@ -39,7 +39,6 @@ import finalOrders from "../routes/finalOrders.js";
 import agreementRoutes from "../routes/agreementRoutes.js";
 import couponRoutes from "../routes/couponRoutes.js"; 
 import mediaRoutes from "../routes/mediaRoutes.js";
-import spookyGalaRoutes from "../routes/spookyGalaRoutes.js";
 
 const app = express();
 const port = process.env.PORT;
@@ -122,7 +121,6 @@ app.use("/api", finalOrders);
 app.use("/api/agreements", agreementRoutes);
 app.use("/api/coupons", couponRoutes); 
 app.use("/api/media", mediaRoutes);
-app.use("/api/spooky-gala", spookyGalaRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
