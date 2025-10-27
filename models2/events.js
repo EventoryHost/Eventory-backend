@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 import generateUniqueId from "../utils/generateId2.js";
+import Counter from "./counter.model.js";
 
 // Event Cart Schema according to ERD
 const cartItemSchema = new mongoose.Schema({
   entity: {
     type: String
-  },
+  }, 
   name_of_service: {
     type: String,
     required: true
@@ -48,6 +49,11 @@ const eventsSchema = new mongoose.Schema({
     required: true,
     unique: true,
     default: () => generateUniqueId("EVTY")
+  },
+  event_number: {
+    type: Number,
+    unique: true,
+    // required: true,
   },
   customer_id: {
     type: String,
@@ -216,6 +222,23 @@ const eventsSchema = new mongoose.Schema({
   collection: 'events'
 });
 
+eventsSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findOneAndUpdate(
+        { id: "event_number" },
+        { $inc: { seq: 1} },
+        { new: true, upsert: true } // create if doesn't exist
+      );
+
+      this.event_number = counter.seq; // assign the incremented number
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  next();
+});
 // Pre-save middleware to update event_updated_at on every save
 eventsSchema.pre('save', function(next) {
   if (!this.isNew) {

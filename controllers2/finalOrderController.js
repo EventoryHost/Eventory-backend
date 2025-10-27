@@ -6,12 +6,18 @@ import adminNotification from "../models2/emNotifications.js";
 // ---------------------- CREATE / UPSERT FINAL ORDER ----------------------
 export const createOrUpdateFinalOrder = async (req, res) => {
   try {
-    const { order_id, ...updateData } = req.body;
+    const { order_id, paymentDetails, ...updateData } = req.body;
     console.log("Received order data:", req.body);
+
+    // Handle paymentDetails separately to ensure proper schema validation
+    const updateFields = { ...updateData };
+    if (paymentDetails) {
+      updateFields.paymentDetails = paymentDetails;
+    }
 
     const order = await Order.findOneAndUpdate(
       { order_id },
-      { $set: updateData },
+      { $set: updateFields },
       { new: true, upsert: true }
     );
 
@@ -81,6 +87,7 @@ export const approveFinalOrder = async (req, res) => {
 
     // ✅ CASE 1: Both parties approved
     if (order.customer_approval === true && order.vendor_approval === true) {
+      console.log("CASE 1 triggered for order:", order.order_id);
       const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
       const checkout_url =
         order.checkout_url ||
@@ -131,6 +138,7 @@ export const approveFinalOrder = async (req, res) => {
 
     // ❌ Case: Rejected by any party
     if (order.customer_approval === false || order.vendor_approval === false) {
+      console.log("CASE 2 triggered for order:", order.order_id);
       const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`;
 
       await vendorNotification.create({
@@ -172,6 +180,7 @@ export const approveFinalOrder = async (req, res) => {
 
     // 🟡 CASE 3: Only one party approved
     const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
+    console.log("CASE 3 triggered for order:", order.order_id);
     const checkout_url =
       order.checkout_url ||
       `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendor_id}&user_id=${order.customer_id}&orderId=${order.order_id}`;
@@ -227,7 +236,19 @@ export const approveFinalOrder = async (req, res) => {
 export const updateFinalOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
-    const updatedOrder = await Order.findOneAndUpdate({ order_id }, req.body, { new: true });
+    const { paymentDetails, ...updateData } = req.body;
+    
+    // Handle paymentDetails separately to ensure proper schema validation
+    const updateFields = { ...updateData };
+    if (paymentDetails) {
+      updateFields.paymentDetails = paymentDetails;
+    }
+    
+    const updatedOrder = await Order.findOneAndUpdate(
+      { order_id }, 
+      { $set: updateFields }, 
+      { new: true }
+    );
     if (!updatedOrder) return res.status(404).json({ message: "Booking not found" });
 
     res.status(200).json({ message: "Booking updated successfully", data: updatedOrder });
@@ -271,6 +292,42 @@ export const getOrderById = async (req, res) => {
     res.status(200).json({ message: "Booking retrieved successfully", data: order });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch booking", error: error.message });
+  }
+};
+
+// ---------------------- UPDATE PAYMENT DETAILS ----------------------
+export const updatePaymentDetails = async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const paymentDetails = req.body;
+
+    // Validate required payment details fields
+    if (!paymentDetails.paymentMethod || !paymentDetails.paymentStatus) {
+      return res.status(400).json({ 
+        message: "paymentMethod and paymentStatus are required" 
+      });
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { order_id },
+      { $set: { paymentDetails } },
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({ 
+      message: "Payment details updated successfully", 
+      data: updatedOrder 
+    });
+  } catch (error) {
+    console.error("Failed to update payment details:", error);
+    res.status(500).json({ 
+      message: "Failed to update payment details", 
+      error: error.message 
+    });
   }
 };
 

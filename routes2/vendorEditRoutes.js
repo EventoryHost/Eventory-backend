@@ -12,7 +12,8 @@ import {
   updateDetails,
   updateServiceDetails,
   serviceFields,
-  addVendorInvoice
+  addVendorInvoice,
+  deleteServiceProfile,
 
 } from "../controllers2/vendorEditController.js";
 
@@ -27,7 +28,11 @@ router.post("/updateService/:serviceId", updateDetails);
 //3. API endpoint to update service details
 router.put("/updateService/:serId", updateServiceDetails);
 
-// 4. Get service fields
+// 🛑 4. API endpoint to delete a service profile
+// example call http://localhost:4000/api/vendor-edit/delete-service/CAT17102025213247194
+router.delete("/delete-service/:service_id", deleteServiceProfile); 
+
+// 5. Get service fields
 router.post("/add-vendor-invoice", addVendorInvoice);
 
 export default router;

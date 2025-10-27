@@ -482,6 +482,32 @@ const verifyCustomerPayment = async (req, res) => {
       { new: true }
     );
 
+    // Update payment details in the Order model
+    const paymentDetailsUpdate = {
+      paymentMethod: "UPI", // Default to UPI, can be updated based on actual payment method
+      transactionId: order_id,
+      paymentStatus: "Fully Paid",
+      customerPayable: {
+        total: finalOrder?.paymentDetails?.customerPayable?.total ?? order_amount,
+        baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? order_amount,
+        convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+        taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+      },
+      vendorReceivable: {
+        total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? order_amount,
+        baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? order_amount,
+        commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+        taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+      }
+    };
+
+    // Update the order with payment details
+    await Order.findOneAndUpdate(
+      { order_id: internalOrderId },
+      { $set: { paymentDetails: paymentDetailsUpdate } },
+      { new: true }
+    );
+
     const paymentTypeMap = {
       advance: "Advance Payment",
       remaining: "Remaining Payment",

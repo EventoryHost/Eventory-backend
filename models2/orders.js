@@ -56,6 +56,34 @@ const lastApprovalSchema = new Schema({
   }
 }, { _id: false });
 
+// Payment Details Schema (embedded in Orders)
+const paymentDetailsSchema = new Schema({
+  paymentMethod: {
+    type: String,
+    enum: ["Credit Card", "Debit Card", "Net Banking", "UPI", "Cash"]
+  },
+  transactionId: {
+    type: String
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
+    default: "Unpaid"
+  },
+  customerPayable: {
+    total: { type: Number, default: 0 },
+    baseAmount: { type: Number, default: 0 },
+    convenienceFee: { type: Number, default: 0 },
+    taxOnConvenience: { type: Number, default: 0 }
+  },
+  vendorReceivable: {
+    total: { type: Number, default: 0 },
+    baseAmount: { type: Number, default: 0 },
+    commission: { type: Number, default: 0 },
+    taxOnCommission: { type: Number, default: 0 }
+  }
+}, { _id: false });
+
 // Orders Schema according to ERD
 const ordersSchema = new Schema({
   order_id: {
@@ -222,6 +250,9 @@ const ordersSchema = new Schema({
     // Email of customer (ONLY VISIBLE TO EM AND VENDOR if access given by EM)
   },
   final_order_items: [orderCartSchema], // Array of cart items
+  paymentDetails: {
+    type: paymentDetailsSchema
+  },
   order_created_at: {
     type: Date,
     default: () => {
@@ -284,9 +315,11 @@ ordersSchema.index({ event_start: 1 });
 ordersSchema.index({ event_end: 1 });
 ordersSchema.index({ order_created_at: -1 });
 ordersSchema.index({ order_updated_at: -1 });
+ordersSchema.index({ "paymentDetails.paymentStatus": 1 });
+ordersSchema.index({ "paymentDetails.transactionId": 1 });
 
 // Check if model already exists to prevent OverwriteModelError
 const Orders = mongoose.models.Orders || mongoose.model('Orders', ordersSchema);
 
 export default Orders;
-export { ordersSchema, orderCartSchema, lastApprovalSchema };
+export { ordersSchema, orderCartSchema, lastApprovalSchema, paymentDetailsSchema };

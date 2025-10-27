@@ -211,6 +211,7 @@ export const getFavoriteServices = async (req, res) => {
 export const getFavoriteServiceIds = async (req, res) => {
   try {
     const customer_id = req.params.customer_id;
+    console.log("customer_id", customer_id);
     const customer = await Customer.findOne({ customer_id: customer_id });
 
     if (!customer) {

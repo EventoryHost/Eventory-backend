@@ -253,20 +253,45 @@ const createVenue = async (req, res) => {
 
     const savedVenue = await newVenue.save(); // Link the venue to the vendor (user)
 
-    
+    // Associate with vendor
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-        await VenueProvider.findByIdAndDelete(savedVenue.vendor_id);
-        return res.status(404).json({ message: "Vendor not found" });
+      await VenueProvider.findByIdAndDelete(savedVenue._id);
+      return res.status(404).json({ message: "Vendor not found" });
     }
-    
-    vendor.services.push(savedVenue.service_id);
-    vendor.service_types.push({
-      "service_name" : "Venue-Provider",
-      "service_status" : "Inactive",
-      "service_id" : savedVenue.service_id
-    })
-    
+
+    // Use the normalized label already determined earlier
+    const serviceTypeLabel = req.body.service_type || "Venue Provider";
+
+    // 1) Make sure vendor.services contains the service_id once
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(savedVenue.service_id)) {
+      vendor.services.push(savedVenue.service_id);
+    }
+
+    // 2) Update existing service_types element by service_name (case-insensitive)
+    //    If absent (older records), create it once.
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+
+    const idx = vendor.service_types.findIndex(
+      (st) =>
+        st &&
+        typeof st.service_name === "string" &&
+        st.service_name.toLowerCase() === serviceTypeLabel.toLowerCase()
+    );
+
+    const updatedEntry = {
+      service_name: serviceTypeLabel,
+      service_status: "Inactive", // default after creation; update later when fully verified/active
+      service_id: savedVenue.service_id,
+    };
+
+    if (idx >= 0) {
+      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    } else {
+      vendor.service_types.push(updatedEntry);
+    }
+
     await vendor.save();
     
     // Update section completion and profile completion
