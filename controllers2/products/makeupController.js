@@ -95,6 +95,17 @@ const updateSectionCompletion = async (id) => {
   }
 };
 
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  return label;
+};
+
 const createMakeupArtist = async (req, res) => {
   try {
 
@@ -313,6 +324,10 @@ const createMakeupArtist = async (req, res) => {
 
     const savedMakeupArtist = await newMakeupArtist.save();
 
+    // Use the normalized label already determined earlier
+    const serviceTypeLabel = serviceType || "Makeup-Artist";
+    const normalizedLabel = normalizeServiceName(serviceTypeLabel);
+
     // Associate with vendor
     const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
@@ -320,29 +335,23 @@ const createMakeupArtist = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    // Use the normalized label already determined earlier
-    const serviceTypeLabel = serviceType || "Makeup-Artist";
-
-    // 1) Make sure vendor.services contains the service_id once
     if (!Array.isArray(vendor.services)) vendor.services = [];
     if (!vendor.services.includes(savedMakeupArtist.service_id)) {
       vendor.services.push(savedMakeupArtist.service_id);
     }
 
-    // 2) Update existing service_types element by service_name (case-insensitive)
-    //    If absent (older records), create it once.
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
 
     const idx = vendor.service_types.findIndex(
       (st) =>
         st &&
         typeof st.service_name === "string" &&
-        st.service_name.toLowerCase() === serviceTypeLabel.toLowerCase()
+        st.service_name.toLowerCase() === normalizedLabel.toLowerCase()
     );
 
     const updatedEntry = {
-      service_name: serviceTypeLabel,
-      service_status: "Inactive", // default after creation; update later when fully verified/active
+      service_name: normalizedLabel,
+      service_status: "Inactive",
       service_id: savedMakeupArtist.service_id,
     };
 
