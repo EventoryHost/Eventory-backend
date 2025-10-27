@@ -1,4 +1,5 @@
 import Order from "../models2/orders.js";
+import { Events } from "../models2/events.js";
 import customerNotification from "../models2/customerNotifications.js";
 import vendorNotification from "../models2/vendorNotifications.js";
 import adminNotification from "../models2/emNotifications.js";
@@ -6,13 +7,16 @@ import adminNotification from "../models2/emNotifications.js";
 // ---------------------- CREATE / UPSERT FINAL ORDER ----------------------
 export const createOrUpdateFinalOrder = async (req, res) => {
   try {
-    const { order_id, paymentDetails, ...updateData } = req.body;
+    const { order_id, paymentDetails, specificTerms, ...updateData } = req.body;
     console.log("Received order data:", req.body);
 
-    // Handle paymentDetails separately to ensure proper schema validation
+    // Handle paymentDetails and specificTerms separately to ensure proper schema validation
     const updateFields = { ...updateData };
     if (paymentDetails) {
       updateFields.paymentDetails = paymentDetails;
+    }
+    if (specificTerms) {
+      updateFields.specificTerms = specificTerms;
     }
 
     const order = await Order.findOneAndUpdate(
@@ -233,12 +237,15 @@ export const approveFinalOrder = async (req, res) => {
 export const updateFinalOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
-    const { paymentDetails, ...updateData } = req.body;
+    const { paymentDetails, specificTerms, ...updateData } = req.body;
     
-    // Handle paymentDetails separately to ensure proper schema validation
+    // Handle paymentDetails and specificTerms separately to ensure proper schema validation
     const updateFields = { ...updateData };
     if (paymentDetails) {
       updateFields.paymentDetails = paymentDetails;
+    }
+    if (specificTerms) {
+      updateFields.specificTerms = specificTerms;
     }
     
     const updatedOrder = await Order.findOneAndUpdate(
@@ -323,6 +330,94 @@ export const updatePaymentDetails = async (req, res) => {
     console.error("Failed to update payment details:", error);
     res.status(500).json({ 
       message: "Failed to update payment details", 
+      error: error.message 
+    });
+  }
+};
+
+// ---------------------- UPDATE SPECIFIC TERMS ----------------------
+export const updateSpecificTerms = async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const { specificTerms } = req.body;
+
+    // Validate that specificTerms is an array
+    if (!Array.isArray(specificTerms)) {
+      return res.status(400).json({ 
+        message: "specificTerms must be an array of strings" 
+      });
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { order_id },
+      { $set: { specificTerms } },
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({ 
+      message: "Specific terms updated successfully", 
+      data: updatedOrder 
+    });
+  } catch (error) {
+    console.error("Failed to update specific terms:", error);
+    res.status(500).json({ 
+      message: "Failed to update specific terms", 
+      error: error.message 
+    });
+  }
+};
+
+// ---------------------- SYNC PAYMENT DETAILS TO EVENTS ----------------------
+export const syncPaymentDetailsToEvents = async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const { paymentDetails, payment_method_details } = req.body;
+
+    // Get the order to find the associated event
+    const order = await Order.findOne({ order_id });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Find the associated event using customer_id and vendor_id
+    const event = await Events.findOne({
+      customer_id: order.customer_id,
+      vendor_id: order.vendor_id,
+      event_start: order.event_start,
+      event_end: order.event_end
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Associated event not found" });
+    }
+
+    // Update the event with payment details
+    const updateFields = {};
+    if (paymentDetails) {
+      updateFields.paymentDetails = paymentDetails;
+    }
+    if (payment_method_details) {
+      updateFields.payment_method_details = payment_method_details;
+    }
+
+    const updatedEvent = await Events.findOneAndUpdate(
+      { event_id: event.event_id },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    res.status(200).json({ 
+      message: "Payment details synced to event successfully", 
+      data: updatedEvent 
+    });
+  } catch (error) {
+    console.error("Failed to sync payment details to events:", error);
+    res.status(500).json({ 
+      message: "Failed to sync payment details to events", 
       error: error.message 
     });
   }

@@ -254,6 +254,10 @@ const ordersSchema = new Schema({
   paymentDetails: {
     type: paymentDetailsSchema
   },
+  specificTerms: {
+    type: [String],
+    default: []
+  },
   order_created_at: {
     type: Date,
     default: () => {

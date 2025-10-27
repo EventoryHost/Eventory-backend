@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
 import axios from "axios";
-import { Customer } from "../models/customer.js";
-import { Vendor } from "../models/users.js";
-import { Quotation } from "../models/quotation.js";
-import { Promotion } from "../models/promo.js";
+import { Customer } from "../models2/customer.js";
+import { Vendor } from "../models2/vendor.js";
+import Quotation  from "../models2/quotations.js";
+import Promotion from "../models2/promotions.js";
 dotenv.config();
 
 async function sendInvoiceToWhatsApp(link, mobile, amount) {
@@ -105,160 +105,133 @@ async function sendConfirmationMessageToWhatsapp(event) {
 }
 
 async function sendResponseOnIntroMessage(req, res) {
-  const mobile = req.body.mobile;
+  const { mobile } = req.body;
 
-  var user = await Customer.findOne(
-    { mobile },
-    { id: 1, name: 1, quotations: 1 },
-  );
-  if (!user) {
-    user = await Vendor.findOne({ mobile: mobile });
-  }
+  try {
+    const customer = await Customer.findOne({ contact_number: mobile });
+    const vendor = await Vendor.findOne({ vendor_mobile: mobile });
 
-  if (user) {
-    const userId = user.id;
-    var quotations = [];
-    console.log(user.quotations);
-    user.quotations.map((quotation) => quotations.push(quotation.quotationId));
+    let quotations = [];
+    let response = null;
 
-    if (userId.startsWith("cus")) {
-      var response = {
+    if (customer) {
+      const customer_id = customer.customer_id;
+      quotations = await Quotation.find({ customer_id });
+
+      response = {
         quotations,
-        message: `Hello ${user.name}, Welcome to Eventory!`,
+        message: `Hello ${customer.customer_name}, Welcome to Eventory!`,
       };
-    } else if (userId.startsWith("ven")) {
-      quotations = await Quotation.find({ vendor_id: userId });
-      var response = {
+
+    } else if (vendor) {
+      const vendor_id = vendor.vendor_id;
+      quotations = await Quotation.find({ vendor_id });
+
+      response = {
         quotations,
-        message: `Hello ${user.name}, welcome to Eventory!`,
+        message: `Hello ${vendor.vendor_id}, Welcome to Eventory!`,
       };
+      
     } else {
-      return res
-        .status(400)
-        .json({ message: "Please register on www.eventory.in to continue" });
+      return res.status(400).json({
+        message: "Please register on www.eventory.in to continue"
+      });
     }
 
-    console.log(response);
     return res.status(200).json(response);
-  } else {
-    return res
-      .status(400)
-      .json({ message: "Please register on www.eventory.in to continue" });
+
+  } catch (error) {
+    console.error("Error sending response on intro message:", error.message);
+    return res.status(500).json({
+      message: "Something went wrong. Please try again later."
+    });
   }
 }
 
 const sendPromotionTemplate = async (req, res) => {
-  const { phoneNumber, vendorName, vendorType } = req.body; // Expecting a single number
+  const { phoneNumber, vendorName, vendorType, salesPersonId } = req.body;
   const WHATSAPP_API_URL = `https://graph.facebook.com/v18.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   try {
-    const data = await Promotion.findOne(
-      { phoneNumber },
-      {
-        canSend: 1,
-        reqToJoinCommunity: 1,
-        callRequest: 1,
-        sentBeforeCount: 1,
-        lastSentDate: 1,
-        vendorName: 1,
-        vendorType: 1,
-      },
-    ).lean();
-
-    // If phone number not present — first-time vendor
     const currDate = new Date();
+
+    const data = await Promotion.findOne({ promo_sent_to: phoneNumber }).lean();
+
+    // ✅ First-time vendor → create record
     if (!data) {
       await sendWhatsAppTemplate(phoneNumber, WHATSAPP_API_URL);
+
       await Promotion.create({
-        phoneNumber,
-        vendorName,
-        vendorType,
-        sentBeforeCount: { value: 1, updatedAt: currDate },
-        canSend: { value: true, updatedAt: currDate },
-        reqToJoinCommunity: { value: false, updatedAt: null },
-        callRequest: { value: false, updatedAt: null },
-        lastSentDate: currDate,
+        promo_sent_by: salesPersonId,
+        promo_sent_to: phoneNumber,
+        vendor_name: vendorName,
+        vendor_type: vendorType,
+        last_sent_at: currDate
       });
-      return res
-        .status(200)
-        .json({
-          number: phoneNumber,
-          status: `Promotion message has been sent to ${phoneNumber} on ${currDate}`,
-        });
-    }
 
-    // If promotions are disabled
-    if (!data.canSend?.value && (!data.canSend?.updatedAt < !data.callRequest?.updatedAt) ||
-      (!data.canSend?.updatedAt < !data.reqToJoinCommunity?.updatedAt)) {
-      await Promotion.updateOne({ phoneNumber }, {
-        $set: {
-          "canSend.value": true,
-          "canSend.updatedAt": currDate
-        }
-      })
-    }
-
-    if (!data.canSend?.value) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Vendor has stopped the promotions on ${data.canSend?.updatedAt} .`,
+        status: `Promotion sent to ${phoneNumber} on ${currDate}`
       });
     }
 
-    if (data.callRequest?.value && data.reqToJoinCommunity?.value) {
+    // ❌ If promotions are stopped for vendor
+    if (data.is_promotions_stopped) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested for 1:1 call on ${data.callRequest.updatedAt} and has requested to join the community on ${data.reqToJoinCommunity.updatedAt}.`,
+        status: `Vendor has stopped promotions on ${data.promotions_stopped_at}`
       });
     }
 
-    if (data.callRequest?.value && !data.reqToJoinCommunity?.value) {
+    // ✅ Vendor already asked for call/join messages
+    if (data.call_request && data.req_to_join_wa_community) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested for 1:1 call on ${data.callRequest.updatedAt}.`,
+        status: `Promotion already sent on ${data.last_sent_at}, vendor requested call: ${data.call_requested_at}, and join community: ${data.join_community_req_at}`
       });
     }
 
-    if (!data.callRequest?.value && data.reqToJoinCommunity?.value) {
+    if (data.call_request && !data.req_to_join_wa_community) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate} and vendor has requested to join the community on ${data.reqToJoinCommunity.updatedAt}.`,
+        status: `Promotion already sent on ${data.last_sent_at}, vendor requested 1:1 call on ${data.call_requested_at}`
       });
     }
 
-    // Enforce 60-day rule
+    if (!data.call_request && data.req_to_join_wa_community) {
+      return res.status(200).json({
+        number: phoneNumber,
+        status: `Promotion already sent on ${data.last_sent_at}, vendor requested to join community on ${data.join_community_req_at}`
+      });
+    }
+
+    // ✅ Enforce 60-day rule
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    //this is if last sent date is ahead of (today - 60days)
-    if (data.lastSentDate && data.lastSentDate > sixtyDaysAgo) {
+    if (data.last_sent_at > sixtyDaysAgo) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotional message has already been sent on ${data.lastSentDate}.`,
+        status: `Promotion was already sent within 60 days on ${data.last_sent_at}`
       });
     }
 
-    // Valid vendor with canSend = true and past 60 days → send promotion
+    // ✅ Send again after 60 days
     await sendWhatsAppTemplate(phoneNumber, WHATSAPP_API_URL);
 
     await Promotion.updateOne(
-      { phoneNumber },
-      {
-        $inc: { "sentBeforeCount.value": 1 },
-        $set: {
-          lastSentDate: currDate,
-          "sentBeforeCount.updatedAt": currDate,
-        },
-      },
+      { promo_sent_to: phoneNumber },
+      { $set: { last_sent_at: currDate } }
     );
 
     return res.status(200).json({
       number: phoneNumber,
-      status: `Promotional message was again sent on ${currDate}.`,
+      status: `Promotion resent on ${currDate}`
     });
+
   } catch (error) {
-    console.error("Error sending promotion:", error);
-    return res
-      .status(500)
-      .json({ error: error?.message || "Internal Server Error" });
+    console.error("Error sending promotion:", error.message);
+    return res.status(500).json({
+      error: error.message || "Internal Server Error"
+    });
   }
 };
 
@@ -311,80 +284,71 @@ const handlePromoResponse = async (req, res) => {
 
   const phone = message.from;
   const payload = message.button.payload;
-
   const currDate = new Date();
 
   try {
-    const data = await Promotion.findOne({ phoneNumber: phone }).lean();
+    const data = await Promotions.findOne({ promo_sent_to: phone }).lean();
     if (!data) return res.sendStatus(404);
 
-    const { callRequest, reqToJoinCommunity } = data;
-
-    if (payload === 'JOIN_COMMUNITY') {
-      const canSendCondition =
-        !data.canSend?.value &&
-        (
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt) ||
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt)
-        );
-
-      const updateFields = {};
-
-      if (canSendCondition) {
-        updateFields["canSend.value"] = true;
-        updateFields["canSend.updatedAt"] = currDate;
-      }
+    // ✅ JOIN COMMUNITY CASE
+    if (payload === "JOIN_COMMUNITY") {
 
       await sendText(
         phone,
-        "Thanks, here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS"
+        "Thanks! Here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS"
       );
 
-      updateFields["reqToJoinCommunity.value"] = true;
-      updateFields["reqToJoinCommunity.updatedAt"] = new Date();
-
-
-      if (Object.keys(updateFields).length) {
-        await Promotion.updateOne(
-          { phoneNumber: phone },
-          { $set: updateFields }
-        );
-      }
+      await Promotions.updateOne(
+        { promo_sent_to: phone },
+        {
+          $set: {
+            req_to_join_wa_community: true,
+            join_community_req_at: currDate,
+            is_promotions_stopped: false // Re-enable promotions if needed
+          }
+        }
+      );
     }
 
-    else if (payload === 'BOOK_CALL') {
-      const canSendCondition =
-        !data.canSend?.value &&
-        (
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt) ||
-          (!data.canSend?.updatedAt || currDate > data.canSend.updatedAt)
-        );
-
-      const updateFields = {};
-
-      if (canSendCondition) {
-        updateFields["canSend.value"] = true;
-        updateFields["canSend.updatedAt"] = currDate;
-      }
+    // ✅ BOOK 1:1 CALL CASE
+    else if (payload === "BOOK_CALL") {
 
       await sendText(
         phone,
-        "Thanks for showing interest! Someone from our team will connect with you in the next few business hours."
+        "Thanks for showing interest! Someone from our team will connect with you very soon 🙌"
       );
 
       await saveBookingRequestToDB(phone);
 
-      if (Object.keys(updateFields).length) {
-        await Promotion.updateOne(
-          { phoneNumber: phone },
-          { $set: updateFields }
-        );
-      }
+      await Promotions.updateOne(
+        { promo_sent_to: phone },
+        {
+          $set: {
+            call_request: true,
+            call_requested_at: currDate,
+            is_promotions_stopped: false
+          }
+        }
+      );
     }
 
-    else if (payload === 'STOP_PROMOTIONS') {
-      await sendText(phone, "Thank you for giving us your time! We hope we'll serve you in future! If you still want to connect, call on +91 8800725840");
-      await stopPromotionsForVendor(phone);
+    // ✅ STOP PROMOTIONS CASE
+    else if (payload === "STOP_PROMOTIONS") {
+
+      await sendText(
+        phone,
+        "Thank you for your time! We hope to serve you in future! If you still want to connect, call +91 8800725840"
+      );
+
+      await Promotions.updateOne(
+        { promo_sent_to: phone },
+        {
+          $set: {
+            is_promotions_stopped: true,
+            promotions_stopped_at: currDate
+          }
+        }
+      );
     }
 
     return res.sendStatus(200);
@@ -448,14 +412,25 @@ const saveBookingRequestToDB = async (phone) => {
 
 const getVendors = async (req, res) => {
   try {
-    const vendors = await Promotion.find({}).sort({ lastSentDate: -1 });
+    const vendors = await Promotions
+      .find({}, {
+        promo_sent_to: 1,
+        vendor_name: 1,
+        vendor_type: 1,
+        last_sent_at: 1,
+        is_promotions_stopped: 1,
+        call_request: 1,
+        req_to_join_wa_community: 1,
+      })
+      .sort({ last_sent_at: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
       vendors,
     });
   } catch (error) {
-    console.error("Error fetching vendors:", error);
+    console.error("Error fetching vendors:", error.message);
     res.status(500).json({
       success: false,
       error: "Failed to fetch vendor data",
@@ -481,6 +456,42 @@ const getVendors = async (req, res) => {
 // sendInvoiceToWhatsApp(link, mobile, amount)
 //     .then(result => console.log('Success:', result))
 //     .catch(error => console.error('Error:', error));
+ const verifyWebhook = (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+  const MY_TOKEN = "EVENTORY1234";
+
+  if (mode && token) {
+    if (mode === "subscribe" && token === MY_TOKEN) {
+      console.log("WEBHOOK_VERIFIED");
+      return res.status(200).send(challenge);
+    } else {
+      return res.sendStatus(403);
+    }
+  }
+
+  return res.sendStatus(400); // Bad Request if query params missing
+};
+
+ const verifyPromoResponseWebhook = (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+  const MY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || "EVENTORY1234";
+
+  if (mode && token) {
+    if (mode === "subscribe" && token === MY_TOKEN) {
+      console.log("WEBHOOK_VERIFIED for promo-response");
+      return res.status(200).send(challenge);
+    } else {
+      return res.sendStatus(403);
+    }
+  }
+
+  return res.sendStatus(400); // Bad request if query params missing
+};
+
 
 export {
   sendInvoiceToWhatsApp,
@@ -489,4 +500,6 @@ export {
   sendPromotionTemplate,
   handlePromoResponse,
   getVendors,
+  verifyWebhook,
+  verifyPromoResponseWebhook
 };

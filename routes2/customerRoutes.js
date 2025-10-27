@@ -22,7 +22,11 @@ import {
   addFavourite,
   removeFavourite,
   getFavoriteServiceIds,
-  getBooking
+  getBooking,
+  // removeQuotationFromCustomer,
+  // addCustomerInvoice,
+  getActiveBooking,
+  markNotificationAsRead
 } from "../controllers2/customerController.js";
 
 const router = express.Router();
@@ -187,7 +191,7 @@ router.get("/:customer_id/customerNotifications", getCustomerNotifications);
  *     summary: Mark notification as read
  *     tags: [Notifications]
  */
-// router.patch("/notifications/read/:notificationId", markNotificationAsRead);
+router.patch("/notifications/read/:notificationId", markNotificationAsRead);
 
 /**
  * @swagger
@@ -206,5 +210,10 @@ router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNoti
  *     tags: [Customer]
  */
 router.get("/:id", getCustomerById);
+
+//to be done 
+router.get("/get-active-booking/:customer_id", getActiveBooking);
+// router.post("/add-customer-invoice", addCustomerInvoice);
+// router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
 
 export default router;

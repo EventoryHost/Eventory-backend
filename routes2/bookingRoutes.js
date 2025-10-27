@@ -12,7 +12,9 @@ import {
   editOfflineEvent,
   getBookingById,
   getBookingsByCustomer,
-  getAllVendorServiceSchedules
+  getAllVendorServiceSchedules,
+  addBookingInvoice,
+  updateEventPaymentDetails
 } from "../controllers2/bookingController.js";
 
 const router = express.Router();
@@ -284,5 +286,38 @@ router.get("/customer/:customer_id", getBookingsByCustomer);
  *         description: All vendor service schedules retrieved
  */
 router.post("/vendor/all-schedules", getAllVendorServiceSchedules);
+
+//Needs to be done 
+router.post("/add-booking-invoice", addBookingInvoice);
+
+/**
+ * @swagger
+ * /api/bookings/{event_id}/payment-details:
+ *   put:
+ *     summary: Update event payment details
+ *     tags:
+ *       - Bookings
+ *     parameters:
+ *       - name: event_id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               paymentDetails:
+ *                 type: object
+ *               payment_method_details:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Event payment details updated successfully
+ */
+router.put("/:event_id/payment-details", updateEventPaymentDetails);
 
 export default router;

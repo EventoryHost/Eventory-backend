@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 import generateUniqueId from "../utils/generateId2.js";
+import Counter from "./counter.model.js";
 
 // Event Cart Schema according to ERD
 const cartItemSchema = new mongoose.Schema({
   entity: {
     type: String
-  },
+  }, 
   name_of_service: {
     type: String,
     required: true
@@ -48,6 +49,11 @@ const eventsSchema = new mongoose.Schema({
     required: true,
     unique: true,
     default: () => generateUniqueId("EVTY")
+  },
+  event_number: {
+    type: Number,
+    unique: true,
+    // required: true,
   },
   customer_id: {
     type: String,
@@ -211,11 +217,68 @@ const eventsSchema = new mongoose.Schema({
   payment_method: {
     type: String
   },
+  paymentDetails: {
+    paymentMethod: {
+      type: String,
+      enum: ["Credit Card", "Debit Card", "Net Banking", "UPI", "Cash"]
+    },
+    transactionId: {
+      type: String
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
+      default: "Unpaid"
+    },
+    customerPayable: {
+      total: { type: Number, default: 0 },
+      baseAmount: { type: Number, default: 0 },
+      convenienceFee: { type: Number, default: 0 },
+      taxOnConvenience: { type: Number, default: 0 }
+    },
+    vendorReceivable: {
+      total: { type: Number, default: 0 },
+      baseAmount: { type: Number, default: 0 },
+      commission: { type: Number, default: 0 },
+      taxOnCommission: { type: Number, default: 0 }
+    }
+  },
+  payment_method_details: {
+    upi: {
+      channel: { type: String },
+      upi_id: { type: String },
+      upi_payer_ifsc: { type: String },
+      upi_payer_account_number: { type: String }
+    },
+    payment_amount: { type: Number },
+    payment_time: { type: String },
+    payment_completion_time: { type: String },
+    payment_status: { type: String },
+    payment_message: { type: String },
+    payment_group: { type: String }
+  },
   final_order_items: [cartItemSchema] // Array of cart items
 }, {
   collection: 'events'
 });
 
+eventsSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findOneAndUpdate(
+        { id: "event_number" },
+        { $inc: { seq: 1} },
+        { new: true, upsert: true } // create if doesn't exist
+      );
+
+      this.event_number = counter.seq; // assign the incremented number
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  next();
+});
 // Pre-save middleware to update event_updated_at on every save
 eventsSchema.pre('save', function(next) {
   if (!this.isNew) {
