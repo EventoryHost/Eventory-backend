@@ -267,27 +267,55 @@ export const getVendorBookings = async (req, res) => {
   }
 };
 
-// GET /api/bookings/:bookingId
+// GET /api/bookings/get-by-id/:event_id
 export const getBookingById = async (req, res) => {
   try {
     const { event_id } = req.params;
-    console.log("Received event ID:", event_id);
-    if (!event_id) {
-      return res.status(400).json({ message: "Event ID is required" });
-    }
+    if (!event_id) return res.status(400).json({ message: "Event ID is required" });
 
+    // 1) Load event
     const booking = await Events.findOne({ event_id });
+    if (!booking) return res.status(404).json({ message: "Event not found" });
 
-    if (!booking) {
-      return res.status(404).json({ message: "Event not found" });
+    // 2) Resolve service model by service_id prefix
+    const sid = booking.service_id || "";
+    let serviceModel = null;
+    if (sid.startsWith("CAT")) {
+      const { Caterer } = await import("../models2/caterer.js");
+      serviceModel = Caterer;
+    } else if (sid.startsWith("DECO")) {
+      const { Decorator } = await import("../models2/decorator.js");
+      serviceModel = Decorator;
+    } else if (sid.startsWith("VNP")) {
+      const { default: VenueProvider } = await import("../models2/venueProvider.js");
+      serviceModel = VenueProvider;
+    } else if (sid.startsWith("PAV")) {
+      const { default: PhotographerVideographer } = await import("../models2/photographerVideographer.js");
+      serviceModel = PhotographerVideographer;
+    } else if (sid.startsWith("MKA")) {
+      const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
+      serviceModel = MakeupArtist;
+    } else if (sid.startsWith("PRO")) {
+      const { default: PropRental } = await import("../models/props.js");
+      serviceModel = PropRental;
+    } else {
+      serviceModel = null; // Unknown type; continue without service
     }
 
-    res.status(200).json({ booking });
+    // 3) Load service document if model found
+    let service = null;
+    if (serviceModel) {
+      service = await serviceModel.findOne({ service_id: sid });
+    }
+
+    // 4) Respond with unified payload
+    return res.status(200).json({ booking, service });
   } catch (error) {
     console.error("Error fetching booking:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 export const getBookingsByCustomer = async (req, res) => {
   try {
