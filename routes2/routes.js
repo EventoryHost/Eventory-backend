@@ -32,6 +32,7 @@ import decoratorPersistenceRoutes from "../routes2/reduxRoutes/decorator.js";
 import makeupArtistPersistenceRoutes from "../routes2/reduxRoutes/makeUpArtist.js";
 import photographerPersistenceRoutes from "../routes2/reduxRoutes/photographers.js";
 import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provider.js";
+import djArtistPersistenceRoutes from "../routes2/reduxRoutes/djArtist.js";
 import updatePageRoutes from "../routes2/updatePageRoutes.js";
 import vendorNotificationRoutes from "../routes2/vendorNotificationRoutes.js";
 import emNotificationRoutes from "../routes2/emNotificationRoutes.js";
@@ -71,6 +72,7 @@ router.use("/decorator-details", decoratorPersistenceRoutes);
 router.use("/makeup-artist-details", makeupArtistPersistenceRoutes);
 router.use("/photographer-details", photographerPersistenceRoutes);
 router.use("/venue-provider-details", venueProviderPersistenceRoutes);
+router.use("/dj-artist-details", djArtistPersistenceRoutes);
 // router.use("/business-details", businessDetailsRoutes); Not to be done
 router.use("/update-page", updatePageRoutes);
 router.use("/vendor-edit", vendorEditRoutes);

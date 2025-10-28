@@ -70,6 +70,9 @@ const eventsSchema = new mongoose.Schema({
     required: true
     // Reference to service - removed ref for flexibility
   },
+  quotation_id: {
+    type: String
+  },
   em_id :{
     type: String
   },
@@ -321,6 +324,7 @@ eventsSchema.index({ event_start: 1, event_end: 1 }); // Compound index for date
 eventsSchema.index({ event_created_at: -1 });
 eventsSchema.index({ event_updated_at: -1 });
 eventsSchema.index({ event_id: 1 });
+eventsSchema.index({ quotation_id: 1 });
 
 const Events = mongoose.model('Events', eventsSchema);
 

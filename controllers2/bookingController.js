@@ -10,7 +10,7 @@ import { Calendar } from "../models2/calendar.js";
 export const createBooking = async (req, res) => {
    try {
     // Take everything directly from req.body
-    const { paymentDetails, payment_method_details, ...eventData } = req.body;
+    const { paymentDetails, payment_method_details, quotation_id, ...eventData } = req.body;
 
     // Handle paymentDetails and payment_method_details separately to ensure proper schema validation
     const eventFields = { ...eventData };
@@ -19,6 +19,9 @@ export const createBooking = async (req, res) => {
     }
     if (payment_method_details) {
       eventFields.payment_method_details = payment_method_details;
+    }
+    if (quotation_id) {
+      eventFields.quotation_id = quotation_id;
     }
 
     const newEvent = new Events(eventFields);
@@ -139,7 +142,7 @@ export const getAllBookings = async (req, res) => {
 export const addOfflineEvent = async (req, res) => {
   //type -> service_type
   try {
-    const { event_start, event_end, type, event_description, event_highlight } = req.body;
+    const { event_start, event_end, type, event_description, event_highlight, quotation_id } = req.body;
     const { service_id } = req.query;
 
     if (!service_id || !event_start || !event_end || !type || !event_highlight || !event_description) {
@@ -301,10 +304,13 @@ export const getBookingById = async (req, res) => {
     } else if (sid.startsWith("PAV")) {
       const { default: PhotographerVideographer } = await import("../models2/photographerVideographer.js");
       serviceModel = PhotographerVideographer;
-    } else if (sid.startsWith("MKA")) {
-      const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
-      serviceModel = MakeupArtist;
-    } else if (sid.startsWith("PRO")) {
+     } else if (sid.startsWith("MKA")) {
+       const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
+       serviceModel = MakeupArtist;
+     } else if (sid.startsWith("DJ")) {
+       const { default: DjArtist } = await import("../models2/djArtist.js");
+       serviceModel = DjArtist;
+     } else if (sid.startsWith("PRO")) {
       const { default: PropRental } = await import("../models/props.js");
       serviceModel = PropRental;
     } else {

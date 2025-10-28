@@ -18,7 +18,7 @@ import { Decorator } from "../models2/decorator.js";
 import Photographer from "../models2/photographerVideographer.js";
 import VenueProvider from "../models2/venueProvider.js";
 import MakeupArtist from "../models2/makeupArtist.js";
-import DjArtist from "../models/djArtist.js";
+import DjArtist from "../models2/djArtist.js";
 
 
 dotenv.config();
@@ -556,6 +556,7 @@ const verifyCustomerPayment = async (req, res) => {
         customer_id: customer_id,
         vendor_id: vendor_id,
         service_id: "temp_service_id",
+        quotation_id: quotation_id,
         // type: "pending",
         event_location: "pending location",
         event_start: new Date(),

@@ -1,98 +1,98 @@
 import express from "express";
+import { DjArtistReduxModel } from "../../models2/reduxModels/djArtist.js";
+
 const router = express.Router();
-import DjArtistModel from "../../models/reduxStores/djArtist.js";
 
+/** DJ ARTIST DETAILS ROUTES **/
+
+// POST or PUT route to save or update DJ artist details
+// Route: /dj-artist-details/
 router.post("/", async (req, res) => {
-    const { id, data } = req.body;
-
-    if (!id) {
-        return res.status(400).json({ message: "User ID is required." });
+    const { vendor_id, djArtistData } = req.body; 
+  
+    if (!vendor_id) {
+      return res.status(400).json({ message: "Vendor ID is required." });
     }
-    
-    if (!data || Object.keys(data).length === 0) {
-        return res.status(400).json({ message: "DJ artist details are required." });
+  
+    if (!djArtistData || Object.keys(djArtistData).length === 0) {
+      return res.status(400).json({ message: "DJ artist details are required." });
     }
 
     try {
-        console.log("Saving/updating DJ artist details for id:", id);
-        
-        const updatedDetails = await DjArtistModel.findOneAndUpdate(
-            { id },
-            { $set: data },
-            { 
-                new: true, 
-                upsert: true,
-                setDefaultsOnInsert: true 
-            }
+        const dataToSave = { 
+            vendor_id, 
+            ...djArtistData 
+        };
+
+        const updatedDetails = await DjArtistReduxModel.findOneAndUpdate(
+          { vendor_id },
+          dataToSave,
+          { new: true, upsert: true }
         );
+        
+        const message = updatedDetails.isNew ? "DJ artist details saved successfully." : "DJ artist details updated successfully.";
 
         return res.status(200).json({
-            message: "DJ artist details saved successfully.",
-            data: updatedDetails,
+          message,
+          data: updatedDetails,
         });
-        
+
     } catch (error) {
-        console.error("Error saving/updating DJ artist details:", error);
-        res.status(500).json({
-            message: "Failed to save or update DJ artist details.",
-            error: error.message,
-        });
+      console.error("Error saving/updating DJ artist details:", error);
+      res.status(500).json({
+        message: "Failed to save or update DJ artist details.",
+        error: error.message,
+      });
     }
 });
-
-
-
-router.get('/:id', async (req, res) => {
-    const { id } = req.params;    
+  
+// GET route to retrieve DJ artist details by vendor ID
+// Route: /dj-artist-details/:vendor_id
+router.get("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
     try {
-        console.log("Finding Dj artist details for id:", id);
-        const djArtistDetails = await DjArtistModel.findOne({ id });
-        
-        if (!djArtistDetails) {
-            console.log("No dj artist details found for id:", id);
-            return res.status(404).json({ message: "DJ artist details not found." });
-        }
-        console.log("Found dj artist details:", djArtistDetails.address);
-        res.status(200).json(djArtistDetails);
-        
+      const djArtistDetails = await DjArtistReduxModel.findOne({ vendor_id: vendor_id.trim() });
+  
+      if (!djArtistDetails) {
+        return res.status(404).json({ message: "DJ artist details not found." });
+      }
+  
+      res.status(200).json(djArtistDetails);
     } catch (error) {
-        console.error("Error finding DJ artist details:", error);
-        res.status(500).json({
-            message: "Failed to find DJ artist details.",
-            error: error.message,
-        });
+      console.error("Error retrieving DJ artist details:", error);
+      res.status(500).json({
+        message: "Failed to retrieve DJ artist details.",
+        error: error.message,
+      });
     }
 });
-
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) {
-        console.log("Error: User ID is required.");
-        return res.status(400).json({ message: "User ID is required." });
+  
+// DELETE route to remove DJ artist details by vendor ID
+// Route: /dj-artist-details/:vendor_id
+router.delete("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    if (!vendor_id || vendor_id.trim() === '') {
+      return res.status(400).json({ message: "Vendor ID is required for deletion." });
     }
-
+  
     try {
-        console.log("Deleting DJ artist details for id:", id);
-        const deletedDetails = await DjArtistModel.findOneAndDelete({ id });
-
-        if (!deletedDetails) {
-            console.log("No dj artist details found for id:", id);
-            return res.status(404).json({ message: "DJ artist details not found." });
-        }
-        
-        console.log("Deleted dj artist details:", deletedDetails);
-        res.status(200).json({
-            message: "Dj artist details deleted successfully.",
-            data: deletedDetails,
-        });
+      const deletedDetails = await DjArtistReduxModel.findOneAndDelete({ vendor_id: vendor_id }); 
+  
+      if (!deletedDetails) {
+        return res.status(404).json({ message: "DJ artist details not found for deletion." });
+      }
+  
+      res.status(200).json({ message: "DJ artist details deleted successfully." });
+  
     } catch (error) {
-        console.error("Error deleting DJ artist details:", error);
-        res.status(500).json({
-            message: "Failed to delete DJ artist details.",
-            error: error.message,
-        });
+      console.error("Error deleting DJ artist details:", error);
+      res.status(500).json({
+        message: "Failed to delete DJ artist details.",
+        error: error.message,
+      });
     }
 });
 
-export { router as djArtistRoutes };
+export default router;
