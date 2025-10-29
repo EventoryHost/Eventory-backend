@@ -198,5 +198,133 @@ router.put("/emNotifications/markAsRead", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/emProfile/{em_id}:
+ *   get:
+ *     summary: Get Event Manager Profile
+ *     tags:
+ *       - EM Admin
+ *     parameters:
+ *       - in: path
+ *         name: em_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Event Manager ID
+ *     responses:
+ *       200:
+ *         description: Profile fetched successfully
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/em_profile/:em_id", async (req, res) => {
+  try {
+    const { em_id } = req.params;
+    if (!em_id) {
+      return res.status(400).json({ success: false, message: "em_id required" });
+    }
+
+    const profile = await EventManager.findOne({ em_id }).select("-password");
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Profile not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: profile,
+    });
+  } catch (error) {
+    console.error("Error fetching EM profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/emProfile/{em_id}:
+ *   put:
+ *     summary: Update Event Manager Profile
+ *     tags:
+ *       - EM Admin
+ *     parameters:
+ *       - in: path
+ *         name: em_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Event Manager ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               contact_name:
+ *                 type: string
+ *               contact_number:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               profile_photo:
+ *                 type: string
+ *               yoe:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Missing fields
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server error
+ */
+router.put("/em_profile/:em_id", async (req, res) => {
+  try {
+    const { em_id } = req.params;
+    const updates = req.body;
+
+    if (!em_id) {
+      return res.status(400).json({ success: false, message: "em_id required" });
+    }
+
+    // Prevent password or em_id modification
+    delete updates.password;
+    delete updates.em_id;
+
+    const updatedProfile = await EventManager.findOneAndUpdate(
+      { em_id },
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedProfile) {
+      return res.status(404).json({ success: false, message: "Profile not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Error updating EM profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+
 
 export default router;
