@@ -19,7 +19,7 @@ const serviceLocationDjArtistSchema = new Schema({
     validate: {
       validator: function (v) {
         if (v === undefined || v === null) return true;
-        return /^\d{6}$/.test(String(v));
+        return /^d{6}$/.test(String(v));
       },
       message: 'Service pincode must be a 6-digit number'
     }
@@ -28,17 +28,20 @@ const serviceLocationDjArtistSchema = new Schema({
     type: String
   }
 }, { _id: false });
-// DJ Artist Basic Details Schema
 const djArtistBasicDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
     default: false
   },
-  point_of_contact: {
+  service_name: {
     type: String,
     required: true
   },
-  service_contact_number: {
+  name: {
+    type: String,
+    required: true
+  },
+  contact: {
     type: String,
     required: true
   },
@@ -46,55 +49,37 @@ const djArtistBasicDetailsSchema = new Schema({
     type: String,
     required: true
   },
-  event_types_performed: [{
+  address: {
     type: String,
     required: true
-  }],
-  music_genres_specialized: [{
-    type: String,
-    required: true
-  }],
-  regional_specializations: [{
+  },
+  service_areas: [{
     type: String,
     required: true
   }],
   service_location_dj_artist: serviceLocationDjArtistSchema
 }, { _id: false });
-// DJ Artist Service Details Schema
 const djArtistServiceDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
     default: false
   },
+  event_types: [{
+    type: String,
+    required: true
+  }],
+  music_genres: [{
+    type: String
+  }],
+  regional_specializations: [{
+    type: String,
+    required: true
+  }],
   services_offered: [{
-    type: String,
-    required: true
-  }],
-  equipment_provided: [{
-    type: String,
-    required: true
-  }],
-  sound_system_specifications: {
-    type: String
-  },
-  lighting_equipment_available: [{
-    type: String
-  }],
-  is_mc_services_provided: {
-    type: Boolean
-  },
-  is_karaoke_services_available: {
-    type: Boolean
-  },
-  is_custom_playlist_creation: {
-    type: Boolean
-  },
-  performance_duration_options: [{
     type: String,
     required: true
   }]
 }, { _id: false });
-// DJ Artist Additional Details Schema
 const djArtistAdditionalDetailsSchema = new Schema({
   is_completed: {
     type: Boolean,
@@ -108,72 +93,55 @@ const djArtistAdditionalDetailsSchema = new Schema({
     type: String,
     required: true
   }],
-  performance_samples: [{
+  awards: {
     type: String
-  }],
-  min_booking_period: {
+  },
+  instagram_url: {
+    type: String
+  },
+  website_url: {
+    type: String
+  },
+  testimonials: {
+    type: String
+  },
+  price_starts: {
     type: Number,
     required: true
-  },
-  max_booking_period: {
-    type: Number
-  },
-  prices_starts_from: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  ig_socials_link: {
-    type: String
-  },
-  web_social_link: {
-    type: String
-  },
-  awards_achievements: {
-    type: String
-  },
-  testimonials: [{
-    type: String
-  }]
+  }
 }, { _id: false });
-// DJ Artist Policies Schema
 const djArtistPoliciesSchema = new Schema({
   is_completed: {
     type: Boolean,
     default: false
   },
-  cancellation_policy: {
+  terms_and_conditions: [{
     type: String
-  },
-  terms_and_conditions: {
+  }],
+  cancellation_policy: [{
     type: String
-  },
+  }],
   agreement_url: {
-    type: String,
-    required: true
+    type: String
   },
   agreement_signed_at: {
-    type: Date,
-    required: true
+    type: Date
   }
 }, { _id: false });
-// Main DJ Artist Schema
 const djArtistSchema = new Schema({
   service_id: {
     type: String,
     required: true,
     unique: true,
-    default: () => generateUniqueId("DJ")
+    default: () => generateUniqueId("DJS")
   },
   vendor_id: {
     type: String,
-    required: true,
-    ref: 'Vendor'
+    required: true
   },
   service_type: {
     type: String,
-    required: true,
-    default: "DJ-Artist"
+    default: "Dj-Artist"
   },
   is_active: {
     type: Boolean,
@@ -188,6 +156,10 @@ const djArtistSchema = new Schema({
   service_areas: [{
     type: String
   }],
+  is_verified: {
+    type: Boolean,
+    default: false
+  },
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,
@@ -218,7 +190,6 @@ const djArtistSchema = new Schema({
   dj_artist_created_at: {
     type: Date,
     default: () => {
-      // Convert to IST (UTC+5:30)
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000;
       return new Date(now.getTime() + istOffset);
@@ -227,7 +198,6 @@ const djArtistSchema = new Schema({
   dj_artist_updated_at: {
     type: Date,
     default: () => {
-      // Convert to IST (UTC+5:30)
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000;
       return new Date(now.getTime() + istOffset);
@@ -238,13 +208,12 @@ const djArtistSchema = new Schema({
 });
 // Pre-save middleware to update dj_artist_updated_at on every save
 djArtistSchema.pre('save', function (next) {
-  // Declare now and istOffset once at the top of the function
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);
-  // Set dj_artist_updated_at for all saves (new or existing)
-  this.dj_artist_updated_at = istTime;
-  // Update nested document timestamps if they exist and are modified
+  if (!this.isNew) {
+    this.dj_artist_updated_at = istTime;
+  }
   if (this.isModified('bank_details') && this.bank_details) {
     this.bank_details.bank_updated_at = istTime;
   }
@@ -255,25 +224,25 @@ djArtistSchema.pre('save', function (next) {
 });
 // Pre-update middleware to update dj_artist_updated_at on updates
 djArtistSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
-  // Declare now and istOffset once at the top of the function
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);
   this.set({ dj_artist_updated_at: istTime });
-  // Update nested document timestamps if they are being updated
   const update = this.getUpdate();
-  if (update.bank_details) {
+  if (update.bank_details || update['bank_details']) {
     this.set({ 'bank_details.bank_updated_at': istTime });
   }
-  if (update.business_details) {
+  if (update.business_details || update['business_details']) {
     this.set({ 'business_details.business_updated_at': istTime });
   }
   next();
 });
 // Indexes for better performance
 djArtistSchema.index({ vendor_id: 1 });
-djArtistSchema.index({ is_active: 1 });
 djArtistSchema.index({ service_areas: 1 });
+djArtistSchema.index({ is_active: 1 });
+djArtistSchema.index({ is_verified: 1 });
+djArtistSchema.index({ profile_completion_score: -1 });
 djArtistSchema.index({ dj_artist_created_at: -1 });
 djArtistSchema.index({ dj_artist_updated_at: -1 });
 // Check if model already exists to prevent OverwriteModelError
