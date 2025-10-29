@@ -10,14 +10,28 @@ const djArtistSchema = Schema({
     basicDetails: {
         profileCompletion: { type: Number, default: 0 },
         completed: { type: Boolean, default: false }, // Flag for section completion
-        serviceName: { type: String, required: true },
-        name: { type: String, required: true },
+        name: { type: String, required: true }, // Service name (like other vendors)
+        managerName: { type: String, required: true }, // Manager name
         description: { type: String, required: true },
         address: { type: String, required: true },
         serviceAreas: { type: [String], required: true },
         location: {
             lat: { type: Number, required: true },
             lng: { type: Number, required: true },
+            pincode: {
+                type: Number,
+                required: false, // Make pincode explicitly optional
+                validate: {
+                    validator: function (v) {
+                        // Skip validation if value is undefined, null, or zero
+                        if (v === undefined || v === null || v === 0) return true;
+                        // Ensure it's a 6-digit number
+                        return /^\d{6}$/.test(String(v));
+                    },
+                    message: (props) => `${props.value} is not a valid 6-digit pincode!`,
+                },
+            },
+            googleMapsAddress: { type: String }, // Google Maps formatted address
         }
     },
     serviceDetails: {
@@ -26,17 +40,22 @@ const djArtistSchema = Schema({
         regionalSpecializations: { type: [String], required: true },
         servicesOffered: { type: [String], required: true },
     },
-    additionalDetails: {
-        photos: { type: [String], required: true },
+    additionalDetails:{
+        photos: [
+            {
+                original: { type: String },
+                preview: { type: String },
+            },
+        ],
         videos: { type: [String], required: true },
-        awards: { type: String, },
-        instagramUrl: { type: String, },
-        websiteUrl: { type: String, },
-        testimonials: { type: String, },
+        awards : { type: String, },
+        instagramUrl : { type: String, },
+        websiteUrl : { type: String, },
+        testimonials : { type: String, },
         priceStartingFrom: { type: Number, required: true },
     },
     policies: {
-        completed: { type: Boolean, default: false }, // Flag for section completion
+        completed: { type: Boolean, dezfault: false }, // Flag for section completion
         termsAndConditions: { type: [String] },
         cancellationPolicy: { type: [String] },
         agreementUrl: { type: String },

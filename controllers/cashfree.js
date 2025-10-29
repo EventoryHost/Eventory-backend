@@ -248,7 +248,7 @@ function buildPayoutsHeaders() {
 const N = (v) => Number(v ?? 0)
 
 const verifyCustomerPayment = async (req, res) => {
-  const { order_id, quotation_id, order_amount, payment_type } = req.body;
+  const { order_id, quotation_id, order_amount, payment_type, couponCode, couponDiscount } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -536,9 +536,18 @@ const verifyCustomerPayment = async (req, res) => {
       ? payment.order_meta.payment_methods
       : "Online";
 
+    const couponCodeParam =
+      (typeof couponCode === "string" && couponCode.trim()) ||
+      finalOrder?.paymentDetails?.couponCode ||
+      null;
+
+    const discountAbs =
+      typeof couponDiscount === "number"
+        ? Number(couponDiscount)
+        : Number(finalOrder?.paymentDetails?.discount || 0);
+
     const cp = finalOrder?.paymentDetails?.customerPayable || {};
     const vr = finalOrder?.paymentDetails?.vendorReceivable || {};
-
     const totalCustomerPayable = N(cp.total);
     const baseCustomer = N(cp.baseAmount);
     const convenienceFee = N(cp.convenienceFee);
@@ -547,18 +556,15 @@ const verifyCustomerPayment = async (req, res) => {
     const taxOnCommission = N(vr.taxOnCommission);
     const commissionFee = commission + taxOnCommission;
 
-    const contents = Array.isArray(finalOrder?.finalizedContents)
-      ? finalOrder.finalizedContents
-      : [];
-
+    const contents = Array.isArray(finalOrder?.finalizedContents) ? finalOrder.finalizedContents : [];
     const items = contents.map((c, idx) => ({
       name: c.name || `Item ${idx + 1}`,
       type: finalOrder?.event_type || "-",
       amount: String(Number(N(c.price).toFixed(2))),
     }));
 
-    const discount = N(cp.discount) || 0;
-    const finalAmount = Math.max(0, totalCustomerPayable - discount);
+    const discountForInvoice = Math.max(0, Number(discountAbs.toFixed(2)));
+    const finalAmount = Math.max(0, totalCustomerPayable - discountForInvoice);
 
     const paidAmount =
       payment_type === "advance"
@@ -619,18 +625,18 @@ const verifyCustomerPayment = async (req, res) => {
       paidAmount: String(Number(paidAmount.toFixed(2))),
       method: paymentMethod,
       items,
-      amount: String(Number(totalCustomerPayable.toFixed(2))),
-      discount: String(Number((discount || 0).toFixed(2))),
+      amount: String(Number(totalCustomerPayable.toFixed(2))), // pre-discount total
+      discount: String(Number(discountForInvoice.toFixed(2))),  // absolute coupon discount
       advanceAmount: String(Number((payment_type === "advance" ? order_amount : 0).toFixed(2))),
       convinienceFee: String(Number((convenienceFee + taxOnConvenience).toFixed(2))),
       commissionFee: String(Number(commissionFee.toFixed(2))),
-      couponCode: finalOrder?.paymentDetails?.couponCode || null,
+      couponCode: couponCodeParam,
       customerPayable: {
         total: N(cp.total || 0),
         baseAmount: N(cp.baseAmount || 0),
         convenienceFee: N(cp.convenienceFee || 0),
         taxOnConvenience: N(cp.taxOnConvenience || 0),
-        discount: N(cp.discount || 0),
+        discount: discountForInvoice,
       },
       vendorReceivable: {
         total: N(vr.total || 0),
@@ -646,6 +652,7 @@ const verifyCustomerPayment = async (req, res) => {
       vendorLink,
       bookingId: bookingId,
     };
+
 
     const sqsMessage = {
       type: "bookingPayment",

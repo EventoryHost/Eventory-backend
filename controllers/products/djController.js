@@ -51,10 +51,8 @@ const updateSectionCompletion = async (id) => {
 
 const createDjArtist = async (req, res) => {
   try {
-    console.log("Received Data:", req.body);
-
     const alreadyExists = await DjArtist.findOne({
-      name: req.body.name,
+      "basicDetails.name": req.body.serviceName, // Check service name field
       venId: req.body.venId,
     });
 
@@ -62,12 +60,107 @@ const createDjArtist = async (req, res) => {
       return res.status(400).json({ message: "DJ Artist already exists" });
     }
 
-    const photos = req.body.photos || [];
-    const videos = req.body.videos || [];
-
+    let photos = req.body.photos || [];
+    let videos = req.body.videos || [];
+    
+    // Process photos - handle JSON strings from frontend
+    if (Array.isArray(photos)) {
+      photos = photos.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof photos === 'string') {
+      if (photos.startsWith('[')) {
+        try {
+          photos = JSON.parse(photos);
+        } catch (e) {
+          photos = photos.includes(',') ? photos.split(',').map(url => url.trim()) : [photos];
+        }
+      } else if (photos.includes(',')) {
+        photos = photos.split(',').map(url => url.trim()).filter(url => url.length > 0);
+      } else if (photos.includes('[object Object]')) {
+        try {
+          const tempDjArtistData = await DjArtistModel.findOne({ id: req.body.venId });
+          if (tempDjArtistData && tempDjArtistData.photos && tempDjArtistData.photos.length > 0) {
+            photos = tempDjArtistData.photos;
+          } else {
+            photos = [];
+          }
+        } catch (reduxError) {
+          console.error("Error retrieving photos from redux store:", reduxError);
+          photos = [];
+        }
+      } else {
+        try {
+          // Try to parse as JSON object
+          const parsed = JSON.parse(photos);
+          photos = [parsed];
+        } catch (e) {
+          photos = [photos];
+        }
+      }
+    }
+    
+    // Process videos - handle JSON strings from frontend
+    if (Array.isArray(videos)) {
+      videos = videos.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof videos === 'string') {
+      if (videos.startsWith('[')) {
+        try {
+          videos = JSON.parse(videos);
+        } catch (e) {
+          videos = videos.includes(',') ? videos.split(',').map(url => url.trim()) : [videos];
+        }
+      } else if (videos.includes(',')) {
+        videos = videos.split(',').map(url => url.trim()).filter(url => url.length > 0);
+      } else if (videos.includes('[object Object]')) {
+        try {
+          const tempDjArtistData = await DjArtistModel.findOne({ id: req.body.venId });
+          if (tempDjArtistData && tempDjArtistData.videos && tempDjArtistData.videos.length > 0) {
+            videos = tempDjArtistData.videos;
+          } else {
+            videos = [];
+          }
+        } catch (reduxError) {
+          console.error("Error retrieving videos from redux store:", reduxError);
+          videos = [];
+        }
+      } else {
+        try {
+          // Try to parse as JSON object
+          const parsed = JSON.parse(videos);
+          videos = [parsed];
+        } catch (e) {
+          videos = [videos];
+        }
+      }
+    }
     const fieldsToCheck = [
-      req.body.serviceName,
-      req.body.name,
+      req.body.serviceName, // Service name (will be stored in 'name' field)
+      req.body.name, // Manager name (will be stored in 'managerName' field)
       req.body.contact,
       req.body.description,
       req.body.address,
@@ -98,15 +191,11 @@ const createDjArtist = async (req, res) => {
     const agreementUrl = tempDjArtistData?.agreementUrl || null;
     const agreementSignedAt = tempDjArtistData?.agreementSignedAt || null;
     
-    if (agreementUrl) {
-      console.log("Found agreement data for DJ artist:", agreementUrl);
-    }
-
     const newDjArtist = new DjArtist({
       basicDetails: {
         profileCompletion,
-        serviceName: req.body.serviceName,
-        name: req.body.name,
+        name: req.body.serviceName, // Service name goes to 'name' field
+        managerName: req.body.name, // Manager name goes to 'managerName' field
         contact: req.body.contact,
         description: req.body.description,
         address: req.body.address,
@@ -114,6 +203,8 @@ const createDjArtist = async (req, res) => {
         location: {
           lat: parseFloat(req.body.latitude),
           lng: parseFloat(req.body.longitude),
+          pincode: req.body.pincode ? parseInt(req.body.pincode) : undefined,
+          googleMapsAddress: req.body.address,
         },
       },
       serviceDetails: {
@@ -124,8 +215,46 @@ const createDjArtist = async (req, res) => {
         servicesOffered: req.body.servicesOffered?.split(",") || [],
       },
       additionalDetails: {
-        photos: Array.isArray(photos) ? photos : [photos],
-        videos: Array.isArray(videos) ? videos : [videos],
+        photos: Array.isArray(photos) 
+          ? photos.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              } else if (typeof url === 'object' && url.original) {
+                return {
+                  original: url.original,
+                  preview: url.preview || url.original
+                };
+              } else if (typeof url === 'string' && url.length > 0) {
+                // Generate preview URL from original
+                let previewUrl = url;
+                
+                // Generate preview URL for images (change to .webp)
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                // Generate preview URL for videos (change to .mp4)
+                else if (url.includes('original-') && (url.includes('.mov') || url.includes('.avi') || url.includes('.mkv'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(mov|avi|mkv)$/i, '.mp4');
+                }
+                // Fallback for older format
+                else if (url.includes('/original-')) {
+                  previewUrl = url.replace('/original-', '/preview-');
+                  if (url.match(/\.(jpg|jpeg|png)$/i)) {
+                    previewUrl = previewUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                  }
+                }
+                
+                return { 
+                  original: url, 
+                  preview: previewUrl 
+                };
+              }
+              return null;
+            }).filter(item => item !== null) 
+          : [],
+        videos: Array.isArray(videos)
+          ? videos.filter(url => typeof url === 'string' && url.length > 0)
+          : [],
         awards: req.body.awards,
         instagramUrl: req.body.instagramUrl,
         websiteUrl: req.body.websiteUrl,
@@ -202,4 +331,4 @@ const getDjArtistById = async (req, res) => {
   }
 };
 
-export default { createDjArtist, getAllDjArtist , getDjArtistById }; // ✅ Proper export
+export default { createDjArtist, getAllDjArtist , getDjArtistById }; 
