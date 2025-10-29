@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import generateUniqueId from "../utils/generateId2.js";
 import Counter from "./counter.model.js";
+import { couponSchema } from "../models/coupon.js";
 
 // Event Cart Schema according to ERD
 const cartItemSchema = new mongoose.Schema({
@@ -135,6 +136,10 @@ const eventsSchema = new mongoose.Schema({
     type: Number,
     min: 1
   },
+  specific_terms: {
+    type: [String],
+    default: []
+  },
   final_amount: {
     type: Number,
     required: true,
@@ -220,24 +225,16 @@ const eventsSchema = new mongoose.Schema({
   payment_method: {
     type: String
   },
-  paymentDetails: {
-    paymentMethod: {
-      type: String,
-      enum: ["Credit Card", "Debit Card", "Net Banking", "UPI", "Cash"]
-    },
-    transactionId: {
-      type: String
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
-      default: "Unpaid"
-    },
+  payment_details: {
     customerPayable: {
-      total: { type: Number, default: 0 },
-      baseAmount: { type: Number, default: 0 },
+      total: { type: Number, default: 0 },                
+      baseAmount: { type: Number, default: 0 },           
       convenienceFee: { type: Number, default: 0 },
-      taxOnConvenience: { type: Number, default: 0 }
+      taxOnConvenience: { type: Number, default: 0 },
+      convenienceFeeBefore: { type: Number, default: 0 },
+      taxOnConvenienceBefore: { type: Number, default: 0 },
+      couponCode: { type: String, default: null },
+      discountAmount: { type: Number, default: 0 }
     },
     vendorReceivable: {
       total: { type: Number, default: 0 },
@@ -246,20 +243,74 @@ const eventsSchema = new mongoose.Schema({
       taxOnCommission: { type: Number, default: 0 }
     }
   },
-  payment_method_details: {
-    upi: {
-      channel: { type: String },
-      upi_id: { type: String },
-      upi_payer_ifsc: { type: String },
-      upi_payer_account_number: { type: String }
-    },
-    payment_amount: { type: Number },
-    payment_time: { type: String },
-    payment_completion_time: { type: String },
-    payment_status: { type: String },
-    payment_message: { type: String },
-    payment_group: { type: String }
-  },
+  payment_method_details: [
+    {
+      payment_method: {
+        type: String,
+        enum: ['upi', 'netbanking', 'card', 'app', 'cardless_emi', 'paylater', 'banktransfer'],
+        required: true
+      },
+      channel: {
+        type: String
+      },
+      cf_payment_id: {
+        type: String
+      },
+      payment_amount: {
+        type: Number
+      },
+      payment_completion_time: {
+        type: Date
+      },
+      payment_status: {
+        type: String
+      },
+      payment_message: {
+        type: String
+      },
+      payment_group: {
+        type: String
+      },
+      method_details: {
+        // nested sub‐object for each method type
+        upi: {
+          channel: String,
+          upi_id: String,
+          upi_payer_ifsc: String,
+          upi_payer_account_number: String
+        },
+        card: {
+          card_number_masked: String,
+          card_holder_name: String,
+          expiry_mm: String,
+          expiry_yy: String,
+          card_network: String
+        },
+        netbanking: {
+          bank_code: String,
+          bank_name: String,
+          account_number: String
+        },
+        app: {
+          app_name: String,
+          wallet_id: String
+        },
+        banktransfer: {
+          bank_account_number: String,
+          ifsc: String,
+          bank_name: String
+        },
+        paylater: {
+          provider: String,
+          plan_id: String
+        },
+        cardless_emi: {
+          provider: String,
+          emi_plan_id: String
+        }
+      }
+    }
+  ],
   final_order_items: [cartItemSchema] // Array of cart items
 }, {
   collection: 'events'

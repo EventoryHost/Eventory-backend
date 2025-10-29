@@ -28,6 +28,7 @@ const normalizeServiceName = (label) => {
   if (["caterer"].includes(s)) return "Caterer";
   if (["decorator"].includes(s)) return "Decorator";
   if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (["dj-artist", "dj artist", "dj"].includes(s)) return "DJ-Artist";
   return label;
 };
 
