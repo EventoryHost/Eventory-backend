@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 import Chat from "../models/chat.js";
 import { sendVendorQuotationMessage } from "../controllers/waController.js";
 import vendorNotification from "../models/vendorNotification.js";
+import { sendSlackMessage } from "../utils/slackNotifier.js";
 
 // The router is now created inside a function that accepts the 'io' instance.
 export default (io) => {
@@ -148,6 +149,16 @@ export default (io) => {
           vendor.name,
           "https://www.eventory.in/dashboard?q=quotations"
         );
+
+        sendSlackMessage({
+          id: newQuotation.id,
+          customer: customer.name,
+          vendor: vendor.name,
+          service: newQuotation.service_id,
+          vendorId : newQuotation.vendor_id,
+          guests: newQuotation.number_of_guest,
+          date: newQuotation.start_date?.toLocaleDateString("en-IN"),
+        });
       });
     } catch (error) {
       res.status(500).json({

@@ -13,6 +13,7 @@ import { Customer } from "../models/customer.js";
 import adminNotification from "../models/adminNotification.js";
 import customerNotification from "../models/customerNotification.js";
 import vendorNotification from "../models/vendorNotification.js";
+import { sendSlackBookingMessage } from "../utils/slackNotifier.js";
 
 function modelFromServiceId(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
@@ -37,10 +38,16 @@ function modelFromServiceId(serviceId) {
 function getStatusColor(paymentDetails) {
   if (!paymentDetails) return "yellow";
   if (typeof paymentDetails === "string") {
-    try { paymentDetails = JSON.parse(paymentDetails); }
-    catch { return "yellow"; }
+    try {
+      paymentDetails = JSON.parse(paymentDetails);
+    } catch {
+      return "yellow";
+    }
   }
-  if (paymentDetails.fullPaid !== undefined && paymentDetails.fullPaid !== null) {
+  if (
+    paymentDetails.fullPaid !== undefined &&
+    paymentDetails.fullPaid !== null
+  ) {
     return "green";
   }
   return "yellow";
@@ -247,6 +254,15 @@ export const createBooking = async (req, res) => {
         read: false,
         createdAt: new Date(),
       });
+
+      await sendSlackBookingMessage({
+        bookingid: savedBooking.bookingid,
+        customer: customer?.name || "",
+        vendor: vendor?.businessDetails?.businessName || vendor?.name || "",
+        serviceName: savedBooking.serviceName || "",
+        guest: savedBooking.guest || 0,
+        startDate: new Date(savedBooking.startDate).toLocaleDateString("en-IN"),
+      });
     } catch (notifError) {
       console.error("Notification creation failed:", notifError);
     }
@@ -315,18 +331,18 @@ export const updateBooking = async (req, res) => {
       { new: true }
     );
 
-
     if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
     }
-
 
     res.status(200).json({
       message: "Booking updated successfully",
       booking: updatedBooking,
     });
   } catch (error) {
-    res.status(500).json({ message: "An error occurred", error: error.message });
+    res
+      .status(500)
+      .json({ message: "An error occurred", error: error.message });
   }
 };
 
@@ -483,7 +499,7 @@ export const editOfflineEvent = async (req, res) => {
     }
 
     const index = vendor.schedule.findIndex(
-      (event) => event.calendarId === updatedEventData.calendarId,
+      (event) => event.calendarId === updatedEventData.calendarId
     );
 
     if (index === -1) {
@@ -548,7 +564,7 @@ export const deleteOfflineEvent = async (req, res) => {
 
     // Filter out the event that matches the given calendarId
     const updatedSchedule = vendor.schedule.filter(
-      (event) => event.calendarId !== calendarId,
+      (event) => event.calendarId !== calendarId
     );
 
     // If no change in schedule, it means the event was not found
@@ -658,20 +674,26 @@ export const getBookingsByCustomer = async (req, res) => {
     const bookings = await Booking.find({ customerId });
 
     if (!bookings || bookings.length === 0) {
-      return res.status(404).json({ message: "No bookings found for this customer" });
+      return res
+        .status(404)
+        .json({ message: "No bookings found for this customer" });
     }
 
     res.status(200).json({ bookings });
   } catch (error) {
     console.error("Error fetching bookings by customerId:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 export const getAllVendorServiceSchedules = async (req, res) => {
   const { vendorId, services } = req.body;
 
   if (!vendorId || !Array.isArray(services) || services.length === 0) {
-    return res.status(400).json({ message: "vendorId and services array are required" });
+    return res
+      .status(400)
+      .json({ message: "vendorId and services array are required" });
   }
 
   try {
@@ -705,7 +727,10 @@ export const getAllVendorServiceSchedules = async (req, res) => {
           continue;
       }
 
-      const vendorDoc = await vendorModel.findOne({ id: serviceId }, "schedule");
+      const vendorDoc = await vendorModel.findOne(
+        { id: serviceId },
+        "schedule"
+      );
       const onlineBookings = await Booking.find({ venId: vendorId, serviceId });
 
       if (!groupedByType[serviceType]) {
@@ -717,14 +742,18 @@ export const getAllVendorServiceSchedules = async (req, res) => {
       }
 
       // Append offline & online bookings for this type
-      groupedByType[serviceType].offlineBookings.push(...(vendorDoc?.schedule || []));
+      groupedByType[serviceType].offlineBookings.push(
+        ...(vendorDoc?.schedule || [])
+      );
       groupedByType[serviceType].onlineBookings.push(...onlineBookings);
     }
 
     return res.status(200).json({ services: Object.values(groupedByType) });
   } catch (error) {
     console.error("Error fetching all schedules:", error);
-    return res.status(500).json({ message: "Internal server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -733,18 +762,21 @@ export const addBookingInvoice = async (req, res) => {
     const { bookingId, customerInvoiceUrl, vendorInvoiceUrl } = req.body;
 
     if (!bookingId) {
-      return res.status(400).json({ error: 'bookingId is required' });
+      return res.status(400).json({ error: "bookingId is required" });
     }
 
     if (!customerInvoiceUrl && !vendorInvoiceUrl) {
-      return res.status(400).json({ error: 'At least one invoice URL is required' });
+      return res
+        .status(400)
+        .json({ error: "At least one invoice URL is required" });
     }
 
     const update = {};
-    if (customerInvoiceUrl) update['$push'] = { 'invoices.customerInvoices': customerInvoiceUrl };
+    if (customerInvoiceUrl)
+      update["$push"] = { "invoices.customerInvoices": customerInvoiceUrl };
     if (vendorInvoiceUrl) {
-      if (!update['$push']) update['$push'] = {};
-      update['$push']['invoices.vendorInvoices'] = vendorInvoiceUrl;
+      if (!update["$push"]) update["$push"] = {};
+      update["$push"]["invoices.vendorInvoices"] = vendorInvoiceUrl;
     }
 
     const updatedBooking = await Booking.findOneAndUpdate(
@@ -754,15 +786,17 @@ export const addBookingInvoice = async (req, res) => {
     );
 
     if (!updatedBooking) {
-      return res.status(404).json({ error: `Booking with id ${bookingId} not found` });
+      return res
+        .status(404)
+        .json({ error: `Booking with id ${bookingId} not found` });
     }
 
     res.status(200).json({
-      message: 'Invoice URLs added successfully',
+      message: "Invoice URLs added successfully",
       booking: updatedBooking,
     });
   } catch (error) {
-    console.error('Error adding invoice URLs to booking:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error adding invoice URLs to booking:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
