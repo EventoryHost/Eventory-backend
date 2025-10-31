@@ -18,7 +18,7 @@ import { Decorator } from "../models2/decorator.js";
 import Photographer from "../models2/photographerVideographer.js";
 import VenueProvider from "../models2/venueProvider.js";
 import MakeupArtist from "../models2/makeupArtist.js";
-import DjArtist from "../models/djArtist.js";
+import DjArtist from "../models2/djArtist.js";
 
 
 dotenv.config();
@@ -267,8 +267,18 @@ const verifyCustomerPayment = async (req, res) => {
   const { order_id, quotation_id, order_amount, payment_type, couponCode, couponDiscount, service_id } = req.body;
 
   try {
+    const response = await cashfree.PGFetchOrder(order_id);
+    if (!response.data || response.data.length === 0) {
+      return res.status(400).json({ error: "Payment not found" });
+    }
+
+    const payment = response.data;
+    if (payment.order_status !== "PAID") {
+      return res.status(400).json({ error: "Payment not successful" });
+    }
+
     // Fetch the final order to get required IDs
-    const finalOrder = await Order.findOne({ quotation_id }).lean();
+    const finalOrder = await Order.findOne({ quotation_id: quotation_id }).lean();
     if (!finalOrder) {
       return res.status(404).json({ error: "Final order not found for quotation_id" });
     }
@@ -278,32 +288,32 @@ const verifyCustomerPayment = async (req, res) => {
     const customer_id = finalOrder.customer_id;
     const em_id = finalOrder.em_id;
 
-    // const receivableFromOrder =
-    //   Number(
-    //     finalOrder?.paymentDetails?.vendorReceivable?.total != null
-    //       ? finalOrder.paymentDetails.vendorReceivable.total
-    //       : NaN
-    //   ) || null;
+    const receivableFromOrder =
+      Number(
+        finalOrder?.paymentDetails?.vendorReceivable?.total != null
+          ? finalOrder.paymentDetails.vendorReceivable.total
+          : NaN
+      ) || null;
 
-    // const previousTxn = await Transaction.findOne({
-    //   quotation_id: quotation_id,
-    //   vendor_id: vendor_id,
-    //   customer_id: customer_id,
-    //   service_id: service_id,
-    //   internalOrderId: internalOrderId,
-    // }).lean();
+    const previousTxn = await Transaction.findOne({
+      quotation_id: quotation_id,
+      vendor_id: vendor_id,
+      customer_id: customer_id,
+      service_id: service_id,
+      internalOrderId: internalOrderId,
+    }).lean();
 
-    // const alreadyPaid = previousTxn?.transfer_amount ?? 0;
+    const alreadyPaid = previousTxn?.transfer_amount ?? 0;
 
-    // let payoutAmount;
-    // if (payment_type === "advance") {
-    //   payoutAmount = order_amount;
-    // } else if (payment_type === "full") {
-    //   payoutAmount = receivableFromOrder;
-    // } else if (payment_type === "remaining") {
-    //   payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
-    //   if (payoutAmount < 0) payoutAmount = 0;
-    // }
+    let payoutAmount;
+    if (payment_type === "advance") {
+      payoutAmount = order_amount;
+    } else if (payment_type === "full") {
+      payoutAmount = receivableFromOrder;
+    } else if (payment_type === "remaining") {
+      payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
+      if (payoutAmount < 0) payoutAmount = 0;
+    }
    
     const vendorDoc = await Vendor.findOne({ vendor_id });
     if (!vendorDoc) {
@@ -342,7 +352,7 @@ const verifyCustomerPayment = async (req, res) => {
     let beneficiary_id = primaryBank.beneficiary_id;
 
     if (!beneficiary_id) {
-      beneficiary_id = generateUniqueId("bene");
+      beneficiary_id = generateUniqueId("BENE");
       primaryBank.beneficiary_id = beneficiary_id;
       await serviceDoc.save();
     }
@@ -385,16 +395,17 @@ const verifyCustomerPayment = async (req, res) => {
     //   }
     // }
 
-    const transfer_id = generateUniqueId("trn");
+    const transfer_id = generateUniqueId("TRN");
 
     await Transaction.create({
       quotation_id,
       internalOrderId,
       vendor_id,
       customer_id,
-      pgOrderId: order_id,
-      pgStatus: payment.order_status || null,
-      transfer_id: transfer_id,
+      service_id,                            // CRITICAL: was missing
+      pgOrderId: order_id,                   // FIX: use pgOrderId (camelCase)
+      pgStatus: payment.order_status || null, // FIX: match schema
+      transfer_id,
       status: "INIT",
       transfer_amount: payoutAmount,
       transfer_mode: "IMPS",
@@ -445,15 +456,17 @@ const verifyCustomerPayment = async (req, res) => {
 
     // const transferData = transferResp?.data || {};
     await Transaction.findOneAndUpdate(
-      { transfer_id: transfer_id },
+      { transfer_id },
       {
         $set: {
-          quotation_id: quotation_id,
+          quotation_id,
           internalOrderId,
           vendor_id,
           customer_id,
-          pgOrderId: order_id,
-          pgStatus: payment.order_status,
+          service_id,                         // CRITICAL: ensure it's present
+          pgOrderId: order_id,                // FIX: camelCase
+          pgStatus: payment.order_status,     // FIX: camelCase
+          beneficiary_id,
           // cf_transfer_id: transferData.cf_transfer_id || null,
           // status: transferData.status || null,
           // transfer_amount: transferData.transfer_amount ?? payoutAmount,
@@ -461,7 +474,6 @@ const verifyCustomerPayment = async (req, res) => {
           // transfer_utr: transferData.transfer_utr || null,
           // added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
           // updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-          beneficiary_id: beneficiary_id,
           payment_type,
           paymentDetails: {
             customerPayable: {
@@ -484,9 +496,14 @@ const verifyCustomerPayment = async (req, res) => {
 
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
-      paymentMethod: "UPI", // Default to UPI, can be updated based on actual payment method
-      transactionId: order_id,
-      paymentStatus: "Fully Paid",
+      paymentStatus:
+        payment_type === "full"
+          ? "Fully Paid"
+          : payment_type === "advance"
+            ? "Partially Paid"
+            : payment_type === "remaining"
+              ? "Fully Paid"
+              : "Unknown",
       customerPayable: {
         total: finalOrder?.paymentDetails?.customerPayable?.total ?? order_amount,
         baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? order_amount,
@@ -556,6 +573,8 @@ const verifyCustomerPayment = async (req, res) => {
         customer_id: customer_id,
         vendor_id: vendor_id,
         service_id: "temp_service_id",
+        quotation_id: quotation_id,
+        em_id: em_id,
         // type: "pending",
         event_location: "pending location",
         event_start: new Date(),
@@ -568,7 +587,7 @@ const verifyCustomerPayment = async (req, res) => {
         vendor_manager_name: "Not Assigned",
         customer_name: "Pending Customer",
         description: "Pending description",
-        payment_method: "{}",
+        payment_method: "online",
         payment_status:"advance_paid",
         // paymentStatus: "Pending",
         final_guest_count: 0,
@@ -595,9 +614,8 @@ const verifyCustomerPayment = async (req, res) => {
         ? Number(couponDiscount)
         : Number(finalOrder?.paymentDetails?.discount || 0);
 
-    // which values to use??????
-    const cp = finalOrder?.final_amount || {};
-    const vr = finalOrder?.advance_amount_requested || {};
+    const cp = finalOrder?.paymentDetails?.customerPayable || {};
+    const vr = finalOrder?.paymentDetails?.vendorReceivable || {};
     const totalCustomerPayable = N(cp.total);
     const baseCustomer = N(cp.baseAmount);
     const convenienceFee = N(cp.convenienceFee);
@@ -606,9 +624,9 @@ const verifyCustomerPayment = async (req, res) => {
     const taxOnCommission = N(vr.taxOnCommission);
     const commissionFee = commission + taxOnCommission;
 
-    const contents = Array.isArray(finalOrder?.finalizedContents) ? finalOrder.finalizedContents : [];
+    const contents = Array.isArray(finalOrder?.final_order_items) ? finalOrder.final_order_items : [];
     const items = contents.map((c, idx) => ({
-      name: c.name || `Item ${idx + 1}`,
+      name: c.name_of_service || `Item ${idx + 1}`,
       type: finalOrder?.event_type || "-",
       amount: String(Number(N(c.price).toFixed(2))),
     }));
@@ -644,7 +662,7 @@ const verifyCustomerPayment = async (req, res) => {
     };
     const date = formatDate(finalOrder.start_date);
     const time = finalOrder.time;
-    const venue = qoutation.location;
+    const venue = finalOrder.event_location;
     const customerLink = `https://eventory.in/customerbooking/${event_id}`;
     const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
 
@@ -654,7 +672,7 @@ const verifyCustomerPayment = async (req, res) => {
       email: customerDoc.email_address,
       mobile: customerDoc.contact_number,
       address: customerDoc.customer_address || finalOrder?.location || "",
-      pincode: customerDoc.pincode || customerDoc.pinCode || "",
+      pincode: customerDoc.pincode || "",
     };
 
     const vendorPayload = {

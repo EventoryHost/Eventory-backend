@@ -1,10 +1,10 @@
 import { ReduxCatererModel } from "../models2/reduxModels/caterer.js";
 import { ReduxDecoratorModel } from "../models2/reduxModels/decorator.js";
 import { ReduxPhotographerVideographerModel } from "../models2/reduxModels/photographerVideographer.js";
-import { ReduxVenueProviderModel } from "../models2/reduxModels/venueProvider.js"; // import PropRentalModel from "../models/reduxStores/prop-rental.js"; import { MakeupArtistModel } from "../models2/reduxModels/makeupArtist.js"; // import DjArtistModel from "../models/reduxStores/djArtist.js"; import mongoose from "mongoose";
+import { ReduxVenueProviderModel } from "../models2/reduxModels/venueProvider.js";
 import { MakeupArtistModel } from "../models2/reduxModels/makeupArtist.js";
-// import PropRentalModel from "../models2/reduxModels/prop-rental.js";
-// import DjArtistModel from "../models2/reduxModels/djArtist.js";
+import { DjArtistReduxModel } from "../models2/reduxModels/djArtist.js";
+import mongoose from "mongoose";
 
 /**
  * Helper to select correct model based on flowType
@@ -25,7 +25,7 @@ const getModelByFlowType = (flowType) => {
       return MakeupArtistModel;
     case "djArtist":
     case "dj-artist": // alias
-      return DjArtistModel;
+      return DjArtistReduxModel;
     default:
       return null;
   }

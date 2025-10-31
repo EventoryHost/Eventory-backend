@@ -10,9 +10,21 @@ import { Calendar } from "../models2/calendar.js";
 export const createBooking = async (req, res) => {
    try {
     // Take everything directly from req.body
-    const eventData = req.body;
+    const { paymentDetails, payment_method_details, quotation_id, ...eventData } = req.body;
 
-    const newEvent = new Events(eventData);
+    // Handle paymentDetails and payment_method_details separately to ensure proper schema validation
+    const eventFields = { ...eventData };
+    if (paymentDetails) {
+      eventFields.paymentDetails = paymentDetails;
+    }
+    if (payment_method_details) {
+      eventFields.payment_method_details = payment_method_details;
+    }
+    if (quotation_id) {
+      eventFields.quotation_id = quotation_id;
+    }
+
+    const newEvent = new Events(eventFields);
 
     const savedEvent = await newEvent.save();
 
@@ -130,7 +142,7 @@ export const getAllBookings = async (req, res) => {
 export const addOfflineEvent = async (req, res) => {
   //type -> service_type
   try {
-    const { event_start, event_end, type, event_description, event_highlight } = req.body;
+    const { event_start, event_end, type, event_description, event_highlight, quotation_id } = req.body;
     const { service_id } = req.query;
 
     if (!service_id || !event_start || !event_end || !type || !event_highlight || !event_description) {
@@ -267,27 +279,58 @@ export const getVendorBookings = async (req, res) => {
   }
 };
 
-// GET /api/bookings/:bookingId
+// GET /api/bookings/get-by-id/:event_id
 export const getBookingById = async (req, res) => {
   try {
     const { event_id } = req.params;
-    console.log("Received event ID:", event_id);
-    if (!event_id) {
-      return res.status(400).json({ message: "Event ID is required" });
-    }
+    if (!event_id) return res.status(400).json({ message: "Event ID is required" });
 
+    // 1) Load event
     const booking = await Events.findOne({ event_id });
+    if (!booking) return res.status(404).json({ message: "Event not found" });
 
-    if (!booking) {
-      return res.status(404).json({ message: "Event not found" });
+    // 2) Resolve service model by service_id prefix
+    const sid = booking.service_id || "";
+    let serviceModel = null;
+    if (sid.startsWith("CAT")) {
+      const { Caterer } = await import("../models2/caterer.js");
+      serviceModel = Caterer;
+    } else if (sid.startsWith("DECO")) {
+      const { Decorator } = await import("../models2/decorator.js");
+      serviceModel = Decorator;
+    } else if (sid.startsWith("VNP")) {
+      const { default: VenueProvider } = await import("../models2/venueProvider.js");
+      serviceModel = VenueProvider;
+    } else if (sid.startsWith("PAV")) {
+      const { default: PhotographerVideographer } = await import("../models2/photographerVideographer.js");
+      serviceModel = PhotographerVideographer;
+     } else if (sid.startsWith("MKA")) {
+       const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
+       serviceModel = MakeupArtist;
+     } else if (sid.startsWith("DJ")) {
+       const { default: DjArtist } = await import("../models2/djArtist.js");
+       serviceModel = DjArtist;
+     } else if (sid.startsWith("PRO")) {
+      const { default: PropRental } = await import("../models/props.js");
+      serviceModel = PropRental;
+    } else {
+      serviceModel = null; // Unknown type; continue without service
     }
 
-    res.status(200).json({ booking });
+    // 3) Load service document if model found
+    let service = null;
+    if (serviceModel) {
+      service = await serviceModel.findOne({ service_id: sid });
+    }
+
+    // 4) Respond with unified payload
+    return res.status(200).json({ booking, service });
   } catch (error) {
     console.error("Error fetching booking:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 export const getBookingsByCustomer = async (req, res) => {
   try {
@@ -370,5 +413,88 @@ export const getAllVendorServiceSchedules = async (req, res) => {
   } catch (error) {
     console.error("Error fetching all schedules:", error);
     return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+//to be done
+export const addBookingInvoice = async (req, res) => {
+  try {
+    const { bookingId, customerInvoiceUrl, vendorInvoiceUrl } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ error: 'bookingId is required' });
+    }
+
+    if (!customerInvoiceUrl && !vendorInvoiceUrl) {
+      return res.status(400).json({ error: 'At least one invoice URL is required' });
+    }
+
+    const update = {};
+    if (customerInvoiceUrl) update['$push'] = { 'invoices.customerInvoices': customerInvoiceUrl };
+    if (vendorInvoiceUrl) {
+      if (!update['$push']) update['$push'] = {};
+      update['$push']['invoices.vendorInvoices'] = vendorInvoiceUrl;
+    }
+
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { bookingid: bookingId },
+      update,
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ error: `Booking with id ${bookingId} not found` });
+    }
+
+    res.status(200).json({
+      message: 'Invoice URLs added successfully',
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    console.error('Error adding invoice URLs to booking:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ---------------------- UPDATE EVENT PAYMENT DETAILS ----------------------
+export const updateEventPaymentDetails = async (req, res) => {
+  try {
+    const { event_id } = req.params;
+    const { paymentDetails, payment_method_details } = req.body;
+
+    // Validate required payment details fields
+    if (!paymentDetails && !payment_method_details) {
+      return res.status(400).json({ 
+        message: "Either paymentDetails or payment_method_details is required" 
+      });
+    }
+
+    const updateFields = {};
+    if (paymentDetails) {
+      updateFields.paymentDetails = paymentDetails;
+    }
+    if (payment_method_details) {
+      updateFields.payment_method_details = payment_method_details;
+    }
+
+    const updatedEvent = await Events.findOneAndUpdate(
+      { event_id },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!updatedEvent) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.status(200).json({ 
+      message: "Event payment details updated successfully", 
+      data: updatedEvent 
+    });
+  } catch (error) {
+    console.error("Failed to update event payment details:", error);
+    res.status(500).json({ 
+      message: "Failed to update event payment details", 
+      error: error.message 
+    });
   }
 };

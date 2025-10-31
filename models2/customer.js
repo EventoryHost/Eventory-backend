@@ -48,6 +48,18 @@ const customerSchema = new mongoose.Schema({
   wishlisted_services: [{
     type: String // Array of service_id's
   }],
+  coupons_used: [{
+    type: String
+  }],
+  highest_discount_ever_applied: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  last_coupon_used_at: {
+    type: Date,
+    default: null
+  },
   customer_created_at: {
     type: Date,
     default: () => {

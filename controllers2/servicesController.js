@@ -311,3 +311,29 @@ export const getServiceByServiceId = async (req, res) => {
       .json({ error: "An error occurred: " + error.message });
   }
 };
+//to be done
+export const updateScheduleColor = async (req, res) => {
+  const { serviceId, eventId } = req.params;
+  try {
+    const resolver = modelFromServiceId(serviceId);
+    if (!resolver) {
+      return res.status(400).json({ error: "Invalid serviceId prefix" });
+    }
+    const { Model } = resolver;
+
+    const updatedService = await Model.findOneAndUpdate(
+      { id: serviceId, "schedule.id": eventId },
+      { $set: { "schedule.$.color": "green" } },
+      { new: true }
+    ).lean();
+
+    if (!updatedService) {
+      return res.status(404).json({ error: "Service or schedule event not found" });
+    }
+
+    return res.status(200).json({ message: "Schedule event color updated", data: updatedService });
+  } catch (error) {
+    console.error("Error updating schedule color:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

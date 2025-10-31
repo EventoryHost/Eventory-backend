@@ -5,7 +5,7 @@ import propRental from "../../models/props.js";
 import Photographer from "../../models2/photographerVideographer.js";
 import { Vendor } from "../../models2/vendor.js";
 import MakeupArtist from "../../models2/makeupArtist.js";
-import DjArtist from "../../models/djArtist.js";
+import DjArtist from "../../models2/djArtist.js";
 
 // A mapping object to dynamically select the model based on the category
 const vendorModels = {

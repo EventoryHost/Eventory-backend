@@ -20,10 +20,10 @@ import customerRoutes from "../routes2/customerRoutes.js";
 import contactRoutes from "../routes2/contactRoutes.js";
 import reviewRoutes from "../routes2/reviewRoutes.js";
 import chatRoutes from "../routes2/chatRoutes.js";
-import waRoutes from "../routes/waHooks.js";
+import waRoutes from "../routes2/waHooks.js";
 import emadminRoutes from "../routes2/emadminRoutes.js";
 import salesRoutes from "../routes2/salesRoutes.js";
-import Vendor from "../routes/vendorRoutes.js";
+import Vendor from "../routes2/vendorRoutes.js";
 import finalOrders from "../routes2/finalOrders.js";
 import agreementRoutes from "../routes2/agreementRoutes.js";
 import couponRoutes from "../routes2/couponRoutes.js";
@@ -32,8 +32,10 @@ import decoratorPersistenceRoutes from "../routes2/reduxRoutes/decorator.js";
 import makeupArtistPersistenceRoutes from "../routes2/reduxRoutes/makeUpArtist.js";
 import photographerPersistenceRoutes from "../routes2/reduxRoutes/photographers.js";
 import venueProviderPersistenceRoutes from "../routes2/reduxRoutes/venue-provider.js";
+import djArtistPersistenceRoutes from "../routes2/reduxRoutes/djArtist.js";
 import updatePageRoutes from "../routes2/updatePageRoutes.js";
 import vendorNotificationRoutes from "../routes2/vendorNotificationRoutes.js";
+import emNotificationRoutes from "../routes2/emNotificationRoutes.js";
 import customerNotificationRoutes from "../routes2/customerNotificationRoutes.js";
 import invoiceRoutes from "../routes2/invoiceRoutes.js";
 
@@ -61,7 +63,7 @@ router.use("/contact", contactRoutes);
 router.use("/review", reviewRoutes);
 router.use("/emadmin", emadminRoutes);
 router.use("/sales", salesRoutes);
-// router.use("/vendors", Vendor);
+router.use("/vendors", Vendor);
 router.use("/final-orders", finalOrders);
 router.use("/agreements", agreementRoutes);
 router.use("/coupons", couponRoutes);
@@ -70,14 +72,15 @@ router.use("/decorator-details", decoratorPersistenceRoutes);
 router.use("/makeup-artist-details", makeupArtistPersistenceRoutes);
 router.use("/photographer-details", photographerPersistenceRoutes);
 router.use("/venue-provider-details", venueProviderPersistenceRoutes);
+router.use("/dj-artist-details", djArtistPersistenceRoutes);
 // router.use("/business-details", businessDetailsRoutes); Not to be done
 router.use("/update-page", updatePageRoutes);
 router.use("/vendor-edit", vendorEditRoutes);
 router.use("/vendor-notifications", vendorNotificationRoutes);
+router.use("/em-notifications", emNotificationRoutes);
 router.use("/customer-notifications", customerNotificationRoutes);
 router.use("/invoices", invoiceRoutes);
-// router.use("/webhook", waRoutes); 
-
+router.use("/webhook", waRoutes); 
 
 return router;
 }

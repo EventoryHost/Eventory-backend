@@ -49,20 +49,24 @@ const eventManagerSchema = new Schema({
       message: 'Invalid contact number format'
     }
   },
-  yoe: {
+  role: {
     type: String,
-    required: true
-    // Years of Experience (default: ask when they joined eventory)
+    default: "Event Manager",
   },
-  number_of_events_exp: {
+  bio: {
     type: String,
-    required: true
-    // Default: ask count + count of eventory_events
+    maxlength: 500,
+    default: "",
   },
   doj: {
     type: Date,
     required: true
     // Date of joining eventory
+  },
+  yoe: {
+    type: Number,
+    required: true
+    // Year of experience 
   },
   eventory_events: [{
     type: String

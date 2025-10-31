@@ -7,7 +7,13 @@ import decoratorController from "../controllers2/products/decoratorController.js
 // import transportController from "../controllers/products/transportController.js";
 // import invitationController from "../controllers/products/invitationController.js";
 import makeupController from "../controllers2/products/makeupController.js";
-// import djController from "../controllers/products/djController.js";
+import {
+  createDjArtist,
+  getAllDjArtists,
+  getDjArtistById,
+  updateDjArtist,
+  deleteDjArtist,
+} from "../controllers2/products/djController.js";
 // import giftController from "../controllers/products/giftController.js";
 // import propController from "../controllers/products/propController.js";
 import photographerController from "../controllers2/products/photographerController.js";
@@ -26,7 +32,8 @@ router.get("/decorator/:id", decoratorController.getDecoratorById);
 // router.get("/invitation", invitationController.getAllInvitation);
 router.get("/makeup", makeupController.getAllMakeupArtist);
 router.get("/makeup/:id", makeupController.getMakeupArtistById);
-// router.get("/dj", djController.getAllDjArtist);
+router.get("/dj", getAllDjArtists);
+router.get("/dj/:id", getDjArtistById);
 router.get("/photographer", photographerController.getAllPav);
 router.get("/photographer/:id", photographerController.getPhotographerById);
 // router.get("/prop-rental", propController.getAllProp);
@@ -167,6 +174,18 @@ router.post(
     { name: "asset_videos", maxCount: 20 },
   ]),
   photographerController.createPhotographer,
+);
+
+router.post(
+  "/add-dj",
+  upload("DjArtists").fields([
+    { name: "terms_and_conditions", maxCount: 1 },
+    { name: "cancellation_policy", maxCount: 1 },
+    { name: "asset_images", maxCount: 20 },
+    { name: "asset_videos", maxCount: 20 },
+    { name: "performance_samples", maxCount: 20 },
+  ]),
+  createDjArtist,
 );
 
 router.get("/search/", searchProducts);

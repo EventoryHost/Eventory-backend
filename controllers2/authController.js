@@ -20,6 +20,18 @@ import { Customer } from "../models2/customer.js";
 
 // EMAIL ADDRESS LOGIC CHANGED
 
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (["dj-artist", "dj artist", "dj"].includes(s)) return "DJ-Artist";
+  return label;
+};
+
 const createVendor = async (req, res) => {
   try {
     const { email_address } = req.body;
@@ -355,17 +367,18 @@ const verifyLoginOtp = async (req, res) => {
           message: "Service name is required to complete new vendor sign up.",
         });
       }
+      const normalized = normalizeServiceName(service_name);
       user = new Vendor({
         vendor_mobile: `+91${mobile}`,
         service_types: [
           {
-            service_name: service_name,
+            service_name: normalized,
             service_status: "Incomplete",
           },
         ],
       });
       await user.save();
-    } // Generate JWT token
+    }
 
     const token = jwt.sign(
       { id: user.vendor_id, mobile: user.vendor_mobile },

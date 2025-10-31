@@ -58,13 +58,6 @@ const lastApprovalSchema = new Schema({
 
 // Payment Details Schema (embedded in Orders)
 const paymentDetailsSchema = new Schema({
-  paymentMethod: {
-    type: String,
-    enum: ["Credit Card", "Debit Card", "Net Banking", "UPI", "Cash"]
-  },
-  transactionId: {
-    type: String
-  },
   paymentStatus: {
     type: String,
     enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
@@ -252,6 +245,10 @@ const ordersSchema = new Schema({
   final_order_items: [orderCartSchema], // Array of cart items
   paymentDetails: {
     type: paymentDetailsSchema
+  },
+  specificTerms: {
+    type: [String],
+    default: []
   },
   order_created_at: {
     type: Date,

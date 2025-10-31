@@ -61,6 +61,17 @@ const updateSectionCompletion = async (venId) => {
   }
 };
 
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  return label;
+};
+
 const createVenue = async (req, res) => {
   try {
     // Check if the venue already exists for the given vendor ID
@@ -262,6 +273,7 @@ const createVenue = async (req, res) => {
 
     // Use the normalized label already determined earlier
     const serviceTypeLabel = req.body.service_type || "Venue Provider";
+    const normalizedLabel = normalizeServiceName(serviceTypeLabel);
 
     // 1) Make sure vendor.services contains the service_id once
     if (!Array.isArray(vendor.services)) vendor.services = [];
@@ -270,19 +282,18 @@ const createVenue = async (req, res) => {
     }
 
     // 2) Update existing service_types element by service_name (case-insensitive)
-    //    If absent (older records), create it once.
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
 
     const idx = vendor.service_types.findIndex(
       (st) =>
         st &&
         typeof st.service_name === "string" &&
-        st.service_name.toLowerCase() === serviceTypeLabel.toLowerCase()
+        st.service_name.toLowerCase() === normalizedLabel.toLowerCase()
     );
 
     const updatedEntry = {
-      service_name: serviceTypeLabel,
-      service_status: "Inactive", // default after creation; update later when fully verified/active
+      service_name: normalizedLabel,
+      service_status: "Inactive",
       service_id: savedVenue.service_id,
     };
 

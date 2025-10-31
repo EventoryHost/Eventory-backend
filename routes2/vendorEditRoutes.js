@@ -6,7 +6,7 @@ import Photographer from "../models2/photographerVideographer.js";
 import PropRental from "../models/props.js";
 import  VenueProvider  from "../models2/venueProvider.js";
 import MakeupArtist from "../models2/makeupArtist.js";
-import DjArtist from "../models/djArtist.js";
+import DjArtist from "../models2/djArtist.js";
 import {
   updateVendorAndService,
   updateDetails,
