@@ -101,7 +101,6 @@ const createDjArtist = async (req, res) => {
         point_of_contact: req.body.point_of_contact,
         service_contact_number: req.body.service_contact_number,
         description: req.body.description,
-        address: req.body.address,
         service_areas: Array.isArray(req.body.basic_service_areas)
           ? req.body.basic_service_areas
           : (req.body.basic_service_areas ? [req.body.basic_service_areas] : []),

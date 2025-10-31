@@ -49,10 +49,6 @@ const djArtistBasicDetailsSchema = new Schema({
     type: String,
     required: true,
   },
-  address: {
-    type: String,
-    required: true,
-  },
   service_areas: [
     {
       type: String,

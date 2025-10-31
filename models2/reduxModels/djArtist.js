@@ -12,7 +12,6 @@ const ReduxDjArtistSchema = new mongoose.Schema(
     service_areas: { type: [String] },
 
     // Basic Details (flattened from basic_details)
-    service_name: { type: String },
     point_of_contact: { type: String },
     service_contact_number: { type: String },
     description: { type: String },
