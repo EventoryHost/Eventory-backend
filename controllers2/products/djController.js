@@ -30,31 +30,21 @@ const checkCompletion = (section) => {
 const updateSectionCompletion = async (vendor_id) => {
   try {
     const doc = await DjArtist.findOne({ vendor_id });
-    if (!doc) return;
+    if (!doc) {
+      throw new Error("DJ Artist not found");
+    }
 
-    const basicDone = checkCompletion(doc.basic_details || {});
-    const serviceDone = checkCompletion(doc.service_details || {});
-    const additionalDone = checkCompletion(doc.additional_details || {});
-    const policiesDone = checkCompletion(doc.policies || {});
-    const businessDone = checkCompletion(doc.business_details || {});
-    const bankDone = checkCompletion(doc.bank_details || {});
+    doc.basic_details.is_completed = checkCompletion(doc.basic_details || {});
+    doc.service_details.is_completed = checkCompletion(doc.service_details || {});
+    doc.additional_details.is_completed = checkCompletion(doc.additional_details || {});
+    doc.policies.is_completed = checkCompletion(doc.policies || {});
+    doc.business_details.is_completed = checkCompletion(doc.business_details || {});
+    doc.bank_details.is_completed = checkCompletion(doc.bank_details || {});
 
-    await DjArtist.findOneAndUpdate(
-      { vendor_id },
-      {
-        $set: {
-          "basic_details.is_completed": basicDone,
-          "service_details.is_completed": serviceDone,
-          "additional_details.is_completed": additionalDone,
-          "policies.is_completed": policiesDone,
-          "business_details.is_completed": businessDone,
-          "bank_details.is_completed": bankDone,
-        },
-      },
-      { new: true }
-    );
+    await doc.save();
   } catch (err) {
     console.error("Error updating section completion:", err);
+    throw err;
   }
 };
 
@@ -68,13 +58,10 @@ const createDjArtist = async (req, res) => {
     const { vendor_id } = req.body;
     if (!vendor_id) return res.status(400).json({ message: "vendor_id is required" });
 
-    // Prevent duplicate creation for the same vendor + POC
-    const already = await DjArtist.findOne({
-      vendor_id,
-      "basic_details.point_of_contact": req.body.point_of_contact,
-    });
-    if (already) {
-      return res.status(400).json({ message: "DJ Artist already exists for this vendor" });
+    // Check if DJ Artist already exists for this vendor
+    const alreadyExists = await DjArtist.findOne({ vendor_id });
+    if (alreadyExists) {
+      return res.status(400).json({ message: "DJ Artist already exists" });
     }
 
     // Generate service id
@@ -139,7 +126,6 @@ const createDjArtist = async (req, res) => {
         point_of_contact: req.body.point_of_contact,
         service_contact_number: req.body.service_contact_number,
         description: req.body.description,
-        service_areas: arr(req.body.basic_service_areas).length ? arr(req.body.basic_service_areas) : arr(req.body.service_areas),
         service_location_dj_artist: {
           service_address: req.body.service_address,
           lat: req.body.service_lat,
@@ -174,6 +160,11 @@ const createDjArtist = async (req, res) => {
 
     // Compute profile completion percent similar to Venue
     const fieldsToCheck = [
+      // Meta
+      vendor_id,
+      req.body.service_type,
+      arr(req.body.service_areas).length > 0,
+
       // Business details
       req.body.business_registration_name,
       req.body.gst,
@@ -215,11 +206,6 @@ const createDjArtist = async (req, res) => {
       // Policies
       arr(req.body.terms_and_conditions).length > 0,
       arr(req.body.cancellation_policy).length > 0,
-
-      // Meta
-      vendor_id,
-      normalizedLabel,
-      service_id,
     ];
     const completedFields = fieldsToCheck.filter(Boolean).length;
     const profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;

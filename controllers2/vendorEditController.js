@@ -110,13 +110,24 @@ export const updateDetails = async (req, res) => {
       DEC: Decorator,
       PAV: Photographer,
       VEN: VenueProvider,
+      VNP: VenueProvider,
       PRO: PropRental,
       MAK: MakeupArtist,
+      MKA: MakeupArtist,
       DJA: DjArtist,
+      DJS: DjArtist,  // DJ Artist service ID prefix
     };
 
-    const prefix = service.substring(0, 3);
-    const Model = modelMap[prefix];
+    // Try 4-character prefix first, then fallback to 3-character
+    let prefix = service.substring(0, 4).toUpperCase();
+    let Model = modelMap[prefix];
+    
+    if (!Model) {
+      // Fallback to 3-character prefix
+      prefix = service.substring(0, 3).toUpperCase();
+      Model = modelMap[prefix];
+    }
+    
     if (!Model) {
       return res.status(400).json({ message: "Invalid service type" });
     }
@@ -164,55 +175,169 @@ export const updateServiceDetails = async (req, res) => {
   );
 
   try {
-    // Step 1: Find the vendor's service type
     const vendor = await Vendor.findOne({ services: serId });
     if (!vendor) {
-      return res.status(404).json({ error: "Vendor or service not found" });
+      return res.status(404).json({ error: "Vendor not found" });
     }
 
-    // Step 1.5: Handle vendor-level fields (email, mobile) if provided
+    // Vendor-level fields
     let vendorUpdated = false;
-    if (updateData.email_address !== undefined) {
-      vendor.email_address = updateData.email_address;
-      vendorUpdated = true;
-      console.log(`Updating vendor email to: ${updateData.email_address}`);
-    }
-    if (updateData.vendor_mobile !== undefined) {
+    if (updateData.vendor_mobile) {
       vendor.vendor_mobile = updateData.vendor_mobile;
       vendorUpdated = true;
-      console.log(`Updating vendor mobile to: ${updateData.vendor_mobile}`);
     }
-
-    // Save vendor updates if any vendor-level fields were modified
+    if (updateData.email_address) {
+      vendor.email_address = updateData.email_address;
+      vendorUpdated = true;
+    }
+    if (updateData.profile_picture) {
+      vendor.profile_picture = updateData.profile_picture;
+      vendorUpdated = true;
+    }
     if (vendorUpdated) {
       await vendor.save();
       console.log("Vendor-level fields updated successfully");
     }
 
     // New schema: services and service_types are parallel arrays
-    const serviceIndex = vendor.services.indexOf(serId);
-    if (serviceIndex === -1) {
-      return res
-        .status(404)
-        .json({ error: "Service not found in vendor's services" });
-    }
-
-    const serviceObj = vendor.service_types[serviceIndex];
-    console.log(serviceObj);
-
+    // IMPORTANT: Always find by service_id match, not by index, since arrays can be misaligned
+    let serviceObj = vendor.service_types?.find(
+      (st) => st?.service_id === serId
+    );
+    
+    // If not found by service_id, try index-based lookup as fallback
     if (!serviceObj) {
-      return res
-        .status(404)
-        .json({ error: "Service not found in vendor's service_types" });
+      const serviceIndex = vendor.services.indexOf(serId);
+      if (serviceIndex !== -1 && vendor.service_types?.[serviceIndex]) {
+        serviceObj = vendor.service_types[serviceIndex];
+        // Validate that service_id matches
+        if (serviceObj.service_id !== serId) {
+          console.warn(`Service ID mismatch at index ${serviceIndex}! Expected: ${serId}, Found: ${serviceObj.service_id}`);
+          // Service IDs don't match, so we'll use prefix-based detection instead
+          serviceObj = null;
+        }
+      }
     }
-
+    
+    // If still not found, detect from service ID prefix
+    if (!serviceObj) {
+      const prefix = serId.substring(0, 3).toUpperCase();
+      console.log(`Service not found in service_types, detecting from prefix: ${prefix}`);
+      
+      if (prefix === 'DJS' || prefix === 'DJA') {
+        console.log(`Detecting DJ Artist from prefix ${prefix}`);
+        // Directly update DJ Artist without relying on service_types
+        try {
+          const updatedService = await DjArtist.findOneAndUpdate(
+            { service_id: serId },
+            { $set: updateData },
+            { new: true, runValidators: false }
+          );
+          if (updatedService) {
+            await checkDjArtistProfileCompletion(serId);
+            const isVerified = checkVerification(updatedService, 'dj-artist');
+            await updatedService.updateOne({ is_active: isVerified });
+            const profileCompletion = calculateProfileCompletion(updatedService, 'dj-artist');
+            await updatedService.updateOne({ profile_completion_score: profileCompletion });
+            return res.status(200).json({ 
+              message: "Details updated successfully (prefix-based detection)", 
+              updatedService 
+            });
+          } else {
+            return res.status(404).json({ error: "DJ Artist service not found" });
+          }
+        } catch (updateError) {
+          console.error(`Error updating DJ Artist:`, updateError);
+          return res.status(500).json({ 
+            error: "Failed to update DJ Artist",
+            details: updateError.message 
+          });
+        }
+      }
+      
+      return res.status(404).json({ 
+        error: "Service not found in vendor's service_types",
+        serviceId: serId,
+        suggestion: "Service may not be linked to this vendor properly"
+      });
+    }
+    
+    // Found service object - proceed with update
+    console.log(`Found service:`, serviceObj);
     const serType = serviceObj.service_name;
-    console.log(`Serrrrrrobj is ${serviceObj}`);
-    console.log(serType, serId);
+    console.log(`Service type from DB: ${serType}, Service ID: ${serId}`);
+    
+    // Validate that service_id matches (extra safety check)
+    if (serviceObj.service_id !== serId) {
+      console.warn(`Service ID mismatch! Expected: ${serId}, Found: ${serviceObj.service_id}`);
+      // Use prefix-based detection instead
+      const prefix = serId.substring(0, 3).toUpperCase();
+      if (prefix === 'DJS' || prefix === 'DJA') {
+        console.log(`Service ID mismatch, but detecting DJ Artist from prefix ${prefix}`);
+        const updatedService = await DjArtist.findOneAndUpdate(
+          { service_id: serId },
+          { $set: updateData },
+          { new: true, runValidators: false }
+        );
+        if (updatedService) {
+          await checkDjArtistProfileCompletion(serId);
+          const isVerified = checkVerification(updatedService, 'dj-artist');
+          await updatedService.updateOne({ is_active: isVerified });
+          const profileCompletion = calculateProfileCompletion(updatedService, 'dj-artist');
+          await updatedService.updateOne({ profile_completion_score: profileCompletion });
+          return res.status(200).json({ 
+            message: "Details updated successfully (prefix-based detection due to mismatch)", 
+            updatedService 
+          });
+        }
+      }
+      return res.status(404).json({ 
+        error: "Service ID mismatch",
+        expected: serId,
+        found: serviceObj.service_id
+      });
+    }
+    
+    // Normalize service type: handle variations and extract prefix as fallback
+    let normalizedServiceType = serType?.toLowerCase().trim();
+    
+    // If service_type is not found or unclear, detect from service_id prefix as fallback
+    if (!normalizedServiceType || normalizedServiceType === "unknown") {
+      const prefix = serId.substring(0, 3).toUpperCase();
+      const prefixMap = {
+        'CAT': 'caterer',
+        'DEC': 'decorator',
+        'PAV': 'photographer-videographer',
+        'VNP': 'venue-provider',
+        'VEN': 'venue-provider',
+        'MKA': 'makeup-artist',
+        'MAK': 'makeup-artist',
+        'DJS': 'dj-artist',
+        'DJA': 'dj-artist',
+      };
+      normalizedServiceType = prefixMap[prefix] || normalizedServiceType;
+      console.log(`Service type detected from prefix ${prefix}: ${normalizedServiceType}`);
+    }
+    
+    // Handle DJ-Artist variations (with hyphen, space, capitals, etc.)
+    // Normalize all DJ variations to 'dj-artist' for consistent matching
+    if (normalizedServiceType && (
+      normalizedServiceType === 'dj-artist' ||
+      normalizedServiceType === 'dj artist' ||
+      normalizedServiceType === 'djartist' ||
+      normalizedServiceType === 'dj' ||
+      (normalizedServiceType.includes('dj') && normalizedServiceType.includes('artist'))
+    )) {
+      // Normalize all DJ variations to 'dj-artist'
+      normalizedServiceType = 'dj-artist';
+      console.log(`DJ Artist detected, normalized to: ${normalizedServiceType}`);
+    }
+    
+    console.log(`Normalized service type: ${normalizedServiceType}`);
     let updatedService;
 
     // Step 2: Update the respective service based on service type
-    switch (serType.toLowerCase()) {
+    switch (normalizedServiceType) {
       case "caterer":
         updatedService = await Caterer.findOneAndUpdate(
           { service_id: serId },
@@ -263,22 +388,59 @@ export const updateServiceDetails = async (req, res) => {
         );
         await checkMakeupArtistProfileCompletion(serId);
         break;
+      case "dj-artist":
+      case "djartist":
       case "djArtist":
-        updatedService = await DjArtist.findOneAndUpdate(
-          { service_id: serId },
-          { $set: updateData },
-          { new: true }
-        );
-        await checkDjArtistProfileCompletion(serId);
+      case "dj":
+      case "dj artist": // Handle space-separated variation
+        console.log(`Updating DJ Artist with service_id: ${serId}`);
+        console.log(`Update data received: ${JSON.stringify(updateData, null, 2)}`);
+        try {
+          updatedService = await DjArtist.findOneAndUpdate(
+            { service_id: serId },
+            { $set: updateData },
+            { new: true, runValidators: false }
+          );
+          if (!updatedService) {
+            console.error(`DJ Artist not found with service_id: ${serId}`);
+            return res.status(404).json({ error: "DJ Artist service not found" });
+          }
+          console.log(`DJ Artist updated successfully. Updated service:`, updatedService);
+          await checkDjArtistProfileCompletion(serId);
+        } catch (updateError) {
+          console.error(`Error updating DJ Artist:`, updateError);
+          return res.status(500).json({ 
+            error: "Failed to update DJ Artist",
+            details: updateError.message 
+          });
+        }
         break;
       default:
         console.log("ERROR: Fell through to default case!");
         console.log("Service type received:", serType);
-        console.log("Service type lowercase:", serType.toLowerCase());
+        console.log("Service type lowercase:", serType?.toLowerCase());
+        console.log("Normalized service type:", normalizedServiceType);
+        // Fallback: try to detect from service ID prefix
+        const fallbackPrefix = serId.substring(0, 3).toUpperCase();
+        if (fallbackPrefix === 'DJS' || fallbackPrefix === 'DJA') {
+          console.log(`Fallback: Detected DJ Artist from prefix ${fallbackPrefix}`);
+          updatedService = await DjArtist.findOneAndUpdate(
+            { service_id: serId },
+            { $set: updateData },
+            { new: true }
+          );
+          if (updatedService) {
+            await checkDjArtistProfileCompletion(serId);
+            console.log(`DJ Artist updated successfully via fallback`);
+            break;
+          }
+        }
         return res.status(400).json({
           error: "Unsupported service type",
           received: serType,
-          receivedLowercase: serType.toLowerCase(),
+          receivedLowercase: serType?.toLowerCase(),
+          normalized: normalizedServiceType,
+          serviceId: serId,
         });
     }
 
@@ -286,14 +448,16 @@ export const updateServiceDetails = async (req, res) => {
       return res.status(404).json({ error: "Service not found for update" });
     }
 
-    const isVerified = checkVerification(updatedService, serType);
-    console.log(`Verification status for ${serType}: ${isVerified}`);
+    // Use normalized service type for verification and completion calculation
+    const serviceTypeForChecks = normalizedServiceType || serType?.toLowerCase() || 'dj-artist';
+    const isVerified = checkVerification(updatedService, serviceTypeForChecks);
+    console.log(`Verification status for ${serviceTypeForChecks}: ${isVerified}`);
     await updatedService.updateOne({ is_active: isVerified });
 
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
       updatedService,
-      serType
+      serviceTypeForChecks
     );
 
     await updatedService.updateOne({
@@ -357,22 +521,40 @@ export const serviceFields = {
     "policies.terms_and_conditions",
   ],
   djArtist: [
-    "basicDetails.name",
-    "basicDetails.contact",
-    "basicDetails.description",
-    "serviceDetails.eventTypes",
-    "serviceDetails.musicGenres",
-    "serviceDetails.regionalSpecializations",
-    "serviceDetails.servicesOffered",
-    "additionalDetails.photos",
-    "additionalDetails.videos",
-    "additionalDetails.awards",
-    "additionalDetails.instagramUrl",
-    "additionalDetails.websiteUrl",
-    "additionalDetails.testimonials",
-    "additionalDetails.priceStarts",
-    "policies.termsAndConditions",
-    "policies.cancellationPolicy",
+    "basic_details.point_of_contact",
+    "basic_details.service_contact_number",
+    "basic_details.description",
+    "basic_details.service_areas",
+    "basic_details.service_location_dj_artist.service_address",
+    "service_details.event_types_dj",
+    "service_details.music_genres",
+    "service_details.regional_specializations",
+    "service_details.services_offered",
+    "additional_details.asset_images",
+    "additional_details.asset_videos",
+    "additional_details.ig_socials_link",
+    "additional_details.web_social_link",
+    "additional_details.prices_starts_from",
+    "policies.terms_and_conditions",
+    "policies.cancellation_policy",
+  ],
+  "dj-artist": [
+    "basic_details.point_of_contact",
+    "basic_details.service_contact_number",
+    "basic_details.description",
+    "basic_details.service_areas",
+    "basic_details.service_location_dj_artist.service_address",
+    "service_details.event_types_dj",
+    "service_details.music_genres",
+    "service_details.regional_specializations",
+    "service_details.services_offered",
+    "additional_details.asset_images",
+    "additional_details.asset_videos",
+    "additional_details.ig_socials_link",
+    "additional_details.web_social_link",
+    "additional_details.prices_starts_from",
+    "policies.terms_and_conditions",
+    "policies.cancellation_policy",
   ],
   makeupArtist: [
     // "business_details.business_name",
@@ -451,6 +633,9 @@ export const serviceFields = {
 // Add aliases for service types
 serviceFields["photographer-videographer"] = serviceFields.pav;
 serviceFields["photographer videographer"] = serviceFields.pav;
+serviceFields["dj-artist"] = serviceFields.djArtist;
+serviceFields["djartist"] = serviceFields.djArtist;
+serviceFields["dj"] = serviceFields.djArtist;
 
 export const calculateProfileCompletion = (serviceData, serviceType) => {
   console.log(`Calculating profile completion for ${serviceType} service...`);
@@ -808,6 +993,60 @@ const checkVerification = (service, serType) => {
         {
           path: "additional_details.web_social_link",
           label: "Website Socials",
+        },
+
+        // policies fields
+        { path: "policies.cancellation_policy", label: "Cancellation Policy" },
+        { path: "policies.terms_and_conditions", label: "Terms & Conditions" },
+      ];
+      break;
+    case "dj-artist":
+    case "djartist":
+    case "djArtist":
+    case "dj":
+      fieldsToCheck = [
+        // basic_details fields
+        {
+          path: "basic_details.point_of_contact",
+          label: "Point of Contact",
+        },
+        {
+          path: "basic_details.service_contact_number",
+          label: "Service Contact Number",
+        },
+        { path: "basic_details.description", label: "Description" },
+        { path: "basic_details.service_areas", label: "Service Areas" },
+        {
+          path: "basic_details.service_location_dj_artist.service_address",
+          label: "Service Address",
+        },
+
+        // service_details fields
+        {
+          path: "service_details.event_types_dj",
+          label: "Event Types",
+        },
+        {
+          path: "service_details.regional_specializations",
+          label: "Regional Specializations",
+        },
+        {
+          path: "service_details.services_offered",
+          label: "Services Offered",
+        },
+
+        // additional_details fields
+        {
+          path: "additional_details.asset_images",
+          label: "Photos",
+        },
+        {
+          path: "additional_details.asset_videos",
+          label: "Videos",
+        },
+        {
+          path: "additional_details.prices_starts_from",
+          label: "Price Starting From",
         },
 
         // policies fields
