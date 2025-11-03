@@ -15,8 +15,6 @@ const ReduxPhotographerVideographerSchema = new mongoose.Schema(
     point_of_contact: { type: String },
     service_contact_number: { type: String },
     description: { type: String },
-    min_booking_capacity: { type: Number },
-    max_booking_capacity: { type: Number },
     event_types_captured: { type: [String] },
     send_proposals_to_clients: { type: Boolean },
     do_initial_customer_consultation: { type: Boolean },

@@ -194,15 +194,15 @@ router.get("/search/", searchProducts);
 // router.get("/:service_id/:vendor_id", vendorController.getVendorByIdAndCategory);
 
 // // Add Bank Details route
-// router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
-// /**
-//  * @swagger
-//  * /vendor/{vendorId}/bank-details:
-//  *   get:
-//  *     summary: Get vendor's bank details
-//  *     tags: [Vendors]
-//  */
-// router.get("/vendor/:vendor_id/bank-details", vendorController.getBankDetails);
+router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+/**
+ * @swagger
+ * /vendor/{vendorId}/bank-details:
+ *   get:
+ *     summary: Get vendor's bank details
+ *     tags: [Vendors]
+ */
+router.get("/vendor/:vendor_id/bank-details", vendorController.getBankDetails);
 
 // /**
 //  * @swagger

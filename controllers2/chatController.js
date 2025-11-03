@@ -37,6 +37,7 @@ export const handleSocketConnection = (socket, io) => {
       {
         chat_id,
         sender,
+        sender_id,
         message_content,
         message_type,
         attachment_url,
@@ -49,7 +50,7 @@ export const handleSocketConnection = (socket, io) => {
     ) => {
       try {
         // Validate inputs
-        if (!chat_id || !sender || !message_content) {
+        if (!chat_id || !sender || !message_content || !sender_id) {
           if (typeof callback === "function")
             callback("Missing required fields.");
           else socket.emit("error", "Missing required fields.");
@@ -133,6 +134,7 @@ export const handleSocketConnection = (socket, io) => {
         const message = new Message2({
           chat_id,
           sender,
+          sender_id,
           message_content,
           message_type: final_message_type,
           attachment_url: attachment_url || null,
@@ -146,6 +148,7 @@ export const handleSocketConnection = (socket, io) => {
           _id: savedMessage._id,
           chat_id: savedMessage.chat_id,
           sender: savedMessage.sender,
+          sender_id: savedMessage.sender_id,
           message_content: savedMessage.message_content,
           message_type: savedMessage.message_type,
           attachment_url: savedMessage.attachment_url,

@@ -12,27 +12,26 @@ import VenueProvider from "../models2/venueProvider.js";
 export const getService = async (req, res) => {
   const vendor_type = req.params.vendor_type;
   const vendor_id = req.params.vendor_id;
-  console.log("normalized to", vendor_type, "and id", vendor_id);
   try {
     let vendorData;
     switch (vendor_type) {
       case "caterer":
-        vendorData = await Caterer.findOne({service_id: vendor_id });
+        vendorData = await Caterer.findOne({vendor_id: vendor_id });
         break;
       case "decorator":
-        vendorData = await Decorator.findOne({service_id: vendor_id });
+        vendorData = await Decorator.findOne({vendor_id: vendor_id });
         break;
       case "venue_provider":
-        vendorData = await VenueProvider.findOne({service_id: vendor_id });
+        vendorData = await VenueProvider.findOne({vendor_id: vendor_id });
         break;
       case "prop_rental":
-        vendorData = await PropRental.findOne({service_id: vendor_id });
+        vendorData = await PropRental.findOne({vendor_id: vendor_id });
         break;
       case "photographer_videographer":
-        vendorData = await PhotographerVideographer.findOne({service_id: vendor_id });
+        vendorData = await PhotographerVideographer.findOne({vendor_id: vendor_id });
         break;
       case "makeupartist":
-        vendorData = await MakeupArtist.findOne({ service_id: vendor_id });
+        vendorData = await MakeupArtist.findOne({ vendor_id: vendor_id });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
