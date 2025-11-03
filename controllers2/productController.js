@@ -973,7 +973,8 @@ const searchAllVendors = async (query) => {
           case "decorator": eventField = "basic_details.event_types_decorated"; break;
           case "photographer": eventField = "basic_details.event_types_captured"; break;
           case "makeup_artist": eventField = "basic_details.event_types_makeup"; break;
-          case "venue_provider": eventField = "basic_details.event_types_venue"; break; // do NOT filter venues by event type
+          case "venue_provider": eventField = "basic_details.event_types_venue"; break;
+          case "dj_artist": eventField = "basic_details.event_types_dj"; break;
         }
         if (eventField) {
           pipeline.push({ $match: { [eventField]: { $in: query.event_types } } });
@@ -1021,18 +1022,20 @@ const searchAllVendors = async (query) => {
     const decoratorPipeline = aggregatePipeline("decorator");
     const photographerPipeline = aggregatePipeline("photographer");
     const makeupArtistPipeline = aggregatePipeline("makeup_artist");
+    const djArtistPipeline = aggregatePipeline("dj_artist");
 
     // Execute all pipelines and combine
-    const [venues, caterers, decorators, photographers, makeupArtists] = await Promise.all([
+    const [venues, caterers, decorators, photographers, makeupArtists, djArtists] = await Promise.all([
       VenueProvider.aggregate(venuePipeline),
       Caterer.aggregate(catererPipeline),
       Decorator.aggregate(decoratorPipeline),
       Photographer.aggregate(photographerPipeline),
-      MakeupArtist.aggregate(makeupArtistPipeline)
+      MakeupArtist.aggregate(makeupArtistPipeline),
+      DjArtist.aggregate(djArtistPipeline)
     ]);
 
     // Manually merge results and handle final sorting and pagination
-    let combinedResults = [...venues, ...caterers, ...decorators, ...photographers, ...makeupArtists];
+    let combinedResults = [...venues, ...caterers, ...decorators, ...photographers, ...makeupArtists, ...djArtists];
 
     // Apply sorting
     if (sortStage["additional_details.prices_starts_from"]) {
