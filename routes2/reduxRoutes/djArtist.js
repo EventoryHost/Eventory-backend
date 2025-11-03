@@ -19,10 +19,21 @@ router.post("/", async (req, res) => {
     }
 
     try {
+        // Filter out service_id and id if they are null/undefined to avoid unique index conflicts
+        const { service_id, id, ...restData } = djArtistData || {};
         const dataToSave = { 
             vendor_id, 
-            ...djArtistData 
+            ...restData 
         };
+
+        // Only include service_id if it's explicitly provided and not null/undefined
+        if (service_id !== null && service_id !== undefined) {
+            dataToSave.service_id = service_id;
+        }
+        // Only include id if it's explicitly provided and not null/undefined
+        if (id !== null && id !== undefined) {
+            dataToSave.id = id;
+        }
 
         const updatedDetails = await DjArtistReduxModel.findOneAndUpdate(
           { vendor_id },
