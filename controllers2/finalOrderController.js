@@ -91,6 +91,7 @@ export const approveFinalOrder = async (req, res) => {
 
     // ✅ CASE 1: Both parties approved
     if (order.customer_approval === true && order.vendor_approval === true) {
+      console.log("CASE 1 triggered for order:", order.order_id);
       const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
       const checkout_url =
         order.checkout_url ||
@@ -141,6 +142,7 @@ export const approveFinalOrder = async (req, res) => {
 
     // ❌ Case: Rejected by any party
     if (order.customer_approval === false || order.vendor_approval === false) {
+      console.log("CASE 2 triggered for order:", order.order_id);
       const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`;
 
       await vendorNotification.create({
@@ -182,6 +184,7 @@ export const approveFinalOrder = async (req, res) => {
 
     // 🟡 CASE 3: Only one party approved
     const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
+    console.log("CASE 3 triggered for order:", order.order_id);
     const checkout_url =
       order.checkout_url ||
       `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendor_id}&user_id=${order.customer_id}&orderId=${order.order_id}`;

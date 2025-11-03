@@ -73,10 +73,30 @@ const createDjArtist = async (req, res) => {
     const agreementSignedAt = temp?.agreement_signed_at || null;
 
     // Files or body URLs
-    const assetImages =
-      req.files ? getFileUrls(req.files, "asset_images") : Array.isArray(req.body.asset_images) ? req.body.asset_images : (req.body.asset_images ? [req.body.asset_images] : []);
-    const assetVideos =
-      req.files ? getFileUrls(req.files, "asset_videos") : Array.isArray(req.body.asset_videos) ? req.body.asset_videos : (req.body.asset_videos ? [req.body.asset_videos] : []);
+    // Normalize images/videos from multiple possible payload shapes (files or urls)
+    const coerceToArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    const pickFirstNonEmpty = (...candidates) => {
+      for (const c of candidates) {
+        const arr = coerceToArray(c).filter(Boolean);
+        if (arr.length > 0) return arr;
+      }
+      return [];
+    };
+
+    const assetImages = pickFirstNonEmpty(
+      req.files ? getFileUrls(req.files, "asset_images") : [],
+      req.body.asset_images,
+      req.body["asset_images[]"],
+      req.body.photos,
+      req.body["photos[]"],
+    );
+    const assetVideos = pickFirstNonEmpty(
+      req.files ? getFileUrls(req.files, "asset_videos") : [],
+      req.body.asset_videos,
+      req.body["asset_videos[]"],
+      req.body.videos,
+      req.body["videos[]"],
+    );
 
     // Normalize arrays
     const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
@@ -143,8 +163,12 @@ const createDjArtist = async (req, res) => {
       },
 
       additional_details: {
-        asset_images: assetImages,
-        asset_videos: assetVideos,
+        asset_images: assetImages.length > 0
+          ? assetImages
+          : (Array.isArray(req.body.photos) ? req.body.photos : (req.body.photos ? [req.body.photos] : [])),
+        asset_videos: assetVideos.length > 0
+          ? assetVideos
+          : (Array.isArray(req.body.videos) ? req.body.videos : (req.body.videos ? [req.body.videos] : [])),
         ig_socials_link: req.body.ig_socials_link || "",
         web_social_link: req.body.web_social_link || "",
         prices_starts_from: Number(req.body.prices_starts_from ?? 0),
@@ -312,20 +336,45 @@ const getDjArtistById = async (req, res) => {
 const updateDjArtist = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-    // Handle file uploads
+    const updateData = req.body || {};
+    // Handle file uploads (store under additional_details.* like other flows)
     if (req.files) {
       if (req.files.asset_images) {
-        updateData.asset_images = getFileUrls(req.files, 'asset_images');
+        updateData["additional_details.asset_images"] = getFileUrls(req.files, 'asset_images');
       }
       if (req.files.asset_videos) {
-        updateData.asset_videos = getFileUrls(req.files, 'asset_videos');
+        updateData["additional_details.asset_videos"] = getFileUrls(req.files, 'asset_videos');
       }
-      if (req.files.performance_samples) {
-        updateData.performance_samples = getFileUrls(req.files, 'performance_samples');
-      }
+      // performance_samples is optional and not defined in schema; only set if needed later
+      // if (req.files.performance_samples) {
+      //   updateData["additional_details.performance_samples"] = getFileUrls(req.files, 'performance_samples');
+      // }
     }
-    const updated = await DjArtist.findOneAndUpdate({ service_id: id }, { $set: updateData }, { new: true });
+
+    // Normalize common client payload shapes to additional_details.*
+    // Support either nested additional_details or flat photos/videos keys
+    if (updateData.additional_details && Array.isArray(updateData.additional_details.photos)) {
+      updateData["additional_details.asset_images"] = updateData.additional_details.photos;
+      delete updateData.additional_details.photos;
+    }
+    if (updateData.additional_details && Array.isArray(updateData.additional_details.videos)) {
+      updateData["additional_details.asset_videos"] = updateData.additional_details.videos;
+      delete updateData.additional_details.videos;
+    }
+    if (Array.isArray(updateData.photos)) {
+      updateData["additional_details.asset_images"] = updateData.photos;
+      delete updateData.photos;
+    }
+    if (Array.isArray(updateData.videos)) {
+      updateData["additional_details.asset_videos"] = updateData.videos;
+      delete updateData.videos;
+    }
+
+    const updated = await DjArtist.findOneAndUpdate(
+      { service_id: id },
+      { $set: updateData },
+      { new: true }
+    );
     if (!updated) return res.status(404).json({ message: "DJ Artist not found" });
     await updateSectionCompletion(updated.vendor_id);
     res.json(updated);

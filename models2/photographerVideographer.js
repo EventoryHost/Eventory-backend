@@ -49,16 +49,6 @@ const pavBasicDetailsSchema = new Schema({
     type: String,
     required: true
   },
-  min_booking_capacity: {
-    type: Number,
-    required: true, // Changed to required to match ERD
-    min: 0
-  },
-  max_booking_capacity: {
-    type: Number,
-    required: true, // Changed to required to match ERD
-    min: 0
-  },
   event_types_captured: [{
     type: String,
     required: true

@@ -13,7 +13,6 @@ import VenueProvider from "../models2/venueProvider.js";
 export const getService = async (req, res) => {
   const vendor_type = req.params.vendor_type;
   const vendor_id = req.params.vendor_id;
-  console.log("normalized to", vendor_type, "and id", vendor_id);
   try {
     let vendorData;
     switch (vendor_type) {
