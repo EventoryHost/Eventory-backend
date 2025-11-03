@@ -324,16 +324,21 @@ export const getAllVenues = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
-
     const skip = (page - 1) * itemsPerPage;
 
-    const venues =
-      page == -1
-        ? await VenueProvider.find()
-        : await VenueProvider.find().skip(skip).limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totalvenues = await VenueProvider.countDocuments();
-    console.log("data is ", venues);
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [venues, totalvenues] = await Promise.all([
+      page == -1 ? VenueProvider.find(filter) : VenueProvider.find(filter).skip(skip).limit(itemsPerPage),
+      VenueProvider.countDocuments(filter),
+    ]);
+
     res.status(200).json({
       data: venues,
       currentPage: page,
@@ -344,6 +349,7 @@ export const getAllVenues = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 
 export const getVenueImages = async (req, res) => {
   try {

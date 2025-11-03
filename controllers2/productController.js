@@ -6,6 +6,7 @@ import Photographer from "../models2/photographerVideographer.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import MakeupArtist from "../models2/makeupArtist.js";
 import { pincodeMap } from "../constants/pincodes_map.js";
+import DjArtist from "../models2/djArtist.js";
 
 const getPincodesList = async (cityName) => {
   try {
@@ -1064,6 +1065,122 @@ const searchAllVendors = async (query) => {
     throw new Error("Error fetching all vendors");
   }
 };
+
+const searchDJArtists = async (query) => {
+  const matchStage = {};
+
+  // Price
+  if (query.min_price || query.max_price) {
+    matchStage["additional_details.prices_starts_from"] = {};
+    if (query.min_price) matchStage["additional_details.prices_starts_from"].$gte = parseInt(query.min_price, 10);
+    if (query.max_price) matchStage["additional_details.prices_starts_from"].$lte = parseInt(query.max_price, 10);
+  }
+
+  // Event type filter
+  if (query.type_of_event) {
+    const list = String(query.type_of_event).split(",").map(s => s.trim()).filter(Boolean);
+    if (list.length) matchStage["service_details.event_types_dj"] = { $in: list };
+  }
+
+  // Music genres filter
+  if (query.genres_of_music) {
+    const list = String(query.genres_of_music).split(",").map(s => s.trim()).filter(Boolean);
+    if (list.length) matchStage["service_details.music_genres"] = { $in: list };
+  }
+
+  // Services offered filter
+  if (query.types_of_services) {
+    const list = String(query.types_of_services).split(",").map(s => s.trim()).filter(Boolean);
+    if (list.length) matchStage["service_details.services_offered"] = { $in: list };
+  }
+
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 9;
+  const skip = (page - 1) * limit;
+
+  const pipeline = [{ $match: matchStage }];
+
+  // Location relevance
+  if (query.location) {
+    pipeline.push(
+      {
+        $addFields: {
+          isMatch: {
+            $cond: {
+              if: { $in: [query.location, { $ifNull: ["$service_areas", []] }] },
+              then: 1,
+              else: 0,
+            },
+          },
+        },
+      },
+      { $sort: { isMatch: -1 } }
+    );
+  }
+
+  // Reviews lookup + average
+  pipeline.push(
+    {
+      $lookup: {
+        from: "reviews",
+        localField: "service_id",
+        foreignField: "service_id",
+        as: "reviews",
+      },
+    },
+    {
+      $addFields: {
+        average_rating: { $avg: "$reviews.rating" },
+      },
+    }
+  );
+
+  // Rating filter
+  if (query.rating != null && query.rating !== "") {
+    const r = parseInt(query.rating, 10);
+    if (!Number.isNaN(r)) {
+      if (r === 0) {
+        pipeline.push({ $match: { $or: [{ average_rating: { $lt: 1 } }, { average_rating: null }] } });
+      } else {
+        pipeline.push({ $match: { average_rating: { $gte: r } } });
+      }
+    }
+  }
+
+  // Sorting (legacy)
+  // Expect sort in { lth|htl|rating|whats_new }
+  const sortKey = String(query.sort || "whats_new").toLowerCase();
+  if (sortKey === "lth") pipeline.push({ $sort: { "additional_details.prices_starts_from": 1 } });
+  else if (sortKey === "htl") pipeline.push({ $sort: { "additional_details.prices_starts_from": -1 } });
+  else if (sortKey === "rating") pipeline.push({ $sort: { average_rating: -1 } });
+  else pipeline.push({ $sort: { dj_artist_created_at: -1 } }); // default newest
+
+  // Pagination with metadata
+  pipeline.push(
+    {
+      $facet: {
+        metadata: [
+          { $count: "total" },
+          { $addFields: { page, totalPages: { $ceil: { $divide: ["$total", limit] } } } },
+        ],
+        data: [{ $skip: skip }, { $limit: limit }],
+      },
+    },
+    { $unwind: "$metadata" },
+    {
+      $project: {
+        data: 1,
+        totalResults: "$metadata.total",
+        totalPages: "$metadata.totalPages",
+        currentPage: "$metadata.page",
+      },
+    }
+  );
+
+  const result = await DjArtist.aggregate(pipeline);
+  return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
+};
+
 export const searchProducts = async (req, res, next) => {
   console.log("--- Starting searchProducts function ---");
   console.log("Received query parameters:", req.query);
@@ -1116,6 +1233,11 @@ export const searchProducts = async (req, res, next) => {
         console.log("Calling searchMakeupArtists.");
         results = await searchMakeupArtists(queryParams);
         break;
+      case "djartists":
+        console.log("Calling searchDJArtists.");
+        results = await searchDJArtists(queryParams);
+        break;
+
       default:
         console.error("Validation failed: Invalid product type.");
         return res.status(400).json({ message: "Invalid Product type." });

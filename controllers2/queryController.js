@@ -115,7 +115,6 @@ export const createreachoutQuery = async (req, res) => {
       sender_name: fullName,
       sender_contact_number: mobileno,
       sender_email: email || undefined,
-      sender_services: normalizeServices(services), // optional, if your form adds it later
       sender_city: city || undefined,
       business_query: message,
     });

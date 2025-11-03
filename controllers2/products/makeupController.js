@@ -387,12 +387,18 @@ const getAllMakeupArtist = async (req, res) => {
     const itemsPerPage = 9;
     const skip = (page - 1) * itemsPerPage;
 
-    const makeupArtists =
-      page == -1
-        ? await MakeupArtist.find()
-        : await MakeupArtist.find().skip(skip).limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totalMakeupArtists = await MakeupArtist.countDocuments();
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [makeupArtists, totalMakeupArtists] = await Promise.all([
+      page == -1 ? MakeupArtist.find(filter) : MakeupArtist.find(filter).skip(skip).limit(itemsPerPage),
+      MakeupArtist.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       data: makeupArtists,
@@ -404,6 +410,7 @@ const getAllMakeupArtist = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 
 const getMakeupArtistById = async (req, res) => {
   try {

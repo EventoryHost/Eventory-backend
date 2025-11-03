@@ -326,12 +326,21 @@ const getAllCaterers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
-
     const skip = (page - 1) * itemsPerPage;
 
-    const caterers = await Caterer.find().skip(skip).limit(itemsPerPage);
+    // inline exclude support
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totalCaterers = await Caterer.countDocuments();
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [caterers, totalCaterers] = await Promise.all([
+      Caterer.find(filter).skip(skip).limit(itemsPerPage),
+      Caterer.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       data: caterers,
@@ -343,6 +352,7 @@ const getAllCaterers = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 
 const getCatererById = async (req, res) => {
   try {

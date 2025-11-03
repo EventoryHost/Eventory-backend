@@ -307,7 +307,7 @@ export const getBookingById = async (req, res) => {
      } else if (sid.startsWith("MKA")) {
        const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
        serviceModel = MakeupArtist;
-     } else if (sid.startsWith("DJ")) {
+     } else if (sid.startsWith("DJS")) {
        const { default: DjArtist } = await import("../models2/djArtist.js");
        serviceModel = DjArtist;
      } else if (sid.startsWith("PRO")) {

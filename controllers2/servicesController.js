@@ -1,6 +1,7 @@
 
 import Caterer from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
+import DjArtist from "../models2/djArtist.js";
 import MakeupArtist from "../models2/makeupArtist.js";
 import PhotographerVideographer from "../models2/photographerVideographer.js";
 import Reviews from "../models2/reviews.js";
@@ -17,23 +18,27 @@ export const getService = async (req, res) => {
     let vendorData;
     switch (vendor_type) {
       case "caterer":
-        vendorData = await Caterer.findOne({service_id: vendor_id });
+        vendorData = await Caterer.findOne({ service_id: vendor_id });
         break;
       case "decorator":
-        vendorData = await Decorator.findOne({service_id: vendor_id });
+        vendorData = await Decorator.findOne({ service_id: vendor_id });
         break;
       case "venue_provider":
-        vendorData = await VenueProvider.findOne({service_id: vendor_id });
+        vendorData = await VenueProvider.findOne({ service_id: vendor_id });
         break;
       case "prop_rental":
-        vendorData = await PropRental.findOne({service_id: vendor_id });
+        vendorData = await PropRental.findOne({ service_id: vendor_id });
         break;
       case "photographer_videographer":
-        vendorData = await PhotographerVideographer.findOne({service_id: vendor_id });
+        vendorData = await PhotographerVideographer.findOne({ service_id: vendor_id });
         break;
       case "makeupartist":
         vendorData = await MakeupArtist.findOne({ service_id: vendor_id });
         break;
+      case "dj_artist":
+        vendorData = await DjArtist.findOne({ service_id: vendor_id });
+        break;
+
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
     }
@@ -192,7 +197,6 @@ export const handleSearch = async (req, res) => {
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(escaped, "i");
 
-    // schemas use business_details.business_registration_name
     const project = {
       "business_details.business_registration_name": 1,
       service_type: 1,
@@ -203,56 +207,48 @@ export const handleSearch = async (req, res) => {
 
     const limitPerType = 8;
 
-    const [venues, caterers, decorators, pavs, makeup] = await Promise.all([
+    const [venues, caterers, decorators, pavs, makeup, djs] = await Promise.all([
       VenueProvider.find({
         $or: [
           { "basic_details.point_of_contact": regex },
           { "business_details.business_registration_name": regex },
         ],
-      })
-        .select(project)
-        .limit(limitPerType)
-        .lean(),
+      }).select(project).limit(limitPerType).lean(),
 
       Caterer.find({
         $or: [
           { "basic_details.point_of_contact": regex },
           { "business_details.business_registration_name": regex },
         ],
-      })
-        .select(project)
-        .limit(limitPerType)
-        .lean(),
+      }).select(project).limit(limitPerType).lean(),
 
       Decorator.find({
         $or: [
           { "basic_details.point_of_contact": regex },
           { "business_details.business_registration_name": regex },
         ],
-      })
-        .select(project)
-        .limit(limitPerType)
-        .lean(),
+      }).select(project).limit(limitPerType).lean(),
 
       PhotographerVideographer.find({
         $or: [
           { "basic_details.point_of_contact": regex },
           { "business_details.business_registration_name": regex },
         ],
-      })
-        .select(project)
-        .limit(limitPerType)
-        .lean(),
+      }).select(project).limit(limitPerType).lean(),
 
       MakeupArtist.find({
         $or: [
           { "basic_details.point_of_contact": regex },
           { "business_details.business_registration_name": regex },
         ],
-      })
-        .select(project)
-        .limit(limitPerType)
-        .lean(),
+      }).select(project).limit(limitPerType).lean(),
+
+      DjArtist.find({                                         // NEW
+        $or: [
+          { "basic_details.point_of_contact": regex },
+          { "business_details.business_registration_name": regex },
+        ],
+      }).select(project).limit(limitPerType).lean(),
     ]);
 
     const results = [
@@ -261,6 +257,7 @@ export const handleSearch = async (req, res) => {
       { service_type: "decorator", services: decorators },
       { service_type: "photographer_videographer", services: pavs },
       { service_type: "makeup_artist", services: makeup },
+      { service_type: "dj_artist", services: djs },                 // NEW
     ].filter((g) => (g.services || []).length > 0);
 
     return res.status(200).json({ results });
@@ -283,7 +280,7 @@ export const getServiceByServiceId = async (req, res) => {
         serviceData = await Caterer.findOne({ service_id });
         break;
       case "decorator":
-        serviceData = await Decorator.findOne({ service_id});
+        serviceData = await Decorator.findOne({ service_id });
         break;
       case "venue_provider":
         serviceData = await VenueProvider.findOne({ service_id });

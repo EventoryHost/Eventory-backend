@@ -266,15 +266,25 @@ const createDjArtist = async (req, res) => {
 };
 
 // List with pagination
+// controller
 const getAllDjArtists = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 9));
     const skip = (page - 1) * limit;
 
+    // accept exclude_id or exclude (array or CSV)
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
+
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
     const [data, total] = await Promise.all([
-      DjArtist.find().skip(skip).limit(limit),
-      DjArtist.countDocuments(),
+      DjArtist.find(filter).skip(skip).limit(limit),
+      DjArtist.countDocuments(filter),
     ]);
 
     res.json({
@@ -287,6 +297,8 @@ const getAllDjArtists = async (req, res) => {
     res.status(500).json({ message: e.message });
   }
 };
+
+
 const getDjArtistById = async (req, res) => {
   try {
     const { id } = req.params;
