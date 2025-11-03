@@ -8,102 +8,124 @@ import { DjArtistReduxModel } from "../../models2/reduxModels/djArtist.js";
 const getFileUrls = (files, fieldName) => {
   const fileArray = files?.[fieldName];
   if (!fileArray) return [];
-  return Array.isArray(fileArray) ? fileArray.map(f => f.location) : [fileArray.location];
+  return Array.isArray(fileArray) ? fileArray.map((f) => f.location) : [fileArray.location];
 };
 
-const isTruthy = (v) => v !== null && v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0) && !(typeof v === "object" && Object.keys(v || {}).length === 0);
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["dj-artist", "dj artist", "djartist"].includes(s)) return "DJ-Artist";
+  return label;
+};
 
 const checkCompletion = (section) => {
-  if (!section) return false;
-  // consider nested objects/arrays non-empty too
-  return Object.values(section).some(isTruthy);
+  if (!section || typeof section !== "object") return false;
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== undefined && value !== null && value !== "";
+  });
 };
 
 const updateSectionCompletion = async (vendor_id) => {
   try {
-    const djArtist = await DjArtist.findOne({ vendor_id });
-    if (!djArtist) return;
+    const doc = await DjArtist.findOne({ vendor_id });
+    if (!doc) {
+      throw new Error("DJ Artist not found");
+    }
 
-    const basicDetailsCompleted = checkCompletion(djArtist.basic_details);
-    const serviceDetailsCompleted = checkCompletion(djArtist.service_details);
-    const additionalDetailsCompleted = checkCompletion(djArtist.additional_details);
-    const policiesCompleted = checkCompletion(djArtist.policies);
-    const businessDetailsCompleted = checkCompletion(djArtist.business_details);
-    const bankDetailsCompleted = checkCompletion(djArtist.bank_details);
+    doc.basic_details.is_completed = checkCompletion(doc.basic_details || {});
+    doc.service_details.is_completed = checkCompletion(doc.service_details || {});
+    doc.additional_details.is_completed = checkCompletion(doc.additional_details || {});
+    doc.policies.is_completed = checkCompletion(doc.policies || {});
+    doc.business_details.is_completed = checkCompletion(doc.business_details || {});
+    doc.bank_details.is_completed = checkCompletion(doc.bank_details || {});
 
-    const completedSectionsCount = [
-      basicDetailsCompleted,
-      serviceDetailsCompleted,
-      additionalDetailsCompleted,
-      policiesCompleted,
-      businessDetailsCompleted,
-      bankDetailsCompleted,
-    ].filter(Boolean).length;
-
-    const completionScore = Math.round((completedSectionsCount / 6) * 100);
-
-    await DjArtist.findOneAndUpdate(
-      { vendor_id },
-      {
-        $set: {
-          "basic_details.is_completed": basicDetailsCompleted,
-          "service_details.is_completed": serviceDetailsCompleted,
-          "additional_details.is_completed": additionalDetailsCompleted,
-          "policies.is_completed": policiesCompleted,
-          "business_details.is_completed": businessDetailsCompleted,
-          "bank_details.is_completed": bankDetailsCompleted,
-          profile_completion_score: completionScore,
-        },
-      },
-      { new: true }
-    );
-  } catch (error) {
-    console.error("Error updating section completion:", error);
+    await doc.save();
+  } catch (err) {
+    console.error("Error updating section completion:", err);
+    throw err;
   }
 };
 
-// Create
 const createDjArtist = async (req, res) => {
   try {
+    // Backward compatibility: allow service_type_business to set service_type
+    if (!req.body.service_type && req.body.service_type_business) {
+      req.body.service_type = req.body.service_type_business;
+    }
+
     const { vendor_id } = req.body;
     if (!vendor_id) return res.status(400).json({ message: "vendor_id is required" });
 
-    const existingArtist = await DjArtist.findOne({ vendor_id });
-    if (existingArtist) {
+    // Check if DJ Artist already exists for this vendor
+    const alreadyExists = await DjArtist.findOne({ vendor_id });
+    if (alreadyExists) {
       return res.status(400).json({ message: "DJ Artist already exists" });
     }
 
-    // normalized prefix to DJS per schema
+    // Generate service id
     const service_id = generateUniqueId("DJS");
 
-    // Get temp agreement values if present
-    const tempData = await DjArtistReduxModel.findOne({ vendor_id });
-    const agreementUrl = tempData?.agreement_url || "";
-    const agreementSignedAt = tempData?.agreement_signed_at || null;
+    // Pull agreement data from redux/temp model
+    const temp = await DjArtistReduxModel.findOne({ vendor_id });
+    const agreementUrl = temp?.agreement_url || null;
+    const agreementSignedAt = temp?.agreement_signed_at || null;
 
-    // Files (multipart)
-    const assetImages = req.files ? getFileUrls(req.files, "asset_images") : (req.body.asset_images || []);
-    const assetVideos = req.files ? getFileUrls(req.files, "asset_videos") : (req.body.asset_videos || []);
+    // Files or body URLs
+    const assetImages =
+      req.files ? getFileUrls(req.files, "asset_images") : Array.isArray(req.body.asset_images) ? req.body.asset_images : (req.body.asset_images ? [req.body.asset_images] : []);
+    const assetVideos =
+      req.files ? getFileUrls(req.files, "asset_videos") : Array.isArray(req.body.asset_videos) ? req.body.asset_videos : (req.body.asset_videos ? [req.body.asset_videos] : []);
 
-    const newDjArtist = new DjArtist({
-      service_id,
+    // Normalize arrays
+    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+
+    // Build document
+    const serviceTypeLabel = req.body.service_type || "DJ-Artist";
+    const normalizedLabel = normalizeServiceName(serviceTypeLabel);
+
+    const doc = new DjArtist({
       vendor_id,
-      service_type: req.body.service_type || "DJ-Artist",
+      service_id,
+      service_type: normalizedLabel || "DJ-Artist",
       is_active: true,
       profile_completion_score: 0,
-      service_areas: Array.isArray(req.body.service_areas) ? req.body.service_areas : (req.body.service_areas ? [req.body.service_areas] : []),
+      service_areas: arr(req.body.service_areas),
 
-      // common embedded
-      bank_details: req.body.bank_details || {},
-      business_details: req.body.business_details || {},
+      // bank_details: accept nested when sent; else empty object
+      bank_details: {
+        bank_name: req.body.bank_name,
+        account_type: req.body.account_type,
+        account_number: req.body.account_number,
+        ifsc: req.body.ifsc,
+        service_id: service_id,
+        vendor_id: vendor_id,
+      },
+
+      // business_details: explicitly map the fields we expect
+      business_details: {
+        business_registration_name: req.body.business_registration_name || "",
+        gst: req.body.gst || "",
+        verification_type: req.body.verification_type || "",
+        pan: req.body.pan || "",
+        category: req.body.category ?? null,
+        team_size: req.body.team_size ?? 0,
+        years_of_operation: req.body.years_of_operation ?? 0,
+        business_address: req.body.business_address || "",
+        landmark: req.body.landmark || "",
+        pincode: req.body.pincode ?? 0,
+        operational_cities: arr(req.body.operational_cities),
+        annual_revenue: req.body.annual_revenue || "",
+        annual_bookings: req.body.annual_bookings ?? 0,
+        service_type: normalizedLabel || "DJ-Artist",
+        service_id,
+      },
 
       basic_details: {
         point_of_contact: req.body.point_of_contact,
         service_contact_number: req.body.service_contact_number,
         description: req.body.description,
-        service_areas: Array.isArray(req.body.basic_service_areas)
-          ? req.body.basic_service_areas
-          : (req.body.basic_service_areas ? [req.body.basic_service_areas] : []),
         service_location_dj_artist: {
           service_address: req.body.service_address,
           lat: req.body.service_lat,
@@ -114,43 +136,84 @@ const createDjArtist = async (req, res) => {
       },
 
       service_details: {
-        event_types_dj: Array.isArray(req.body.event_types_dj)
-          ? req.body.event_types_dj
-          : (req.body.event_types_dj ? [req.body.event_types_dj] : []),
-        music_genres: Array.isArray(req.body.music_genres)
-          ? req.body.music_genres
-          : (req.body.music_genres ? [req.body.music_genres] : []),
-        regional_specializations: Array.isArray(req.body.regional_specializations)
-          ? req.body.regional_specializations
-          : (req.body.regional_specializations ? [req.body.regional_specializations] : []),
-        services_offered: Array.isArray(req.body.services_offered)
-          ? req.body.services_offered
-          : (req.body.services_offered ? [req.body.services_offered] : []),
+        event_types_dj: arr(req.body.event_types_dj),
+        music_genres: arr(req.body.music_genres),
+        regional_specializations: arr(req.body.regional_specializations),
+        services_offered: arr(req.body.services_offered),
       },
 
       additional_details: {
         asset_images: assetImages,
         asset_videos: assetVideos,
-        ig_socials_link: req.body.ig_socials_link,
-        web_social_link: req.body.web_social_link,
-        prices_starts_from: Number(req.body.prices_starts_from || 0),
+        ig_socials_link: req.body.ig_socials_link || "",
+        web_social_link: req.body.web_social_link || "",
+        prices_starts_from: Number(req.body.prices_starts_from ?? 0),
       },
 
       policies: {
-        terms_and_conditions: Array.isArray(req.body.terms_and_conditions)
-          ? req.body.terms_and_conditions
-          : (req.body.terms_and_conditions ? [req.body.terms_and_conditions] : []),
-        cancellation_policy: Array.isArray(req.body.cancellation_policy)
-          ? req.body.cancellation_policy
-          : (req.body.cancellation_policy ? [req.body.cancellation_policy] : []),
+        terms_and_conditions: arr(req.body.terms_and_conditions),
+        cancellation_policy: arr(req.body.cancellation_policy),
         agreement_url: agreementUrl || req.body.agreement_url || "",
         agreement_signed_at: agreementSignedAt || req.body.agreement_signed_at || null,
       },
     });
 
-    const saved = await newDjArtist.save();
+    // Compute profile completion percent similar to Venue
+    const fieldsToCheck = [
+      // Meta
+      vendor_id,
+      req.body.service_type,
+      arr(req.body.service_areas).length > 0,
 
-    // Attach to vendor
+      // Business details
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.verification_type,
+      req.body.pan,
+      req.body.category,
+      req.body.team_size,
+      req.body.years_of_operation,
+      req.body.business_address,
+      req.body.landmark,
+      req.body.pincode,
+      arr(req.body.operational_cities).length > 0,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
+
+      // Basic details
+      req.body.point_of_contact,
+      req.body.service_contact_number,
+      req.body.description,
+      req.body.service_address,
+      req.body.service_lat,
+      req.body.service_lon,
+      req.body.service_pincode,
+      req.body.google_map_link,
+
+      // Service details
+      arr(req.body.event_types_dj).length > 0,
+      arr(req.body.music_genres).length > 0,
+      arr(req.body.regional_specializations).length > 0,
+      arr(req.body.services_offered).length > 0,
+
+      // Additional details
+      assetImages.length > 0,
+      assetVideos.length > 0,
+      req.body.prices_starts_from,
+      req.body.ig_socials_link,
+      req.body.web_social_link,
+
+      // Policies
+      arr(req.body.terms_and_conditions).length > 0,
+      arr(req.body.cancellation_policy).length > 0,
+    ];
+    const completedFields = fieldsToCheck.filter(Boolean).length;
+    const profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+    doc.profile_completion_score = profile_completion_score;
+
+    const saved = await doc.save();
+
+    // Link to vendor
     const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
       await DjArtist.findByIdAndDelete(saved._id);
@@ -158,28 +221,41 @@ const createDjArtist = async (req, res) => {
     }
 
     vendor.services = Array.isArray(vendor.services) ? vendor.services : [];
-    vendor.service_types = Array.isArray(vendor.service_types) ? vendor.service_types : [];
+    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
 
-    if (!vendor.services.includes(saved.service_id)) {
-      vendor.services.push(saved.service_id);
-    }
-    vendor.service_types.push({
-      service_name: "DJ-Artist",
+    vendor.service_types = Array.isArray(vendor.service_types) ? vendor.service_types : [];
+    const idx = vendor.service_types.findIndex(
+      (st) =>
+        st &&
+        typeof st.service_name === "string" &&
+        st.service_name.toLowerCase() === (normalizedLabel || "DJ-Artist").toLowerCase()
+    );
+
+    const updatedEntry = {
+      service_name: normalizedLabel || "DJ-Artist",
       service_status: "Inactive",
       service_id: saved.service_id,
-    });
+    };
+
+    if (idx >= 0) {
+      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    } else {
+      vendor.service_types.push(updatedEntry);
+    }
 
     await vendor.save();
 
+    // Update section flags
     await updateSectionCompletion(saved.vendor_id);
 
+    // Notify
     if (process.env.IS_DEV !== "true") {
       try {
         await sendEmailToSlack({
           name: saved?.basic_details?.point_of_contact || "DJ-Artist",
           type: saved?.service_type || "DJ-Artist",
         });
-      } catch { }
+      } catch (_) { }
     }
 
     res.status(201).json(saved);
