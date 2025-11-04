@@ -17,25 +17,25 @@ export const getService = async (req, res) => {
     let vendorData;
     switch (vendor_type) {
       case "caterer":
-        vendorData = await Caterer.findOne({ service_id: vendor_id });
+        vendorData = await Caterer.findOne({ vendor_id: vendor_id });
         break;
       case "decorator":
-        vendorData = await Decorator.findOne({ service_id: vendor_id });
+        vendorData = await Decorator.findOne({ vendor_id: vendor_id });
         break;
       case "venue_provider":
-        vendorData = await VenueProvider.findOne({ service_id: vendor_id });
+        vendorData = await VenueProvider.findOne({ vendor_id: vendor_id });
         break;
       case "prop_rental":
-        vendorData = await PropRental.findOne({ service_id: vendor_id });
+        vendorData = await PropRental.findOne({ vendorData: vendor_id });
         break;
       case "photographer_videographer":
-        vendorData = await PhotographerVideographer.findOne({ service_id: vendor_id });
+        vendorData = await PhotographerVideographer.findOne({ vendor_id: vendor_id });
         break;
       case "makeupartist":
-        vendorData = await MakeupArtist.findOne({ service_id: vendor_id });
+        vendorData = await MakeupArtist.findOne({ vendor_id: vendor_id });
         break;
       case "dj_artist":
-        vendorData = await DjArtist.findOne({ service_id: vendor_id });
+        vendorData = await DjArtist.findOne({ vendor_id: vendor_id });
         break;
 
       default:
@@ -287,8 +287,11 @@ export const getServiceByServiceId = async (req, res) => {
       case "photographer_videographer":
         serviceData = await PhotographerVideographer.findOne({ service_id });
         break;
-      case "makeup_artist":
+      case "makeupartist":
         serviceData = await MakeupArtist.findOne({ service_id });
+        break;
+      case "dj_artist":
+        serviceData = await DjArtist.findOne({ service_id }); // NEW
         break;
       default:
         return res.status(400).json({ error: "Invalid service type" });
