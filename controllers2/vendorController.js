@@ -1,5 +1,10 @@
 import { Vendor } from "../models2/vendor.js";
 import vendorNotification from "../models2/vendorNotifications.js";
+import { ReduxCatererModel } from "../models2/reduxModels/caterer.js";
+import { ReduxDecoratorModel } from "../models2/reduxModels/decorator.js";
+import { MakeupArtistModel } from "../models2/reduxModels/makeupArtist.js";
+import { ReduxPhotographerVideographerModel } from "../models2/reduxModels/photographerVideographer.js"; 
+import { ReduxVenueProviderModel } from "../models2/reduxModels/venueProvider.js";
 
 // 📦 GET /api/vendors/all
 export const getAllVendors = async (req, res) => {
@@ -134,6 +139,47 @@ export const patchMarkNotificationsAsRead = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to mark notifications as read",
+      error: error.message,
+    });
+  }
+};
+
+export const getVendorFlowType = async (req, res) => {
+  try {
+    const { vendor_id } = req.params;
+
+    // Check in each Redux model
+    const models = [
+      { name: "caterer", model: ReduxCatererModel },
+      { name: "decorator", model: ReduxDecoratorModel },
+      { name: "Photographer-Videographer", model: ReduxPhotographerVideographerModel },
+      { name: "venue_provider", model: ReduxVenueProviderModel },
+      { name: "makeup_artist", model: MakeupArtistModel },
+    ];
+
+    for (const { name, model } of models) {
+      const record = await model.findOne({ vendor_id }).lean();
+      // console.log(record);
+      if (record) {
+        return res.status(200).json({
+          success: true,
+          message: "Vendor flow type found",
+          flowType: name,
+          service_id: record.service_id || null,
+        });
+      }
+    }
+
+    // If not found anywhere
+    return res.status(404).json({
+      success: false,
+      message: "Vendor flow type not found",
+    });
+  } catch (error) {
+    console.error("Error fetching vendor flow type:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching vendor flow type",
       error: error.message,
     });
   }
