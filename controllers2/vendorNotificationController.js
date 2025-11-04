@@ -23,6 +23,41 @@ export const getVendorNotifications = async (req, res) => {
   }
 };
 
+// ---------------------- GET VENDOR NOTIFICATIONS BY SERVICE ----------------------
+export const getVendorNotificationsByService = async (req, res) => {
+  const { vendor_id, service_id } = req.params;
+
+  try {
+    if (!vendor_id || !service_id) {
+      return res.status(400).json({ message: "Vendor ID and Service ID are required" });
+    }
+
+    console.log("Vendor ID and Service ID received:", vendor_id, service_id);
+
+    const notifications = await vendorNotification.find({
+      vendor_id,
+      service_id,
+    }).sort({ updated_at: -1 });
+
+    console.log("Notifications fetched by service:", notifications);
+
+    if (!notifications.length) {
+      return res.status(404).json({ message: "No notifications found for this service" });
+    }
+
+    return res.status(200).json({
+      message: "Notifications retrieved successfully for the given service",
+      data: notifications,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching vendor notifications by service:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch notifications", error: error.message });
+  }
+};
+
+
 // ---------------------- MARK VENDOR NOTIFICATION AS READ ----------------------
 export const markVendorNotificationAsRead = async (req, res) => {
   const { notificationId } = req.params;

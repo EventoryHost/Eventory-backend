@@ -5,6 +5,7 @@ import {
   getVendorNotifications,
   markAllNotificationsAsRead,
   patchMarkNotificationsAsRead,
+  getVendorFlowType,
 } from "../controllers2/vendorController.js";
 
 const router = express.Router();
@@ -12,6 +13,7 @@ const router = express.Router();
 // --- Vendor Routes ---
 router.get("/all", getAllVendors);
 router.get("/:vendor_id", getVendorById);
+router.get("/:vendor_id/flow-type", getVendorFlowType); 
 
 // --- Vendor Notification Routes ---
 router.get("/:vendor_id/vendorNotification", getVendorNotifications);
