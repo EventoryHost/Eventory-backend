@@ -11,6 +11,7 @@ import {
   unblockChat,
   getPinnedMessages,
   getBlockedChats,
+  updateChatEmId
 } from "../controllers2/chatController.js";
 
 const router = express.Router();
@@ -47,5 +48,8 @@ router.post("/chat/:chat_id/unblock", unblockChat);
 
 //11. Get all blocked chats
 router.get("/blocked", getBlockedChats);
+
+//12. Update em_id when admin sends first message
+router.patch("/chat/update-em", updateChatEmId);
 
 export default router;

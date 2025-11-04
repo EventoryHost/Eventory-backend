@@ -163,6 +163,8 @@ const getAllQuotations = async (req, res) => {
 const updateQuotationStatus = async (req, res) => {
   try {
     const { quotation_id, quote_status } = req.body;
+
+    console.log(req.body);
     if (!quotation_id || !quote_status) {
       return res
         .status(400)
