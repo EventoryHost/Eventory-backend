@@ -410,16 +410,16 @@ const verifyCustomerLoginOtp = async (req, res) => {
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
     var data = await cognito.send(command);
-    let user = await Customer.findOne({ contact_number : `+91${mobile}` });
+    let user = await Customer.findOne({ contact_number: `+91${mobile}` });
     if (!user) {
       try {
         console.log("flow was here")
         const customer = new Customer({ customer_name: name, contact_number: `+91${mobile}` });
         await customer.save();
         const payload = {
-          id: user.customer_id,                
-          mobile: user.contact_number, 
-          name: user.customer_name,      
+          id: user.customer_id,
+          mobile: user.contact_number,
+          name: user.customer_name,
         };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
         return res

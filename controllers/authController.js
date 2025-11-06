@@ -95,7 +95,7 @@ const updateVendor = async (req, res) => {
         gstin,
       };
     }
-    
+
     user.name = name || user.name;
     user.email = email || user.email;
     user.mobile = phoneNumber || user.mobile;

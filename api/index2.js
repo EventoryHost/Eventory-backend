@@ -12,7 +12,7 @@ import { handleSocketConnection } from "../controllers2/chatController.js";
 
 import authRoutes from "../routes2/authRoutes.js";
 import productRoutes from "../routes2/productRoutes.js";
-import {businessDetailsRoutes}  from "../routes2/reduxRoutes/businessDetails.js";
+import { businessDetailsRoutes } from "../routes2/reduxRoutes/businessDetails.js";
 import caterer from "../routes2/reduxRoutes/caterer.js";
 import verificationRoutes from "../routes2/verificationRoutes.js";
 import decorator from "../routes2/reduxRoutes/decorator.js";
