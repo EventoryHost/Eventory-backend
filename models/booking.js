@@ -14,8 +14,8 @@ const BusinessDetailsSchema = new Schema({
   teamsize: String,
   verificationType: String,
   years: String,
-  _id: String, // if you still want to retain it
-}, { _id: false }); // prevent automatic _id creation
+  _id: String, 
+}, { _id: false }); 
 
 const FinalizedContentSchema = new Schema({
   name: String,
@@ -27,7 +27,6 @@ const FinalizedContentSchema = new Schema({
 const BookingSchema = new Schema({
   bookingid: {
     type: String,
-    default: () => generateUniqueId("book"),
     required: true,
   },
   customerId: { type: String, required: true },
@@ -47,10 +46,6 @@ const BookingSchema = new Schema({
   paymentDetails: { type: String, required: true },
   paymentStatus: { type: String, required: true },
   capacity: { type: String, required: true },
-
-  // totalRatings: { type: Number, default: 0 }, // ✅ New field
-  // serviceDetails: {}
-  // ✅ New Fields
   vendorBusinessDetails: { type: BusinessDetailsSchema, required: false },
   rating: { type: Number, default: 0 },
   finalizedContents: [FinalizedContentSchema],
@@ -62,6 +57,18 @@ const BookingSchema = new Schema({
     default: {},
   },
   serviceAddress: { type: String, required: false },
+
+  eventLocation: {type: String, required: false},
+  eventTime: {type: String, required: false},
+
+  eventType: {type: String, required: false},
+
+  eventId: { type: String, required: false },
+
+  // invoices: {
+  //   customerInvoices: { type: [String], default: [] },
+  //   vendorInvoices: { type: [String], default: [] }
+  // }
 });
 
 const Booking = model("Bookings", BookingSchema);

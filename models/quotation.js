@@ -13,7 +13,7 @@ const quotationSchema = new mongoose.Schema(
     id: { type: String, required: true, unique: true },
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Rejected", "In Progress"],
+      enum: ["Pending", "Accepted", "Rejected", "In Progress","Completed"],
       default: "Pending",
     },
     quoteNumber: { type: Number, unique: true },
@@ -30,6 +30,7 @@ const quotationSchema = new mongoose.Schema(
     requirements: { type: String, required: true },
     location: { type: String, required: false },
     event_type: { type: String, required: true },
+    booking_payment_status : { type: String , default: "Unpaid"},
   },
   { timestamps: true },
 );

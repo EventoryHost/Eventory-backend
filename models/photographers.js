@@ -1,6 +1,6 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
-import { eventSchema } from "./venue.js";
+import { eventSchema } from "./event.js";
 const Schema = _Schema;
 
 const photographerSchema = Schema({
@@ -126,7 +126,12 @@ const photographerSchema = Schema({
   },
   additionalDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    photos: { type: [String], required: true },
+    photos: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     videos: { type: [String], required: true },
     clientTestimonials: { type: String },
     awards: { type: String },

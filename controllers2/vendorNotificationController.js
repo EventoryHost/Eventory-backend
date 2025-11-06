@@ -9,11 +9,17 @@ export const getVendorNotifications = async (req, res) => {
       return res.status(400).json({ message: "Vendor ID is required" });
     }
 
-    const notifications = await vendorNotification.find({ vendor_id });
+    const notifications = await vendorNotification.find({ vendor_id }).sort({ updated_at: -1 });
+
+    const unreadCount = await vendorNotification.countDocuments({
+      vendor_id,
+      read: false,
+    });
 
     return res.status(200).json({
       message: "Notifications retrieved successfully",
       data: notifications,
+      unreadCount,
     });
   } catch (error) {
     console.error("❌ Error fetching vendor notifications:", error);
@@ -39,15 +45,18 @@ export const getVendorNotificationsByService = async (req, res) => {
       service_id,
     }).sort({ updated_at: -1 });
 
-    console.log("Notifications fetched by service:", notifications);
+    const unreadCount = await vendorNotification.countDocuments({
+      vendor_id,
+      service_id,
+      read: false,
+    });
 
-    if (!notifications.length) {
-      return res.status(404).json({ message: "No notifications found for this service" });
-    }
+    console.log("Notifications fetched by service:", notifications);
 
     return res.status(200).json({
       message: "Notifications retrieved successfully for the given service",
       data: notifications,
+      unreadCount,
     });
   } catch (error) {
     console.error("❌ Error fetching vendor notifications by service:", error);

@@ -11,6 +11,66 @@ const getFileUrls = (files, fieldName) => {
   return Array.isArray(fileArray) ? fileArray.map((f) => f.location) : [fileArray.location];
 };
 
+// Normalize photos to {original, preview} format
+const normalizePhotos = (photos) => {
+  if (!photos) return [];
+  
+  if (Array.isArray(photos)) {
+    return photos.map((photo) => {
+      if (typeof photo === "object" && photo.original) {
+        return {
+          original: photo.original,
+          preview: photo.preview || photo.original,
+        };
+      }
+      if (typeof photo === "string") {
+        try {
+          const parsed = JSON.parse(photo);
+          if (parsed.original || parsed.preview) {
+            return {
+              original: parsed.original || parsed.preview,
+              preview: parsed.preview || parsed.original,
+            };
+          }
+        } catch (e) {
+          // Not JSON, treat as plain string
+        }
+        let previewUrl = photo;
+        if (photo.includes("/original-")) {
+          previewUrl = photo.replace("/original-", "/preview-");
+        } else if (photo.includes("original-")) {
+          previewUrl = photo.replace("original-", "preview-");
+        }
+        return { original: photo, preview: previewUrl };
+      }
+      return { original: String(photo), preview: String(photo) };
+    });
+  }
+  
+  if (typeof photos === "string") {
+    try {
+      const parsed = JSON.parse(photos);
+      if (parsed.original || parsed.preview) {
+        return [{
+          original: parsed.original || parsed.preview,
+          preview: parsed.preview || parsed.original,
+        }];
+      }
+    } catch (e) {
+      // Not JSON, treat as plain string
+    }
+    let previewUrl = photos;
+    if (photos.includes("/original-")) {
+      previewUrl = photos.replace("/original-", "/preview-");
+    } else if (photos.includes("original-")) {
+      previewUrl = photos.replace("original-", "preview-");
+    }
+    return [{ original: photos, preview: previewUrl }];
+  }
+  
+  return [];
+};
+
 const normalizeServiceName = (label) => {
   if (!label) return label;
   const s = String(label).trim().toLowerCase();
@@ -163,9 +223,9 @@ const createDjArtist = async (req, res) => {
       },
 
       additional_details: {
-        asset_images: assetImages.length > 0
+        asset_images: normalizePhotos(assetImages.length > 0
           ? assetImages
-          : (Array.isArray(req.body.photos) ? req.body.photos : (req.body.photos ? [req.body.photos] : [])),
+          : (Array.isArray(req.body.photos) ? req.body.photos : (req.body.photos ? [req.body.photos] : []))),
         asset_videos: assetVideos.length > 0
           ? assetVideos
           : (Array.isArray(req.body.videos) ? req.body.videos : (req.body.videos ? [req.body.videos] : [])),
@@ -340,7 +400,8 @@ const updateDjArtist = async (req, res) => {
     // Handle file uploads (store under additional_details.* like other flows)
     if (req.files) {
       if (req.files.asset_images) {
-        updateData["additional_details.asset_images"] = getFileUrls(req.files, 'asset_images');
+        const fileUrls = getFileUrls(req.files, 'asset_images');
+        updateData["additional_details.asset_images"] = normalizePhotos(fileUrls);
       }
       if (req.files.asset_videos) {
         updateData["additional_details.asset_videos"] = getFileUrls(req.files, 'asset_videos');
@@ -354,7 +415,7 @@ const updateDjArtist = async (req, res) => {
     // Normalize common client payload shapes to additional_details.*
     // Support either nested additional_details or flat photos/videos keys
     if (updateData.additional_details && Array.isArray(updateData.additional_details.photos)) {
-      updateData["additional_details.asset_images"] = updateData.additional_details.photos;
+      updateData["additional_details.asset_images"] = normalizePhotos(updateData.additional_details.photos);
       delete updateData.additional_details.photos;
     }
     if (updateData.additional_details && Array.isArray(updateData.additional_details.videos)) {
@@ -362,8 +423,11 @@ const updateDjArtist = async (req, res) => {
       delete updateData.additional_details.videos;
     }
     if (Array.isArray(updateData.photos)) {
-      updateData["additional_details.asset_images"] = updateData.photos;
+      updateData["additional_details.asset_images"] = normalizePhotos(updateData.photos);
       delete updateData.photos;
+    }
+    if (updateData["additional_details.asset_images"]) {
+      updateData["additional_details.asset_images"] = normalizePhotos(updateData["additional_details.asset_images"]);
     }
     if (Array.isArray(updateData.videos)) {
       updateData["additional_details.asset_videos"] = updateData.videos;

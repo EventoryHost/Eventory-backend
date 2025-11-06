@@ -89,12 +89,10 @@ const djArtistAdditionalDetailsSchema = new Schema({
     type: Boolean,
     default: false,
   },
-  asset_images: [
-    {
-      type: String,
-      required: true,
-    },
-  ],
+  asset_images: [{
+    original: { type: String },
+    preview: { type: String }
+  }],
   asset_videos: [
     {
       type: String,

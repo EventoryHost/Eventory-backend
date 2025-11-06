@@ -33,11 +33,17 @@ const ReduxDecoratorSchema = new mongoose.Schema(
     is_theme_customization_allowed: { type: Boolean },
     is_venue_adaptability: { type: Boolean },
     theme_elements_available: { type: [String] },
-    theme_portfolio_images: { type: [String] },
+    theme_portfolio_images: [{
+      original: { type: String },
+      preview: { type: String }
+    }],
     theme_portfolio_videos: { type: [String] },
 
     // Additional Details (flattened from additional_details)
-    asset_images: { type: [String] },
+    asset_images: [{
+      original: { type: String },
+      preview: { type: String }
+    }],
     asset_videos: { type: [String] },
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },

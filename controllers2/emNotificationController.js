@@ -9,11 +9,18 @@ export const getEMNotifications = async (req, res) => {
       return res.status(400).json({ message: "EM ID is required" });
     }
 
-    const notifications = await adminNotification.find({ em_id });
+    const notifications = await adminNotification.find({ em_id }).sort({ updated_at: -1 });
+
+    const unreadCount = await adminNotification.countDocuments({
+      em_id,
+      read: false,
+    });
 
     return res.status(200).json({
+      success: true,
       message: "Notifications retrieved successfully",
       data: notifications,
+      unreadCount,
     });
   } catch (error) {
     console.error("❌ Error fetching EM notifications:", error);

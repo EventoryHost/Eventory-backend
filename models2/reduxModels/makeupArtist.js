@@ -35,7 +35,10 @@ const ReduxMakeupArtistSchema = new mongoose.Schema(
     service_types: { type: [String] },
 
     // Additional Details (flattened from additional_details)
-    asset_images: { type: [String] },
+    asset_images: [{
+      original: { type: String },
+      preview: { type: String }
+    }],
     asset_videos: { type: [String] },
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },

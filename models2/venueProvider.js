@@ -150,11 +150,10 @@ const venueAdditionalDetailsSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    asset_images: [
-      {
-        type: String,
-      },
-    ],
+    asset_images: [{
+      original: { type: String },
+      preview: { type: String }
+    }],
     asset_videos: [
       {
         type: String,
