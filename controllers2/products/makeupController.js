@@ -14,6 +14,66 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// Normalize photos to {original, preview} format
+const normalizePhotos = (photos) => {
+  if (!photos) return [];
+  
+  if (Array.isArray(photos)) {
+    return photos.map((photo) => {
+      if (typeof photo === "object" && photo.original) {
+        return {
+          original: photo.original,
+          preview: photo.preview || photo.original,
+        };
+      }
+      if (typeof photo === "string") {
+        try {
+          const parsed = JSON.parse(photo);
+          if (parsed.original || parsed.preview) {
+            return {
+              original: parsed.original || parsed.preview,
+              preview: parsed.preview || parsed.original,
+            };
+          }
+        } catch (e) {
+          // Not JSON, treat as plain string
+        }
+        let previewUrl = photo;
+        if (photo.includes("/original-")) {
+          previewUrl = photo.replace("/original-", "/preview-");
+        } else if (photo.includes("original-")) {
+          previewUrl = photo.replace("original-", "preview-");
+        }
+        return { original: photo, preview: previewUrl };
+      }
+      return { original: String(photo), preview: String(photo) };
+    });
+  }
+  
+  if (typeof photos === "string") {
+    try {
+      const parsed = JSON.parse(photos);
+      if (parsed.original || parsed.preview) {
+        return [{
+          original: parsed.original || parsed.preview,
+          preview: parsed.preview || parsed.original,
+        }];
+      }
+    } catch (e) {
+      // Not JSON, treat as plain string
+    }
+    let previewUrl = photos;
+    if (photos.includes("/original-")) {
+      previewUrl = photos.replace("/original-", "/preview-");
+    } else if (photos.includes("original-")) {
+      previewUrl = photos.replace("original-", "preview-");
+    }
+    return [{ original: photos, preview: previewUrl }];
+  }
+  
+  return [];
+};
+
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false;
 
@@ -140,7 +200,7 @@ const createMakeupArtist = async (req, res) => {
       ? toBool(req.body.is_customization_possible) : toBool(req.body.customization);
 
     // Media
-    const asset_images = req.body.asset_images || parseArrayLike(req.body.photos);
+    const asset_images = normalizePhotos(req.body.asset_images || parseArrayLike(req.body.photos));
     const asset_videos = req.body.asset_videos || parseArrayLike(req.body.videos);
 
     // Socials + pricing + booking period

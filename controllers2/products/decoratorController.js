@@ -18,6 +18,71 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// Normalize photos to {original, preview} format
+const normalizePhotos = (photos) => {
+  if (!photos) return [];
+  
+  // If it's already an array of objects with original/preview, return as is
+  if (Array.isArray(photos)) {
+    return photos.map((photo) => {
+      // If it's already an object with original and preview, use it directly
+      if (typeof photo === "object" && photo.original) {
+        return {
+          original: photo.original,
+          preview: photo.preview || photo.original,
+        };
+      }
+      // If it's a string, try to parse it as JSON first
+      if (typeof photo === "string") {
+        try {
+          const parsed = JSON.parse(photo);
+          if (parsed.original || parsed.preview) {
+            return {
+              original: parsed.original || parsed.preview,
+              preview: parsed.preview || parsed.original,
+            };
+          }
+        } catch (e) {
+          // Not JSON, treat as plain string
+        }
+        // Generate preview URL from original if pattern matches
+        let previewUrl = photo;
+        if (photo.includes("/original-")) {
+          previewUrl = photo.replace("/original-", "/preview-");
+        } else if (photo.includes("original-")) {
+          previewUrl = photo.replace("original-", "preview-");
+        }
+        return { original: photo, preview: previewUrl };
+      }
+      return { original: String(photo), preview: String(photo) };
+    });
+  }
+  
+  // If it's a single string, convert to array
+  if (typeof photos === "string") {
+    try {
+      const parsed = JSON.parse(photos);
+      if (parsed.original || parsed.preview) {
+        return [{
+          original: parsed.original || parsed.preview,
+          preview: parsed.preview || parsed.original,
+        }];
+      }
+    } catch (e) {
+      // Not JSON, treat as plain string
+    }
+    let previewUrl = photos;
+    if (photos.includes("/original-")) {
+      previewUrl = photos.replace("/original-", "/preview-");
+    } else if (photos.includes("original-")) {
+      previewUrl = photos.replace("original-", "preview-");
+    }
+    return [{ original: photos, preview: previewUrl }];
+  }
+  
+  return [];
+};
+
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false; // Validate input
 
@@ -197,13 +262,13 @@ const createDecorator = async (req, res) => {
         is_theme_customization_allowed: req.body.is_theme_customization_allowed,
         is_venue_adaptability: req.body.is_venue_adaptability,
         theme_elements_available: req.body.theme_elements_available || [],
-        theme_portfolio_images: req.body.theme_portfolio_images || [],
+        theme_portfolio_images: normalizePhotos(req.body.theme_portfolio_images),
         theme_portfolio_videos: req.body.theme_portfolio_videos || [],
       },
 
       additional_details: {
         is_completed: profile_completion_score?.additional_details || false,
-        asset_images: req.body.asset_images || [],
+        asset_images: normalizePhotos(req.body.asset_images),
         asset_videos: req.body.asset_videos || [],
         min_booking_period: req.body.min_booking_period,
         max_booking_period: req.body.max_booking_period,

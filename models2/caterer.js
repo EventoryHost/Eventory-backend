@@ -134,8 +134,8 @@ const catererAdditionalDetailsSchema = new Schema({
     type: Number
   },
   asset_images: [{
-    type: String, // Array of S3 links of Photos
-    required: true
+    original: { type: String },
+    preview: { type: String }
   }],
   asset_videos: [{
     type: String, // Array of S3 links of Videos

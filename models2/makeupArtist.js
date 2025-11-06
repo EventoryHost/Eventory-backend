@@ -108,7 +108,8 @@ const makeupAdditionalDetailsSchema = new Schema({
     default: false
   },
   asset_images: [{
-    type: String
+    original: { type: String },
+    preview: { type: String }
   }],
   asset_videos: [{
     type: String
