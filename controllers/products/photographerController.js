@@ -4,7 +4,6 @@ import PAVModel from "../../models/reduxStores/pav.js";
 import { Vendor as User } from "../../models/users.js";
 import parseRange from "../../utils/parseRange.js";
 
-
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
   if (fileArray) {
@@ -81,16 +80,16 @@ const updateSectionCompletion = async (id) => {
 
     // Update completion status for each section
     photographer.basicDetails.completed = checkCompletion(
-      photographer.basicDetails || {},
+      photographer.basicDetails || {}
     );
     photographer.consultationDetails.completed = checkCompletion(
-      photographer.consultationDetails || {},
+      photographer.consultationDetails || {}
     );
     photographer.additionalDetails.completed = checkCompletion(
-      photographer.additionalDetails || {},
+      photographer.additionalDetails || {}
     );
     photographer.policies.completed = checkCompletion(
-      photographer.policies || {},
+      photographer.policies || {}
     );
 
     await photographer.save();
@@ -112,15 +111,83 @@ const createPhotographer = async (req, res) => {
 
     console.log(req.body);
 
-    // Log specifically for serviceAreas
-    console.log("Service Areas from request:", req.body.serviceAreas);
-    console.log("typeof serviceAreas:", typeof req.body.serviceAreas);
-    console.log("Service Areas keys:", Object.keys(req.body).filter(key => key.startsWith('serviceAreas')));
-
     const photosUrl = req.body.photos || [];
     const videosUrl = req.body.videos || [];
+    // processedVideos will hold normalized plain string URLs for videos
+    let processedVideos = [];
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
     const termsAndConditionsFileUrl = req.body.termsAndConditions || [];
+
+    let processedPhotos = photosUrl;
+    if (Array.isArray(photosUrl)) {
+      processedPhotos = photosUrl.map((item) => {
+        if (typeof item === "string") {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof photosUrl === "string") {
+      try {
+        const parsed = JSON.parse(photosUrl);
+        processedPhotos = [parsed];
+      } catch (e) {
+        processedPhotos = [photosUrl];
+      }
+    }
+
+    // Normalize videos into processedVideos (array of plain strings)
+    if (Array.isArray(videosUrl)) {
+      processedVideos = videosUrl
+        .map((item) => {
+          if (typeof item === "string") {
+            // try parse JSON-stringified object
+            try {
+              const parsed = JSON.parse(item);
+              if (parsed && typeof parsed === "object" && parsed.original)
+                return parsed.original;
+              if (typeof parsed === "string") return parsed;
+              return item;
+            } catch (e) {
+              return item;
+            }
+          }
+          if (item && typeof item === "object" && item.original)
+            return item.original;
+          return "";
+        })
+        .filter(Boolean);
+    } else if (typeof videosUrl === "string") {
+      try {
+        const arr = JSON.parse(videosUrl);
+        if (Array.isArray(arr)) {
+          processedVideos = arr
+            .map((item) =>
+              item && item.original
+                ? item.original
+                : typeof item === "string"
+                  ? item
+                  : ""
+            )
+            .filter(Boolean);
+        } else if (arr && arr.original) {
+          processedVideos = [arr.original];
+        } else if (typeof arr === "string") {
+          processedVideos = [arr];
+        } else {
+          processedVideos = [videosUrl];
+        }
+      } catch (e) {
+        processedVideos = videosUrl ? [videosUrl] : [];
+      }
+    }
 
     // Log fields to debug
     console.log("Incoming fields:", {
@@ -138,8 +205,8 @@ const createPhotographer = async (req, res) => {
       availablefordestinationevents: req.body.availablefordestinationevents,
       Advancesetup: req.body.Advancesetup,
       postproductionservices: req.body.postproductionservices,
-      photosUrl,
-      videosUrl,
+      photosUrl: processedPhotos,
+      videosUrl: processedVideos,
       cancellationPolicyFileUrl,
       termsAndConditionsFileUrl,
     });
@@ -162,8 +229,8 @@ const createPhotographer = async (req, res) => {
       req.body.availablefordestinationevents, // Ensure availableForDestinationEvents is defined
       req.body.Advancesetup, // Ensure AdvanceSetup is defined
       req.body.postproductionservices, // Ensure postProductionServices is defined
-      photosUrl.length > 0, // Ensure there are photos
-      videosUrl.length > 0, // Ensure there are videos
+      processedPhotos.length > 0, // Ensure there are photos
+      processedVideos.length > 0, // Ensure there are videos
       cancellationPolicyFileUrl, // Ensure cancellationPolicy is uploaded
       termsAndConditionsFileUrl, // Ensure termsAndConditions file is uploaded
     ];
@@ -171,11 +238,6 @@ const createPhotographer = async (req, res) => {
     const completedFields = fieldsToCheck.filter((field) => !!field).length;
     const profileCompletion =
       Math.round(completedFields / fieldsToCheck.length) * 100 || 0;
-
-    // Debug profile completion calculation
-    console.log("Fields to Check:", fieldsToCheck);
-    console.log("Completed Fields:", completedFields);
-    console.log("Profile Completion:", profileCompletion);
 
     // Prepare eventSize object
     // const eventSizeCheck = parseRange(req.body.eventSize);
@@ -207,8 +269,59 @@ const createPhotographer = async (req, res) => {
 
     // Prepare additionalDetails
     const additionalDetails = {
-      photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-      videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+      photos: Array.isArray(processedPhotos)
+        ? processedPhotos.map((url) => {
+            // If it's already an object with original and preview, use it directly
+            if (typeof url === "object" && url.original && url.preview) {
+              return {
+                original: url.original,
+                preview: url.preview,
+              };
+            }
+            // If it's just an object with original, generate preview
+            if (typeof url === "object" && url.original) {
+              let previewUrl = url.original;
+              if (url.original.includes("/original-")) {
+                previewUrl = url.original.replace("/original-", "/preview-");
+                // For images, change extension to .webp
+                if (url.original.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                  previewUrl = previewUrl.replace(
+                    /\.(jpg|jpeg|png|gif)$/i,
+                    ".webp"
+                  );
+                }
+              }
+              return {
+                original: url.original,
+                preview: previewUrl,
+              };
+            }
+            // If it's a string, generate both original and preview
+            if (typeof url === "string") {
+              let previewUrl = url;
+              if (url.includes("/original-")) {
+                previewUrl = url.replace("/original-", "/preview-");
+                // For images, change extension to .webp
+                if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                  previewUrl = previewUrl.replace(
+                    /\.(jpg|jpeg|png|gif)$/i,
+                    ".webp"
+                  );
+                }
+              }
+              return { original: url, preview: previewUrl };
+            }
+            return { original: url, preview: url };
+          })
+        : [],
+      // videos: store plain string URLs only (schema expects [String])
+      videos: Array.isArray(processedVideos)
+        ? processedVideos
+            .map((v) =>
+              typeof v === "string" ? v : v && v.original ? v.original : ""
+            )
+            .filter(Boolean)
+        : [],
       clientTestimonials: req.body.clientTestimonials,
       awards: req.body.awards,
       website: req.body.website,
@@ -242,7 +355,7 @@ const createPhotographer = async (req, res) => {
     const tempPAVData = await PAVModel.findOne({ id: req.body.venId });
     const agreementUrl = tempPAVData?.agreementUrl || null;
     const agreementSignedAt = tempPAVData?.agreementSignedAt || null;
-    
+
     if (agreementUrl) {
       console.log("Found agreement data for photographer:", agreementUrl);
     }
@@ -290,7 +403,7 @@ const createPhotographer = async (req, res) => {
       profileCompletion,
       serviceId: saved._id,
       photographer: saved, // ✅ full created object
-    });    
+    });
   } catch (error) {
     console.error("Error creating photographer:", error);
     res.status(400).json({ error: error.message });
@@ -331,4 +444,4 @@ const getPhotographerById = async (req, res) => {
   }
 };
 
-export default { createPhotographer, getAllPav , getPhotographerById };
+export default { createPhotographer, getAllPav, getPhotographerById };

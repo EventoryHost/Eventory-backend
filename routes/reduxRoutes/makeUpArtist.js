@@ -58,12 +58,44 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // Process the data to ensure photos and videos are in the correct format
+    const processedData = { ...data };
+    
+    // Handle photos
+    if (processedData.photos) {
+      if (typeof processedData.photos === 'string') {
+        processedData.photos = [{ original: processedData.photos, preview: processedData.photos }];
+      } else if (Array.isArray(processedData.photos)) {
+        processedData.photos = processedData.photos.map(photo => {
+          if (typeof photo === 'string') {
+            return { original: photo, preview: photo };
+          }
+          return photo;
+        });
+      }
+    }
+    
+    // Handle videos
+    if (processedData.videos) {
+      if (typeof processedData.videos === 'string') {
+        try {
+          const arr = JSON.parse(processedData.videos);
+          processedData.videos = Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.length > 0) : [];
+        } catch (e) {
+          processedData.videos = [processedData.videos];
+        }
+      } else if (Array.isArray(processedData.videos)) {
+        processedData.videos = processedData.videos.filter(v => typeof v === 'string' && v.length > 0);
+      }
+    }
+    
+
     const existingDetails = await MakeupArtistModel.findOne({ id });
 
     if (existingDetails) {
       const updatedDetails = await MakeupArtistModel.findOneAndUpdate(
         { id },
-        { $set: data },
+        { $set: processedData },
         { new: true, upsert: false },
       );
       return res.status(200).json({
@@ -73,7 +105,7 @@ router.post("/", async (req, res) => {
     } else {
       const newMakeupArtistDetails = new MakeupArtistModel({
         id,
-        ...data,
+        ...processedData,
       });
       await newMakeupArtistDetails.save();
       return res.status(201).json({

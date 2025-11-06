@@ -76,11 +76,85 @@ const createDecorator = async (req, res) => {
     const cancellationPolicyFileUrl = req.body.cancellationPolicy || "";
     const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
 
-    const themePhotosUrl = req.body.themephotos || [];
-    const themeVideosUrl = req.body.themevideos || [];
+    // Check both camelCase and lowercase versions to ensure compatibility
+    let themePhotosUrl = req.body.themePhotos || req.body.themephotos || [];
+    let themeVideosUrl = req.body.themeVideos || req.body.themevideos || [];
+    let photosUrl = req.body.photos || [];
+    let videosUrl = req.body.videos || [];
 
-    const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];
+    // Process themePhotos - handle JSON strings from frontend
+    if (Array.isArray(themePhotosUrl)) {
+      themePhotosUrl = themePhotosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof themePhotosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(themePhotosUrl);
+        themePhotosUrl = [parsed];
+      } catch (e) {
+        themePhotosUrl = [themePhotosUrl];
+      }
+    }
+
+    // Process themeVideos - handle JSON strings from frontend
+    if (Array.isArray(themeVideosUrl)) {
+      themeVideosUrl = themeVideosUrl.filter(item => typeof item === 'string' && item.length > 0);
+    } else if (typeof themeVideosUrl === 'string') {
+      try {
+        const arr = JSON.parse(themeVideosUrl);
+        themeVideosUrl = Array.isArray(arr) ? arr.filter(item => typeof item === 'string' && item.length > 0) : [];
+      } catch (e) {
+        themeVideosUrl = [themeVideosUrl];
+      }
+    }
+
+    // Process photos - handle JSON strings from frontend
+    if (Array.isArray(photosUrl)) {
+      photosUrl = photosUrl.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed.original || parsed.preview) {
+              return parsed;
+            }
+            return item;
+          } catch (e) {
+            return item;
+          }
+        }
+        return item;
+      });
+    } else if (typeof photosUrl === 'string') {
+      try {
+        const parsed = JSON.parse(photosUrl);
+        photosUrl = [parsed];
+      } catch (e) {
+        photosUrl = [photosUrl];
+      }
+    }
+
+    // Process videos - handle JSON strings from frontend
+    if (Array.isArray(videosUrl)) {
+      videosUrl = videosUrl.filter(item => typeof item === 'string' && item.length > 0);
+    } else if (typeof videosUrl === 'string') {
+      try {
+        const arr = JSON.parse(videosUrl);
+        videosUrl = Array.isArray(arr) ? arr.filter(item => typeof item === 'string' && item.length > 0) : [];
+      } catch (e) {
+        videosUrl = [videosUrl];
+      }
+    }
     const eventTypes = {
       types: req.body.typesOfEvents || [],
       wedding: req.body.weddingEvents || [],
@@ -88,8 +162,6 @@ const createDecorator = async (req, res) => {
       seasonal: req.body.seasonalEvents || [],
       cultural: req.body.culturalEvents || [],
     };
-
-    console.log("Service Areas received:", req.body.serviceAreas);
 
     // Calculate profile completion
     const fieldsToCheck = [
@@ -172,15 +244,44 @@ const createDecorator = async (req, res) => {
       themesElement: {
         themeElements: req.body.themeElements,
         themePhotos: Array.isArray(themePhotosUrl)
-          ? themePhotosUrl
-          : [themePhotosUrl],
+          ? themePhotosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              }
+              if (typeof url === 'string') {
+                // keep photo objects for schema that expects objects
+                let previewUrl = url;
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                return { original: url, preview: previewUrl };
+              }
+              return url;
+            })
+          : themePhotosUrl ? [{ original: themePhotosUrl, preview: themePhotosUrl }] : [],
+        // themeVideos must be an array of plain string URLs per schema. Normalize inputs to string array.
         themeVideos: Array.isArray(themeVideosUrl)
-          ? themeVideosUrl
-          : [themeVideosUrl],
+          ? themeVideosUrl.map(v => (typeof v === 'string' ? v : (v && v.original ? v.original : ''))).filter(Boolean)
+          : (typeof themeVideosUrl === 'string' ? (themeVideosUrl ? [themeVideosUrl] : []) : []),
       },
       additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
+        photos: Array.isArray(photosUrl)
+          ? photosUrl.map(url => {
+              if (typeof url === 'object' && url.original && url.preview) {
+                return url;
+              }
+              if (typeof url === 'string') {
+                let previewUrl = url;
+                if (url.includes('original-') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png'))) {
+                  previewUrl = url.replace('original-', 'preview-').replace(/\.(jpg|jpeg|png)$/i, '.webp');
+                }
+                return { original: url, preview: previewUrl };
+              }
+              return url;
+            })
+          : photosUrl ? [{ original: photosUrl, preview: photosUrl }] : [],
+        // videos must be stored as plain strings per schema. Normalize to string array.
+        videos: Array.isArray(videosUrl) ? videosUrl.map(v => (typeof v === 'string' ? v : (v && v.original ? v.original : ''))).filter(Boolean) : (typeof videosUrl === 'string' ? (videosUrl ? [videosUrl] : []) : []),
         clientTestimonials: req.body.clientTestimonials,
         awards: req.body.awards,
         website: req.body.websiteurl,

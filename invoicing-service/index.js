@@ -1,13 +1,5 @@
-import {
-  SQSClient,
-  ReceiveMessageCommand,
-  DeleteMessageCommand,
-} from "@aws-sdk/client-sqs";
-import { generateVendorOnboardedInvoice } from "./generateInvoice.js";
-import { generateAndStoreAgreement } from "./generateAgreement.js";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } from "@aws-sdk/client-sqs";
+import { generateBookingPaymentInvoice, generateVendorOnboardedInvoice } from "./generateInvoice.js";
 
 const sqs = new SQSClient({
   region: process.env.AWS_REGION,
@@ -20,6 +12,7 @@ const sqs = new SQSClient({
 const queueUrl =
   "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
+console.log("running")
 async function pollSQS() {
   console.log("Starting SQS polling service for invoicing and agreements...");
 
@@ -34,71 +27,27 @@ async function pollSQS() {
 
       const data = await sqs.send(command);
 
-      if (data.Messages) {
-        console.log(`Processing ${data.Messages.length} messages`);
+    if (data.Messages) {
+      for (const message of data.Messages) {
+        const body = JSON.parse(message.Body);
 
-        for (const message of data.Messages) {
-          const body = JSON.parse(message.Body);
-          const messageType = body.type;
+        try {
+          if (body.type === "vendorOnboarded") {
+            await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
 
-          console.log(`Processing message type: ${messageType}`);
-
-          try {
-            if (messageType === "vendorOnboarded") {
-              if (!body.customer || !body.paymentDetails) {
-                throw new Error(
-                  "Invalid vendorOnboarded message: missing customer or paymentDetails"
-                );
-              }
-
-              await generateVendorOnboardedInvoice(
-                body.customer,
-                body.paymentDetails
-              );
-              console.log(
-                "✅ Vendor onboarded invoice generated successfully."
-              );
-            } else if (messageType === "agreement") {
-              if (!body.serviceType || !body.vendorId || !body.agreementData) {
-                throw new Error(
-                  "Invalid agreement message: missing serviceType, vendorId, or agreementData"
-                );
-              }
-
-              await generateAndStoreAgreement(
-                body.serviceType,
-                body.vendorId,
-                body.agreementData
-              );
-              console.log("✅ Agreement generated successfully.");
-            } else {
-              console.error(
-                `Unknown message type: ${messageType}. Skipping message.`
-              );
-            }
-
-            const delCommand = new DeleteMessageCommand({
-              QueueUrl: queueUrl,
-              ReceiptHandle: message.ReceiptHandle,
-            });
-            await sqs.send(delCommand);
-          } catch (err) {
-            console.error(
-              `Processing failed for message type ${messageType}:`,
-              err
-            );
-
-            const delCommand = new DeleteMessageCommand({
-              QueueUrl: queueUrl,
-              ReceiptHandle: message.ReceiptHandle,
-            });
-            await sqs.send(delCommand);
+          } else {
+            await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
           }
+          
+          const delCommand = new DeleteMessageCommand({
+            QueueUrl: queueUrl,
+            ReceiptHandle: message.ReceiptHandle
+          });
+          await sqs.send(delCommand);
+        } catch (err) {
+          console.error("Invoice generation failed:", err);
         }
       }
-    } catch (error) {
-      console.error("SQS polling error:", error);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 }

@@ -17,7 +17,7 @@ const vendorSchema = new Schema({
   mobile: { type: String },
   email: { type: String },
   businessDetails: businessSchema,
-  bankDetails: { type: [bankDetailsSchema], default: [] }, // Embed bank details in the vendor schema
+  bankDetails: { type: [bankDetailsSchema], default: [] },
   profilePic: { type: String },
   invoices: { type: [String], default: [] },
   serviceIds: [
