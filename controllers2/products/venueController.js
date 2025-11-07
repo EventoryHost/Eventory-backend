@@ -19,65 +19,48 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
-// Normalize photos to {original, preview} format
-const normalizePhotos = (photos) => {
-  if (!photos) return [];
-  
-  if (Array.isArray(photos)) {
-    return photos.map((photo) => {
-      if (typeof photo === "object" && photo.original) {
-        return {
-          original: photo.original,
-          preview: photo.preview || photo.original,
-        };
-      }
-      if (typeof photo === "string") {
-        try {
-          const parsed = JSON.parse(photo);
-          if (parsed.original || parsed.preview) {
-            return {
-              original: parsed.original || parsed.preview,
-              preview: parsed.preview || parsed.original,
-            };
-          }
-        } catch (e) {
-          // Not JSON, treat as plain string
-        }
-        let previewUrl = photo;
-        if (photo.includes("/original-")) {
-          previewUrl = photo.replace("/original-", "/preview-");
-        } else if (photo.includes("original-")) {
-          previewUrl = photo.replace("original-", "preview-");
-        }
-        return { original: photo, preview: previewUrl };
-      }
-      return { original: String(photo), preview: String(photo) };
-    });
-  }
-  
-  if (typeof photos === "string") {
-    try {
-      const parsed = JSON.parse(photos);
-      if (parsed.original || parsed.preview) {
-        return [{
-          original: parsed.original || parsed.preview,
-          preview: parsed.preview || parsed.original,
-        }];
-      }
-    } catch (e) {
-      // Not JSON, treat as plain string
+// utils/normalizeMedia.js
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { }
     }
-    let previewUrl = photos;
-    if (photos.includes("/original-")) {
-      previewUrl = photos.replace("/original-", "/preview-");
-    } else if (photos.includes("original-")) {
-      previewUrl = photos.replace("original-", "preview-");
-    }
-    return [{ original: photos, preview: previewUrl }];
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
   }
-  
+  if (Array.isArray(input)) {
+    return input.map((it) => {
+      if (!it) return null;
+      if (typeof it === "string") return { original: it, preview: it };
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? { original, preview } : null;
+    }).filter(Boolean);
+  }
   return [];
-};
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
 
 const checkCompletion = (section) => {
     if (!section || typeof section !== "object") return false; // Validate input
@@ -134,37 +117,28 @@ const normalizeServiceName = (label) => {
 
 const createVenue = async (req, res) => {
   try {
-    // Check if the venue already exists for the given vendor ID
     if (!req.body.service_type && req.body.service_type_business) {
       req.body.service_type = req.body.service_type_business;
     }
 
-    const alreadyExists = await VenueProvider.findOne({
+    const dup = await VenueProvider.findOne({
       vendor_id: req.body.vendor_id,
       point_of_contact: req.body.point_of_contact,
     });
-    if (alreadyExists) {
-      return res
-        .status(400)
-        .json({ message: "Venue already exists for this vendor" });
-    } // Extract file URLs from the request
+    if (dup) return res.status(400).json({ message: "Venue already exists for this vendor" });
 
     const service_id = generateUniqueId("VNP");
-    const termsAndConditionsFileUrl = req.body.policies?.terms_and_conditions;
-    const cancellationPolicyFileUrl = req.body.policies?.cancellation_policy;
-    const insurancePolicyFileUrl = req.body.policies?.insurance_policy;
-    const asset_images = req.body.additional_details?.asset_images || [];
-    const asset_videos = req.body.additional_details?.asset_videos || []; // Fetch agreement data from temporary venue collection
-
-    const tempVenueData = await ReduxVenueProviderModel.findOne({
-      vendor_id: req.body.vendor_id,
-    });
+    // Agreements from temp redux model
+    const tempVenueData = await ReduxVenueProviderModel.findOne({ vendor_id: req.body.vendor_id });
     const agreementUrl = tempVenueData?.agreement_url || null;
     const agreementSignedAt = tempVenueData?.agreement_signed_at || null;
 
-    if (agreementUrl) {
-      console.log("Found agreement data for venue:", agreementUrl);
-    }
+    // Normalize media from either top-level or nested additional_details
+    const rawImages = req.body.asset_images ?? req.body.additional_details?.asset_images;
+    const rawVideos = req.body.asset_videos ?? req.body.additional_details?.asset_videos;
+
+    const asset_images = normalizePhotos(rawImages);   // [{ original, preview }]
+    const asset_videos = normalizeVideos(rawVideos);   // [string]
 
     const fieldsToCheck = [
         req.body.business_name,
@@ -225,13 +199,13 @@ const createVenue = async (req, res) => {
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
     const newVenue = new VenueProvider({
       vendor_id: req.body.vendor_id,
       service_type: req.body.service_type || "Venue-Provider",
       service_areas: req.body.service_areas || [],
-      service_id: service_id,
+      service_id,
 
-      // Business Details
       business_details: {
         business_name: req.body.business_name,
         business_email: req.body.business_email,
@@ -250,21 +224,19 @@ const createVenue = async (req, res) => {
         annual_bookings: req.body.annual_bookings,
         landmark: req.body.landmark || "",
         pincode: req.body.pincode,
-        service_id: service_id,
+        service_id,
         operational_cities: req.body.operational_cities || [],
       },
 
-      // Bank Details
       bank_details: {
         bank_name: req.body.bank_name,
         account_type: req.body.account_type,
         account_number: req.body.account_number,
         ifsc: req.body.ifsc,
-        service_id: service_id,
+        service_id,
         vendor_id: req.body.vendor_id,
       },
 
-      // Basic Details
       basic_details: {
         point_of_contact: req.body.point_of_contact,
         service_contact_number: req.body.service_contact_number,
@@ -275,7 +247,7 @@ const createVenue = async (req, res) => {
         service_type_details: req.body.service_type_details || [],
         event_types_venue: req.body.event_types_venue || [],
         service_location_venue: {
-          service_address: req.body.address, 
+          service_address: req.body.address,
           lat: req.body.lat,
           lon: req.body.lon,
           service_opening_time: req.body.service_opening_time,
@@ -285,24 +257,20 @@ const createVenue = async (req, res) => {
         },
       },
 
-      // Feature Details
       feature_details: {
         in_house_catering: req.body.in_house_catering,
         in_house_decoration: req.body.in_house_decoration,
         venue_types_available: req.body.venue_types_available || [],
         av_eqp_available_at_venue: req.body.av_eqp_available_at_venue || [],
-        accessibility_features_of_venue:
-          req.body.accessibility_features_of_venue || [],
-        restriction_policies_on_venue:
-          req.body.restriction_policies_on_venue || [],
+        accessibility_features_of_venue: req.body.accessibility_features_of_venue || [],
+        restriction_policies_on_venue: req.body.restriction_policies_on_venue || [],
         special_features_in_venue: req.body.special_features_in_venue || [],
         fascilities_at_venue: req.body.fascilities_at_venue || [],
       },
 
-      // Additional Details
       additional_details: {
-        asset_images: normalizePhotos(req.body.asset_images),
-        asset_videos: req.body.asset_videos || [],
+        asset_images,                                  // normalized [{original, preview}]
+        asset_videos,                                  // normalized [string]
         min_booking_period: req.body.min_booking_period,
         max_booking_period: req.body.max_booking_period,
         prices_starts_from: req.body.prices_starts_from,
@@ -310,68 +278,45 @@ const createVenue = async (req, res) => {
         web_social_link: req.body.web_social_link,
       },
 
-      // Policies
       policies: {
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
         agreement_url: agreementUrl,
         agreement_signed_at: agreementSignedAt,
       },
-      profile_completion_score: 0,
-    }); // Calculate profile completion
 
-    newVenue.profile_completion_score = profile_completion_score;
+      profile_completion_score,
+    });
 
-    const savedVenue = await newVenue.save(); // Link the venue to the vendor (user)
+    const savedVenue = await newVenue.save();
 
-    // Associate with vendor
+    // Vendor linking (unchanged)
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
       await VenueProvider.findByIdAndDelete(savedVenue._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    // Use the normalized label already determined earlier
     const serviceTypeLabel = req.body.service_type || "Venue Provider";
     const normalizedLabel = normalizeServiceName(serviceTypeLabel);
 
-    // 1) Make sure vendor.services contains the service_id once
     if (!Array.isArray(vendor.services)) vendor.services = [];
-    if (!vendor.services.includes(savedVenue.service_id)) {
-      vendor.services.push(savedVenue.service_id);
-    }
+    if (!vendor.services.includes(savedVenue.service_id)) vendor.services.push(savedVenue.service_id);
 
-    // 2) Update existing service_types element by service_name (case-insensitive)
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
-
     const idx = vendor.service_types.findIndex(
-      (st) =>
-        st &&
-        typeof st.service_name === "string" &&
-        st.service_name.toLowerCase() === normalizedLabel.toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
     );
-
-    const updatedEntry = {
-      service_name: normalizedLabel,
-      service_status: "Inactive",
-      service_id: savedVenue.service_id,
-    };
-
-    if (idx >= 0) {
-      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
-    } else {
-      vendor.service_types.push(updatedEntry);
-    }
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: savedVenue.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
-    
-    // Update section completion and profile completion
     await updateSectionCompletion(savedVenue.vendor_id);
-    process.env.IS_DEV !== "true" &&
-      sendEmailToSlack({
-        name: savedVenue.basic_details.venue_name,
-        type: savedVenue.service_type,
-      });
+
+    if (process.env.IS_DEV !== "true") {
+      await sendEmailToSlack({ name: savedVenue.basic_details.venue_name, type: savedVenue.service_type });
+    }
 
     res.status(201).json(savedVenue);
   } catch (error) {

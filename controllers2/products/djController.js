@@ -10,66 +10,55 @@ const getFileUrls = (files, fieldName) => {
   if (!fileArray) return [];
   return Array.isArray(fileArray) ? fileArray.map((f) => f.location) : [fileArray.location];
 };
-
-// Normalize photos to {original, preview} format
-const normalizePhotos = (photos) => {
-  if (!photos) return [];
-  
-  if (Array.isArray(photos)) {
-    return photos.map((photo) => {
-      if (typeof photo === "object" && photo.original) {
-        return {
-          original: photo.original,
-          preview: photo.preview || photo.original,
-        };
-      }
-      if (typeof photo === "string") {
-        try {
-          const parsed = JSON.parse(photo);
-          if (parsed.original || parsed.preview) {
-            return {
-              original: parsed.original || parsed.preview,
-              preview: parsed.preview || parsed.original,
-            };
-          }
-        } catch (e) {
-          // Not JSON, treat as plain string
-        }
-        let previewUrl = photo;
-        if (photo.includes("/original-")) {
-          previewUrl = photo.replace("/original-", "/preview-");
-        } else if (photo.includes("original-")) {
-          previewUrl = photo.replace("original-", "preview-");
-        }
-        return { original: photo, preview: previewUrl };
-      }
-      return { original: String(photo), preview: String(photo) };
-    });
-  }
-  
-  if (typeof photos === "string") {
-    try {
-      const parsed = JSON.parse(photos);
-      if (parsed.original || parsed.preview) {
-        return [{
-          original: parsed.original || parsed.preview,
-          preview: parsed.preview || parsed.original,
-        }];
-      }
-    } catch (e) {
-      // Not JSON, treat as plain string
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { }
     }
-    let previewUrl = photos;
-    if (photos.includes("/original-")) {
-      previewUrl = photos.replace("/original-", "/preview-");
-    } else if (photos.includes("original-")) {
-      previewUrl = photos.replace("original-", "preview-");
-    }
-    return [{ original: photos, preview: previewUrl }];
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
   }
-  
+  if (Array.isArray(input)) {
+    return input.flatMap((it) => {
+      if (!it) return [];
+      if (typeof it === "string") {
+        const s = it.trim();
+        if (s.startsWith("[") || s.startsWith("{")) {
+          try { return normalizePhotos(JSON.parse(s)); } catch { }
+        }
+        return [{ original: s, preview: s }];
+      }
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? [{ original, preview }] : [];
+    }).filter(Boolean);
+  }
   return [];
-};
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
+
+
 
 const normalizeServiceName = (label) => {
   if (!label) return label;
@@ -110,7 +99,7 @@ const updateSectionCompletion = async (vendor_id) => {
 
 const createDjArtist = async (req, res) => {
   try {
-    // Backward compatibility: allow service_type_business to set service_type
+    // Backward compatibility
     if (!req.body.service_type && req.body.service_type_business) {
       req.body.service_type = req.body.service_type_business;
     }
@@ -118,72 +107,58 @@ const createDjArtist = async (req, res) => {
     const { vendor_id } = req.body;
     if (!vendor_id) return res.status(400).json({ message: "vendor_id is required" });
 
-    // Check if DJ Artist already exists for this vendor
+    // Prevent duplicates
     const alreadyExists = await DjArtist.findOne({ vendor_id });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "DJ Artist already exists" });
-    }
+    if (alreadyExists) return res.status(400).json({ message: "DJ Artist already exists" });
 
-    // Generate service id
     const service_id = generateUniqueId("DJS");
 
-    // Pull agreement data from redux/temp model
+    // Agreements from redux/temp
     const temp = await DjArtistReduxModel.findOne({ vendor_id });
     const agreementUrl = temp?.agreement_url || null;
     const agreementSignedAt = temp?.agreement_signed_at || null;
 
-    // Files or body URLs
-    // Normalize images/videos from multiple possible payload shapes (files or urls)
-    const coerceToArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
-    const pickFirstNonEmpty = (...candidates) => {
-      for (const c of candidates) {
-        const arr = coerceToArray(c).filter(Boolean);
-        if (arr.length > 0) return arr;
-      }
-      return [];
-    };
-
-    const assetImages = pickFirstNonEmpty(
-      req.files ? getFileUrls(req.files, "asset_images") : [],
-      req.body.asset_images,
-      req.body["asset_images[]"],
-      req.body.photos,
-      req.body["photos[]"],
-    );
-    const assetVideos = pickFirstNonEmpty(
-      req.files ? getFileUrls(req.files, "asset_videos") : [],
-      req.body.asset_videos,
-      req.body["asset_videos[]"],
-      req.body.videos,
-      req.body["videos[]"],
-    );
-
-    // Normalize arrays
+    // Helpers
     const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    // AFTER
+    const rawImagesInput =
+      req.body.asset_images ??
+      req.body["asset_images[]"] ??
+      req.body.photos ??
+      req.body["photos[]"];
+
+    const asset_images = normalizePhotos(rawImagesInput);
+    // Pick raw value without wrapping, preserving JSON string if present
+    const rawVideosInput =
+      req.body.asset_videos ??
+      req.body["asset_videos[]"] ??
+      req.body.videos ??
+      req.body["videos[]"];
+
+    const asset_videos = normalizeVideos(rawVideosInput);
+
+    // Service label
+    const serviceTypeLabel = req.body.service_type || "DJ-Artist";
+    const normalizedLabel = normalizeServiceName(serviceTypeLabel) || "DJ-Artist";
 
     // Build document
-    const serviceTypeLabel = req.body.service_type || "DJ-Artist";
-    const normalizedLabel = normalizeServiceName(serviceTypeLabel);
-
     const doc = new DjArtist({
       vendor_id,
       service_id,
-      service_type: normalizedLabel || "DJ-Artist",
+      service_type: normalizedLabel,
       is_active: true,
       profile_completion_score: 0,
       service_areas: arr(req.body.service_areas),
 
-      // bank_details: accept nested when sent; else empty object
       bank_details: {
         bank_name: req.body.bank_name,
         account_type: req.body.account_type,
         account_number: req.body.account_number,
         ifsc: req.body.ifsc,
-        service_id: service_id,
-        vendor_id: vendor_id,
+        service_id,
+        vendor_id,
       },
 
-      // business_details: explicitly map the fields we expect
       business_details: {
         business_registration_name: req.body.business_registration_name || "",
         gst: req.body.gst || "",
@@ -198,7 +173,7 @@ const createDjArtist = async (req, res) => {
         operational_cities: arr(req.body.operational_cities),
         annual_revenue: req.body.annual_revenue || "",
         annual_bookings: req.body.annual_bookings ?? 0,
-        service_type: normalizedLabel || "DJ-Artist",
+        service_type: normalizedLabel,
         service_id,
       },
 
@@ -223,16 +198,13 @@ const createDjArtist = async (req, res) => {
       },
 
       additional_details: {
-        asset_images: normalizePhotos(assetImages.length > 0
-          ? assetImages
-          : (Array.isArray(req.body.photos) ? req.body.photos : (req.body.photos ? [req.body.photos] : []))),
-        asset_videos: assetVideos.length > 0
-          ? assetVideos
-          : (Array.isArray(req.body.videos) ? req.body.videos : (req.body.videos ? [req.body.videos] : [])),
+        asset_images,               // from normalizePhotos(rawImagesInput)
+        asset_videos,               // from normalizeVideos(rawVideosInput)
         ig_socials_link: req.body.ig_socials_link || "",
         web_social_link: req.body.web_social_link || "",
         prices_starts_from: Number(req.body.prices_starts_from ?? 0),
       },
+
 
       policies: {
         terms_and_conditions: arr(req.body.terms_and_conditions),
@@ -242,14 +214,14 @@ const createDjArtist = async (req, res) => {
       },
     });
 
-    // Compute profile completion percent similar to Venue
+    // Profile completion (uses normalized media)
     const fieldsToCheck = [
       // Meta
       vendor_id,
       req.body.service_type,
       arr(req.body.service_areas).length > 0,
 
-      // Business details
+      // Business
       req.body.business_registration_name,
       req.body.gst,
       req.body.verification_type,
@@ -264,7 +236,7 @@ const createDjArtist = async (req, res) => {
       req.body.annual_revenue,
       req.body.annual_bookings,
 
-      // Basic details
+      // Basic
       req.body.point_of_contact,
       req.body.service_contact_number,
       req.body.description,
@@ -274,15 +246,15 @@ const createDjArtist = async (req, res) => {
       req.body.service_pincode,
       req.body.google_map_link,
 
-      // Service details
+      // Service
       arr(req.body.event_types_dj).length > 0,
       arr(req.body.music_genres).length > 0,
       arr(req.body.regional_specializations).length > 0,
       arr(req.body.services_offered).length > 0,
 
-      // Additional details
-      assetImages.length > 0,
-      assetVideos.length > 0,
+      // Additional
+      asset_images.length > 0,
+      asset_videos.length > 0,
       req.body.prices_starts_from,
       req.body.ig_socials_link,
       req.body.web_social_link,
@@ -292,54 +264,38 @@ const createDjArtist = async (req, res) => {
       arr(req.body.cancellation_policy).length > 0,
     ];
     const completedFields = fieldsToCheck.filter(Boolean).length;
-    const profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-    doc.profile_completion_score = profile_completion_score;
+    doc.profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     const saved = await doc.save();
 
-    // Link to vendor
+    // Vendor link (idempotent)
     const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
       await DjArtist.findByIdAndDelete(saved._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.services = Array.isArray(vendor.services) ? vendor.services : [];
+    if (!Array.isArray(vendor.services)) vendor.services = [];
     if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
 
-    vendor.service_types = Array.isArray(vendor.service_types) ? vendor.service_types : [];
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
     const idx = vendor.service_types.findIndex(
-      (st) =>
-        st &&
-        typeof st.service_name === "string" &&
-        st.service_name.toLowerCase() === (normalizedLabel || "DJ-Artist").toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
     );
-
-    const updatedEntry = {
-      service_name: normalizedLabel || "DJ-Artist",
-      service_status: "Inactive",
-      service_id: saved.service_id,
-    };
-
-    if (idx >= 0) {
-      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
-    } else {
-      vendor.service_types.push(updatedEntry);
-    }
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
-
-    // Update section flags
     await updateSectionCompletion(saved.vendor_id);
 
-    // Notify
     if (process.env.IS_DEV !== "true") {
       try {
         await sendEmailToSlack({
           name: saved?.basic_details?.point_of_contact || "DJ-Artist",
           type: saved?.service_type || "DJ-Artist",
         });
-      } catch (_) { }
+      } catch { }
     }
 
     res.status(201).json(saved);
