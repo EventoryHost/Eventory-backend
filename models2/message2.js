@@ -33,6 +33,7 @@ const messageSchema = new Schema(
         "file",
         "approval_request",
         "order",
+        "system",
       ],
       required: true,
       default: "text",
