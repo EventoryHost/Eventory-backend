@@ -5,6 +5,31 @@ import propRental from "../models/props.js";
 import { Service } from "../models/services.js";
 import { Venue } from "../models/venue.js";
 import MakeupArtist from "../models/makeupArtists.js";
+import DjArtist from "../models/djArtist.js";
+
+const prefixToModelMap = {
+  cat: { Model: Caterer, vendorType: "caterer" },
+  dec: { Model: Decorator, vendorType: "decorator" },
+  mak: { Model: MakeupArtist, vendorType: "makeup" },
+  pav: { Model: Photographer, vendorType: "photographer" },
+  veu: { Model: Venue, vendorType: "venue" },
+  dj: { Model: DjArtist, vendorType: "dj" },
+  // future vendors can be added here (e.g., mc: { Model: MCAnchor, vendorType: "mc" })
+};
+function modelFromServiceId(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+
+  const lowerId = serviceId.toLowerCase();
+
+  // find the first matching prefix dynamically
+  for (const prefix of Object.keys(prefixToModelMap)) {
+    if (lowerId.startsWith(prefix)) {
+      return prefixToModelMap[prefix];
+    }
+  }
+
+  return null; // no matching vendor
+}
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
@@ -31,6 +56,9 @@ export const getService = async (req, res) => {
         break;
       case "Makeup-Artist":
         vendorData = await MakeupArtist.findOne({ id: vendorid });
+        break;
+      case "DJ-Vendor":
+        vendorData = await DjArtist.findOne({ id: vendorid });
         break;
       default:
         return res.status(400).json({ error: "Invalid vendor type" });
@@ -78,6 +106,7 @@ export const getVendorLimit = async (req, res) => {
       "Prop Rental": propRental,
       "Photographers & Videographers": Photographer,
       "Makeup Artist": MakeupArtist,
+      "DJ-Vendor": DjArtist,
     };
 
     model = vendorModels[vendortype];
@@ -143,6 +172,7 @@ export const addReviews = async (req, res) => {
       photographer: Photographer,
       propRental: propRental,
       makeupArtist: MakeupArtist,
+      djArtist: DjArtist,
     };
 
     const Model = models[type];
@@ -200,7 +230,7 @@ export const handleSearch = async (req, res) => {
     }
 
     const regex = new RegExp(`^${query}`, "i");
-    const [venues, caterers, decorators, propRentals, pav] = await Promise.all([
+    const [venues, caterers, decorators, propRentals, pav, makeupArtists,djVendors] = await Promise.all([
       Venue.find({ "basicDetails.name": regex }).select(
         "basicDetails.name vendorType id",
       ),
@@ -216,6 +246,12 @@ export const handleSearch = async (req, res) => {
       Photographer.find({ "basicDetails.name": regex }).select(
         "basicDetails.name vendorType id",
       ),
+      MakeupArtist.find({ "basicDetails.name": regex }).select(
+        "basicDetails.name vendorType id",
+      ),
+      DjArtist.find({ "basicDetails.name": regex }).select(
+        "basicDetails.name vendorType id",
+      )
     ]);
 
     const results = [
@@ -224,6 +260,8 @@ export const handleSearch = async (req, res) => {
       { serviceType: "Decorators", services: decorators },
       { serviceType: "Prop Rental", services: propRentals },
       { serviceType: "Photographers & Videographers", services: pav },
+      { serviceType: "Makeup-Artist", services: makeupArtists },
+      { serviceType: "DJ-Vendor", services: djVendors },
     ];
 
     const filteredResults = results.filter(
@@ -239,7 +277,7 @@ export const handleSearch = async (req, res) => {
 
 export const getServiceByServiceId = async (req, res) => {
   const { serviceType, serviceId } = req.params;
-  // console.log("📥 Received:", serviceType, serviceId);
+  console.log("📥 Received:", serviceType, serviceId);
 
   try {
     let serviceData;
@@ -264,6 +302,9 @@ export const getServiceByServiceId = async (req, res) => {
       case "Makeup-Artist":
         serviceData = await MakeupArtist.findOne({ id: serviceId });
         break;
+      case "DJ-Vendor":
+        serviceData = await DjArtist.findOne({ id: serviceId });
+        break;
       default:
         return res.status(400).json({ error: "Invalid service type" });
     }
@@ -278,5 +319,32 @@ export const getServiceByServiceId = async (req, res) => {
   } catch (error) {
     console.error("❌ Error fetching service:", error);
     return res.status(500).json({ error: "An error occurred: " + error.message });
+  }
+};
+
+
+export const updateScheduleColor = async (req, res) => {
+  const { serviceId, eventId } = req.params;
+  try {
+    const resolver = modelFromServiceId(serviceId);
+    if (!resolver) {
+      return res.status(400).json({ error: "Invalid serviceId prefix" });
+    }
+    const { Model } = resolver;
+
+    const updatedService = await Model.findOneAndUpdate(
+      { id: serviceId, "schedule.id": eventId },
+      { $set: { "schedule.$.color": "green" } },
+      { new: true }
+    ).lean();
+
+    if (!updatedService) {
+      return res.status(404).json({ error: "Service or schedule event not found" });
+    }
+
+    return res.status(200).json({ message: "Schedule event color updated", data: updatedService });
+  } catch (error) {
+    console.error("Error updating schedule color:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

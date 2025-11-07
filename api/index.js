@@ -38,6 +38,7 @@ import Vendor from "../routes/vendorRoutes.js";
 import finalOrders from "../routes/finalOrders.js";
 import agreementRoutes from "../routes/agreementRoutes.js";
 import couponRoutes from "../routes/couponRoutes.js"; 
+import mediaRoutes from "../routes/mediaRoutes.js";
 
 const app = express();
 const port = process.env.PORT;
@@ -102,7 +103,7 @@ app.use("/api/query", queryRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/about-email", aboutEmailRoutes);
 app.use("/api/files", fileRoutes);
-app.use("/api/quotations", quotationRoutes);
+app.use("/api/quotations", quotationRoutes(io));
 app.use("/api/chats", chatRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/Bookings", BookingRoutes);
@@ -119,6 +120,7 @@ app.use("/api/vendors", Vendor);
 app.use("/api", finalOrders);
 app.use("/api/agreements", agreementRoutes);
 app.use("/api/coupons", couponRoutes); 
+app.use("/api/media", mediaRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

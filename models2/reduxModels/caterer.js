@@ -45,7 +45,10 @@ const ReduxCatererSchema = new mongoose.Schema(
     // Additional Details (flattened from additional_details)
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },
-    asset_images: { type: [String] },
+    asset_images: [{
+      original: { type: String },
+      preview: { type: String }
+    }],
     asset_videos: { type: [String] },
     is_tasting_session_provided: { type: Boolean },
     is_business_license_available: { type: Boolean, default: false },

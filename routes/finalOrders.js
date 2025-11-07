@@ -3,6 +3,9 @@ import Order from "../models/finalOrders.js";
 import customerNotification from "../models/customerNotification.js";
 import vendorNotification from "../models/vendorNotification.js";
 import adminNotification from "../models/adminNotification.js";
+import { Quotation } from "../models/quotation.js";
+import { Customer } from "../models/customer.js";
+import Chat from "../models/chat.js";
 
 const router = express.Router();
 
@@ -57,7 +60,6 @@ const router = express.Router();
  *       400:
  *         description: Failed to process booking
  */
-
 
 router.post("/finalOrder", async (req, res) => {
   try {
@@ -131,7 +133,6 @@ router.get("/finalOrder", async (req, res) => {
  *         description: Order not found
  */
 
-
 // backend route to find status of approvals using quotationId
 router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
   const { id } = req.params;
@@ -175,7 +176,6 @@ router.get("/finalOrder/byQuotationId/:id", async (req, res) => {
  *         description: Server error
  */
 
-
 // Approve or mark as needs discussion
 router.put("/finalOrder/approve", async (req, res) => {
   console.log("🔵 Approve Route HIT");
@@ -217,21 +217,18 @@ router.put("/finalOrder/approve", async (req, res) => {
       const message = `✅ Final Order Approved by both Vendor and Customer. (Order ID: ${order.orderId})`;
 
       // Customer Notification
-      await customerNotification.findOneAndUpdate(
-        {
-          customerId: order.customerId,
-          orderId: order.orderId,
-          vendorId: order.vendorId,
-        },
-        {
-          $set: {
-            finalPrice: parsedFinalPrice,
-            checkoutURL,
-            message,
-            quotationId: order.quotationId,
-          },
-        },
-        { new: true, upsert: true }
+      await customerNotification.create({
+        customerId: order.customerId,
+        orderId: order.orderId,
+        vendorId: order.vendorId,
+        message,
+        quotationId: order.quotationId,
+        type: "order_approved",
+        checkoutURL,
+      });
+
+      console.log(
+        `Both parties agreed ...... Sending Agreed Notification 🥳🥳🥳🥳🥳🥳🥳`
       );
 
       // Vendor Notification
@@ -241,6 +238,8 @@ router.put("/finalOrder/approve", async (req, res) => {
         orderId: order.orderId,
         quotationId: order.quotationId,
         message,
+        serviceId: order.service_id,
+        type: "order_approved",
       });
 
       // Admin Notification
@@ -252,8 +251,9 @@ router.put("/finalOrder/approve", async (req, res) => {
         message,
       });
 
+      // ✅ Send response back to frontend
       return res.status(200).json({
-        message: `Both parties approved. Checkout link sent to customer.`,
+        message: "Final order approved by both parties.",
         data: order,
         checkoutURL,
       });
@@ -269,6 +269,8 @@ router.put("/finalOrder/approve", async (req, res) => {
         orderId: order.orderId,
         quotationId: order.quotationId,
         message,
+        serviceId: order.service_id,
+        type: "order_pending",
       });
 
       await adminNotification.create({
@@ -307,58 +309,100 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
     }
 
-    // 🟡 CASE 3: Only one party approved, temporarily allow checkout
-    const parsedFinalPrice = Number(
-      String(order.budget || order.finalPrice || 0).replace(/,/g, "")
-    );
+    // 🟡 CASE 3: Only one party approved (replace the old CASE 3 block with this)
+    if (
+      (approvals.customer === true && approvals.vendor !== true) ||
+      (approvals.vendor === true && approvals.customer !== true)
+    ) {
+      const parsedFinalPrice = Number(
+        String(order.budget || order.finalPrice || 0).replace(/,/g, "")
+      );
 
-    const checkoutURL =
-      order.finalURL ||
-      `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
+      const checkoutURL =
+        order.finalURL ||
+        `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendorId}&user_id=${order.customerId}&orderId=${order.orderId}`;
 
-    const message = `🟡 Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.orderId})`;
+      const message = `🟡 Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.orderId})`;
 
-    // Notify Vendor
-    await vendorNotification.create({
-      vendorId: order.vendorId,
-      customerId: order.customerId,
-      orderId: order.orderId,
-      quotationId: order.quotationId,
-      message,
-    });
-
-    // Notify Admin
-    await adminNotification.create({
-      vendorId: order.vendorId,
-      customerId: order.customerId,
-      orderId: order.orderId,
-      quotationId: order.quotationId,
-      message,
-    });
-
-    // Notify Customer
-    await customerNotification.findOneAndUpdate(
-      {
+      // ✅ Always notify admin
+      await adminNotification.create({
+        vendorId: order.vendorId,
         customerId: order.customerId,
         orderId: order.orderId,
-        vendorId: order.vendorId,
-      },
-      {
-        $set: {
-          finalPrice: parsedFinalPrice,
-          checkoutURL,
-          message,
-          quotationId: order.quotationId,
-        },
-      },
-      { new: true, upsert: true }
-    );
+        quotationId: order.quotationId,
+        message,
+      });
 
-    return res.status(200).json({
-      message: `Approval updated for ${userType}. Checkout link temporarily sent.`,
-      data: order,
-      checkoutURL,
-    });
+      // Normalize userType just in case (optional but safer)
+      const actor = String(userType).toLowerCase();
+
+      if (actor === "vendor") {
+        // Vendor approved -> notify CUSTOMER only (not vendor)
+        await customerNotification.findOneAndUpdate(
+          {
+            customerId: order.customerId,
+            orderId: order.orderId,
+            vendorId: order.vendorId,
+          },
+          {
+            $set: {
+              finalPrice: parsedFinalPrice,
+              checkoutURL,
+              message,
+              quotationId: order.quotationId,
+            },
+          },
+          { new: true, upsert: true }
+        );
+      } else if (actor === "customer") {
+        // Customer approved -> notify VENDOR only (not customer)
+        await vendorNotification.create({
+          vendorId: order.vendorId,
+          customerId: order.customerId,
+          orderId: order.orderId,
+          quotationId: order.quotationId,
+          message,
+          serviceId: order.service_id,
+          type: "order_pending",
+        });
+      } else {
+        // fallback (shouldn't normally happen) -> notify the opposite party based on approvals
+        if (approvals.vendor === true) {
+          await customerNotification.findOneAndUpdate(
+            {
+              customerId: order.customerId,
+              orderId: order.orderId,
+              vendorId: order.vendorId,
+            },
+            {
+              $set: {
+                finalPrice: parsedFinalPrice,
+                checkoutURL,
+                message,
+                quotationId: order.quotationId,
+              },
+            },
+            { new: true, upsert: true }
+          );
+        } else if (approvals.customer === true) {
+          await vendorNotification.create({
+            vendorId: order.vendorId,
+            customerId: order.customerId,
+            orderId: order.orderId,
+            quotationId: order.quotationId,
+            message,
+            serviceId: order.service_id,
+            type: "order_pending",
+          });
+        }
+      }
+
+      return res.status(200).json({
+        message: `Approval updated for ${userType}. Waiting for the other party.`,
+        data: order,
+        checkoutURL,
+      });
+    }
   } catch (error) {
     console.error("🔥 Approval update error:", error.message);
     return res
@@ -392,7 +436,6 @@ router.put("/finalOrder/approve", async (req, res) => {
  *       404:
  *         description: Booking not found
  */
-
 
 // Update an existing booking (using vendorId and orderId)
 router.put("/finalOrder/:orderId", async (req, res) => {
@@ -439,7 +482,6 @@ router.put("/finalOrder/:orderId", async (req, res) => {
  *         description: No bookings found
  */
 
-
 // Fetch all bookings for a vendor (by vendorId)
 router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
   try {
@@ -479,7 +521,6 @@ router.get("/finalOrder/vendor/:vendorId", async (req, res) => {
  *         description: No bookings found
  */
 
-
 // Fetch all bookings for a customer (by customerId)
 router.get("/finalOrder/customer/:customerId", async (req, res) => {
   try {
@@ -518,7 +559,6 @@ router.get("/finalOrder/customer/:customerId", async (req, res) => {
  *       404:
  *         description: Booking not found
  */
-
 
 // Fetch a specific booking by orderId
 router.get("/finalOrder/:orderId", async (req, res) => {

@@ -84,8 +84,21 @@ const OrderSchema = new mongoose.Schema(
       transactionId: { type: String },
       paymentStatus: {
         type: String,
-        enum: ["Paid", "Unpaid"],
+        enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
         default: "Unpaid",
+      },
+      customerPayable: {
+        total: { type: Number, default: 0 },
+        baseAmount: { type: Number, default: 0 },
+        convenienceFee: { type: Number, default: 0 },
+        taxOnConvenience: { type: Number, default: 0 },
+      },
+
+      vendorReceivable: {
+        total: { type: Number, default: 0 },
+        baseAmount: { type: Number, default: 0 },
+        commission: { type: Number, default: 0 },
+        taxOnCommission: { type: Number, default: 0 },
       },
     },
   },

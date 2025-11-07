@@ -6,8 +6,8 @@ import Photographer from "../../models/photographers.js";
 import { Vendor } from "../../models/users.js";
 import MakeupArtist from "../../models/makeupArtists.js";
 import DjArtist from "../../models/djArtist.js";
+import generateUniqueId from "../../utils/generateId.js";
 
-// A mapping object to dynamically select the model based on the category
 const vendorModels = {
   caterer: Caterer,
   decorator: Decorator,
@@ -81,31 +81,30 @@ const addBankDetails = async (req, res) => {
     const { vendorId } = req.params;
     const { bankName, accountName, accountNo, ifscCode } = req.body;
 
-    // Validate input fields
     if (!bankName || !accountName || !accountNo || !ifscCode) {
       return res
         .status(400)
         .json({ message: "All bank details fields are required" });
     }
 
-    // Find the vendor by ID
     const vendor = await Vendor.findOne({ id: vendorId });
 
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    // Ensure bankDetails is initialized
     if (!vendor.bankDetails) {
       vendor.bankDetails = [];
     }
 
-    // Add the new bank details
-    const newBankDetails = { bankName, accountName, accountNo, ifscCode };
+    const beneficiaryId = generateUniqueId("bene");
+
+    const newBankDetails = { bankName, accountName, accountNo, ifscCode, beneficiaryId, };
     vendor.bankDetails.push(newBankDetails);
 
-    // Save the updated vendor
+
     await vendor.save();
+    const updatedVendor = await Vendor.findOne({ id: vendorId });
 
     res.status(200).json({
       message: "Bank details added successfully",

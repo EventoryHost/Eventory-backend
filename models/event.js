@@ -10,7 +10,7 @@ export const eventSchema = new Schema({
     description: { type: String },
     color: {
         type: String,
-        enum: ["yellow", "green"], 
+        enum: ["yellow", "green", "teal", "orange", "indigo", "blue", "purple"], // updated
         default: "yellow",
     }, // Event color
     title: { type: String, required: true },

@@ -15,6 +15,66 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// Normalize photos to {original, preview} format
+const normalizePhotos = (photos) => {
+  if (!photos) return [];
+  
+  if (Array.isArray(photos)) {
+    return photos.map((photo) => {
+      if (typeof photo === "object" && photo.original) {
+        return {
+          original: photo.original,
+          preview: photo.preview || photo.original,
+        };
+      }
+      if (typeof photo === "string") {
+        try {
+          const parsed = JSON.parse(photo);
+          if (parsed.original || parsed.preview) {
+            return {
+              original: parsed.original || parsed.preview,
+              preview: parsed.preview || parsed.original,
+            };
+          }
+        } catch (e) {
+          // Not JSON, treat as plain string
+        }
+        let previewUrl = photo;
+        if (photo.includes("/original-")) {
+          previewUrl = photo.replace("/original-", "/preview-");
+        } else if (photo.includes("original-")) {
+          previewUrl = photo.replace("original-", "preview-");
+        }
+        return { original: photo, preview: previewUrl };
+      }
+      return { original: String(photo), preview: String(photo) };
+    });
+  }
+  
+  if (typeof photos === "string") {
+    try {
+      const parsed = JSON.parse(photos);
+      if (parsed.original || parsed.preview) {
+        return [{
+          original: parsed.original || parsed.preview,
+          preview: parsed.preview || parsed.original,
+        }];
+      }
+    } catch (e) {
+      // Not JSON, treat as plain string
+    }
+    let previewUrl = photos;
+    if (photos.includes("/original-")) {
+      previewUrl = photos.replace("/original-", "/preview-");
+    } else if (photos.includes("original-")) {
+      previewUrl = photos.replace("original-", "preview-");
+    }
+    return [{ original: photos, preview: previewUrl }];
+  }
+  
+  return [];
+};
+
 // Helper function to check if a section is complete
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false; // Validate input
@@ -236,9 +296,7 @@ const createPhotographer = async (req, res) => {
         delivery_timeline,
       },
       additional_details: {
-        asset_images: Array.isArray(asset_images)
-          ? asset_images
-          : [asset_images],
+        asset_images: normalizePhotos(asset_images),
         asset_videos: Array.isArray(asset_videos)
           ? asset_videos
           : [asset_videos],

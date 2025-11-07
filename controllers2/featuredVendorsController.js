@@ -37,7 +37,7 @@ async function getFeaturedVendors(req, res) {
       price: caterer.additional_details.prices_starts_from || "4000",
       category: caterer.service_type || ["Caterer"],
       img:
-        caterer.additional_details.asset_images[0] ||
+        (caterer.additional_details.asset_images?.[0]?.original || caterer.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -52,7 +52,7 @@ async function getFeaturedVendors(req, res) {
       price: decorator.additional_details.prices_starts_from  || "4000",
       category: decorator.service_type || ["Decorator"],
       img:
-        decorator.additional_details.asset_images[0] ||
+        (decorator.additional_details.asset_images?.[0]?.original || decorator.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -67,7 +67,7 @@ async function getFeaturedVendors(req, res) {
       price: venue.additional_details.prices_starts_from || "4000",
       category: venue.service_type || ["Venue"],
       img:
-        venue.additional_details.asset_images[0] ||
+        (venue.additional_details.asset_images?.[0]?.original || venue.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -82,7 +82,7 @@ async function getFeaturedVendors(req, res) {
       price: prop_rental.additional_details.prices_starts_from || "4000",
       category: prop_rental.service_type || ["Property Rental"],
       img:
-        prop_rental.additional_details.asset_images[0] ||
+        (prop_rental.additional_details.asset_images?.[0]?.original || prop_rental.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -97,7 +97,7 @@ async function getFeaturedVendors(req, res) {
       price: pav.additional_details.prices_starts_from || "4000",
       category: pav.service_type || ["Photography", "Videography"],
       img:
-        pav.additional_details.asset_images[0] ||
+        (pav.additional_details.asset_images?.[0]?.original || pav.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -112,7 +112,7 @@ async function getFeaturedVendors(req, res) {
       price: makeupArtist.additional_details.prices_starts_from || "4000",
       category: makeupArtist.service_type || ["Makeup Artist"],
       img:
-        makeupArtist.additional_details.asset_images[0] ||
+        (makeupArtist.additional_details.asset_images?.[0]?.original || makeupArtist.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 

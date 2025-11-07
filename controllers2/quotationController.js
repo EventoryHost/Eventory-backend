@@ -71,7 +71,7 @@ const createQuotation = async (req, res, io) => {
       service_id: savedQuotation.service_id,
       chat_id: savedQuotation.quotation_id,
       message: `New quotation request from ${savedQuotation.customer_name}`,
-      notification_type: "chat_message",
+      notification_type: 'chat_message',
     });
 
     await newNotification.save();

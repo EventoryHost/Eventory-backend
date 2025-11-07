@@ -1,7 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 const Schema = _Schema;
 import generateUniqueId from "../utils/generateId.js";
-import { eventSchema } from "./venue.js";
+import { eventSchema } from "./event.js";
 
 const makeupArtistSchema = Schema({
   type: { type: String, default: "makeupArtist" },
@@ -48,7 +48,10 @@ const makeupArtistSchema = Schema({
 
   additionalDetails: {
     completed: { type: Boolean, default: false }, // Flag for section completion
-    photos: { type: [String], required: true },
+    photos: [{ 
+      original: { type: String },
+      preview: { type: String }
+    }],
     videos: { type: [String], required: true },
     socialMedia: { type: String },
     websiteUrl: { type: String },

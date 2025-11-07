@@ -76,9 +76,10 @@ const decoratorServiceDetailsSchema = new mongoose.Schema({
   theme_elements_available: {
     type: [String]
   },
-  theme_portfolio_images: {
-    type: [String]
-  },
+  theme_portfolio_images: [{
+    original: { type: String },
+    preview: { type: String }
+  }],
   theme_portfolio_videos: {
     type: [String]
   }
@@ -90,10 +91,10 @@ const decoratorAdditionalDetailsSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  asset_images: {
-    type: [String],
-    required: true
-  },
+  asset_images: [{
+    original: { type: String },
+    preview: { type: String }
+  }],
   asset_videos: {
     type: [String],
     required: true

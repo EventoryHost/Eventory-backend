@@ -22,7 +22,10 @@ import {
   addFavourite,
   removeFavourite,
   getFavoriteServiceIds,
-  getBooking
+  getBooking,
+  removeQuotationFromCustomer,
+  addCustomerInvoice,
+  getActiveBooking
 } from "../controllers/customerController.js";
 
 const router = express.Router();
@@ -71,6 +74,15 @@ router.get("/get-fav-id/:cusId", getFavoriteServiceIds);
  *     tags: [Customer]
  */
 router.get("/get-booking/:cusId/:serId", getBooking);
+
+/**
+ * @swagger
+ * /api/customer/get-active-booking/{cusId}/{serId}:
+ *   get:
+ *     summary: Get active (non-rejected) bookings for a customer and service
+ *     tags: [Customer]
+ */
+router.get("/get-active-booking/:cusId/:serId", getActiveBooking);
 
 /**
  * @swagger
@@ -196,7 +208,10 @@ router.patch("/notifications/read/:notificationId", markNotificationAsRead);
  *     summary: Mark all customer notifications as read
  *     tags: [Notifications]
  */
-router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
+router.patch(
+  "/:customerId/customerNotifications/read-all",
+  markAllCustomerNotificationsAsRead
+);
 
 /**
  * @swagger
@@ -206,5 +221,9 @@ router.patch("/:customerId/customerNotifications/read-all", markAllCustomerNotif
  *     tags: [Customer]
  */
 router.get("/:id", getCustomerById);
+
+router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
+
+router.post("/add-customer-invoice", addCustomerInvoice);
 
 export default router;
