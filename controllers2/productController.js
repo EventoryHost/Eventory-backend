@@ -1185,8 +1185,6 @@ const searchDJArtists = async (query) => {
 };
 
 export const searchProducts = async (req, res, next) => {
-  console.log("--- Starting searchProducts function ---");
-  console.log("Received query parameters:", req.query);
   try {
     const { type, start_date, end_date } = req.query;
     let results;
@@ -1194,10 +1192,8 @@ export const searchProducts = async (req, res, next) => {
     const queryParams = { ...req.query };
     if (queryParams.location && queryParams.location.toLowerCase() === "all") {
       queryParams.location = "";
-      console.log("Location set to empty string for 'all'.");
     }
 
-    console.log("Processing with queryParams:", queryParams);
 
     const startDate = start_date ? new Date(start_date) : null;
     const endDate = end_date ? new Date(end_date) : null;
@@ -1210,34 +1206,26 @@ export const searchProducts = async (req, res, next) => {
       return res.status(400).json({ message: "Invalid date format." });
     }
 
-    console.log(`Switching on vendor type: ${type}`);
     switch (type) {
       case "all":
-        console.log("Calling searchAllVendors.");
         results = await searchAllVendors(queryParams);
         break;
       case "venues":
-        console.log("Calling searchVenues.");
         results = await searchVenues(queryParams);
         break;
       case "decorators":
-        console.log("Calling searchDecorators.");
         results = await searchDecorators(queryParams);
         break;
       case "caterers":
-        console.log("Calling searchCaterers.");
         results = await searchCaterers(queryParams);
         break;
       case "pav":
-        console.log("Calling searchPAV.");
         results = await searchPAV(queryParams);
         break;
       case "makeupartists":
-        console.log("Calling searchMakeupArtists.");
         results = await searchMakeupArtists(queryParams);
         break;
       case "djartists":
-        console.log("Calling searchDJArtists.");
         results = await searchDJArtists(queryParams);
         break;
 
@@ -1245,8 +1233,6 @@ export const searchProducts = async (req, res, next) => {
         console.error("Validation failed: Invalid product type.");
         return res.status(400).json({ message: "Invalid Product type." });
     }
-    console.log("Successfully retrieved results from search function.");
-    console.log("Number of initial results:", results?.data?.length);
 
     const { totalResults, totalPages, currentPage } = results;
     const data = results.data || [];
@@ -1259,9 +1245,6 @@ export const searchProducts = async (req, res, next) => {
         Array.isArray(item.schedule) &&
         (startDate || endDate)
       ) {
-        console.log(
-          `Checking availability for item #${index} with a schedule.`
-        );
         for (const scheduleItem of item.schedule) {
           if (!scheduleItem.start || !scheduleItem.end) continue;
 
@@ -1275,7 +1258,6 @@ export const searchProducts = async (req, res, next) => {
 
           if (itemStart < endDate && itemEnd > startDate) {
             isAvailable = false;
-            console.log(`Conflict found for item #${index}. Not available.`);
             break;
           }
         }
@@ -1286,10 +1268,6 @@ export const searchProducts = async (req, res, next) => {
         available: isAvailable,
       };
     });
-    console.log(
-      "Finished processing availability. Final size:",
-      modifiedData.length
-    );
 
     res.status(200).json({
       message: "Search results fetched successfully.",
@@ -1299,7 +1277,6 @@ export const searchProducts = async (req, res, next) => {
       currentPage,
       results: modifiedData,
     });
-    console.log("--- searchProducts function finished successfully. ---");
   } catch (e) {
     console.error("An unhandled error occurred in searchProducts:", e);
     res.status(500).json({

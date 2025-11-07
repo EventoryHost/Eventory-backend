@@ -33,7 +33,6 @@ function modelFromServiceId(serviceId) {
 
 export const getService = async (req, res) => {
   const { vendortype, vendorid } = req.params;
-  console.log(vendortype, vendorid);
   try {
     let vendorData;
 
@@ -150,20 +149,6 @@ export const addReviews = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    console.log(
-      "id : ",
-      id,
-      "date : ",
-      date,
-      "name : ",
-      name,
-      "photos : ",
-      photos,
-      "rating : ",
-      rating,
-      "type : ",
-      type,
-    );
 
     const models = {
       venue: Venue,
@@ -184,12 +169,10 @@ export const addReviews = async (req, res) => {
     if (!entity) {
       return res.status(404).json({ message: `${type} not found` });
     }
-    console.log("entity : ", entity);
 
     entity.reviews = entity.reviews || [];
     entity.reviews.push({ rating, name, feedback, photos, date });
 
-    console.log("entity : ", entity);
 
     await entity.save();
 
@@ -277,7 +260,6 @@ export const handleSearch = async (req, res) => {
 
 export const getServiceByServiceId = async (req, res) => {
   const { serviceType, serviceId } = req.params;
-  console.log("📥 Received:", serviceType, serviceId);
 
   try {
     let serviceData;

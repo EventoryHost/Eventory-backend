@@ -913,7 +913,6 @@ const searchDjArtists = async (query) => {
   const result = await DjArtist.aggregate(pipeline);
 
   // Helpful debug (remove in production or gate behind a debug flag)
-  console.log("searchDjArtists matchStage:", JSON.stringify(matchStage, null, 2));
   // console.log("searchDjArtists pipeline:", JSON.stringify(pipeline, null, 2));
 
   return result[0] || { data: [], totalResults: 0, totalPages: 0, currentPage: page };
@@ -924,7 +923,6 @@ const searchProducts = async (req, res, next) => {
   try {
     const { type, start_date, end_date } = req.query;
 
-    console.log(req.query);
     let results;
 
     if (req.query.location && req.query.location.toLowerCase() === "all") {
@@ -939,7 +937,6 @@ const searchProducts = async (req, res, next) => {
         results = await searchVenues(req.query);
         break;
       case "decorators":
-        console.log("decorators", req.query);
         results = await searchDecorators(req.query);
         break;
       case "caterers":
@@ -949,9 +946,7 @@ const searchProducts = async (req, res, next) => {
         results = await searchPAV(req.query);
         break;
       case "makeupartists":
-        console.log("hit");
         results = await searchMakeupArtists(req.query);
-        console.log("hit");
         break;
       case "djartists":
         results = await searchDjArtists(req.query);

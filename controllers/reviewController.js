@@ -19,14 +19,12 @@ async function updateVendorRating(serviceId, vendorType) {
   const VendorModel = vendorModels[vendorType];
   if (!VendorModel) return;
 
-  console.log(VendorModel);
 
   const result = await Review.aggregate([
     { $match: { serviceId } },
     { $group: { _id: "$serviceId", avgRating: { $avg: "$rating" } } },
   ]);
 
-  console.log(result);
 
   const avgRating =
     result.length > 0 ? parseFloat(result[0].avgRating.toFixed(1)) : 0;
@@ -77,7 +75,6 @@ export const getReviewsByVendor = async (req, res) => {
   try {
     const serviceId = req.query.serviceId;
 
-    console.log("Service ID:", serviceId);
 
     const reviews = await Review.find({ serviceId });
     return res.status(200).json({ reviews });

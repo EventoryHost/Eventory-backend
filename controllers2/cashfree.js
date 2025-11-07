@@ -81,7 +81,6 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    console.log("Payment verified:", payment);
     const formattedDetails = {
       invoiceNumber: payment.order_id,
       invoiceDate: new Date().toLocaleDateString(),
@@ -332,7 +331,6 @@ const verifyCustomerPayment = async (req, res) => {
     if (!ServiceModel) {
       return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
     }
-    console.log(ServiceModel)
 
     // Fetch the corresponding service document
     const serviceDoc = await ServiceModel.findOne({ service_id });

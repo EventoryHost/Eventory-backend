@@ -124,7 +124,6 @@ const updateVendor = async (req, res) => {
 
 const getVendor = async (req, res) => {
   try {
-    console.log("📥 Incoming request body:", req.body);
 
     let { email, vendorId, mobile } = req.body;
 
@@ -134,19 +133,15 @@ const getVendor = async (req, res) => {
 
     let vendor;
     if (vendorId) {
-      console.log("🔎 Searching by vendor_id:", vendorId);
       vendor = await Vendor.findOne({ vendor_id: vendorId });
     } else if (email) {
-      console.log("🔎 Searching by email_address:", email);
       vendor = await Vendor.findOne({ email_address: email });
     } else if (mobile) {
       mobile = "+91" + mobile;
-      console.log("🔎 Searching by vendor_mobile:", mobile);
       vendor = await Vendor.findOne({ vendor_mobile: mobile });
     }
 
     if (!vendor) {
-      console.log("❌ Vendor not found:", { email, vendorId, mobile });
       return res.status(404).json({ message: "Vendor not found." });
     }
 
@@ -207,7 +202,6 @@ const signUp = async (req, res) => {
         USERNAME: `+91${mobile}`,
       },
     };
-    console.log(signUpParams);
     const signUpCommand = new AdminInitiateAuthCommand(signUpParams);
     const data = await cognito.send(signUpCommand);
     return res.status(200).json({ message: "OTP sent", data });

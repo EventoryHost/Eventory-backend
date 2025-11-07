@@ -284,8 +284,6 @@ export const createBooking = async (req, res) => {
 export const getBooking = async (req, res) => {
   try {
     const { serId, venId } = req.query;
-    console.log("Received service ID:", serId);
-    console.log("Received vendor ID:", venId);
 
     if (!serId) {
       return res.status(400).json({ message: "Please provide service ID" });

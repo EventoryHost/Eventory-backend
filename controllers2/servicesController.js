@@ -53,8 +53,6 @@ export const getVendorLimit = async (req, res) => {
   const { vendor_type, vendor_id } = req.params;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 9;
-  console.log("🔥 Vendor type and ID:", vendor_type, vendor_id);
-  console.log(`vendor_type in lowercase is ${vendor_type.toLowerCase()}`);
 
   if (page == 0) {
   }
@@ -268,7 +266,6 @@ export const handleSearch = async (req, res) => {
 
 export const getServiceByServiceId = async (req, res) => {
   const { service_type, service_id } = req.params;
-  console.log("📥 Received:", service_type, service_id);
 
   try {
     let serviceData;
