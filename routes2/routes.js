@@ -14,6 +14,7 @@ import verificationRoutes from "../routes2/verificationRoutes.js";
 import BookingRoutes from "../routes2/bookingRoutes.js";
 import vendorEditRoutes from "../routes2/vendorEditRoutes.js";
 import serviceRouter from "../routes2/servicesRoutes.js";
+import mediaRoutes from "../routes2/mediaRoutes.js";
 import venueRouter from "../routes/venueRoutes.js";
 import featuredVendorsRoutes from "../routes2/featuredVendorsRoutes.js";
 import customerRoutes from "../routes2/customerRoutes.js";
@@ -55,6 +56,7 @@ router.use("/chats", chatRoutes);
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);
+router.use("/media", mediaRoutes);
 
 // router.use("/venue", venueRouter);
 router.use("/featured-vendors", featuredVendorsRoutes);

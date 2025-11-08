@@ -4,6 +4,7 @@ import APIFeatures from "../utils/apiFeatures.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers2/waController.js"; // New import
 import CustomerNotification from "../models2/customerNotifications.js";
 import vendorNotification from "../models2/vendorNotifications.js";
+import Message2 from "../models2/message2.js";
 
 // Create a new quotation
 const createQuotation = async (req, res, io) => {
@@ -32,18 +33,15 @@ const createQuotation = async (req, res, io) => {
         .json({ error: "Number of Guests must be a valid number." });
     }
 
-    // Check if a quotation already exists for this service from the same customer
+    // ❌ Prevent duplicate quotations from same customer for same service
     const existingQuotation = await Quotations.findOne({
       customer_id,
       service_id,
     });
     if (existingQuotation) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Quotation already created for this service by this customer.",
-        });
+      return res.status(400).json({
+        message: "Quotation already created for this service by this customer.",
+      });
     }
 
     const newQuotation = new Quotations({
@@ -67,16 +65,33 @@ const createQuotation = async (req, res, io) => {
 
     const savedQuotation = await newQuotation.save();
 
-     // 🧠 Create notification for vendor
+    // 🧠 Create notification for vendor
     const newNotification = new vendorNotification({
       vendor_id: savedQuotation.vendor_id,
       service_id: savedQuotation.service_id,
       chat_id: savedQuotation.quotation_id,
       message: `New quotation request from ${savedQuotation.customer_name}`,
       notification_type: 'chat_message',
-    })
+    });
 
     await newNotification.save();
+
+    // ✅ Create Chat immediately between Admin & Customer (Vendor can join later)
+    const existingChat = await Chat2.findOne({
+      customer_id,
+      vendor_id,
+      service_id,
+    });
+
+    if (!existingChat) {
+      await Chat2.create({
+        chat_id: savedQuotation.quotation_id, // Same ID for linkage
+        customer_id,
+        vendor_id,
+        service_id,
+        em_id: "admin-rm", // or your admin identifier
+      });
+    }
 
     if (io) {
       io.to(`vendor-${savedQuotation.vendor_id}`).emit(
@@ -118,7 +133,7 @@ const getQuotationsByVendorId = async (req, res) => {
       return res.status(400).json({ message: "service_id is required" });
     }
 
-    const quotations = await Quotations.find({ vendor_id,service_id });
+    const quotations = await Quotations.find({ vendor_id, service_id });
 
     if (quotations.length === 0) {
       return res
@@ -163,64 +178,144 @@ const getAllQuotations = async (req, res) => {
 const updateQuotationStatus = async (req, res) => {
   try {
     const { quotation_id, quote_status } = req.body;
-
-    console.log(req.body);
     if (!quotation_id || !quote_status) {
+      console.log("⚠️ Missing required fields: quotation_id or quote_status");
       return res
         .status(400)
         .json({ message: "quotation_id and quote_status are required" });
     }
 
+    // Update quotation
+    console.log("🔄 Attempting to update quotation status in DB...");
     const updatedQuotation = await Quotations.findOneAndUpdate(
       { quotation_id },
       { $set: { quote_status } },
-      { new: true } // Return the updated document
+      { new: true }
     );
 
     if (!updatedQuotation) {
+      console.log("❌ No quotation found for ID:", quotation_id);
       return res.status(404).json({ message: "Quotation not found" });
     }
 
-    if (updatedQuotation.quote_status === "Accepted") {
-      console.log(`This ran ${updatedQuotation.quote_status}`);
-      const { customer_id, vendor_id, service_id } = updatedQuotation;
-      const existingChat = await Chat2.findOne({
+    console.log("✅ Quotation status updated successfully:", {
+      quotation_id,
+      new_status: updatedQuotation.quote_status,
+    });
+
+    const { customer_id, vendor_id, service_id } = updatedQuotation;
+    console.log("ℹ️ Extracted IDs:", { customer_id, vendor_id, service_id });
+
+    // Find or create chat for this vendor-customer-service combo
+    console.log("🔍 Checking for existing chat...");
+    let existingChat = await Chat2.findOne({
+      customer_id,
+      vendor_id,
+      service_id,
+    });
+
+    if (existingChat) {
+      console.log("✅ Existing chat found:", existingChat.chat_id);
+    } else if (!existingChat && quote_status === "Accepted") {
+      console.log("🆕 No existing chat found. Creating new one...");
+      existingChat = await Chat2.create({
+        chat_id: quotation_id,
         customer_id,
         vendor_id,
         service_id,
+        em_id: "admin-rm",
+      });
+      console.log("✅ New chat created:", existingChat.chat_id);
+    } else {
+      console.log("⚠️ Chat not created — status is not 'Accepted'");
+    }
+
+    // --- Prepare system message based on status ---
+    let messageContent = "";
+    if (quote_status === "Accepted") {
+      messageContent = "✅ Vendor accepted the quotation and joined the chat.";
+    } else if (quote_status === "Rejected") {
+      messageContent = "❌ Vendor rejected the quotation.";
+    }
+
+    // --- Insert system message if applicable ---
+    if (messageContent && existingChat?.chat_id) {
+      console.log("💬 Inserting system message:", messageContent);
+      await Message2.create({
+        chat_id: existingChat.chat_id,
+        sender: "em", // 'em' means system/admin message
+        sender_id: "system",
+        message_type: "system",
+        message_content: messageContent,
       });
 
-      console.log(`Is chat exist ${existingChat}`);
-
-      if (!existingChat) {
-        await Chat2.create({
-          chat_id: quotation_id,
-          customer_id,
-          vendor_id,
-          service_id,
-          em_id: "admin-rm",
-        });
+      // Update timestamps in chat
+      if (typeof existingChat.updateLastMessage === "function") {
+        console.log("🕓 Updating chat timestamps via instance method...");
+        await existingChat.updateLastMessage();
+      } else {
+        console.log(
+          "🕓 Instance method missing — manually updating timestamps..."
+        );
+        await Chat2.updateOne(
+          { chat_id: existingChat.chat_id },
+          {
+            $set: {
+              last_message_updated_at: new Date(),
+              chat_updated_at: new Date(),
+            },
+          }
+        );
       }
-      //Notification for the customer which tells him that the quotation has been accepted by vendor
-      const customerNotification = await CustomerNotification.create({
+      console.log("✅ System message and timestamp updates complete.");
+    } else {
+      console.log(
+        "⚠️ No system message inserted (messageContent or chat missing)."
+      );
+    }
+
+    // --- Create Customer Notification ---
+    if (quote_status === "Accepted") {
+      console.log("📩 Creating customer notification for Accepted status...");
+      await CustomerNotification.create({
         customer_id,
         quotation_id,
-        chat_id: quotation_id,
+        chat_id: existingChat?.chat_id || quotation_id,
         notification_type: "chat_message",
-        message: "Your quotation has been accepted by the vendor. You can now start a conversation with them in the Quotations tab.",
+        message:
+          "Your quotation has been accepted by the vendor. You can now start chatting in the Quotations tab.",
         read: false,
         updated_at: new Date().toISOString(),
       });
-
-      console.log(customerNotification);
-
+      console.log("✅ Customer notification created (Accepted).");
+    } else if (quote_status === "Rejected") {
+      console.log("📩 Creating customer notification for Rejected status...");
+      await CustomerNotification.create({
+        customer_id,
+        quotation_id,
+        chat_id: existingChat?.chat_id || quotation_id,
+        notification_type: "chat_message",
+        message:
+          "Your quotation has been rejected by the vendor. You can view details in the Quotations tab.",
+        read: false,
+        updated_at: new Date().toISOString(),
+      });
+      console.log("✅ Customer notification created (Rejected).");
+    } else {
+      console.log(
+        "ℹ️ No customer notification needed for status:",
+        quote_status
+      );
     }
 
+    // --- Final Response ---
+    console.log("🎯 Quotation update process completed successfully!");
     res.status(200).json({
       message: "Quotation updated successfully!",
       data: updatedQuotation.quote_status,
     });
   } catch (error) {
+    console.error("❌ Error updating quotation:", error);
     res.status(500).json({
       message: "Error updating quotation",
       error: error.message,
@@ -332,7 +427,6 @@ const deleteQuotation = async (req, res) => {
   }
 };
 
-
 export {
   createQuotation,
   getQuotationsByVendorId,
@@ -340,5 +434,5 @@ export {
   updateQuotationStatus,
   getQuotationById,
   getQuotations,
-  deleteQuotation
+  deleteQuotation,
 };

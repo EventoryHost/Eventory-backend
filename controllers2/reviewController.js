@@ -4,6 +4,7 @@ import VenueProvider from "../models2/venueProvider.js";
 import Caterer from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
 import MakeupArtist from "../models2/makeupArtist.js";
+import DjArtist from "../models2/djArtist.js";
 
 const vendorModels = {
   venue_provider: VenueProvider,
@@ -11,6 +12,7 @@ const vendorModels = {
   photographer_videographer: PhotographerVideographer,
   decorator: Decorator,
   makeupartist: MakeupArtist,
+  djartists: DjArtist,
 };
 
 const normalizeType = (t = "") => {
@@ -21,6 +23,7 @@ const normalizeType = (t = "") => {
   if (["makeup", "makeup-artist", "makeup artist", "makeup_artist", "makeupartist"].includes(t)) return "makeupartist";
   if (["caterer"].includes(t)) return "caterer";
   if (["decorator"].includes(t)) return "decorator";
+  if (["dj", "dj-artist", "dj artist", "dj_artist", "djartists"].includes(t)) return "djartists"; // OK
   return t;
 };
 

@@ -15,6 +15,75 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// utils/normalizeMedia.js
+export function normalizePhotos(input) {
+  // Always returns [{ original, preview }]
+  if (!input) return [];
+
+  // If FormData sent JSON string
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizePhotos(parsed);
+      } catch {
+        // CSV of URLs fallback
+        return trimmed.split(",")
+          .map(s => s.trim()).filter(Boolean)
+          .map(u => ({ original: u, preview: u }));
+      }
+    }
+    // Single URL string
+    return [{ original: input, preview: input }];
+  }
+
+  // If already an array
+  if (Array.isArray(input)) {
+    return input.map((item) => {
+      if (!item) return null;
+
+      // Plain URL string
+      if (typeof item === "string") return { original: item, preview: item };
+
+      // If original/preview are incorrectly json-stringified arrays, unwrap first entry
+      const safe = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+
+      const original = safe(item.original) || safe(item.url) || "";
+      const preview = safe(item.preview) || original;
+      return original ? { original, preview } : null;
+    }).filter(Boolean);
+  }
+
+  // If weird shape (e.g., object with 0,1,2 keys from bracket fields), try to flatten known patterns
+  return [];
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try {
+      const parsed = JSON.parse(input);
+      return normalizeVideos(parsed);
+    } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) {
+    return input.map(v => String(v)).filter(Boolean);
+  }
+  return [];
+}
+
 // Helper function to check if a section is complete
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false; // Validate input
@@ -101,6 +170,17 @@ const updateSectionCompletion = async (id) => {
   }
 };
 
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  return label;
+};
+
 const createPhotographer = async (req, res) => {
   try {
     const service_id = generateUniqueId("PAV");
@@ -153,10 +233,16 @@ const createPhotographer = async (req, res) => {
       terms_and_conditions,
     } = req.body;
 
-    // Fetch agreement data from temporary PAV collection
-    const tempPAVData = await ReduxPhotographerVideographerModel.findOne({
-      vendor_id: req.body.vendor_id,
-    });
+    // Normalize media
+    const images = normalizePhotos(asset_images);     // [{ original, preview }]
+    const videos = normalizeVideos(asset_videos);     // string[]
+
+    // Optional: guard
+    if (!images.length) return res.status(400).json({ message: "At least one photo is required" });
+    if (!videos.length) return res.status(400).json({ message: "At least one video is required" });
+
+    // Agreement from redux temp
+    const tempPAVData = await ReduxPhotographerVideographerModel.findOne({ vendor_id: req.body.vendor_id });
     const agreement_url = tempPAVData?.agreement_url || " ";
     const agreement_signed_at = tempPAVData?.agreement_signed_at || new Date();
 
@@ -236,18 +322,15 @@ const createPhotographer = async (req, res) => {
         delivery_timeline,
       },
       additional_details: {
-        asset_images: Array.isArray(asset_images)
-          ? asset_images
-          : [asset_images],
-        asset_videos: Array.isArray(asset_videos)
-          ? asset_videos
-          : [asset_videos],
+        asset_images: images,          // [{ original, preview }]
+        asset_videos: videos,          // [string]
         min_booking_period,
         max_booking_period,
         prices_starts_from,
         ig_socials_link,
         web_social_link,
       },
+
       policies: {
         cancellation_policy,
         terms_and_conditions,
@@ -292,31 +375,49 @@ const createPhotographer = async (req, res) => {
       newPAV.policies.agreement_signed_at,
     ];
 
-    const completedFields = fieldsToCheck.filter((field) => !!field).length;
-    newPAV.profile_completion_score =
-      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+    const completed = fieldsToCheck.filter(Boolean).length;
+    newPAV.profile_completion_score = Math.round((completed / fieldsToCheck.length) * 100) || 0;
 
     const savedPAV = await newPAV.save();
 
+    // Vendor linking, normalized label
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      await PhotographerVideographer.findByIdAndDelete(savedPAV.vendor_id);
+      await PhotographerVideographer.findByIdAndDelete(savedPAV._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.services.push(savedPAV.service_id);
-    vendor.service_types.push({
-      "service_name" : "Photographer-Videographer",
-      "service_status" : "Inactive",
-      "service_id" : savedPAV.service_id
-    })
+    const normalizedLabel = normalizeServiceName("Photographer & Videographer");
+
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(savedPAV.service_id)) vendor.services.push(savedPAV.service_id);
+
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+    const idx = vendor.service_types.findIndex(
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+    );
+
+    const updatedEntry = {
+      service_name: normalizedLabel,
+      service_status: "Inactive",
+      service_id: savedPAV.service_id,
+    };
+
+    if (idx >= 0) {
+      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    } else {
+      vendor.service_types.push(updatedEntry);
+    }
+
     await vendor.save();
     await updateSectionCompletion(savedPAV.vendor_id);
-    process.env.IS_DEV !== "true" &&
-      sendEmailToSlack({
+
+    if (process.env.IS_DEV !== "true") {
+      await sendEmailToSlack({
         name: savedPAV.business_details.business_registration_name,
         type: savedPAV.service_type,
       });
+    }
 
     res.status(201).json(savedPAV);
   } catch (error) {
@@ -329,14 +430,20 @@ const getAllPav = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
-
     const skip = (page - 1) * itemsPerPage;
 
-    const pav = await PhotographerVideographer.find()
-      .skip(skip)
-      .limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totalpav = await PhotographerVideographer.countDocuments();
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [pav, totalpav] = await Promise.all([
+      PhotographerVideographer.find(filter).skip(skip).limit(itemsPerPage),
+      PhotographerVideographer.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       data: pav,
@@ -348,6 +455,7 @@ const getAllPav = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 
 const getPhotographerById = async (req, res) => {
   try {

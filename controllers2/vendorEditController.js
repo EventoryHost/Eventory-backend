@@ -26,6 +26,66 @@ import { Customer } from "../models2/customer.js";
 
 import { getServiceModel } from "../utils/serviceMapper.js";
 
+// Normalize photos to {original, preview} format
+const normalizePhotos = (photos) => {
+  if (!photos) return [];
+  
+  if (Array.isArray(photos)) {
+    return photos.map((photo) => {
+      if (typeof photo === "object" && photo.original) {
+        return {
+          original: photo.original,
+          preview: photo.preview || photo.original,
+        };
+      }
+      if (typeof photo === "string") {
+        try {
+          const parsed = JSON.parse(photo);
+          if (parsed.original || parsed.preview) {
+            return {
+              original: parsed.original || parsed.preview,
+              preview: parsed.preview || parsed.original,
+            };
+          }
+        } catch (e) {
+          // Not JSON, treat as plain string
+        }
+        let previewUrl = photo;
+        if (photo.includes("/original-")) {
+          previewUrl = photo.replace("/original-", "/preview-");
+        } else if (photo.includes("original-")) {
+          previewUrl = photo.replace("original-", "preview-");
+        }
+        return { original: photo, preview: previewUrl };
+      }
+      return { original: String(photo), preview: String(photo) };
+    });
+  }
+  
+  if (typeof photos === "string") {
+    try {
+      const parsed = JSON.parse(photos);
+      if (parsed.original || parsed.preview) {
+        return [{
+          original: parsed.original || parsed.preview,
+          preview: parsed.preview || parsed.original,
+        }];
+      }
+    } catch (e) {
+      // Not JSON, treat as plain string
+    }
+    let previewUrl = photos;
+    if (photos.includes("/original-")) {
+      previewUrl = photos.replace("/original-", "/preview-");
+    } else if (photos.includes("original-")) {
+      previewUrl = photos.replace("original-", "preview-");
+    }
+    return [{ original: photos, preview: previewUrl }];
+  }
+  
+  return [];
+};
+
 // 1. Update vendor-level fields + service_types
 export const updateVendorAndService = async (req, res) => {
   const { serviceId } = req.params;
@@ -173,6 +233,20 @@ export const updateServiceDetails = async (req, res) => {
   console.log(
     `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`
   );
+
+  // Normalize photos in updateData if present
+  if (updateData["additional_details.asset_images"]) {
+    updateData["additional_details.asset_images"] = normalizePhotos(updateData["additional_details.asset_images"]);
+  }
+  if (updateData["theme_details.theme_portfolio_images"]) {
+    updateData["theme_details.theme_portfolio_images"] = normalizePhotos(updateData["theme_details.theme_portfolio_images"]);
+  }
+  if (updateData.additional_details?.asset_images) {
+    updateData.additional_details.asset_images = normalizePhotos(updateData.additional_details.asset_images);
+  }
+  if (updateData.theme_details?.theme_portfolio_images) {
+    updateData.theme_details.theme_portfolio_images = normalizePhotos(updateData.theme_details.theme_portfolio_images);
+  }
 
   try {
     const vendor = await Vendor.findOne({ services: serId });
@@ -357,6 +431,8 @@ export const updateServiceDetails = async (req, res) => {
       case "pav":
       case "photographer-videographer":
       case "photographer videographer":
+      case "photographer & videographer":     
+      case "photographer&videographer":  
         updatedService = await Photographer.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
@@ -633,6 +709,8 @@ export const serviceFields = {
 // Add aliases for service types
 serviceFields["photographer-videographer"] = serviceFields.pav;
 serviceFields["photographer videographer"] = serviceFields.pav;
+serviceFields["photographer & videographer"] = serviceFields.pav;
+serviceFields["photographer&videographer"] = serviceFields.pav;
 serviceFields["dj-artist"] = serviceFields.djArtist;
 serviceFields["djartist"] = serviceFields.djArtist;
 serviceFields["dj"] = serviceFields.djArtist;
@@ -818,6 +896,8 @@ const checkVerification = (service, serType) => {
     case "pav":
     case "photographer-videographer":
     case "photographer videographer":
+    case "photographer & videographer":     
+    case "photographer&videographer":  
       fieldsToCheck = [
         // business_details field
         // { path: "business_details.business_name", label: "Business Name" },

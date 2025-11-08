@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const ReduxDjArtistSchema = new mongoose.Schema(
   {
     // Basic Service Information
-    service_id: { type: String, unique: true },
+    service_id: { type: String },
     vendor_id: { type: String },
     service_type: { type: String, default: "DJ-Artist" },
     pageNumber: { type: Number, default: 1 },
@@ -30,7 +30,10 @@ const ReduxDjArtistSchema = new mongoose.Schema(
     services_offered: { type: [String] },
 
     // Additional Details (flattened from additional_details)
-    asset_images: { type: [String] },
+    asset_images: [{
+      original: { type: String },
+      preview: { type: String }
+    }],
     asset_videos: { type: [String] },
     ig_socials_link: { type: String },
     web_social_link: { type: String },

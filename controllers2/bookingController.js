@@ -44,8 +44,6 @@ export const createBooking = async (req, res) => {
 export const getBooking = async (req, res) => {
   try {
     const { service_id, vendor_id } = req.query;
-    console.log("Received service ID:", service_id);
-    console.log("Received vendor ID:", vendor_id);
 
     if (!service_id) {
       return res.status(400).json({ message: "Please provide service ID" });
@@ -193,7 +191,6 @@ export const editOfflineEvent = async (req, res) => {
   try {
     const { event_id, updatedEventData } = req.body;
 
-    console.log("Received Data:", req.body);
 
     // Validation
     if ( !event_id || !updatedEventData) {
@@ -227,7 +224,6 @@ export const editOfflineEvent = async (req, res) => {
 export const deleteOfflineEvent = async (req, res) => {
   try {
     const { event_id } = req.body; // Extract parameters
-    console.log("Received Data:", req.body); 
 
     if (!event_id) {
       return res
@@ -307,7 +303,7 @@ export const getBookingById = async (req, res) => {
      } else if (sid.startsWith("MKA")) {
        const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
        serviceModel = MakeupArtist;
-     } else if (sid.startsWith("DJ")) {
+     } else if (sid.startsWith("DJS")) {
        const { default: DjArtist } = await import("../models2/djArtist.js");
        serviceModel = DjArtist;
      } else if (sid.startsWith("PRO")) {

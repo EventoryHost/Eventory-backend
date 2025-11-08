@@ -50,7 +50,7 @@ const createOrder = async (req, res) => {
         customer_phone: customer_details.phone,
       },
     };
-    
+
     const response = await cashfree.PGCreateOrder(request);
 
     return res.json(response.data);
@@ -81,7 +81,6 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    console.log("Payment verified:", payment);
     const formattedDetails = {
       invoiceNumber: payment.order_id,
       invoiceDate: new Date().toLocaleDateString(),
@@ -314,7 +313,7 @@ const verifyCustomerPayment = async (req, res) => {
       payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
       if (payoutAmount < 0) payoutAmount = 0;
     }
-   
+
     const vendorDoc = await Vendor.findOne({ vendor_id });
     if (!vendorDoc) {
       return res.status(404).json({ error: "Vendor not found" });
@@ -332,7 +331,6 @@ const verifyCustomerPayment = async (req, res) => {
     if (!ServiceModel) {
       return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
     }
-    console.log(ServiceModel)
 
     // Fetch the corresponding service document
     const serviceDoc = await ServiceModel.findOne({ service_id });
@@ -588,7 +586,7 @@ const verifyCustomerPayment = async (req, res) => {
         customer_name: "Pending Customer",
         description: "Pending description",
         payment_method: "online",
-        payment_status:"advance_paid",
+        payment_status: "advance_paid",
         // paymentStatus: "Pending",
         final_guest_count: 0,
         // serviceName: "Pending Service Name",

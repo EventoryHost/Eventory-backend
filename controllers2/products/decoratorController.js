@@ -18,6 +18,49 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+// utils/normalizeMedia.js
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { }
+    }
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+  }
+  if (Array.isArray(input)) {
+    return input.map((it) => {
+      if (!it) return null;
+      if (typeof it === "string") return { original: it, preview: it };
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? { original, preview } : null;
+    }).filter(Boolean);
+  }
+  return [];
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
+
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false; // Validate input
 
@@ -67,28 +110,35 @@ const updateSectionCompletion = async (vendorId) => {
     throw error;
   }
 };
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  return label;
+};
 
 const createDecorator = async (req, res) => {
   try {
-    // Check for existing decorator
-    const alreadyExists = await Decorator.findOne({
-      vendor_id: req.body.vendor_id,
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Decorator already exists" });
-    }
+    // Prevent duplicates per vendor
+    const exists = await Decorator.findOne({ vendor_id: req.body.vendor_id });
+    if (exists) return res.status(400).json({ message: "Decorator already exists" });
 
     const service_id = generateUniqueId("DECO");
 
-    const tempVenueData = await ReduxDecoratorModel.findOne({
-      vendor_id: req.body.vendor_id,
-    });
-    const agreementUrl = tempVenueData?.agreement_url || " ";
-    const agreementSignedAt = tempVenueData?.agreement_signed_at || new Date();
+    // Agreements from temp redux model
+    const temp = await ReduxDecoratorModel.findOne({ vendor_id: req.body.vendor_id });
+    const agreementUrl = temp?.agreement_url || " ";
+    const agreementSignedAt = temp?.agreement_signed_at || new Date();
 
-    if (agreementUrl) {
-      console.log("Found agreement data for venue:", agreementUrl);
-    }
+    // Normalize media: accept JSON strings, arrays of objects/strings, CSV
+    const theme_portfolio_images = normalizePhotos(req.body.theme_portfolio_images);
+    const theme_portfolio_videos = normalizeVideos(req.body.theme_portfolio_videos);
+    const asset_images = normalizePhotos(req.body.asset_images);
+    const asset_videos = normalizeVideos(req.body.asset_videos);
 
     // -------------------------------
     // Profile completion check
@@ -162,17 +212,15 @@ const createDecorator = async (req, res) => {
     const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
-    // -------------------------------
-    // Create new decorator document
-    // -------------------------------
+    // Create
     const newDecorator = new Decorator({
       vendor_id: req.body.vendor_id,
-      service_id: service_id,
+      service_id,
       service_type: req.body.service_type || "Decorator",
       service_areas: req.body.service_areas || [],
 
       basic_details: {
-        is_completed: profile_completion_score?.basic_details || false,
+        is_completed: false,
         point_of_contact: req.body.point_of_contact,
         service_contact_number: req.body.service_contact_number,
         avg_setup_duration: req.body.avg_setup_duration,
@@ -188,23 +236,22 @@ const createDecorator = async (req, res) => {
       },
 
       theme_details: {
-        is_completed: profile_completion_score?.theme_details || false,
+        is_completed: false,
         themes_offered: req.body.themes_offered || [],
         is_prop_selection_available: req.body.is_prop_selection_available,
         any_custom_design_process: req.body.any_custom_design_process,
-        is_colour_scheme_assistance_provided:
-          req.body.is_colour_scheme_assistance_provided,
+        is_colour_scheme_assistance_provided: req.body.is_colour_scheme_assistance_provided,
         is_theme_customization_allowed: req.body.is_theme_customization_allowed,
         is_venue_adaptability: req.body.is_venue_adaptability,
         theme_elements_available: req.body.theme_elements_available || [],
-        theme_portfolio_images: req.body.theme_portfolio_images || [],
-        theme_portfolio_videos: req.body.theme_portfolio_videos || [],
+        theme_portfolio_images,                 // [{original, preview}]
+        theme_portfolio_videos,                 // [string]
       },
 
       additional_details: {
-        is_completed: profile_completion_score?.additional_details || false,
-        asset_images: req.body.asset_images || [],
-        asset_videos: req.body.asset_videos || [],
+        is_completed: false,
+        asset_images,                           // [{original, preview}]
+        asset_videos,                           // [string]
         min_booking_period: req.body.min_booking_period,
         max_booking_period: req.body.max_booking_period,
         prices_starts_from: req.body.prices_starts_from,
@@ -215,7 +262,7 @@ const createDecorator = async (req, res) => {
       },
 
       policies: {
-        is_completed: profile_completion_score?.policies || false,
+        is_completed: false,
         cancellation_policy: req.body.cancellation_policy,
         terms_and_conditions: req.body.terms_and_conditions,
         agreement_url: agreementUrl,
@@ -223,9 +270,9 @@ const createDecorator = async (req, res) => {
       },
 
       business_details: {
-        is_completed: profile_completion_score?.business_details || false,
-        service_id: service_id,
-        service_type: req.body.service_type,
+        is_completed: false,
+        service_id,
+        service_type: req.body.service_type || "Decorator",
         category: req.body.category,
         business_registration_name: req.body.business_registration_name,
         gst: req.body.gst,
@@ -243,39 +290,43 @@ const createDecorator = async (req, res) => {
 
       bank_details: {
         account_type: req.body.account_type,
-        service_id: service_id,
+        service_id,
         vendor_id: req.body.vendor_id,
       },
 
-      profile_completion_score: profile_completion_score || 0,
+      profile_completion_score,
     });
 
-    const savedDecorator = await newDecorator.save();
+    const saved = await newDecorator.save();
 
+    // Vendor linking (idempotent)
     const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      await Decorator.findByIdAndDelete(savedDecorator._id);
+      await Decorator.findByIdAndDelete(saved._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.services.push(savedDecorator.service_id);
-     vendor.service_types.push({
-      "service_name" : "Decorator",
-      "service_status" : "Inactive",
-      "service_id" : savedDecorator.service_id
-    })
+    const normalizedLabel = normalizeServiceName("Decorator");
+
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
+
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+    const idx = vendor.service_types.findIndex(
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+    );
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
+
     await vendor.save();
+    await updateSectionCompletion(saved.vendor_id);
 
-    // Update section completion
-    await updateSectionCompletion(savedDecorator.vendor_id);
+    if (process.env.IS_DEV !== "true") {
+      await sendEmailToSlack({ name: saved.basic_details.point_of_contact, type: saved.service_type });
+    }
 
-    process.env.IS_DEV !== "true" &&
-      sendEmailToSlack({
-        name: savedDecorator.basic_details.point_of_contact,
-        type: savedDecorator.service_type,
-      });
-
-    res.status(201).json(savedDecorator);
+    res.status(201).json(saved);
   } catch (error) {
     console.error("Error creating decorator:", error);
     res.status(400).json({ error: error.message });
@@ -286,12 +337,20 @@ const getAllDecorators = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
-
     const skip = (page - 1) * itemsPerPage;
 
-    const decorators = await Decorator.find().skip(skip).limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totaldecorators = await Decorator.countDocuments();
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [decorators, totaldecorators] = await Promise.all([
+      Decorator.find(filter).skip(skip).limit(itemsPerPage),
+      Decorator.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       data: decorators,
@@ -303,6 +362,7 @@ const getAllDecorators = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 
 const getDecoratorById = async (req, res) => {
   try {

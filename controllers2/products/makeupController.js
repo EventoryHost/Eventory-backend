@@ -14,6 +14,49 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { /* fall through */ }
+    }
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+  }
+  if (Array.isArray(input)) {
+    return input.map((it) => {
+      if (!it) return null;
+      if (typeof it === "string") return { original: it, preview: it };
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? { original, preview } : null;
+    }).filter(Boolean);
+  }
+  return [];
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
+
+
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false;
 
@@ -108,8 +151,6 @@ const normalizeServiceName = (label) => {
 
 const createMakeupArtist = async (req, res) => {
   try {
-
-    // Normalize incoming payload
     const vendor_id = req.body.vendor_id || req.body.id || req.body.venId;
     const serviceType = req.body.service_type || req.body.serviceTypeBusiness || "Makeup-Artist";
 
@@ -140,8 +181,8 @@ const createMakeupArtist = async (req, res) => {
       ? toBool(req.body.is_customization_possible) : toBool(req.body.customization);
 
     // Media
-    const asset_images = req.body.asset_images || parseArrayLike(req.body.photos);
-    const asset_videos = req.body.asset_videos || parseArrayLike(req.body.videos);
+    const asset_images = normalizePhotos(req.body.asset_images || req.body.photos);
+    const asset_videos = normalizeVideos(req.body.asset_videos || req.body.videos);
 
     // Socials + pricing + booking period
     const ig_socials_link = req.body.ig_socials_link || req.body.socialMedia || "";
@@ -169,24 +210,17 @@ const createMakeupArtist = async (req, res) => {
     const annual_revenue = req.body.annual_revenue || req.body.annualRevenue;
     const annual_bookings = req.body.annual_bookings ?? req.body.annualBookings;
 
-    // Check if artist already exists
-    const alreadyExists = await MakeupArtist.findOne({
-      vendor_id: vendor_id,
-    });
-
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Makeup artist already exists" });
-    }
+    // Check existence
+    const alreadyExists = await MakeupArtist.findOne({ vendor_id });
+    if (alreadyExists) return res.status(400).json({ message: "Makeup artist already exists" });
 
     const service_id = generateUniqueId("MKA");
 
-    // Find temporary makeup data
-    const tempMakeupData = await MakeupArtistModel.findOne({
-      vendor_id: vendor_id,
-    });
+    // Agreements from redux temp
+    const temp = await MakeupArtistModel.findOne({ vendor_id });
+    const agreementUrl = temp?.agreement_url || " ";
+    const agreementSignedAt = temp?.agreement_signed_at || new Date();
 
-    const agreementUrl = tempMakeupData?.agreement_url || " ";
-    const agreementSignedAt = tempMakeupData?.agreement_signed_at || new Date();
 
     if (agreementUrl) {
       console.log("Found agreement data for venue:", agreementUrl);
@@ -245,15 +279,13 @@ const createMakeupArtist = async (req, res) => {
     const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
    
-    // Construct the new document
     const newMakeupArtist = new MakeupArtist({
-      vendor_id: vendor_id,
-      service_type: req.body.service_type || "Makeup-Artist",
-      service_areas: service_areas || [],
-      service_id: service_id,
-      // ... (nested objects populated from req.body)
+      vendor_id,
+      service_type: "Makeup-Artist",
+      service_areas,
+      service_id,
       basic_details: {
-        is_completed: profile_completion_score?.basic_details || false,
+        is_completed: false,
         point_of_contact,
         service_contact_number,
         min_booking_capacity,
@@ -265,21 +297,20 @@ const createMakeupArtist = async (req, res) => {
           service_address,
           lat,
           lon,
-          service_pincode: service_pincode,
+          service_pincode,
           google_map_link,
         },
-
       },
       service_details: {
-        is_completed: profile_completion_score?.service_details || false,
+        is_completed: false,
         is_onsite_makeup_available,
         is_customization_possible,
         service_types,
       },
       additional_details: {
-        is_completed: profile_completion_score?.additional_details || false,
-        asset_images,
-        asset_videos,
+        is_completed: false,
+        asset_images,    // [{ original, preview }]
+        asset_videos,    // [string]
         min_booking_period,
         max_booking_period,
         prices_starts_from,
@@ -287,15 +318,15 @@ const createMakeupArtist = async (req, res) => {
         web_social_link,
       },
       policies: {
-        is_completed: profile_completion_score?.policies || false,
+        is_completed: false,
         cancellation_policy,
         terms_and_conditions,
         agreement_url: agreementUrl,
         agreement_signed_at: agreementSignedAt,
       },
       business_details: {
-        is_completed: profile_completion_score?.business_details || false,
-        service_id: service_id,
+        is_completed: false,
+        service_id,
         service_type: serviceType,
         category,
         business_registration_name,
@@ -316,67 +347,44 @@ const createMakeupArtist = async (req, res) => {
         account_type: req.body.account_type,
         account_number: req.body.account_number,
         ifsc: req.body.ifsc,
-        service_id: service_id,
-        vendor_id: vendor_id,
+        service_id,
+        vendor_id,
       },
-      profile_completion_score: profile_completion_score || 0,
+      profile_completion_score: 0,
     });
 
-    const savedMakeupArtist = await newMakeupArtist.save();
+    const saved = await newMakeupArtist.save();
 
-    // Use the normalized label already determined earlier
-    const serviceTypeLabel = serviceType || "Makeup-Artist";
-    const normalizedLabel = normalizeServiceName(serviceTypeLabel);
-
-    // Associate with vendor
+    // Vendor linking with normalized label
     const vendor = await Vendor.findOne({ vendor_id });
     if (!vendor) {
-      await MakeupArtist.findByIdAndDelete(savedMakeupArtist._id);
+      await MakeupArtist.findByIdAndDelete(saved._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
+    const normalizedLabel = normalizeServiceName("Makeup-Artist");
+
     if (!Array.isArray(vendor.services)) vendor.services = [];
-    if (!vendor.services.includes(savedMakeupArtist.service_id)) {
-      vendor.services.push(savedMakeupArtist.service_id);
-    }
+    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
 
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
-
     const idx = vendor.service_types.findIndex(
-      (st) =>
-        st &&
-        typeof st.service_name === "string" &&
-        st.service_name.toLowerCase() === normalizedLabel.toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
     );
-
-    const updatedEntry = {
-      service_name: normalizedLabel,
-      service_status: "Inactive",
-      service_id: savedMakeupArtist.service_id,
-    };
-
-    if (idx >= 0) {
-      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
-    } else {
-      vendor.service_types.push(updatedEntry);
-    }
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
-  
-    await updateSectionCompletion(savedMakeupArtist.vendor_id);
+    await updateSectionCompletion(saved.vendor_id);
 
-    process.env.IS_DEV !== "true" &&
-      sendEmailToSlack({
-        name: savedMakeupArtist.basic_details.point_of_contact,
-        type: savedMakeupArtist.service_type,
-      });
+    if (process.env.IS_DEV !== "true") {
+      await sendEmailToSlack({ name: saved.basic_details.point_of_contact, type: saved.service_type });
+    }
 
-    console.log("Request completed successfully.");
-    res.status(201).json(savedMakeupArtist);
+    res.status(201).json(saved);
   } catch (error) {
     console.error("An error occurred in createMakeupArtist:", error);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
     res.status(400).json({ error: error.message });
   }
 };
@@ -387,12 +395,18 @@ const getAllMakeupArtist = async (req, res) => {
     const itemsPerPage = 9;
     const skip = (page - 1) * itemsPerPage;
 
-    const makeupArtists =
-      page == -1
-        ? await MakeupArtist.find()
-        : await MakeupArtist.find().skip(skip).limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totalMakeupArtists = await MakeupArtist.countDocuments();
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [makeupArtists, totalMakeupArtists] = await Promise.all([
+      page == -1 ? MakeupArtist.find(filter) : MakeupArtist.find(filter).skip(skip).limit(itemsPerPage),
+      MakeupArtist.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       data: makeupArtists,
@@ -404,6 +418,7 @@ const getAllMakeupArtist = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
+
 
 const getMakeupArtistById = async (req, res) => {
   try {

@@ -95,7 +95,7 @@ const updateVendor = async (req, res) => {
         gstin,
       };
     }
-    
+
     user.name = name || user.name;
     user.email = email || user.email;
     user.mobile = phoneNumber || user.mobile;
@@ -139,6 +139,65 @@ const getVendor = async (req, res) => {
 
 const signUp = async (req, res) => {
   const { mobile } = req.body;
+
+  // Check if this is the dummy vendor
+  if (mobile === "1111111111") {
+    try {
+      // Check if dummy vendor already exists
+      let dummyVendor = await User.findOne({ mobile: `+91${mobile}` });
+      
+      if (dummyVendor) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Create dummy vendor with complete profile
+      dummyVendor = new User({ 
+        name: "Dummy Vendor", 
+        mobile: `+91${mobile}`,
+        email: "dummyvendor@eventory.com",
+        businessDetails: {
+          businessName: "Dummy Business",
+          category: "caterer",
+          businessAddress: "123 Test Street, Test Area",
+          state: "Delhi",
+          city: "New Delhi",
+          pincode: "110001",
+          gst: "",
+          panNo: "",
+          aadhaarNo: "",
+          description: "This is a dummy vendor for testing purposes"
+        },
+        bankDetails: [],
+        profilePic: "",
+        invoices: [],
+        serviceIds: [],
+        couponDetails: {
+          appliedCoupons: [],
+          highestDiscountUsed: 0,
+          canUseDiscounts: [25, 50, 100]
+        }
+      });
+      await dummyVendor.save();
+      console.log("Dummy vendor created with ID:", dummyVendor.id);
+
+      // Generate JWT token directly for dummy vendor
+      const token = jwt.sign(
+        { id: dummyVendor.id, mobile: dummyVendor.mobile, name: dummyVendor.name },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      return res.status(200).json({ 
+        message: "Dummy vendor signup success", 
+        token, 
+        user: dummyVendor,
+        isDummy: true 
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ error: error.message });
+    }
+  }
 
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
@@ -196,6 +255,56 @@ const signUp = async (req, res) => {
 const CustomerSignUp = async (req, res) => {
   const { mobile } = req.body;
 
+  // Check if this is the dummy customer
+  if (mobile === "2222222222") {
+    try {
+      // Check if dummy customer already exists
+      let dummyCustomer = await Customer.findOne({ mobile: `+91${mobile}` });
+      
+      if (dummyCustomer) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Create dummy customer with complete profile
+      dummyCustomer = new Customer({ 
+        name: "Dummy Customer", 
+        mobile: `+91${mobile}`,
+        email: "dummy@eventory.com",
+        state: "Delhi",
+        city: "New Delhi", 
+        address: "123 Test Street, Test Area",
+        pincode: "110001",
+        invoices: [],
+        quotations: [],
+        favoriteServices: [],
+        couponDetails: {
+          appliedCoupons: [],
+          highestDiscountUsed: 0,
+          canUseDiscounts: [25, 50, 100],
+        },
+      });
+      await dummyCustomer.save();
+      console.log("Dummy customer created with ID:", dummyCustomer.id);
+
+      // Generate JWT token directly for dummy customer
+      const token = jwt.sign(
+        { id: dummyCustomer.id, mobile: dummyCustomer.mobile, name: dummyCustomer.name },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      return res.status(200).json({ 
+        message: "Dummy signup success", 
+        token, 
+        user: dummyCustomer,
+        isDummy: true 
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ error: error.message });
+    }
+  }
+
   const params = {
     ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
     UserPoolId: process.env.COGNITO_USER_POOL_ID_USERS,
@@ -252,6 +361,64 @@ const CustomerSignUp = async (req, res) => {
 
 const login = async (req, res) => {
   const { mobile } = req.body;
+
+  // Check if this is the dummy vendor
+  if (mobile === "1111111111") {
+    try {
+      // Check if dummy vendor exists in database
+      let dummyVendor = await User.findOne({ mobile: `+91${mobile}` });
+      
+      // If dummy vendor doesn't exist, create it with complete profile
+      if (!dummyVendor) {
+        dummyVendor = new User({ 
+          name: "Dummy Vendor", 
+          mobile: `+91${mobile}`,
+          email: "dummyvendor@eventory.com",
+          businessDetails: {
+            businessName: "Dummy Business",
+            category: "caterer",
+            businessAddress: "123 Test Street, Test Area",
+            state: "Delhi",
+            city: "New Delhi",
+            pincode: "110001",
+            gst: "",
+            panNo: "",
+            aadhaarNo: "",
+            description: "This is a dummy vendor for testing purposes"
+          },
+          bankDetails: [],
+          profilePic: "",
+          invoices: [],
+          serviceIds: [],
+          couponDetails: {
+            appliedCoupons: [],
+            highestDiscountUsed: 0,
+            canUseDiscounts: [25, 50, 100]
+          }
+        });
+        await dummyVendor.save();
+        console.log("Dummy vendor created with ID:", dummyVendor.id);
+      }
+
+      // Generate JWT token directly for dummy vendor
+      const token = jwt.sign(
+        { id: dummyVendor.id, mobile: dummyVendor.mobile, name: dummyVendor.name },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      return res.status(200).json({ 
+        message: "Dummy vendor login success", 
+        token, 
+        user: dummyVendor,
+        isDummy: true 
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ error: error.message });
+    }
+  }
+
   const params = {
     AuthFlow: "CUSTOM_AUTH",
     ClientId: process.env.COGNITO_APP_CLIENT_ID,
@@ -279,6 +446,54 @@ const login = async (req, res) => {
 
 const CustomerLogin = async (req, res) => {
   const { mobile } = req.body;
+
+  // Check if this is the dummy customer
+  if (mobile === "2222222222") {
+    try {
+      // Check if dummy customer exists in database
+      let dummyCustomer = await Customer.findOne({ mobile: `+91${mobile}` });
+      
+      // If dummy customer doesn't exist, create it with complete profile
+      if (!dummyCustomer) {
+        dummyCustomer = new Customer({ 
+          name: "Dummy Customer", 
+          mobile: `+91${mobile}`,
+          email: "dummy@eventory.com",
+          state: "Delhi",
+          city: "New Delhi",
+          address: "123 Test Street, Test Area",
+          pincode: "110001",
+          invoices: [],
+          quotations: [],
+          favoriteServices: [],
+          couponDetails: {
+            appliedCoupons: [],
+            highestDiscountUsed: 0,
+            canUseDiscounts: [25, 50, 100],
+          },
+        });
+        await dummyCustomer.save();
+        console.log("Dummy customer created with ID:", dummyCustomer.id);
+      }
+
+      // Generate JWT token directly for dummy customer
+      const token = jwt.sign(
+        { id: dummyCustomer.id, mobile: dummyCustomer.mobile, name: dummyCustomer.name },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      return res.status(200).json({ 
+        message: "Dummy login success", 
+        token, 
+        user: dummyCustomer,
+        isDummy: true 
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ error: error.message });
+    }
+  }
 
   const params = {
     AuthFlow: "CUSTOM_AUTH",
