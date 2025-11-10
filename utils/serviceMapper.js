@@ -14,6 +14,7 @@ const serviceModelMap = {
     'PAV': { model: Photographer, name: 'Photographer' },
     'VNP': { model: VenueProvider, name: 'Venue Provider' },
     'MAK': { model: MakeupArtist, name: 'Makeup Artist' },
+    'MKA': { model: MakeupArtist, name: 'Makeup Artist' },
     'DJS': { model: DjArtist, name: 'DJ Artist' },
 };
 
