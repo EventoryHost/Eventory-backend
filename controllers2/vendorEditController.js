@@ -431,6 +431,8 @@ export const updateServiceDetails = async (req, res) => {
       case "pav":
       case "photographer-videographer":
       case "photographer videographer":
+      case "photographer & videographer":     
+      case "photographer&videographer":  
         updatedService = await Photographer.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
@@ -707,6 +709,8 @@ export const serviceFields = {
 // Add aliases for service types
 serviceFields["photographer-videographer"] = serviceFields.pav;
 serviceFields["photographer videographer"] = serviceFields.pav;
+serviceFields["photographer & videographer"] = serviceFields.pav;
+serviceFields["photographer&videographer"] = serviceFields.pav;
 serviceFields["dj-artist"] = serviceFields.djArtist;
 serviceFields["djartist"] = serviceFields.djArtist;
 serviceFields["dj"] = serviceFields.djArtist;
@@ -892,6 +896,8 @@ const checkVerification = (service, serType) => {
     case "pav":
     case "photographer-videographer":
     case "photographer videographer":
+    case "photographer & videographer":     
+    case "photographer&videographer":  
       fieldsToCheck = [
         // business_details field
         // { path: "business_details.business_name", label: "Business Name" },

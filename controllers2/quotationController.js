@@ -178,11 +178,6 @@ const getAllQuotations = async (req, res) => {
 const updateQuotationStatus = async (req, res) => {
   try {
     const { quotation_id, quote_status } = req.body;
-    console.log("🟢 Incoming request to update quotation:", {
-      quotation_id,
-      quote_status,
-    });
-
     if (!quotation_id || !quote_status) {
       console.log("⚠️ Missing required fields: quotation_id or quote_status");
       return res

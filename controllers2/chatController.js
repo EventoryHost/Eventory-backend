@@ -612,6 +612,64 @@ export const markAllCustomerNotificationsAsRead = async (req, res) => {
   }
 };
 
+// Update em_id in Chat when admin sends first message
+export const updateChatEmId = async (req, res) => {
+  try {
+    const { chat_id, em_id } = req.body;
+
+
+    console.log(`Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`);
+    
+    if (!chat_id || !em_id) {
+      return res.status(400).json({ 
+        message: "chat_id and em_id are required" 
+      });
+    }
+
+    // Only update if current em_id is "admin-rm" (default/dummy value)
+    const updatedChat = await Chat2.findOneAndUpdate(
+      { 
+        chat_id: chat_id,
+        em_id: "admin-rm" // Only update if it's still the default
+      },
+      { 
+        $set: { em_id: em_id } 
+      },
+      { 
+        new: true // Return the updated document
+      }
+    );
+
+    if (!updatedChat) {
+      // Either chat not found OR em_id was already updated
+      const existingChat = await Chat2.findOne({ chat_id: chat_id });
+      
+      if (!existingChat) {
+        return res.status(404).json({ 
+          message: "Chat not found" 
+        });
+      }
+      
+      // Chat exists but em_id was already set (not "admin-rm")
+      return res.status(200).json({
+        message: "Chat already has an assigned EM",
+        data: existingChat
+      });
+    }
+
+    res.status(200).json({
+      message: "Chat em_id updated successfully",
+      data: updatedChat
+    });
+  } catch (error) {
+    console.error("Error updating chat em_id:", error);
+    res.status(500).json({
+      message: "Error updating chat em_id",
+      error: error.message
+    });
+  }
+};
+
 // export const getMessagesByChatId = async (req, res) => {
 //     const { chatId } = req.params;
 //     const queryOptions = { ...req.query }; // allows dynamic pagination, sorting, etc.
