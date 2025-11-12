@@ -7,39 +7,227 @@ import MakeupArtist from "../models2/makeupArtist.js";
 import generateUniqueId from "../utils/generateId.js";
 import { Calendar } from "../models2/calendar.js";
 
+const toUpperEnum = (v) => (typeof v === "string" ? v.trim().toUpperCase() : v);
+const toISODate = (v) => (v ? new Date(v) : null);
+const asNumber = (v, d = 0) => {
+  const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) ? n : d;
+};
+const nonEmptyArray = (a) => (Array.isArray(a) ? a.filter(Boolean) : []);
+
 export const createBooking = async (req, res) => {
-   try {
-    // Take everything directly from req.body
-    const { paymentDetails, payment_method_details, quotation_id, ...eventData } = req.body;
+  try {
+    // Extract raw body
+    const body = req.body || {};
 
-    // Handle paymentDetails and payment_method_details separately to ensure proper schema validation
-    const eventFields = { ...eventData };
-    if (paymentDetails) {
-      eventFields.paymentDetails = paymentDetails;
+    // Allow both camelCase and snake_case from client
+    const {
+      event_id,                    // optional: if present, update existing pending EVTY
+      customer_id,
+      vendor_id,
+      service_id,
+      quotation_id,
+      em_id,
+
+      event_type,
+      location_type,               // expects INDOOR | OUTDOOR (any case)
+      event_location,
+      event_start,
+      event_end,
+
+      final_guest_count,
+      specific_terms,              // string[] optional
+
+      final_amount,
+
+      event_status,                // booked|upcoming|ongoing|completed|cancelled (any case)
+
+      vendor_manager_name,
+      customer_name,
+
+      vendor_manager_contact_number,
+      vendor_manager_contact_email,
+      customer_contact_number,
+      customer_contact_email,
+
+      already_paid_amount,
+      advance_amount_paid,
+
+      payment_status,              // advance_paid|fully_paid|refunded (any case)
+      payment_method,
+
+      // Payment blocks from order
+      paymentDetails,              // { customerPayable, vendorReceivable }
+      payment_method_details,      // array of method entries
+
+      // For compatibility with some callers
+      final_order_items,           // cart items array
+    } = body;
+
+    // Required validations (minimal)
+    const missing = [];
+    if (!customer_id) missing.push("customer_id");
+    if (!vendor_id) missing.push("vendor_id");
+    if (!service_id) missing.push("service_id");
+    if (!event_location) missing.push("event_location");
+    if (!event_start) missing.push("event_start");
+    if (typeof final_amount === "undefined" || final_amount === null) missing.push("final_amount");
+    if (!customer_name) missing.push("customer_name");
+
+    if (missing.length > 0) {
+      return res.status(400).json({ message: `Missing required fields: ${missing.join(", ")}` });
     }
-    if (payment_method_details) {
-      eventFields.payment_method_details = payment_method_details;
+
+    // Normalize fields to match schema
+    const locType = toUpperEnum(location_type);
+    if (locType && !["INDOOR", "OUTDOOR"].includes(locType)) {
+      return res.status(400).json({ message: "location_type must be INDOOR or OUTDOOR" });
     }
-    if (quotation_id) {
-      eventFields.quotation_id = quotation_id;
+
+    const statusNorm = event_status ? event_status.toLowerCase() : undefined;
+    if (statusNorm && !["booked", "upcoming", "ongoing", "completed", "cancelled"].includes(statusNorm)) {
+      return res.status(400).json({ message: "event_status is invalid" });
     }
 
-    const newEvent = new Events(eventFields);
+    const payStatusNorm = payment_status ? payment_status.toLowerCase() : undefined;
+    if (payStatusNorm && !["advance_paid", "fully_paid", "refunded"].includes(payStatusNorm)) {
+      return res.status(400).json({ message: "payment_status is invalid" });
+    }
 
-    const savedEvent = await newEvent.save();
+    const eventStartDate = toISODate(event_start);
+    const eventEndDate = event_end ? toISODate(event_end) : null;
+    if (!(eventStartDate instanceof Date) || isNaN(eventStartDate)) {
+      return res.status(400).json({ message: "event_start must be a valid date" });
+    }
+    if (eventEndDate && !(eventEndDate instanceof Date) || (eventEndDate && eventEndDate <= eventStartDate)) {
+      return res.status(400).json({ message: "event_end must be after event_start" });
+    }
 
-    res.status(201).json({
+    const finalAmountNum = asNumber(final_amount);
+    const alreadyPaid = asNumber(already_paid_amount, 0);
+    const advancePaid = asNumber(advance_amount_paid, 0);
+
+    if (alreadyPaid > finalAmountNum) {
+      return res.status(400).json({ message: "already_paid_amount cannot exceed final_amount" });
+    }
+    if (advancePaid > finalAmountNum) {
+      return res.status(400).json({ message: "advance_amount_paid cannot exceed final_amount" });
+    }
+
+    // Map paymentDetails to schema payment_details
+    const payment_details = paymentDetails
+      ? {
+        customerPayable: {
+          total: asNumber(paymentDetails?.customerPayable?.total, 0),
+          baseAmount: asNumber(paymentDetails?.customerPayable?.baseAmount, 0),
+          convenienceFee: asNumber(paymentDetails?.customerPayable?.convenienceFee, 0),
+          taxOnConvenience: asNumber(paymentDetails?.customerPayable?.taxOnConvenience, 0),
+          convenienceFeeBefore: asNumber(paymentDetails?.customerPayable?.convenienceFeeBefore, 0),
+          taxOnConvenienceBefore: asNumber(paymentDetails?.customerPayable?.taxOnConvenienceBefore, 0),
+          couponCode: paymentDetails?.customerPayable?.couponCode ?? null,
+          discountAmount: asNumber(paymentDetails?.customerPayable?.discountAmount, 0),
+        },
+        vendorReceivable: {
+          total: asNumber(paymentDetails?.vendorReceivable?.total, 0),
+          baseAmount: asNumber(paymentDetails?.vendorReceivable?.baseAmount, 0),
+          commission: asNumber(paymentDetails?.vendorReceivable?.commission, 0),
+          taxOnCommission: asNumber(paymentDetails?.vendorReceivable?.taxOnCommission, 0),
+        },
+      }
+      : undefined;
+
+    // Normalize payment_method_details array
+    const normalizedMethodDetails = Array.isArray(payment_method_details)
+      ? payment_method_details.map((m) => ({
+        channel: m?.channel,
+        cf_payment_id: m?.cf_payment_id,
+        payment_amount: asNumber(m?.payment_amount),
+        payment_completion_time: m?.payment_completion_time ? new Date(m.payment_completion_time) : undefined,
+        payment_status: m?.payment_status,
+        payment_message: m?.payment_message,
+        payment_group: m?.payment_group,
+        method_details: m?.method_details || {},
+      }))
+      : undefined;
+
+    // Normalize cart items
+    const items = Array.isArray(final_order_items)
+      ? final_order_items.map((it) => ({
+        entity: it?.entity,
+        name_of_service: it?.name_of_service,
+        service_asset: Array.isArray(it?.service_asset) ? it.service_asset : [],
+        quantity: asNumber(it?.quantity, 1),
+        description: it?.description,
+        price: asNumber(it?.price, 0),
+        tax_rate: asNumber(it?.tax_rate, 0),
+        tax_type: it?.tax_type,
+        tax_amount: asNumber(it?.tax_amount, 0),
+        total_amount: asNumber(it?.total_amount, 0),
+      }))
+      : [];
+
+    // Build document payload
+    const doc = {
+      // event_id: let schema default create if not provided or generate on update path
+      customer_id,
+      vendor_id,
+      service_id,
+      quotation_id,
+      em_id,
+      event_type,
+      location_type: locType || "INDOOR",
+      event_location,
+      event_start: eventStartDate,
+      event_end: eventEndDate || undefined,
+      final_guest_count: asNumber(final_guest_count),
+      specific_terms: nonEmptyArray(specific_terms),
+      final_amount: finalAmountNum,
+      event_status: statusNorm || "booked",
+      vendor_manager_name,
+      customer_name,
+      vendor_manager_contact_number,
+      vendor_manager_contact_email,
+      customer_contact_number,
+      customer_contact_email,
+      already_paid_amount: alreadyPaid,
+      advance_amount_paid: advancePaid,
+      payment_status: payStatusNorm || "advance_paid",
+      payment_method,
+      payment_details,
+      payment_method_details: normalizedMethodDetails,
+      final_order_items: items,
+    };
+
+    let saved;
+    if (event_id) {
+      // Update the pre-created EVTY document (from verifyCustomerPayment)
+      saved = await Events.findOneAndUpdate(
+        { event_id },
+        { $set: doc },
+        { new: true, upsert: false }
+      );
+      if (!saved) {
+        // If not found, create a fresh with given event_id to preserve linkage
+        saved = await Events.create({ event_id, ...doc });
+      }
+    } else {
+      // Create new booking; event_id and event_number handled by schema
+      saved = await Events.create(doc);
+    }
+
+    return res.status(201).json({
       message: "Event created successfully",
-      event: savedEvent,
+      event: saved,
     });
   } catch (error) {
     console.error("Error creating event:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "An error occurred while creating the event",
       error: error.message,
     });
   }
 };
+
 
 export const getBooking = async (req, res) => {
   try {

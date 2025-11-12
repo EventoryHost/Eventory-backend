@@ -28,6 +28,8 @@ import axios from "axios";
 import { Customer } from "../models2/customer.js";
 import { Events } from "../models2/events.js";
 
+const isValidINMobile = (s) => typeof s === "string" && /^[6-9]\d{9}$/.test(s);
+
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 
@@ -565,34 +567,68 @@ const verifyCustomerPayment = async (req, res) => {
 
     let event_id;
     if (payment_type !== "remaining") {
+      const now = new Date();
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
       event_id = generateUniqueId("EVTY");
       const preBooking = new Events({
         event_id: event_id,
         customer_id: customer_id,
         vendor_id: vendor_id,
-        service_id: "temp_service_id",
+        service_id: service_id || "TEMP_SERVICE_ID", // use real when you have it
         quotation_id: quotation_id,
         em_id: em_id,
-        // type: "pending",
-        event_location: "pending location",
-        event_start: new Date(),
-        event_end: new Date(),
-        details: "Pending details",
-        guest: 0,
-        final_amount: 0,
-        already_paid_amount: 0,
-        // status: "Pending",
+
+        // Required event fields (valid defaults)
+        event_type: finalOrder?.event_type || "Pending",
+        location_type: finalOrder?.location_type.toUpperCase(), // valid enum
+        event_location: finalOrder?.event_location || "Pending location",
+        event_start: now, 
+        event_end: oneHourLater, // strictly after start
+
+        final_guest_count: Math.max(1, Number(finalOrder?.final_guest_count || 1)),
+        final_amount: Math.max(0, Number(finalOrder?.final_amount || 0)),
+        event_status: "booked", // valid enum
+
         vendor_manager_name: "Not Assigned",
-        customer_name: "Pending Customer",
-        description: "Pending description",
-        payment_method: "online",
+        customer_name: customerDoc?.customer_name || "Pending Customer",
+
+        // Contacts (optional but keep sane)
+        vendor_manager_contact_number: isValidINMobile(serviceDoc?.basic_details?.service_contact_number) ? serviceDoc?.basic_details?.service_contact_number : "",
+        vendor_manager_contact_email: vendorDoc?.email || "",
+        customer_contact_number: isValidINMobile(customerDoc?.contact_number) ? customerDoc?.contact_number : "",
+        customer_contact_email: customerDoc?.email_address || "",
+
+        // Payment status for advance flow
+        already_paid_amount: payment_type === "advance" ? Number(order_amount) : 0,
+        advance_amount_paid: payment_type === "advance" ? Number(order_amount) : 0,
         payment_status: "advance_paid",
-        // paymentStatus: "Pending",
-        final_guest_count: 0,
-        // serviceName: "Pending Service Name",
-        // serviceLocation: {},
-        // serviceAddress: "",
+        payment_method: "online",
+
+        // Totals blocks empty for now; real values set later by createBooking
+        payment_details: {
+          customerPayable: {
+            total: 0,
+            baseAmount: 0,
+            convenienceFee: 0,
+            taxOnConvenience: 0,
+            convenienceFeeBefore: 0,
+            taxOnConvenienceBefore: 0,
+            couponCode: null,
+            discountAmount: 0
+          },
+          vendorReceivable: {
+            total: 0,
+            baseAmount: 0,
+            commission: 0,
+            taxOnCommission: 0
+          }
+        },
+
+        // Minimal items; you can also leave an empty array
+        final_order_items: [],
+        payment_method_details: [],
       });
+
       await preBooking.save();
     } else {
       event_id = null;

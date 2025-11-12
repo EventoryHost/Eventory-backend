@@ -248,7 +248,6 @@ const eventsSchema = new mongoose.Schema({
       payment_method: {
         type: String,
         enum: ['upi', 'netbanking', 'card', 'app', 'cardless_emi', 'paylater', 'banktransfer'],
-        required: true
       },
       channel: {
         type: String
