@@ -1,5 +1,7 @@
 import { Vendor } from '../models2/vendor.js';
-import Coupons from '../models2/coupons.js'; // new model import
+import { Customer } from '../models2/customer.js';
+import Coupons from '../models2/coupons.js';
+import { CustomerCoupon } from '../models2/customerCoupon.js';
 
 // Helper: update eligibility after using a coupon
 const calculateNewEligibility = (currentEligibility, usedDiscount) => {
@@ -43,6 +45,12 @@ const deriveEligibleDiscounts = (highestDiscount) => {
       // default starting set of allowed discounts (change if your business rule differs)
       return [25, 50, 100];
   }
+};
+
+const findCustomerRecord = (customerId) => {
+  return Customer.findOne({
+    $or: [{ customer_id: customerId }, { id: customerId }],
+  });
 };
 
 // 📌 Get available coupons (updated to use new Vendor schema fields)
@@ -360,29 +368,41 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
   try {
     const { customerId } = req.params;
 
-    const customer = await Customer.findOne({ id: customerId });
+    const customer = await findCustomerRecord(customerId);
     if (!customer) {
-      return res.status(404).json({ success: false, error: "Customer not found" });
+      return res.status(404).json({ success: false, error: 'Customer not found' });
     }
 
-    const allCoupons = await CustomerCoupon.find({ isActive: true });
+    const usedCoupons = Array.isArray(customer.coupons_used) ? customer.coupons_used : [];
+    const eligibleDiscounts = Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
+      ? customer.eligible_discounts
+      : deriveEligibleDiscounts(customer.highest_discount_ever_applied);
+
+    const allCoupons = await CustomerCoupon.find({ is_active: true });
     const availableCoupons = allCoupons.filter((c) =>
-      customer.couponDetails.canUseDiscounts.includes(c.discount)
+      eligibleDiscounts.includes(c.discount_percentage) && !usedCoupons.includes(c.coupon_code)
     );
+
+    const mappedCoupons = availableCoupons.map((coupon) => ({
+      code: coupon.coupon_code,
+      team: coupon.coupon_team,
+      discount: coupon.discount_percentage,
+      isActive: coupon.is_active,
+    }));
 
     return res.json({
       success: true,
       data: {
-        availableCoupons,
+        availableCoupons: mappedCoupons,
         customerEligibility: {
-          canUse: customer.couponDetails.canUseDiscounts,
-          highestUsed: customer.couponDetails.highestDiscountUsed,
-          totalCouponsUsed: customer.couponDetails.appliedCoupons.length,
+          canUse: eligibleDiscounts,
+          highestUsed: customer.highest_discount_ever_applied || 0,
+          totalCouponsUsed: Array.isArray(customer.applied_coupons) ? customer.applied_coupons.length : 0,
         },
       },
     });
   } catch (error) {
-    console.error("Error getting available coupons (customer):", error);
+    console.error('Error getting available coupons (customer):', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -397,30 +417,43 @@ export const validateCouponForCustomer = async (req, res) => {
 
     if (!customerId || !couponCode || convenienceFee == null || currentTotal == null) {
       return res.status(400).json({
-        success: false, valid: false,
-        error: "customerId, couponCode, convenienceFee, and currentTotal are required",
+        success: false,
+        valid: false,
+        error: 'customerId, couponCode, convenienceFee, and currentTotal are required',
       });
     }
 
-    const customer = await Customer.findOne({ id: customerId });
-    if (!customer) return res.status(404).json({ success: false, valid: false, error: "Customer not found" });
+    const customer = await findCustomerRecord(customerId);
+    if (!customer) {
+      return res.status(404).json({ success: false, valid: false, error: 'Customer not found' });
+    }
 
-    const coupon = await CustomerCoupon.findOne({ code: String(couponCode).toUpperCase(), isActive: true });
-    if (!coupon) return res.status(404).json({ success: false, valid: false, error: "Invalid or inactive coupon code" });
+    const coupon = await CustomerCoupon.findOne({
+      coupon_code: String(couponCode).toUpperCase(),
+      is_active: true,
+    });
+    if (!coupon) {
+      return res.status(404).json({ success: false, valid: false, error: 'Invalid or inactive coupon code' });
+    }
 
-    const canUse = customer.couponDetails.canUseDiscounts.includes(coupon.discount);
+    const eligibleDiscounts =
+      (Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
+        ? customer.eligible_discounts
+        : deriveEligibleDiscounts(customer.highest_discount_ever_applied)) || [];
+
+    const canUse = eligibleDiscounts.includes(coupon.discount_percentage);
 
     let pricingDetails = null;
     if (canUse) {
       const fee = Math.max(0, Number(convenienceFee) || 0);
       const total = Math.max(0, Number(currentTotal) || 0);
-      const rawDiscount = (fee * coupon.discount) / 100;
+      const rawDiscount = (fee * coupon.discount_percentage) / 100;
       const discountAmount = Math.min(rawDiscount, fee);
       const finalAmount = Math.max(0, total - discountAmount);
 
       pricingDetails = {
         originalAmount: total,
-        discountPercentage: coupon.discount,
+        discountPercentage: coupon.discount_percentage,
         discountAmount,
         finalAmount,
         savings: discountAmount,
@@ -431,15 +464,17 @@ export const validateCouponForCustomer = async (req, res) => {
       success: true,
       valid: canUse,
       data: {
-        coupon: canUse ? { code: coupon.code, discount: coupon.discount, team: coupon.team } : null,
+        coupon: canUse
+          ? { code: coupon.coupon_code, discount: coupon.discount_percentage, team: coupon.coupon_team }
+          : null,
         pricing: pricingDetails,
         message: canUse
-          ? `Valid! ${coupon.discount}% off convenience fee - Save ₹${pricingDetails.savings}`
-          : `You have already used a ${customer.couponDetails.highestDiscountUsed}% discount coupon`,
+          ? `Valid! ${coupon.discount_percentage}% off convenience fee - Save ₹${pricingDetails.savings}`
+          : `You have already used a ${customer.highest_discount_ever_applied}% discount coupon`,
         customerEligibility: {
-          canUse: customer.couponDetails.canUseDiscounts,
-          highestUsed: customer.couponDetails.highestDiscountUsed,
-          reason: !canUse ? `You have already used a ${customer.couponDetails.highestDiscountUsed}% discount coupon` : null,
+          canUse: eligibleDiscounts,
+          highestUsed: customer.highest_discount_ever_applied || 0,
+          reason: !canUse ? `You have already used a ${customer.highest_discount_ever_applied}% discount coupon` : null,
         },
       },
     });
@@ -459,89 +494,99 @@ export const applyCouponForCustomer = async (req, res) => {
     if (!customerId || !couponCode || !couponDetails) {
       return res.status(400).json({
         success: false,
-        error: "Missing required fields: customerId, couponCode, couponDetails",
+        error: 'Missing required fields: customerId, couponCode, couponDetails',
       });
     }
     const { finalAmount, savings, discount } = couponDetails || {};
     if (finalAmount == null || savings == null || discount == null) {
       return res.status(400).json({
         success: false,
-        error: "Invalid couponDetails structure",
+        error: 'Invalid couponDetails structure',
       });
     }
 
-    const customer = await Customer.findOne({ id: customerId });
+    const customer = await findCustomerRecord(customerId);
     if (!customer) {
-      return res.status(404).json({ success: false, error: "Customer not found" });
+      return res.status(404).json({ success: false, error: 'Customer not found' });
     }
 
     const coupon = await CustomerCoupon.findOne({
-      code: String(couponCode).toUpperCase(),
-      isActive: true,
+      coupon_code: String(couponCode).toUpperCase(),
+      is_active: true,
     });
     if (!coupon) {
-      return res.status(404).json({ success: false, error: "Invalid or inactive coupon code" });
+      return res.status(404).json({ success: false, error: 'Invalid or inactive coupon code' });
     }
 
-    if (coupon.discount !== discount) {
+    if (coupon.discount_percentage !== Number(discount)) {
       return res.status(400).json({
         success: false,
-        error: "Coupon details mismatch. Please revalidate the coupon.",
+        error: 'Coupon details mismatch. Please revalidate the coupon.',
       });
     }
 
-    if (!customer.couponDetails.canUseDiscounts.includes(coupon.discount)) {
+    const currentEligible =
+      Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
+        ? customer.eligible_discounts
+        : deriveEligibleDiscounts(customer.highest_discount_ever_applied);
+
+    if (!currentEligible.includes(coupon.discount_percentage)) {
       return res.status(403).json({
         success: false,
-        error: `You cannot use ${coupon.discount}% discount coupons`,
-        availableDiscounts: customer.couponDetails.canUseDiscounts,
+        error: `You cannot use ${coupon.discount_percentage}% discount coupons`,
+        availableDiscounts: currentEligible,
       });
     }
 
     const originalAmount = Number(finalAmount) + Number(savings);
 
     const updatedCanUseDiscounts = calculateNewEligibility(
-      customer.couponDetails.canUseDiscounts,
-      coupon.discount
+      currentEligible,
+      coupon.discount_percentage,
     );
 
+    const now = new Date();
     const couponUsage = {
-      couponCode: coupon.code,
-      discount: coupon.discount,
-      appliedAt: new Date(),
-      originalAmount,
-      discountAmount: Number(savings),
-      finalAmount: Number(finalAmount),
+      coupon_code: coupon.coupon_code,
+      discount_percentage: coupon.discount_percentage,
+      applied_at: now,
+      original_amount: originalAmount,
+      discount_amount: Number(savings),
+      final_amount: Number(finalAmount),
     };
 
     await Customer.findOneAndUpdate(
-      { id: customerId },
+      { $or: [{ customer_id: customerId }, { id: customerId }] },
       {
-        $push: { "couponDetails.appliedCoupons": couponUsage },
-        $set: {
-          "couponDetails.highestDiscountUsed": Math.max(
-            customer.couponDetails.highestDiscountUsed,
-            coupon.discount
-          ),
-          "couponDetails.canUseDiscounts": updatedCanUseDiscounts,
+        $push: {
+          applied_coupons: couponUsage,
+          coupons_used: coupon.coupon_code,
         },
-      }
+        $set: {
+          highest_discount_ever_applied: Math.max(
+            customer.highest_discount_ever_applied || 0,
+            coupon.discount_percentage,
+          ),
+          eligible_discounts: updatedCanUseDiscounts,
+          last_coupon_used_at: now,
+        },
+      },
     );
 
     return res.json({
       success: true,
-      message: "Coupon applied successfully",
+      message: 'Coupon applied successfully',
       data: {
         couponDetails: {
-          code: coupon.code,
-          discount: coupon.discount,
-          team: coupon.team,
+          code: coupon.coupon_code,
+          discount: coupon.discount_percentage,
+          team: coupon.coupon_team,
         },
         paymentDetails: {
           originalAmount,
           discountAmount: Number(savings),
           finalAmount: Number(finalAmount),
-          discountPercentage: coupon.discount,
+          discountPercentage: coupon.discount_percentage,
           savings: Number(savings),
         },
         futureEligibility: {
@@ -551,7 +596,7 @@ export const applyCouponForCustomer = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error applying coupon (customer):", error);
+    console.error('Error applying coupon (customer):', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -561,32 +606,47 @@ export const getCustomerCouponHistory = async (req, res) => {
   try {
     const { customerId } = req.params;
 
-    const customer = await Customer.findOne({ id: customerId }).select("couponDetails name");
+    const customer = await Customer.findOne({
+      $or: [{ customer_id: customerId }, { id: customerId }],
+    }).select(
+      'customer_name applied_coupons highest_discount_ever_applied eligible_discounts',
+    );
     if (!customer) {
-      return res.status(404).json({ success: false, error: "Customer not found" });
+      return res.status(404).json({ success: false, error: 'Customer not found' });
     }
 
-    const totalSavings = customer.couponDetails.appliedCoupons.reduce(
-      (sum, c) => sum + c.discountAmount,
-      0
-    );
+    const appliedCoupons = Array.isArray(customer.applied_coupons) ? customer.applied_coupons : [];
+    const totalSavings = appliedCoupons.reduce((sum, c) => sum + (c.discount_amount || 0), 0);
+    const eligibleDiscounts =
+      Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
+        ? customer.eligible_discounts
+        : deriveEligibleDiscounts(customer.highest_discount_ever_applied);
+
+    const mappedHistory = appliedCoupons.map((usage) => ({
+      couponCode: usage.coupon_code,
+      discount: usage.discount_percentage,
+      appliedAt: usage.applied_at,
+      originalAmount: usage.original_amount,
+      discountAmount: usage.discount_amount,
+      finalAmount: usage.final_amount,
+    }));
 
     return res.json({
       success: true,
       data: {
-        customerName: customer.name,
-        couponHistory: customer.couponDetails.appliedCoupons,
+        customerName: customer.customer_name || 'Customer',
+        couponHistory: mappedHistory,
         currentStatus: {
-          highestDiscountUsed: customer.couponDetails.highestDiscountUsed,
-          canUseDiscounts: customer.couponDetails.canUseDiscounts,
-          totalCouponsUsed: customer.couponDetails.appliedCoupons.length,
+          highestDiscountUsed: customer.highest_discount_ever_applied || 0,
+          canUseDiscounts: eligibleDiscounts,
+          totalCouponsUsed: appliedCoupons.length,
           totalSavings,
-          eligibilityMessage: getEligibilityMessage(customer.couponDetails.canUseDiscounts),
+          eligibilityMessage: getEligibilityMessage(eligibleDiscounts),
         },
       },
     });
   } catch (error) {
-    console.error("Error getting coupon history (customer):", error);
+    console.error('Error getting coupon history (customer):', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };

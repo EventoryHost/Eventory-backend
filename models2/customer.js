@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import generateUniqueId from "../utils/generateId2.js";
+import { customerCouponUsageSchema } from "./customerCoupon.js";
 
 // Customer Schema
 const customerSchema = new mongoose.Schema({
@@ -48,9 +49,18 @@ const customerSchema = new mongoose.Schema({
   wishlisted_services: [{
     type: String // Array of service_id's
   }],
-  coupons_used: [{
-    type: String
-  }],
+  coupons_used: {
+    type: [String],
+    default: [],
+  },
+  applied_coupons: {
+    type: [customerCouponUsageSchema],
+    default: [],
+  },
+  eligible_discounts: {
+    type: [Number],
+    default: [25, 50, 100],
+  },
   highest_discount_ever_applied: {
     type: Number,
     default: 0,
@@ -77,6 +87,10 @@ const customerSchema = new mongoose.Schema({
       const istOffset = 5.5 * 60 * 60 * 1000;
       return new Date(now.getTime() + istOffset);
     }
+  },
+  last_coupon_used_at: {
+    type: Date,
+    default: null,
   }
 }, {
   collection: 'customers'
