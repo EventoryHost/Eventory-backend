@@ -149,7 +149,10 @@ export default (io) => {
           vendor.name,
           "https://www.eventory.in/dashboard?q=quotations"
         );
-
+        
+        const isDEV = process.env.IS_DEV === "true";
+        if(isDEV) return;
+        
         sendSlackMessage({
           id: newQuotation.id,
           customer: customer.name,
@@ -241,26 +244,47 @@ export default (io) => {
 
       if (status === "Accepted") {
         const { user_id, vendor_id, service_id } = updatedQuotation;
-        const existingChat = await Chat.findOne({
-          cusId: user_id,
-          venId: vendor_id,
-          serId: service_id,
+        
+        // Check if vendor-admin chat already exists
+        const existingVendorAdminChat = await Chat.findOne({
+          chatId: id,
+          chatType: "vendor-admin",
         });
 
-        if (existingChat) {
-          console.log("Chat already exists between customer and vendor.");
-          return;
-        }
+        // Check if customer-admin chat already exists
+        const existingCustomerAdminChat = await Chat.findOne({
+          chatId: id,
+          chatType: "customer-admin",
+        });
 
-        if (!existingChat) {
+        // Create vendor-admin chat if it doesn't exist
+        if (!existingVendorAdminChat) {
           await Chat.create({
             chatId: id,
             cusId: user_id,
             venId: vendor_id,
             serId: service_id,
+            chatType: "vendor-admin",
             rmId: "admin-rm",
           });
-          console.log("New chat created between customer and vendor.");
+          console.log("New vendor-admin chat created for quotation:", id);
+        } else {
+          console.log("Vendor-admin chat already exists for quotation:", id);
+        }
+
+        // Create customer-admin chat if it doesn't exist
+        if (!existingCustomerAdminChat) {
+          await Chat.create({
+            chatId: id,
+            cusId: user_id,
+            venId: vendor_id,
+            serId: service_id,
+            chatType: "customer-admin",
+            rmId: "admin-rm",
+          });
+          console.log("New customer-admin chat created for quotation:", id);
+        } else {
+          console.log("Customer-admin chat already exists for quotation:", id);
         }
       }
 

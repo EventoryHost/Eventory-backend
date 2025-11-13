@@ -3,6 +3,11 @@ import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema(
   {
     chatId: { type: String, required: true }, // Reference to Chat room ID
+    chatType: { 
+      type: String, 
+      required: true, 
+      enum: ["vendor-admin", "customer-admin"] 
+    }, // Type of chat this message belongs to
     senderType: { type: String, required: true, enum: ["cus", "ven", "rm"] }, // Any of the 3 users
     contentType: {
       type: String,
