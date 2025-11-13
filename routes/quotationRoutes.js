@@ -97,6 +97,32 @@ export default (io) => {
 
       const savedQuotation = await newQuotation.save();
 
+      // 🔥 Immediately create Customer–Admin chat (matching your DB structure)
+      const existingCustomerAdminChat = await Chat.findOne({
+        chatId: savedQuotation.id,
+        chatType: "customer-admin",
+      });
+
+      if (!existingCustomerAdminChat) {
+        await Chat.create({
+          chatId: savedQuotation.id,
+          cusId: savedQuotation.user_id,
+          venId: savedQuotation.vendor_id,
+          serId: savedQuotation.service_id,
+          rmId: "admin-rm",
+          chatType: "customer-admin",
+          status: "active", // <-- matches your DB structure
+          pinnedMessages: [], // <-- matches your DB structure
+        });
+
+        console.log("🟢 Created new customer-admin chat:", savedQuotation.id);
+      } else {
+        console.log(
+          "ℹ️ Customer-admin chat already exists:",
+          savedQuotation.id
+        );
+      }
+
       const newNotification = new vendorNotification({
         vendorId: savedQuotation.vendor_id,
         customerId: savedQuotation.user_id,
@@ -149,16 +175,16 @@ export default (io) => {
           vendor.name,
           "https://www.eventory.in/dashboard?q=quotations"
         );
-        
+
         const isDEV = process.env.IS_DEV === "true";
-        if(isDEV) return;
-        
+        if (isDEV) return;
+
         sendSlackMessage({
           id: newQuotation.id,
           customer: customer.name,
           vendor: vendor.name,
           service: newQuotation.service_id,
-          vendorId : newQuotation.vendor_id,
+          vendorId: newQuotation.vendor_id,
           guests: newQuotation.number_of_guest,
           date: newQuotation.start_date?.toLocaleDateString("en-IN"),
         });
@@ -244,7 +270,7 @@ export default (io) => {
 
       if (status === "Accepted") {
         const { user_id, vendor_id, service_id } = updatedQuotation;
-        
+
         // Check if vendor-admin chat already exists
         const existingVendorAdminChat = await Chat.findOne({
           chatId: id,
