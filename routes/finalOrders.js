@@ -251,7 +251,30 @@ router.put("/finalOrder/approve", async (req, res) => {
         message,
       });
 
-      // ✅ Send response back to frontend
+      try {
+        const vendorAdminChat = await Chat.findOne({ 
+          chatId: order.quotationId, 
+          chatType: "vendor-admin" 
+        });
+        
+        if (vendorAdminChat && vendorAdminChat.status !== "blocked") {
+          vendorAdminChat.status = "blocked";
+          await vendorAdminChat.save();
+        }
+
+        const customerAdminChat = await Chat.findOne({ 
+          chatId: order.quotationId, 
+          chatType: "customer-admin" 
+        });
+        
+        if (customerAdminChat && customerAdminChat.status !== "blocked") {
+          customerAdminChat.status = "blocked";
+          await customerAdminChat.save();
+        }
+      } catch (chatError) {
+        console.error("Error blocking chats:", chatError);
+      }
+
       return res.status(200).json({
         message: "Final order approved by both parties.",
         data: order,
@@ -259,9 +282,8 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
     }
 
-    // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
-      const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
+      const message = ` Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
 
       await vendorNotification.create({
         vendorId: order.vendorId,
