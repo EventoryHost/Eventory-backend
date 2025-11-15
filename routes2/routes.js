@@ -39,6 +39,7 @@ import vendorNotificationRoutes from "../routes2/vendorNotificationRoutes.js";
 import emNotificationRoutes from "../routes2/emNotificationRoutes.js";
 import customerNotificationRoutes from "../routes2/customerNotificationRoutes.js";
 import invoiceRoutes from "../routes2/invoiceRoutes.js";
+import deviceTokenRoutes from "../routes2/deviceTokenRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -82,7 +83,8 @@ router.use("/vendor-notifications", vendorNotificationRoutes);
 router.use("/em-notifications", emNotificationRoutes);
 router.use("/customer-notifications", customerNotificationRoutes);
 router.use("/invoices", invoiceRoutes);
-router.use("/webhook", waRoutes); 
+router.use("/device-tokens", deviceTokenRoutes);
+router.use("/webhook", waRoutes);
 
 return router;
 }
