@@ -65,6 +65,25 @@ const createQuotation = async (req, res, io) => {
 
     const savedQuotation = await newQuotation.save();
 
+    const existingCustomerAdminChat = await Chat2.findOne({
+      chat_id : savedQuotation.quotation_id,
+      chat_type: "customer-admin",
+    });
+
+    if (!existingCustomerAdminChat) {
+      await Chat2.create({
+        chat_id: savedQuotation.quotation_id, // Same ID for linkage
+        service_id : savedQuotation.service_id,
+        customer_id : savedQuotation.customer_id,
+        vendor_id : savedQuotation.vendor_id,
+        chat_type: "customer-admin",
+        chat_status: "ACTIVE",
+      });
+    }
+    else{
+       console.log("Customer-admin chat already exists:",savedQuotation.id); 
+    }
+
     // 🧠 Create notification for vendor
     const newNotification = new vendorNotification({
       vendor_id: savedQuotation.vendor_id,
@@ -209,9 +228,8 @@ const updateQuotationStatus = async (req, res) => {
     // Find or create chat for this vendor-customer-service combo
     console.log("🔍 Checking for existing chat...");
     let existingChat = await Chat2.findOne({
-      customer_id,
-      vendor_id,
-      service_id,
+      chat_id : quotation_id,
+      chat_type: "vendor-admin",
     });
 
     if (existingChat) {
@@ -220,10 +238,12 @@ const updateQuotationStatus = async (req, res) => {
       console.log("🆕 No existing chat found. Creating new one...");
       existingChat = await Chat2.create({
         chat_id: quotation_id,
+        service_id,
         customer_id,
         vendor_id,
-        service_id,
-        em_id: "admin-rm",
+        em_id: "",
+        chat_type: "vendor-admin",
+        chat_status: "ACTIVE",
       });
       console.log("✅ New chat created:", existingChat.chat_id);
     } else {
@@ -244,6 +264,7 @@ const updateQuotationStatus = async (req, res) => {
       await Message2.create({
         chat_id: existingChat.chat_id,
         sender: "em", // 'em' means system/admin message
+        chat_type: existingChat.chat_type,
         sender_id: "system",
         message_type: "system",
         message_content: messageContent,

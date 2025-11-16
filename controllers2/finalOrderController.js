@@ -3,12 +3,12 @@ import { Events } from "../models2/events.js";
 import customerNotification from "../models2/customerNotifications.js";
 import vendorNotification from "../models2/vendorNotifications.js";
 import adminNotification from "../models2/emNotifications.js";
+import Chat2 from "../models2/chats.js";
 
 // ---------------------- CREATE / UPSERT FINAL ORDER ----------------------
 export const createOrUpdateFinalOrder = async (req, res) => {
   try {
     const { order_id, paymentDetails, specificTerms, ...updateData } = req.body;
-    console.log("Received order data:", req.body);
 
     // Handle paymentDetails and specificTerms separately to ensure proper schema validation
     const updateFields = { ...updateData };
@@ -45,8 +45,10 @@ export const getAllFinalOrders = async (req, res) => {
 // ---------------------- GET ORDER BY QUOTATION ID ----------------------
 export const getOrderByQuotationId = async (req, res) => {
   const { quotation_id } = req.params;
+  console.log("Fetching order for quotation_id:", quotation_id);
   try {
-    const order = await Order.findOne({ quotation_id });
+    const order = await Order.findOne({ quotation_id : quotation_id });
+    console.log("Fetched order:", order);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     res.json(order);
@@ -132,6 +134,30 @@ export const approveFinalOrder = async (req, res) => {
         em_id: order.em_id,
         message,
       });
+
+      try {
+        const vendorAdminChat = await Chat2.findOne({ 
+          chat_id: order.quotation_id, 
+          chat_type: "vendor-admin" 
+        });
+        
+        if (vendorAdminChat && vendorAdminChat.chat_status !== "BLOCKED") {
+          vendorAdminChat.chat_status = "BLOCKED";
+          await vendorAdminChat.save();
+        }
+
+        const customerAdminChat = await Chat2.findOne({ 
+          chat_id: order.quotation_id, 
+          chat_type: "customer-admin" 
+        });
+        
+        if (customerAdminChat && customerAdminChat.chat_status !== "BLOCKED") {
+          customerAdminChat.chat_status = "BLOCKED";
+          await customerAdminChat.save();
+        }
+      } catch (chatError) {
+        console.error("Error blocking chats:", chatError);
+      }
 
       return res.status(200).json({
         message: `Both parties approved. Checkout link sent to customer.`,

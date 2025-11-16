@@ -51,8 +51,6 @@ export const getVendorNotificationsByService = async (req, res) => {
       read: false,
     });
 
-    console.log("Notifications fetched by service:", notifications);
-
     return res.status(200).json({
       message: "Notifications retrieved successfully for the given service",
       data: notifications,
