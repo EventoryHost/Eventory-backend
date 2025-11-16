@@ -79,7 +79,8 @@ customerCouponSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], functi
 });
 
 const CustomerCoupon =
-  mongoose.models.CustomerCoupons || mongoose.model("CustomerCoupons", customerCouponSchema);
+  mongoose.models.CustomerCoupon ||
+  mongoose.model("CustomerCoupon", customerCouponSchema, "customer-coupons");
 
 export { CustomerCoupon, customerCouponUsageSchema };
 

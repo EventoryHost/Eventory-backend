@@ -2,7 +2,6 @@ import { Vendor } from '../models2/vendor.js';
 import { Customer } from '../models2/customer.js';
 import Coupons from '../models2/coupons.js';
 import { CustomerCoupon } from '../models2/customerCoupon.js';
-
 // Helper: update eligibility after using a coupon
 const calculateNewEligibility = (currentEligibility, usedDiscount) => {
   let newEligibility = [];
@@ -48,9 +47,7 @@ const deriveEligibleDiscounts = (highestDiscount) => {
 };
 
 const findCustomerRecord = (customerId) => {
-  return Customer.findOne({
-    $or: [{ customer_id: customerId }, { id: customerId }],
-  });
+  return Customer.findOne({ customer_id: customerId });
 };
 
 // 📌 Get available coupons (updated to use new Vendor schema fields)
@@ -424,14 +421,17 @@ export const validateCouponForCustomer = async (req, res) => {
     }
 
     const customer = await findCustomerRecord(customerId);
+    console.log("customer found:", customer);
     if (!customer) {
       return res.status(404).json({ success: false, valid: false, error: 'Customer not found' });
     }
 
+    console.log(couponCode);
     const coupon = await CustomerCoupon.findOne({
       coupon_code: String(couponCode).toUpperCase(),
       is_active: true,
     });
+    console.log("coupon found:", coupon);
     if (!coupon) {
       return res.status(404).json({ success: false, valid: false, error: 'Invalid or inactive coupon code' });
     }
