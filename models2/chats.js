@@ -8,7 +8,6 @@ const chatSchema = new Schema({
   chat_id: {
     type: String,
     required: true,
-    unique: true,
     default: () => generateUniqueId("CHAT")
   },
   service_id: {
@@ -25,6 +24,11 @@ const chatSchema = new Schema({
   },
   em_id: {
     type: String
+  },
+  chat_type: { 
+    type: String, 
+    required: true, 
+    enum: ["vendor-admin", "customer-admin"] 
   },
   chat_status: {
     type: String,

@@ -11,9 +11,14 @@ export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
 
   // ------------------- JOIN CHAT -------------------
-  socket.on("join_chat", async ({ chat_id, sender }) => {
+  socket.on("join_chat", async ({ chat_id, sender, chat_type }) => {
     try {
-      const chat = await Chat2.findOne({ chat_id });
+      if (!chat_type) {
+        socket.emit("error", "chat_type is required");
+        return;
+      }
+
+      const chat = await Chat2.findOne({ chat_id, chat_type });
       console.log("🔍 Chat lookup:", chat);
 
       if (!chat) {
@@ -21,9 +26,21 @@ export const handleSocketConnection = (socket, io) => {
         return;
       }
 
-      socket.join(chat_id);
-      socket.emit("joined", `Joined chat room ${chat_id}`);
-      console.log(`${sender} joined chat room: ${chat_id}`);
+      // Validate user has permission to join this chat type
+      if (chat_type === "vendor-admin" && sender !== "vendor" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      const roomId = `${chat_id}-${chat_type}`;
+      socket.join(roomId);
+      socket.emit("joined", `Joined chat room ${chat_id} (${chat_type})`);
+      console.log(`${sender} joined chat room: ${chat_id} (${chat_type})`);
     } catch (err) {
       console.error("join_chat error:", err);
       socket.emit("error", "Error joining chat");
@@ -36,6 +53,7 @@ export const handleSocketConnection = (socket, io) => {
     async (
       {
         chat_id,
+        chat_type,
         sender,
         sender_id,
         message_content,
@@ -49,6 +67,16 @@ export const handleSocketConnection = (socket, io) => {
       callback
     ) => {
       try {
+        // Validate chatType is provided
+        if (!chat_type) {
+          if (typeof callback === "function") {
+            callback("chat_type is required");
+          } else {
+            socket.emit("error", "chat_type is required");
+          }
+          return;
+        }
+
         // Validate inputs
         if (!chat_id || !sender || !message_content || !sender_id) {
           if (typeof callback === "function")
@@ -62,6 +90,25 @@ export const handleSocketConnection = (socket, io) => {
         if (!validSenders.includes(sender)) {
           if (typeof callback === "function") callback("Invalid sender type");
           else socket.emit("error", "Invalid sender type");
+          return;
+        }
+
+        // Validate senderType matches chatType permissions
+        if (chat_type === "vendor-admin" && sender !== "vendor" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
+          return;
+        }
+
+        if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
           return;
         }
 
@@ -103,16 +150,15 @@ export const handleSocketConnection = (socket, io) => {
           return;
         }
 
-        // Validate chat existence
-        const chat = await Chat2.findOne({ chat_id });
+        // Validate chat existence with chatType
+        const chat = await Chat2.findOne({ chat_id, chat_type });
         if (!chat) {
-          if (typeof callback === "function") callback("Invalid chat_id");
-          else socket.emit("error", "Invalid chat_id");
+          if (typeof callback === "function") callback("Invalid chat_id or chat_type");
+          else socket.emit("error", "Invalid chat_id or chat_type");
           return;
         }
 
-        // Blocked chat check
-        if (chat.status === "BLOCKED") {
+        if (chat.chat_status === "BLOCKED") {
           if (typeof callback === "function") {
             callback("This chat is blocked. You cannot send messages.");
           } else {
@@ -133,6 +179,7 @@ export const handleSocketConnection = (socket, io) => {
         // ------------------- CREATE MESSAGE -------------------
         const message = new Message2({
           chat_id,
+          chat_type,
           sender,
           sender_id,
           message_content,
@@ -144,9 +191,11 @@ export const handleSocketConnection = (socket, io) => {
         const savedMessage = await message.save();
 
         // ------------------- EMIT TO ROOM -------------------
-        io.to(chat_id).emit("new_message", {
+        const roomId = `${chat_id}-${chat_type}`;
+        io.to(roomId).emit("new_message", {
           _id: savedMessage._id,
           chat_id: savedMessage.chat_id,
+          chat_type: chat_type,
           sender: savedMessage.sender,
           sender_id: savedMessage.sender_id,
           message_content: savedMessage.message_content,
@@ -160,7 +209,7 @@ export const handleSocketConnection = (socket, io) => {
         });
 
         console.log(
-          `📤 ${savedMessage.sender} sent ${savedMessage.message_type} message in chat ${savedMessage.chat_id}`
+          `📤 ${savedMessage.sender} sent ${savedMessage.message_type} message in chat ${savedMessage.chat_id} (${chat_type})`
         );
 
         // ------------------- ACK TO SENDER -------------------
@@ -186,12 +235,27 @@ export const handleSocketConnection = (socket, io) => {
 
 export const getMessagesByChatId = async (req, res) => {
   const { chatId } = req.params;
-  const { cursor } = req.query;
+  const { cursor, chatType } = req.query;
   const limit = 15;
 
   try {
-    // ✅ match new field name
-    let query = { chat_id: chatId };
+    if (!chatType) {
+      return res.status(400).json({ error: "chatType is required" });
+    }
+
+    // Validate chatType
+    if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+      return res.status(400).json({ error: "Invalid chatType" });
+    }
+
+    // Verify the chat exists with this chatType
+    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    if (!chatExists) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    // ✅ match new field name and include chat_type
+    let query = { chat_id: chatId, chat_type: chatType };
 
     // ✅ for pagination
     if (cursor) {
@@ -239,7 +303,7 @@ export const getMessagesByChatId = async (req, res) => {
 };
 export const searchMessages = async (req, res) => {
   const { chat_id } = req.params;
-  const { q } = req.query;
+  const { q, chatType } = req.query;
 
   if (!q || !chat_id) {
     return res
@@ -247,10 +311,24 @@ export const searchMessages = async (req, res) => {
       .json({ error: "Query (q) and chat_id are required" });
   }
 
+  if (!chatType) {
+    return res.status(400).json({ error: "chatType is required" });
+  }
+
+  if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+    return res.status(400).json({ error: "Invalid chatType" });
+  }
+
   try {
+    const chatExists = await Chat2.findOne({ chat_id, chat_type: chatType });
+    if (!chatExists) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
     const messages = await Message2.find({
       chat_id,
-      content: { $regex: q, $options: "i" },
+      chat_type: chatType,
+      message_content: { $regex: q, $options: "i" },
     }).sort({ createdAt: -1 });
 
     res.status(200).json({ messages });
@@ -261,13 +339,28 @@ export const searchMessages = async (req, res) => {
 };
 
 export const getMessageContext = async (req, res) => {
-  const { qId } = req.params;
+  const { chatId, qId } = req.params;
+  const { chatType } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(qId)) {
     return res.status(400).json({ error: "Invalid messageId (qId)" });
   }
+
+  if (!chatType) {
+    return res.status(400).json({ error: "chatType is required" });
+  }
+
+  if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+    return res.status(400).json({ error: "Invalid chatType" });
+  }
+
   try {
-    const currentMessage = await Message2.findOne({ message_id: qId });
+    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    if (!chatExists) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const currentMessage = await Message2.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
     if (!currentMessage) {
       return res
         .status(404)
@@ -275,14 +368,16 @@ export const getMessageContext = async (req, res) => {
     }
 
     const olderMessages = await Message2.find({
-      chat_id,
+      chat_id: chatId,
+      chat_type: chatType,
       _id: { $lt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: -1 })
       .limit(20);
 
     const newerMessages = await Message2.find({
-      chat_id,
+      chat_id: chatId,
+      chat_type: chatType,
       _id: { $gt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: 1 })
@@ -442,12 +537,21 @@ export const unpinMessageInChat = async (req, res) => {
 export const blockChat = async (req, res) => {
   try {
     const { chat_id } = req.params;
+    const {chat_type} = req.query;
 
     if (!chat_id) {
       return res.status(400).json({ error: "chatId is required" });
     }
 
-    const chat = await Chat2.findOne({ chat_id });
+    if(!chat_type){
+      return res.status(400).json({ error: "chat_type is required" });
+    }
+
+    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+      return res.status(400).json({ error: "Invalid chat_type" });
+    }
+
+    const chat = await Chat2.findOne({ chat_id , chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -470,8 +574,21 @@ export const blockChat = async (req, res) => {
 export const unblockChat = async (req, res) => {
   try {
     const { chat_id } = req.params;
+    const {chat_type} = req.query;
 
-    const chat = await Chat2.findOne({ chat_id });
+    if (!chat_id) {
+      return res.status(400).json({ error: "chatId is required" });
+    }
+
+    if(!chat_type){
+      return res.status(400).json({ error: "chat_type is required" });
+    } 
+
+    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+      return res.status(400).json({ error: "Invalid chat_type" });
+    }
+
+    const chat = await Chat2.findOne({ chat_id ,chat_type });    
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -524,7 +641,6 @@ export const getPinnedMessages = async (req, res) => {
 export const getBlockedChats = async (req, res) => {
   try {
     const blockedChats = await Chat2.find({ chat_status: "BLOCKED" })
-      .select("chatId status")
       .sort({ updatedAt: -1 }); // Sort by most recently updated
     return res.status(200).json({ blockedChats });
   } catch (error) {

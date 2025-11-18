@@ -14,6 +14,11 @@ const messageSchema = new Schema(
       type: String,
       required: true,
     },
+    chat_type: { 
+      type: String, 
+      required: true, 
+      enum: ["vendor-admin", "customer-admin"] 
+    },
     sender: {
       type: String,
       enum: ["customer", "vendor", "em"],

@@ -3,34 +3,65 @@ import { Events } from "../models2/events.js";
 import customerNotification from "../models2/customerNotifications.js";
 import vendorNotification from "../models2/vendorNotifications.js";
 import adminNotification from "../models2/emNotifications.js";
+import Chat2 from "../models2/chats.js";
+import Message2 from "../models2/message2.js";
 
 // ---------------------- CREATE / UPSERT FINAL ORDER ----------------------
 export const createOrUpdateFinalOrder = async (req, res) => {
   try {
-    const { order_id, paymentDetails, specificTerms, ...updateData } = req.body;
-    console.log("Received order data:", req.body);
+    const { order_id, quotation_id, em_id, paymentDetails, specificTerms, ...incomingData } = req.body;
 
-    // Handle paymentDetails and specificTerms separately to ensure proper schema validation
-    const updateFields = { ...updateData };
-    if (paymentDetails) {
-      updateFields.paymentDetails = paymentDetails;
-    }
-    if (specificTerms) {
-      updateFields.specificTerms = specificTerms;
+    if (!quotation_id) {
+      return res.status(400).json({ message: "quotation_id is required" });
     }
 
-    const order = await Order.findOneAndUpdate(
+    console.log("🔵 Received FINAL ORDER:", incomingData);
+
+    // 1️⃣ DELETE OLD APPROVAL MESSAGES FOR THIS CHAT
+    const deletedMessages = await Message2.deleteMany({
+      chat_id: quotation_id,
+      message_type: "approval_request"
+    });
+
+    console.log("🗑️ Deleted old approval_request messages:", deletedMessages.deletedCount);
+
+    // 2️⃣ BUILD UPDATE OBJECT
+    const updateFields = {};
+    for (const key of Object.keys(incomingData)) {
+      if (typeof incomingData[key] !== "object" || Array.isArray(incomingData[key])) {
+        updateFields[key] = incomingData[key];
+      }
+    }
+
+    if (quotation_id) updateFields.quotation_id = quotation_id;
+    if (paymentDetails) updateFields.paymentDetails = paymentDetails;
+    if (specificTerms) updateFields.specificTerms = specificTerms;
+    if (em_id) updateFields.em_id = em_id; 
+
+    // 3️⃣ UPSERT ORDER
+    const updatedOrder = await Order.findOneAndUpdate(
       { order_id },
       { $set: updateFields },
       { new: true, upsert: true }
     );
 
-    res.status(200).json({ message: "Order processed successfully", data: order });
+    console.log("🆕 Order upserted:", updatedOrder.order_id);
+
+    // 5️⃣ SEND RESPONSE
+    return res.status(200).json({
+      message: "Order processed & approval message refreshed",
+      data: updatedOrder
+    });
+
   } catch (error) {
-    console.error("Failed to process order:", error);
-    res.status(400).json({ message: "Failed to process booking", error: error.message });
+    console.error("❌ Failed to process final order:", error);
+    res.status(400).json({
+      message: "Failed to process booking",
+      error: error.message
+    });
   }
 };
+
 
 // ---------------------- GET ALL FINAL ORDERS ----------------------
 export const getAllFinalOrders = async (req, res) => {
@@ -45,8 +76,10 @@ export const getAllFinalOrders = async (req, res) => {
 // ---------------------- GET ORDER BY QUOTATION ID ----------------------
 export const getOrderByQuotationId = async (req, res) => {
   const { quotation_id } = req.params;
+  console.log("Fetching order for quotation_id:", quotation_id);
   try {
-    const order = await Order.findOne({ quotation_id });
+    const order = await Order.findOne({ quotation_id : quotation_id });
+    console.log("Fetched order:", order);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     res.json(order);
@@ -133,6 +166,30 @@ export const approveFinalOrder = async (req, res) => {
         message,
       });
 
+      try {
+        const vendorAdminChat = await Chat2.findOne({ 
+          chat_id: order.quotation_id, 
+          chat_type: "vendor-admin" 
+        });
+        
+        if (vendorAdminChat && vendorAdminChat.chat_status !== "BLOCKED") {
+          vendorAdminChat.chat_status = "BLOCKED";
+          await vendorAdminChat.save();
+        }
+
+        const customerAdminChat = await Chat2.findOne({ 
+          chat_id: order.quotation_id, 
+          chat_type: "customer-admin" 
+        });
+        
+        if (customerAdminChat && customerAdminChat.chat_status !== "BLOCKED") {
+          customerAdminChat.chat_status = "BLOCKED";
+          await customerAdminChat.save();
+        }
+      } catch (chatError) {
+        console.error("Error blocking chats:", chatError);
+      }
+
       return res.status(200).json({
         message: `Both parties approved. Checkout link sent to customer.`,
         data: order,
@@ -184,7 +241,6 @@ export const approveFinalOrder = async (req, res) => {
 
     // 🟡 CASE 3: Only one party approved
     const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
-    console.log("CASE 3 triggered for order:", order.order_id);
     const checkout_url =
       order.checkout_url ||
       `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendor_id}&user_id=${order.customer_id}&orderId=${order.order_id}`;
@@ -438,3 +494,46 @@ export const deleteFinalOrder = async (req, res) => {
     res.status(500).json({ message: "Failed to delete booking", error: error.message });
   }
 };
+
+// ---------------------- DELETE APPROVAL (Migration DB) ----------------------
+export const deleteApprovalForOrder = async (req, res) => {
+  try {
+    const { quotation_id, order_id, admin_id } = req.body;
+    console.log("🔵 deleteApprovalForOrder:", req.body);
+
+    if (!admin_id || !admin_id.startsWith("EM")) {
+      return res.status(403).json({ message: "Unauthorized. Admin only." });
+    }
+
+    if (!quotation_id || !order_id) {
+      return res.status(400).json({ message: "quotation_id and order_id are required" });
+    }
+
+    // Delete approval messages (both vendor-admin & customer-admin)
+    const deletedMessages = await Message2.deleteMany({
+      chat_id: quotation_id,
+      message_type: "approval_request",
+    });    
+
+    console.log("Deleted approval messages:", deletedMessages);
+
+    // Delete the final order
+    const deletedOrder = await Order.findOneAndDelete({ order_id });
+
+    console.log("Deleted order ❌:", deletedOrder);
+
+    res.status(200).json({
+      message: "Approval messages and order deleted successfully",
+      deletedMessages,
+      deletedOrder
+    });
+
+  } catch (error) {
+    console.error("🔥 deleteApproval error:", error.message);
+    return res.status(500).json({
+      message: "Failed to delete approval data",
+      error: error.message
+    });
+  }
+};
+

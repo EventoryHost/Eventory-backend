@@ -12,6 +12,7 @@ import {
   updatePaymentDetails,
   updateSpecificTerms,
   syncPaymentDetailsToEvents,
+  deleteApprovalForOrder,
 } from "../controllers2/finalOrderController.js";
 
 const router = express.Router();
@@ -28,5 +29,6 @@ router.get("/finalOrder/vendor/:vendor_id", getOrdersByVendor);
 router.get("/finalOrder/customer/:customerId", getOrdersByCustomer);
 router.get("/finalOrder/:order_id", getOrderById);
 router.delete("/finalOrder/:order_id", deleteFinalOrder);
+router.delete("/delete-approval", deleteApprovalForOrder);
 
 export default router;
