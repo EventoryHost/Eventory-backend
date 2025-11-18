@@ -6,70 +6,96 @@ import adminNotification from "../models2/emNotifications.js";
 import Chat2 from "../models2/chats.js";
 import Message2 from "../models2/message2.js";
 
-// ---------------------- CREATE / UPSERT FINAL ORDER ----------------------
 export const createOrUpdateFinalOrder = async (req, res) => {
+  console.log("\n📩 FINAL ORDER API HIT");
+
   try {
-    const { order_id, quotation_id, em_id, paymentDetails, specificTerms, ...incomingData } = req.body;
+    const skipClean = req.query.skipClean === "true";
+    console.log("🔍 skipClean:", skipClean);
+
+    const {
+      order_id,
+      quotation_id,
+      em_id,
+      paymentDetails,
+      specificTerms,
+      ...incomingData
+    } = req.body;
 
     if (!quotation_id) {
+      console.log("❌ quotation_id missing");
       return res.status(400).json({ message: "quotation_id is required" });
     }
 
-    console.log("🔵 Received FINAL ORDER:", incomingData);
-
-    // 1️⃣ DELETE OLD APPROVAL MESSAGES FOR THIS CHAT
-    const deletedMessages = await Message2.deleteMany({
-      chat_id: quotation_id,
-      message_type: "approval_request"
-    });
-
-    console.log("🗑️ Deleted old approval_request messages:", deletedMessages.deletedCount);
-
-    // 2️⃣ BUILD UPDATE OBJECT
+    // Initialize update fields
     const updateFields = {};
+
+    // DELETE OLD APPROVAL MESSAGES FOR NEW NEGOTIATION
+    if (!skipClean) {
+      const deletedMessages = await Message2.deleteMany({
+        chat_id: quotation_id,
+        message_type: "approval_request",
+      });
+
+      console.log("🗑️ Deleted approval_request messages:", deletedMessages.deletedCount);
+
+      // Reset approvals
+      updateFields.customer_approval = null;
+      updateFields.vendor_approval = null;
+      console.log("🔄 Approvals reset to null for new final order");
+    } else {
+      console.log("⚠️ Skipped deletion / approval reset");
+    }
+
+    // BUILD updateFields
     for (const key of Object.keys(incomingData)) {
-      if (typeof incomingData[key] !== "object" || Array.isArray(incomingData[key])) {
-        updateFields[key] = incomingData[key];
+      const val = incomingData[key];
+      if (typeof val !== "object" || Array.isArray(val)) {
+        updateFields[key] = val;
       }
     }
 
-    if (quotation_id) updateFields.quotation_id = quotation_id;
+    updateFields.quotation_id = quotation_id;
     if (paymentDetails) updateFields.paymentDetails = paymentDetails;
     if (specificTerms) updateFields.specificTerms = specificTerms;
-    if (em_id) updateFields.em_id = em_id; 
+    if (em_id) updateFields.em_id = em_id;
 
-    // 3️⃣ UPSERT ORDER
+    // UPSERT THE ORDER
     const updatedOrder = await Order.findOneAndUpdate(
       { order_id },
       { $set: updateFields },
       { new: true, upsert: true }
     );
 
-    console.log("🆕 Order upserted:", updatedOrder.order_id);
+    console.log("✅ Final order saved:", updatedOrder.order_id);
 
-    // 5️⃣ SEND RESPONSE
     return res.status(200).json({
-      message: "Order processed & approval message refreshed",
-      data: updatedOrder
+      message: skipClean
+        ? "Order updated without deleting old approval messages"
+        : "Order processed & approval messages refreshed",
+      data: updatedOrder,
     });
 
   } catch (error) {
-    console.error("❌ Failed to process final order:", error);
-    res.status(400).json({
+    console.error("❌ Final order error:", error.message);
+    return res.status(400).json({
       message: "Failed to process booking",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
 
 // ---------------------- GET ALL FINAL ORDERS ----------------------
 export const getAllFinalOrders = async (req, res) => {
   try {
     const orders = await Order.find({});
-    res.status(200).json({ message: "All orders retrieved successfully", data: orders });
+    res
+      .status(200)
+      .json({ message: "All orders retrieved successfully", data: orders });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch orders", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch orders", error: error.message });
   }
 };
 
@@ -78,7 +104,7 @@ export const getOrderByQuotationId = async (req, res) => {
   const { quotation_id } = req.params;
   console.log("Fetching order for quotation_id:", quotation_id);
   try {
-    const order = await Order.findOne({ quotation_id : quotation_id });
+    const order = await Order.findOne({ quotation_id: quotation_id });
     console.log("Fetched order:", order);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -125,7 +151,9 @@ export const approveFinalOrder = async (req, res) => {
     // ✅ CASE 1: Both parties approved
     if (order.customer_approval === true && order.vendor_approval === true) {
       console.log("CASE 1 triggered for order:", order.order_id);
-      const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
+      const parsedFinalPrice = Number(
+        String(order.price || 0).replace(/,/g, "")
+      );
       const checkout_url =
         order.checkout_url ||
         `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendor_id}&user_id=${order.customer_id}&orderId=${order.order_id}`;
@@ -167,21 +195,21 @@ export const approveFinalOrder = async (req, res) => {
       });
 
       try {
-        const vendorAdminChat = await Chat2.findOne({ 
-          chat_id: order.quotation_id, 
-          chat_type: "vendor-admin" 
+        const vendorAdminChat = await Chat2.findOne({
+          chat_id: order.quotation_id,
+          chat_type: "vendor-admin",
         });
-        
+
         if (vendorAdminChat && vendorAdminChat.chat_status !== "BLOCKED") {
           vendorAdminChat.chat_status = "BLOCKED";
           await vendorAdminChat.save();
         }
 
-        const customerAdminChat = await Chat2.findOne({ 
-          chat_id: order.quotation_id, 
-          chat_type: "customer-admin" 
+        const customerAdminChat = await Chat2.findOne({
+          chat_id: order.quotation_id,
+          chat_type: "customer-admin",
         });
-        
+
         if (customerAdminChat && customerAdminChat.chat_status !== "BLOCKED") {
           customerAdminChat.chat_status = "BLOCKED";
           await customerAdminChat.save();
@@ -234,7 +262,8 @@ export const approveFinalOrder = async (req, res) => {
       );
 
       return res.status(200).json({
-        message: "Approval rejected by one party. Order reset for future approvals.",
+        message:
+          "Approval rejected by one party. Order reset for future approvals.",
         data: resetOrder,
       });
     }
@@ -288,7 +317,9 @@ export const approveFinalOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("🔥 Approval update error:", error.message);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -297,7 +328,7 @@ export const updateFinalOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
     const { paymentDetails, specificTerms, ...updateData } = req.body;
-    
+
     // Handle paymentDetails and specificTerms separately to ensure proper schema validation
     const updateFields = { ...updateData };
     if (paymentDetails) {
@@ -306,17 +337,22 @@ export const updateFinalOrder = async (req, res) => {
     if (specificTerms) {
       updateFields.specificTerms = specificTerms;
     }
-    
+
     const updatedOrder = await Order.findOneAndUpdate(
-      { order_id }, 
-      { $set: updateFields }, 
+      { order_id },
+      { $set: updateFields },
       { new: true }
     );
-    if (!updatedOrder) return res.status(404).json({ message: "Booking not found" });
+    if (!updatedOrder)
+      return res.status(404).json({ message: "Booking not found" });
 
-    res.status(200).json({ message: "Booking updated successfully", data: updatedOrder });
+    res
+      .status(200)
+      .json({ message: "Booking updated successfully", data: updatedOrder });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update booking", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to update booking", error: error.message });
   }
 };
 
@@ -325,11 +361,16 @@ export const getOrdersByVendor = async (req, res) => {
   try {
     const { vendor_id } = req.params;
     const orders = await Order.find({ vendor_id });
-    if (!orders.length) return res.status(404).json({ message: "No bookings found" });
+    if (!orders.length)
+      return res.status(404).json({ message: "No bookings found" });
 
-    res.status(200).json({ message: "Bookings retrieved successfully", data: orders });
+    res
+      .status(200)
+      .json({ message: "Bookings retrieved successfully", data: orders });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch bookings", error: error.message });
   }
 };
 
@@ -337,11 +378,16 @@ export const getOrdersByVendor = async (req, res) => {
 export const getOrdersByCustomer = async (req, res) => {
   try {
     const orders = await Order.find({ customer_id: req.params.customer_id });
-    if (!orders.length) return res.status(404).json({ message: "No bookings found" });
+    if (!orders.length)
+      return res.status(404).json({ message: "No bookings found" });
 
-    res.status(200).json({ message: "Bookings retrieved successfully", data: orders });
+    res
+      .status(200)
+      .json({ message: "Bookings retrieved successfully", data: orders });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch bookings", error: error.message });
   }
 };
 
@@ -352,9 +398,13 @@ export const getOrderById = async (req, res) => {
     const order = await Order.find({ order_id });
     if (!order) return res.status(404).json({ message: "Booking not found" });
 
-    res.status(200).json({ message: "Booking retrieved successfully", data: order });
+    res
+      .status(200)
+      .json({ message: "Booking retrieved successfully", data: order });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch booking", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch booking", error: error.message });
   }
 };
 
@@ -366,8 +416,8 @@ export const updatePaymentDetails = async (req, res) => {
 
     // Validate required payment details fields
     if (!paymentDetails.paymentMethod || !paymentDetails.paymentStatus) {
-      return res.status(400).json({ 
-        message: "paymentMethod and paymentStatus are required" 
+      return res.status(400).json({
+        message: "paymentMethod and paymentStatus are required",
       });
     }
 
@@ -381,15 +431,15 @@ export const updatePaymentDetails = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.status(200).json({ 
-      message: "Payment details updated successfully", 
-      data: updatedOrder 
+    res.status(200).json({
+      message: "Payment details updated successfully",
+      data: updatedOrder,
     });
   } catch (error) {
     console.error("Failed to update payment details:", error);
-    res.status(500).json({ 
-      message: "Failed to update payment details", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to update payment details",
+      error: error.message,
     });
   }
 };
@@ -402,8 +452,8 @@ export const updateSpecificTerms = async (req, res) => {
 
     // Validate that specificTerms is an array
     if (!Array.isArray(specificTerms)) {
-      return res.status(400).json({ 
-        message: "specificTerms must be an array of strings" 
+      return res.status(400).json({
+        message: "specificTerms must be an array of strings",
       });
     }
 
@@ -417,15 +467,15 @@ export const updateSpecificTerms = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.status(200).json({ 
-      message: "Specific terms updated successfully", 
-      data: updatedOrder 
+    res.status(200).json({
+      message: "Specific terms updated successfully",
+      data: updatedOrder,
     });
   } catch (error) {
     console.error("Failed to update specific terms:", error);
-    res.status(500).json({ 
-      message: "Failed to update specific terms", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to update specific terms",
+      error: error.message,
     });
   }
 };
@@ -447,7 +497,7 @@ export const syncPaymentDetailsToEvents = async (req, res) => {
       customer_id: order.customer_id,
       vendor_id: order.vendor_id,
       event_start: order.event_start,
-      event_end: order.event_end
+      event_end: order.event_end,
     });
 
     if (!event) {
@@ -469,15 +519,15 @@ export const syncPaymentDetailsToEvents = async (req, res) => {
       { new: true }
     );
 
-    res.status(200).json({ 
-      message: "Payment details synced to event successfully", 
-      data: updatedEvent 
+    res.status(200).json({
+      message: "Payment details synced to event successfully",
+      data: updatedEvent,
     });
   } catch (error) {
     console.error("Failed to sync payment details to events:", error);
-    res.status(500).json({ 
-      message: "Failed to sync payment details to events", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to sync payment details to events",
+      error: error.message,
     });
   }
 };
@@ -487,11 +537,16 @@ export const deleteFinalOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
     const deletedOrder = await Order.findOneAndDelete({ order_id });
-    if (!deletedOrder) return res.status(404).json({ message: "Booking not found" });
+    if (!deletedOrder)
+      return res.status(404).json({ message: "Booking not found" });
 
-    res.status(200).json({ message: "Booking deleted successfully", data: deletedOrder });
+    res
+      .status(200)
+      .json({ message: "Booking deleted successfully", data: deletedOrder });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete booking", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to delete booking", error: error.message });
   }
 };
 
@@ -506,14 +561,16 @@ export const deleteApprovalForOrder = async (req, res) => {
     }
 
     if (!quotation_id || !order_id) {
-      return res.status(400).json({ message: "quotation_id and order_id are required" });
+      return res
+        .status(400)
+        .json({ message: "quotation_id and order_id are required" });
     }
 
     // Delete approval messages (both vendor-admin & customer-admin)
     const deletedMessages = await Message2.deleteMany({
       chat_id: quotation_id,
       message_type: "approval_request",
-    });    
+    });
 
     console.log("Deleted approval messages:", deletedMessages);
 
@@ -525,15 +582,13 @@ export const deleteApprovalForOrder = async (req, res) => {
     res.status(200).json({
       message: "Approval messages and order deleted successfully",
       deletedMessages,
-      deletedOrder
+      deletedOrder,
     });
-
   } catch (error) {
     console.error("🔥 deleteApproval error:", error.message);
     return res.status(500).json({
       message: "Failed to delete approval data",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
