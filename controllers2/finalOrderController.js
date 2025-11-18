@@ -36,6 +36,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (quotation_id) updateFields.quotation_id = quotation_id;
     if (paymentDetails) updateFields.paymentDetails = paymentDetails;
     if (specificTerms) updateFields.specificTerms = specificTerms;
+    if (em_id) updateFields.em_id = em_id; 
 
     // 3️⃣ UPSERT ORDER
     const updatedOrder = await Order.findOneAndUpdate(
@@ -45,21 +46,6 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     );
 
     console.log("🆕 Order upserted:", updatedOrder.order_id);
-
-    // 4️⃣ CREATE NEW APPROVAL REQUEST MESSAGE
-    const approvalMessage = new Message2({
-      chat_id: quotation_id,
-      chat_type: "customer-admin",
-      sender: "em",
-      sender_id: em_id,
-      message_type: "approval_request",
-      message_content: incomingData.final_checkout_url || "New approval request",
-      attachment_url: null
-    });
-
-    await approvalMessage.save();
-
-    console.log("📩 New approval message created");
 
     // 5️⃣ SEND RESPONSE
     return res.status(200).json({
@@ -255,7 +241,6 @@ export const approveFinalOrder = async (req, res) => {
 
     // 🟡 CASE 3: Only one party approved
     const parsedFinalPrice = Number(String(order.price || 0).replace(/,/g, ""));
-    console.log("CASE 3 triggered for order:", order.order_id);
     const checkout_url =
       order.checkout_url ||
       `/checkout?amount=${parsedFinalPrice}&vendor_id=${order.vendor_id}&user_id=${order.customer_id}&orderId=${order.order_id}`;
