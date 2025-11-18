@@ -16,6 +16,7 @@ import { businessDetailsRoutes } from "../routes2/reduxRoutes/businessDetails.js
 import caterer from "../routes2/reduxRoutes/caterer.js";
 import verificationRoutes from "../routes2/verificationRoutes.js";
 import decorator from "../routes2/reduxRoutes/decorator.js";
+import { initializeWorkers } from "../utils/notificationScheduler.js";
 dotenv.config();
 
 const app = express();
@@ -37,6 +38,10 @@ app.use(morgan("dev"));
 
 // Connect to the new migration database
 connectDB();
+
+// 🔥 START THE BACKGROUND NOTIFICATION WORKER
+// This starts the 30-minute timer for checking unread chats.
+initializeWorkers();
 
 app.use(express.json());
 
