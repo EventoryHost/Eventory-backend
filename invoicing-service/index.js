@@ -27,29 +27,32 @@ async function pollSQS() {
 
       const data = await sqs.send(command);
 
-    if (data.Messages) {
-      for (const message of data.Messages) {
-        const body = JSON.parse(message.Body);
+      if (data.Messages) {
+        for (const message of data.Messages) {
+          const body = JSON.parse(message.Body);
 
-        try {
-          if (body.type === "vendorOnboarded") {
-            await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
+          try {
+            if (body.type === "vendorOnboarded") {
+              await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
 
-          } else {
-            await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
+            } else {
+              await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
+            }
+
+            const delCommand = new DeleteMessageCommand({
+              QueueUrl: queueUrl,
+              ReceiptHandle: message.ReceiptHandle
+            });
+            await sqs.send(delCommand);
+          } catch (err) {
+            console.error("Invoice generation failed:", err);
           }
-          
-          const delCommand = new DeleteMessageCommand({
-            QueueUrl: queueUrl,
-            ReceiptHandle: message.ReceiptHandle
-          });
-          await sqs.send(delCommand);
-        } catch (err) {
-          console.error("Invoice generation failed:", err);
         }
       }
+
+    } catch (err) {
+      console.error("Error polling SQS:", err);
     }
   }
 }
-
 pollSQS().catch(console.error);

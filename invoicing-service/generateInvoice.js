@@ -358,6 +358,8 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
       `vendors/${customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
 
+    console.log("Invoice URL:", invoiceUrl);
+    
     await axios.post(
       `${process.env.URL}/api/add-vendor-invoice`,
       {
@@ -585,6 +587,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       `invoices/bookings/customers/${customer.id}/customer-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
     );
 
+    console.log("Customer Invoice URL:", custInvoiceUrl);
+
     await axios.post(`${process.env.URL}/api/customer/add-customer-invoice`, {
       customerId: customer.id,
       invoiceUrl: custInvoiceUrl,
@@ -703,6 +707,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       pdfBuffer,
       `invoices/bookings/vendors/${vendor.id}/vendor-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
     );
+
+    console.log("Vendor Invoice URL:", venInvoiceUrl);
 
     await axios.post(`${process.env.URL}/api/add-vendor-invoice`, {
       vendorId: vendor.id,

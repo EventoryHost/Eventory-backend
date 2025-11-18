@@ -26,7 +26,8 @@ import {
   // removeQuotationFromCustomer,
   // addCustomerInvoice,
   getActiveBooking,
-  markNotificationAsRead
+  markNotificationAsRead,
+  addCustomerInvoice
 } from "../controllers2/customerController.js";
 
 const router = express.Router();
@@ -213,7 +214,7 @@ router.get("/:id", getCustomerById);
 
 //to be done 
 router.get("/get-active-booking/:customer_id", getActiveBooking);
-// router.post("/add-customer-invoice", addCustomerInvoice);
+router.post("/add-customer-invoice", addCustomerInvoice);
 // router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
 
 export default router;

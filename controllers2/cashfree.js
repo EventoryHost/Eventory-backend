@@ -697,7 +697,7 @@ const verifyCustomerPayment = async (req, res) => {
     const date = formatDate(finalOrder.start_date);
     const time = finalOrder.time;
     const venue = finalOrder.event_location;
-    const customerLink = `https://eventory.in/customerbooking/${event_id}`;
+    const customerLink = `https://eventory.in/customerbookingnew/${event_id}`;
     const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
 
     const customerPayload = {
