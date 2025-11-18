@@ -33,6 +33,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       }
     }
 
+    if (quotation_id) updateFields.quotation_id = quotation_id;
     if (paymentDetails) updateFields.paymentDetails = paymentDetails;
     if (specificTerms) updateFields.specificTerms = specificTerms;
 
