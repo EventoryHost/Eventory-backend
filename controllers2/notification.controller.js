@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
-import VendorNotifications from "../models2/vendorNotifications";
-import CustomerNotification from "../models2/customerNotifications";
-import EMNotifications from "../models2/emNotifications";
+import VendorNotifications from "../models2/vendorNotifications.js";
+import CustomerNotification from "../models2/customerNotifications.js";
+import EMNotifications from "../models2/emNotifications.js";
 /**
  * Finds a notification by ID and type, and immediately deletes it.
  * This is the crucial function for the "delete after reading" requirement.
  */
 export const markAsReadAndDelete = async (req, res) => {
+    console.log("[API] Received request ✅✅✅✅ to mark notification as read and delete it.");
     const { notificationId } = req.params;
     const { type } = req.query; // e.g., ?type=vendor, ?type=customer, or ?type=em
 
@@ -40,7 +41,7 @@ export const markAsReadAndDelete = async (req, res) => {
             });
         }
         
-        console.log(`[API] Deleted read notification (ID: ${notificationId}, Type: ${type})`);
+        console.log(`[API] Deleted read notification 🐦‍🔥🐦‍🔥🐦‍🔥 (ID: ${notificationId}, Type: ${type})`);
         
         return res.status(200).json({ 
             message: "Notification deleted successfully.",

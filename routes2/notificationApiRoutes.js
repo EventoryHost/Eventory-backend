@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { markAsReadAndDelete } from "./notification.controller";
+import { markAsReadAndDelete } from "../controllers2/notification.controller.js";
 
 const router = Router();
 
