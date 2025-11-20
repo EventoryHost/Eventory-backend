@@ -5,6 +5,7 @@ import EMNotifications from "../models2/emNotifications.js";
 import CustomerNotification from "../models2/customerNotifications.js";
 import VendorNotifications from "../models2/vendorNotifications.js";
 
+// const SCHEDULE_INTERVAL_MS = 1 * 60 * 1000;
 const SCHEDULE_INTERVAL_MS = 10 * 1000;
 
 /**
@@ -113,11 +114,11 @@ const createChatNotifications = async () => {
                     chat_id: chat.chat_id,
                     service_id: chat.service_id,
                     notification_type: "chat_message",
-                    message: `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chat ${chat.chat_id}.`
+                    message: `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chats.`
                 });
 
                 console.log(
-                    `[Created] Notification → ${recipient.type} (${recipient.id}) for chat ${chat.chat_id}`
+                    `[Created] ✅✅✅ Notification → ${recipient.type} (${recipient.id}) for chat ${chat.chat_id}`
                 );
             }
         }

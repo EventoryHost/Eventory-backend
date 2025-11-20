@@ -38,8 +38,6 @@ export const getVendorNotificationsByService = async (req, res) => {
       return res.status(400).json({ message: "Vendor ID and Service ID are required" });
     }
 
-    console.log("Vendor ID and Service ID received:", vendor_id, service_id);
-
     const notifications = await vendorNotification.find({
       vendor_id,
       service_id,
