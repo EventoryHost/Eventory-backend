@@ -76,6 +76,7 @@ const createQuotation = async (req, res, io) => {
         service_id : savedQuotation.service_id,
         customer_id : savedQuotation.customer_id,
         vendor_id : savedQuotation.vendor_id,
+        em_id: "", 
         chat_type: "customer-admin",
         chat_status: "ACTIVE",
       });
@@ -94,23 +95,6 @@ const createQuotation = async (req, res, io) => {
     });
 
     await newNotification.save();
-
-    // ✅ Create Chat immediately between Admin & Customer (Vendor can join later)
-    const existingChat = await Chat2.findOne({
-      customer_id,
-      vendor_id,
-      service_id,
-    });
-
-    if (!existingChat) {
-      await Chat2.create({
-        chat_id: savedQuotation.quotation_id, // Same ID for linkage
-        customer_id,
-        vendor_id,
-        service_id,
-        em_id: "admin-rm", // or your admin identifier
-      });
-    }
 
     if (io) {
       io.to(`vendor-${savedQuotation.vendor_id}`).emit(

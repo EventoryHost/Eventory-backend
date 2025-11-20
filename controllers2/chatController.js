@@ -731,33 +731,32 @@ export const markAllCustomerNotificationsAsRead = async (req, res) => {
 // Update em_id in Chat when admin sends first message
 export const updateChatEmId = async (req, res) => {
   try {
-    const { chat_id, em_id } = req.body;
+    const { chat_id, em_id ,chat_type } = req.body;
 
 
     console.log(`Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`);
     
-    if (!chat_id || !em_id) {
+    if (!chat_id || !em_id || !chat_type  ) {
       return res.status(400).json({ 
-        message: "chat_id and em_id are required" 
+        message: "chat_id and em_id and chat_type are required" 
       });
     }
 
-    // Only update if current em_id is "admin-rm" (default/dummy value)
     const updatedChat = await Chat2.findOneAndUpdate(
       { 
         chat_id: chat_id,
-        em_id: "admin-rm" // Only update if it's still the default
+        chat_type: chat_type,
+        em_id: "" 
       },
       { 
         $set: { em_id: em_id } 
       },
       { 
-        new: true // Return the updated document
+        new: true 
       }
     );
 
     if (!updatedChat) {
-      // Either chat not found OR em_id was already updated
       const existingChat = await Chat2.findOne({ chat_id: chat_id });
       
       if (!existingChat) {
