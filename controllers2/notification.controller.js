@@ -27,7 +27,7 @@ export const markAsReadAndDelete = async (req, res) => {
 
         // ✔ ALLOW DELETE ONLY IF it's worker-created unread-count notification
         const isUnreadCounter =
-            notif.notification_type === "chat_message" &&
+            notif.notification_type === "message_reminder" &&
             /^(\d+)\s+new\s+message/i.test(notif.message);  // regex pattern
 
         if (!isUnreadCounter) {

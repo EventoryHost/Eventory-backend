@@ -5,8 +5,8 @@ import EMNotifications from "../models2/emNotifications.js";
 import CustomerNotification from "../models2/customerNotifications.js";
 import VendorNotifications from "../models2/vendorNotifications.js";
 
-// const SCHEDULE_INTERVAL_MS = 1 * 60 * 1000;
-const SCHEDULE_INTERVAL_MS = 10 * 1000;
+var SCHEDULE_INTERVAL_MS = 1 * 60 * 1000;
+// SCHEDULE_INTERVAL_MS = 10 * 1000;
 
 /**
  * Creates chat notifications for recipients based on unread messages.
@@ -41,22 +41,25 @@ const createChatNotifications = async () => {
                 // Customer → Notify ONLY admin
                 if (chat.em_id) {
                     recipients.push({
-                        type: "em",
+                        type: 'em',
                         id: chat.em_id,
                         model: EMNotifications,
-                        recipientKey: "em_id"
+                        recipientKey: 'em_id',
+                        needsOrderId: true
                     });
                 }
             }
 
             else if (senderType === "vendor") {
+                console.log(`em is ${chat.em_id}`);
                 // Vendor → Notify ONLY admin
                 if (chat.em_id) {
                     recipients.push({
-                        type: "em",
+                        type: 'em',
                         id: chat.em_id,
                         model: EMNotifications,
-                        recipientKey: "em_id"
+                        recipientKey: 'em_id',
+                        needsOrderId: true
                     });
                 }
             }
@@ -97,6 +100,8 @@ const createChatNotifications = async () => {
 
                 const existing = await recipient.model.findOne(query);
 
+                console.log(`existing: ${existing}`);
+
                 if (existing) {
                     console.log(`[Skip] Existing unread notif for ${recipient.type} in chat ${chat.chat_id}`);
                     continue;
@@ -113,10 +118,12 @@ const createChatNotifications = async () => {
                     [recipient.recipientKey]: recipient.id,
                     chat_id: chat.chat_id,
                     service_id: chat.service_id,
-                    notification_type: "chat_message",
-                    message: `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chats.`
+                    notification_type: 'message_reminder',
+                    message: `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chats.`,
+                    order_id : chat.order_id 
                 });
-
+                
+                
                 console.log(
                     `[Created] ✅✅✅ Notification → ${recipient.type} (${recipient.id}) for chat ${chat.chat_id}`
                 );
