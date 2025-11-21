@@ -50,5 +50,11 @@ jobs:
             npm install
 
             pm2 delete $BRANCH || true
-            pm2 start api/index.js --name $BRANCH --namespace $BRANCH
+
+            if [ "$BRANCH" = "dev-migration" ]; then
+              pm2 start api/index2.js --name $BRANCH --namespace $BRANCH
+            else
+              pm2 start api/index.js --name $BRANCH --namespace $BRANCH
+            fi
+
             pm2 save
