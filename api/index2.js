@@ -19,6 +19,9 @@ import decorator from "../routes2/reduxRoutes/decorator.js";
 dotenv.config();
 
 const app = express();
+console.log("🔍 Loaded ENV KEYS:");
+console.log(JSON.stringify(process.env, null, 2));
+
 const port = process.env.PORT || 4001; // Use different port for migration testing
 const router = Router();
 
