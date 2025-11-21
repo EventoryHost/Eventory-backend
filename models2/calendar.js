@@ -17,6 +17,9 @@ const calendarSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  event_name: {
+    type: String
+  },
   event_source: {
     type: String,
     required: true,
