@@ -25,12 +25,20 @@ export const handleSocketConnection = (socket, io) => {
       }
 
       // Validate user has permission to join this chat type
-      if (chatType === "vendor-admin" && userType !== "ven" && userType !== "rm") {
+      if (
+        chatType === "vendor-admin" &&
+        userType !== "ven" &&
+        userType !== "rm"
+      ) {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
 
-      if (chatType === "customer-admin" && userType !== "cus" && userType !== "rm") {
+      if (
+        chatType === "customer-admin" &&
+        userType !== "cus" &&
+        userType !== "rm"
+      ) {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
@@ -60,7 +68,7 @@ export const handleSocketConnection = (socket, io) => {
         parentSenderType,
         clientMessageId,
       },
-      callback,
+      callback
     ) => {
       try {
         // Validate chatType is provided
@@ -74,20 +82,34 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Validate senderType matches chatType permissions
-        if (chatType === "vendor-admin" && senderType !== "ven" && senderType !== "rm") {
+        if (
+          chatType === "vendor-admin" &&
+          senderType !== "ven" &&
+          senderType !== "rm"
+        ) {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
+            socket.emit(
+              "error",
+              "You don't have permission to send messages in this chat"
+            );
           }
           return;
         }
 
-        if (chatType === "customer-admin" && senderType !== "cus" && senderType !== "rm") {
+        if (
+          chatType === "customer-admin" &&
+          senderType !== "cus" &&
+          senderType !== "rm"
+        ) {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
+            socket.emit(
+              "error",
+              "You don't have permission to send messages in this chat"
+            );
           }
           return;
         }
@@ -113,7 +135,7 @@ export const handleSocketConnection = (socket, io) => {
           } else {
             socket.emit(
               "error",
-              "Please refrain from sharing personal information!",
+              "Please refrain from sharing personal information!"
             );
           }
           return; // Prevent sending
@@ -137,14 +159,21 @@ export const handleSocketConnection = (socket, io) => {
           } else {
             socket.emit(
               "error",
-              "This chat is blocked. You cannot send messages.",
+              "This chat is blocked. You cannot send messages."
             );
           }
           return;
         }
 
         const validSenders = ["cus", "ven", "rm"];
-        const validContentTypes = ["text", "image", "video", "pdf", "file", "approval_request"];
+        const validContentTypes = [
+          "text",
+          "image",
+          "video",
+          "pdf",
+          "file",
+          "approval_request",
+        ];
 
         if (!validSenders.includes(senderType)) {
           // Call the callback with error if provided
@@ -196,7 +225,7 @@ export const handleSocketConnection = (socket, io) => {
         });
 
         console.log(
-          `📤 ${senderType} sent ${contentType} message in chat ${chatId} (${chatType})`,
+          `📤 ${senderType} sent ${contentType} message in chat ${chatId} (${chatType})`
         );
 
         // Call the callback with no error to indicate success
@@ -212,7 +241,7 @@ export const handleSocketConnection = (socket, io) => {
           socket.emit("error", "Error sending message");
         }
       }
-    },
+    }
   );
 
   socket.on("disconnect", () => {
@@ -273,6 +302,7 @@ export const getMessagesByChatId = async (req, res) => {
         msg.parentSenderType = msg.parent.senderType;
         msg.parent = msg.parent._id; // Keep parent as ID
       }
+      msg.isEdited = typeof msg.isEdited === "boolean" ? msg.isEdited : false;
     });
 
     res.status(200).json({
@@ -345,7 +375,11 @@ export const getMessageContext = async (req, res) => {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const currentMessage = await Message.findOne({ _id: qId, chatId, chatType });
+    const currentMessage = await Message.findOne({
+      _id: qId,
+      chatId,
+      chatType,
+    });
     if (!currentMessage) {
       return res
         .status(404)
@@ -675,9 +709,11 @@ export const markNotificationAsRead = async (req, res) => {
     return res.status(200).json({ message: "Notification marked as read" });
   } catch (error) {
     console.error("Error marking notification as read:", error);
-    return res.status(500).json({ error: "Failed to mark notification as read" });
+    return res
+      .status(500)
+      .json({ error: "Failed to mark notification as read" });
   }
-}
+};
 
 export const markAllCustomerNotificationsAsRead = async (req, res) => {
   try {
@@ -692,10 +728,14 @@ export const markAllCustomerNotificationsAsRead = async (req, res) => {
       { $set: { read: true } }
     );
 
-    return res.status(200).json({ message: "All notifications marked as read" });
+    return res
+      .status(200)
+      .json({ message: "All notifications marked as read" });
   } catch (error) {
     console.error("Error marking notifications as read:", error);
-    return res.status(500).json({ error: "Failed to mark notifications as read" });
+    return res
+      .status(500)
+      .json({ error: "Failed to mark notifications as read" });
   }
 };
 
@@ -750,3 +790,40 @@ export const markAllCustomerNotificationsAsRead = async (req, res) => {
 //     return res.status(500).json({ error: "Failed to upload media" });
 //   }
 // };
+
+export const editMessage = async (req, res) => {
+  try {
+    const { messageId, newContent } = req.body;
+    const senderType = req.body.senderType; 
+
+    console.log("Edit message payload received:", req.body);
+    console.log("Edit message request:", { messageId, newContent, senderType });
+
+    if (!messageId || !newContent) {
+      return res
+        .status(400)
+        .json({ error: "Message ID and new content are required." });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: "Message not found." });
+    }
+
+    if (message.senderType === senderType) {
+      message.content = newContent;
+      message.isEdited = true;
+      message.updatedAt = new Date();
+      await message.save();
+      return res.json({ success: true, message });
+    } else {
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to edit this message." });
+    }
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+};

@@ -22,6 +22,7 @@ const messageSchema = new mongoose.Schema(
       ref: "Message",
       default: null,
     },
+    isEdited: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
