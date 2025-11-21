@@ -5,6 +5,8 @@ on:
     branches:
       - prod
       - dev
+      - dev-migration
+
 
 jobs:
   deploy:
@@ -13,6 +15,7 @@ jobs:
     env:
       DEV_ENV: ${{ secrets.DEV_ENV }}
       PROD_ENV: ${{ secrets.PROD_ENV }}
+      MIGRATION_ENV: ${{ secrets.MIGRATION_ENV }}
 
     steps:
       - name: Checkout code
@@ -28,13 +31,17 @@ jobs:
           script: |
             BRANCH=${{ github.ref_name }}
 
-            if [ "$BRANCH" = "prod" ]; then
-              APP_DIR="prod"
-              echo "$PROD_ENV" > ~/.env.temp
-            else
-              APP_DIR="dev"
-              echo "$DEV_ENV" > ~/.env.temp
-            fi
+           if [ "$BRANCH" = "prod" ]; then
+            APP_DIR="prod"
+            echo "$PROD_ENV" > ~/.env.temp
+          elif [ "$BRANCH" = "dev-migration" ]; then
+            APP_DIR="migration"
+            echo "$MIGRATION_ENV" > ~/.env.temp
+          else
+            APP_DIR="dev"
+            echo "$DEV_ENV" > ~/.env.temp
+          fi
+
 
           
             cd ~
