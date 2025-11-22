@@ -1,4 +1,6 @@
 import initializeFirebase from '../config/firebaseConfig.js';
+import { DeviceToken } from '../models2/deviceToken.js';
+import { Vendor } from '../models2/vendor.js';
 
 /**
  * Send FCM notification using Firebase Admin SDK
@@ -160,7 +162,7 @@ async function sendFCMNotifications(messageOptions) {
       multicastMessage.fcmOptions = messageOptions.fcmOptions;
     }
 
-    const response = await admin.messaging().sendMulticast(multicastMessage);
+    const response = await admin.messaging().sendEachForMulticast(multicastMessage);
 
     console.log('Successfully sent FCM notifications:', response);
 
@@ -200,8 +202,105 @@ async function sendFCMNotificationToTopic(messageOptions) {
   });
 }
 
+/**
+ * Send FCM notification to all devices of a vendor and clean up invalid tokens
+ * @param {Object} options - Options for sending notification
+ * @param {string} options.vendorId - The vendor_id string identifier
+ * @param {Object} options.notification - Notification payload (title, body, image)
+ * @param {Object} options.data - Custom data payload
+ * @param {Object} options.android - Android-specific options
+ * @param {Object} options.apns - APNs (iOS) specific options
+ * @param {Object} options.fcmOptions - FCM SDK features options
+ * @returns {Promise<Object>} Response object with success/failure details
+ */
+async function sendFCMNotificationToVendor(options) {
+  try {
+    const { vendorId, notification, data, android, apns, fcmOptions } = options;
+
+    // Validate vendorId
+    if (!vendorId) {
+      throw new Error('vendorId is required');
+    }
+
+    // Find the vendor by vendor_id string
+    const vendor = await Vendor.findOne({ vendor_id: vendorId });
+    if (!vendor) {
+      return {
+        success: false,
+        error: 'Vendor not found'
+      };
+    }
+
+    // Get all device tokens for this vendor
+    const deviceTokens = await DeviceToken.find({ vendorId: vendor._id });
+    if (deviceTokens.length === 0) {
+      return {
+        success: true,
+        message: 'No device tokens found for this vendor',
+        sentCount: 0
+      };
+    }
+
+    const tokens = deviceTokens.map(token => token.deviceToken);
+
+    // Send notifications to all tokens
+    const sendResult = await sendFCMNotifications({
+      tokens,
+      notification,
+      data,
+      android,
+      apns,
+      fcmOptions
+    });
+
+    if (!sendResult.success) {
+      return sendResult;
+    }
+
+    // Process responses to find invalid tokens
+    const invalidTokens = [];
+
+    sendResult.responses.forEach((response, index) => {
+      if (!response.success) {
+        const errorCode = response.error?.code;
+        if (errorCode === 'messaging/invalid-registration-token' ||
+          errorCode === 'messaging/registration-token-not-registered') {
+          invalidTokens.push(tokens[index]);
+        }
+      }
+    });
+
+    // Remove invalid tokens from database
+    let removedCount = 0;
+    if (invalidTokens.length > 0) {
+      const removeResult = await DeviceToken.deleteMany({
+        vendorId: vendor._id,
+        deviceToken: { $in: invalidTokens }
+      });
+      removedCount = removeResult.deletedCount;
+    }
+
+    return {
+      success: true,
+      message: 'Notifications sent successfully',
+      sentCount: sendResult.successCount,
+      failedCount: sendResult.failureCount,
+      invalidTokensRemoved: removedCount
+    };
+
+  } catch (error) {
+    console.error('Error sending FCM notification to vendor:', error);
+    return {
+      success: false,
+      error: error.message,
+      details: error
+    };
+  }
+}
+
 export {
   sendFCMNotification,
   sendFCMNotifications,
-  sendFCMNotificationToTopic
+  sendFCMNotificationToTopic,
+  sendFCMNotificationToVendor
 };

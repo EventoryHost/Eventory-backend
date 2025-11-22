@@ -1,6 +1,7 @@
-import * as admin from 'firebase-admin';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import admin from "firebase-admin";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,20 +13,23 @@ function initializeFirebase() {
     return admin;
   }
 
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || path.resolve(__dirname, '..', 'firebase-service-account.json');
+  const serviceAccountPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    path.resolve(__dirname, "..", "firebase-service-account.json");
 
   try {
-    const serviceAccount = require(serviceAccountPath);
+    const serviceAccount = JSON.parse(
+      fs.readFileSync(serviceAccountPath, "utf8")
+    );
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      // Add other Firebase configuration options if needed
     });
 
     firebaseAppInitialized = true;
-    console.log('Firebase Admin SDK initialized successfully');
+    console.log("Firebase Admin SDK initialized successfully");
   } catch (error) {
-    console.error('Error initializing Firebase Admin SDK:', error);
+    console.error("Error initializing Firebase Admin SDK:", error);
     throw error;
   }
 
