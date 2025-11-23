@@ -1,7 +1,7 @@
 import { Events } from "../models2/events.js";
 import { Caterer } from "../models2/caterer.js";
 import { Decorator } from "../models2/decorator.js";
-import VenueProvider  from "../models2/venueProvider.js";
+import VenueProvider from "../models2/venueProvider.js";
 import Photographer from "../models2/photographerVideographer.js";
 import MakeupArtist from "../models2/makeupArtist.js";
 import generateUniqueId from "../utils/generateId.js";
@@ -278,10 +278,10 @@ export const updateBooking = async (req, res) => {
 
   try {
     const updatedBooking = await Events.findOneAndUpdate(
-    { event_id: event_id }, // filter object
-    updateData,
-    { new: true }
-  );
+      { event_id: event_id }, // filter object
+      updateData,
+      { new: true }
+    );
 
     if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -328,7 +328,7 @@ export const getAllBookings = async (req, res) => {
 export const addOfflineEvent = async (req, res) => {
   //type -> service_type
   try {
-    const { event_start, event_end, type, event_description, event_highlight, quotation_id } = req.body;
+    const { event_start, event_end, type, event_description, event_highlight, event_name, quotation_id } = req.body;
     const { service_id } = req.query;
 
     if (!service_id || !event_start || !event_end || !type || !event_highlight || !event_description) {
@@ -360,6 +360,7 @@ export const addOfflineEvent = async (req, res) => {
       service_id: service_id,
       event_start: startDate,
       event_end: endDate,
+      event_name: event_name,
       event_description: event_description,
       event_highlight: event_highlight,
       event_source: 'EXTERNAL',
@@ -381,7 +382,7 @@ export const editOfflineEvent = async (req, res) => {
 
 
     // Validation
-    if ( !event_id || !updatedEventData) {
+    if (!event_id || !updatedEventData) {
       return res.status(400).json({
         message: "Missing required fields: service_id, event_id, or updatedEventData",
       });
@@ -438,9 +439,9 @@ export const getVendorBookings = async (req, res) => {
     }
 
     // Fetch offline bookings from Calendar collection
-    const offlineBookings = await Calendar.find({ 
+    const offlineBookings = await Calendar.find({
       service_id,
-      event_source: "EXTERNAL" 
+      event_source: "EXTERNAL"
     });
 
     // Fetch online bookings from Events collection
@@ -488,13 +489,13 @@ export const getBookingById = async (req, res) => {
     } else if (sid.startsWith("PAV")) {
       const { default: PhotographerVideographer } = await import("../models2/photographerVideographer.js");
       serviceModel = PhotographerVideographer;
-     } else if (sid.startsWith("MKA")) {
-       const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
-       serviceModel = MakeupArtist;
-     } else if (sid.startsWith("DJS")) {
-       const { default: DjArtist } = await import("../models2/djArtist.js");
-       serviceModel = DjArtist;
-     } else if (sid.startsWith("PRO")) {
+    } else if (sid.startsWith("MKA")) {
+      const { default: MakeupArtist } = await import("../models2/makeupArtist.js");
+      serviceModel = MakeupArtist;
+    } else if (sid.startsWith("DJS")) {
+      const { default: DjArtist } = await import("../models2/djArtist.js");
+      serviceModel = DjArtist;
+    } else if (sid.startsWith("PRO")) {
       const { default: PropRental } = await import("../models/props.js");
       serviceModel = PropRental;
     } else {
@@ -647,8 +648,8 @@ export const updateEventPaymentDetails = async (req, res) => {
 
     // Validate required payment details fields
     if (!paymentDetails && !payment_method_details) {
-      return res.status(400).json({ 
-        message: "Either paymentDetails or payment_method_details is required" 
+      return res.status(400).json({
+        message: "Either paymentDetails or payment_method_details is required"
       });
     }
 
@@ -670,15 +671,15 @@ export const updateEventPaymentDetails = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    res.status(200).json({ 
-      message: "Event payment details updated successfully", 
-      data: updatedEvent 
+    res.status(200).json({
+      message: "Event payment details updated successfully",
+      data: updatedEvent
     });
   } catch (error) {
     console.error("Failed to update event payment details:", error);
-    res.status(500).json({ 
-      message: "Failed to update event payment details", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to update event payment details",
+      error: error.message
     });
   }
 };
