@@ -21,7 +21,7 @@ const getModelByFlowType = (flowType) => {
       return ReduxVenueProviderModel;
     case "prop-rental":
       return PropRentalModel;
-    case "makeupArtist":
+    case "makeup_artist":
       return MakeupArtistModel;
     case "djArtist":
     case "dj-artist": // alias
