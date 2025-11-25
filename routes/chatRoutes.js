@@ -11,6 +11,7 @@ import {
   unblockChat,
   getPinnedMessages,
   getBlockedChats,
+  editMessage
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -234,5 +235,8 @@ router.get("/chat/:chatId/pinned", getPinnedMessages);
  *         description: Blocked chats retrieved
  */
 router.get("/blocked", getBlockedChats);
+
+
+router.put("/chat/edit-message", editMessage);
 
 export default router;

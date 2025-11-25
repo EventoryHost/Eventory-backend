@@ -6,6 +6,7 @@ import adminNotification from "../models/adminNotification.js";
 import { Quotation } from "../models/quotation.js";
 import { Customer } from "../models/customer.js";
 import Chat from "../models/chat.js";
+import message from "../models/message.js";
 
 const router = express.Router();
 
@@ -63,28 +64,63 @@ const router = express.Router();
 
 router.post("/finalOrder", async (req, res) => {
   try {
-    const { orderId, ...updateData } = req.body; // Destructure orderId, put everything else in updateData
+    const { orderId, _id, __v, createdAt, updatedAt, ...incomingData } =
+      req.body;
 
-    // Log the incoming request body for debugging
-    console.log("🔵 Received order data:", req.body);
+    console.log("🔵 Received order data:", incomingData);
 
-    let order = await Order.findOneAndUpdate(
+    // 🧹 1️⃣ DELETE OLD APPROVAL MESSAGES FOR THIS ORDER (BOTH CHATS)
+    await message.deleteMany({
+      chatId: incomingData.quotationId,              // Your chatId === orderId / quotationId
+      contentType: "approval_request",
+    });
+
+    console.log("🗑️ Old approval messages removed for chat:", orderId);
+
+    // 🧠 2️⃣ BUILD SAFE UPDATE OBJECT
+    const updateData = {};
+
+    for (const key of Object.keys(incomingData)) {
+      if (
+        typeof incomingData[key] !== "object" ||
+        Array.isArray(incomingData[key])
+      ) {
+        updateData[key] = incomingData[key];
+      }
+    }
+
+    if (incomingData.paymentDetails) {
+      updateData["paymentDetails"] = { ...incomingData.paymentDetails };
+    }
+    if (incomingData.approvals) {
+      updateData["approvals"] = { ...incomingData.approvals };
+    }
+    if (incomingData.lastAction) {
+      updateData["lastAction"] = { ...incomingData.lastAction };
+    }
+
+    // 📝 3️⃣ UPSERT ORDER
+    const updatedOrder = await Order.findOneAndUpdate(
       { orderId },
-      // Use $set to ensure specific fields are updated/added
-      { $set: updateData }, // This will set/update all top-level fields from req.body
-      { new: true, upsert: true } // `new: true` returns the updated doc, `upsert: true` creates if not found
+      { $set: updateData },
+      { new: true, upsert: true }
     );
 
-    res
-      .status(200)
-      .json({ message: "Order processed successfully", data: order });
+    // ✅ 4️⃣ RESPONSE
+    res.status(200).json({
+      message: "Order processed successfully",
+      data: updatedOrder,
+    });
+
   } catch (error) {
-    console.error("Failed to process order:", error); // Use console.error for errors
-    res
-      .status(400)
-      .json({ message: "Failed to process booking", error: error.message });
+    console.error("❌ Failed to process order:", error);
+    res.status(400).json({
+      message: "Failed to process booking",
+      error: error.message,
+    });
   }
 });
+
 
 /**
  * @swagger
@@ -251,7 +287,30 @@ router.put("/finalOrder/approve", async (req, res) => {
         message,
       });
 
-      // ✅ Send response back to frontend
+      try {
+        const vendorAdminChat = await Chat.findOne({ 
+          chatId: order.quotationId, 
+          chatType: "vendor-admin" 
+        });
+        
+        if (vendorAdminChat && vendorAdminChat.status !== "blocked") {
+          vendorAdminChat.status = "blocked";
+          await vendorAdminChat.save();
+        }
+
+        const customerAdminChat = await Chat.findOne({ 
+          chatId: order.quotationId, 
+          chatType: "customer-admin" 
+        });
+        
+        if (customerAdminChat && customerAdminChat.status !== "blocked") {
+          customerAdminChat.status = "blocked";
+          await customerAdminChat.save();
+        }
+      } catch (chatError) {
+        console.error("Error blocking chats:", chatError);
+      }
+
       return res.status(200).json({
         message: "Final order approved by both parties.",
         data: order,
@@ -259,9 +318,8 @@ router.put("/finalOrder/approve", async (req, res) => {
       });
     }
 
-    // ❌ Case: Rejected by any party
     if (approvals.customer === false || approvals.vendor === false) {
-      const message = `❌ Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
+      const message = ` Final Order marked for discussion by ${userType}. (Order ID: ${order.orderId})`;
 
       await vendorNotification.create({
         vendorId: order.vendorId,
@@ -620,5 +678,42 @@ router.delete("/finalOrder/:orderId", async (req, res) => {
       .json({ message: "Failed to delete booking", error: error.message });
   }
 });
+// DELETE approval message + order (Admin only)
+router.delete("/deleteApproval", async (req, res) => {
+  try {
+    console.log("DELETE BODY:", req.body);
+
+    const { quotationId, orderId, adminId } = req.body;
+
+    if (!adminId || !adminId.startsWith("EM")) {
+      return res.status(403).json({ message: "Unauthorized. Admin only." });
+    }
+
+    if (!quotationId || !orderId) {
+      return res.status(400).json({ message: "quotationId and orderId are required" });
+    }
+
+    const deletedMessages = await message.deleteMany({
+      chatId: quotationId,
+      contentType: "approval_request",
+    });
+
+    const deletedOrder = await Order.findOneAndDelete({ orderId });
+
+    res.status(200).json({
+      message: "Approval messages & order deleted successfully",
+      deletedMessages: deletedMessages.deletedCount,
+      deletedOrder,
+    });
+
+  } catch (error) {
+    console.error("🔥 Delete approval error:", error);
+    res.status(500).json({
+      message: "Failed to delete approval data",
+      error: error.message,
+    });
+  }
+});
+
 
 export default router;
