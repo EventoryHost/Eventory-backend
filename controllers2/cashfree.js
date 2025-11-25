@@ -7,6 +7,7 @@ import Order from "../models2/orders.js";
 import { Transaction } from "../models2/transactions.js";
 import Quotation from "../models2/quotations.js";
 import { sendEmailInvoice } from "./sesController.js";
+import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
@@ -565,6 +566,29 @@ const verifyCustomerPayment = async (req, res) => {
       });
     } catch { }
 
+    //Trigger for fcm notification for vendor app
+    sendFCMNotificationToVendor({
+      vendorId: vendor_id,
+      notification: {
+        title: "Payment Received",
+        body: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
+      },
+      data: {
+        type: "payment",
+        order_id: internalOrderId,
+        quotation_id: quotation_id,
+        customer_name: customerName,
+        vendor_name: vendorName,
+        payment_amount: order_amount,
+        payment_type: payment_type,
+        message: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
+      }
+    }).then(result => {
+      console.log(`FCM notifications sent to vendor ${vendor_id} for payment ${order_id}`, result);
+    }).catch(error => {
+      console.error("Failed to send FCM notification for payment:", error);
+    });
+
     let event_id;
     if (payment_type !== "remaining") {
       const now = new Date();
@@ -582,7 +606,7 @@ const verifyCustomerPayment = async (req, res) => {
         event_type: finalOrder?.event_type || "Pending",
         location_type: finalOrder?.location_type.toUpperCase(), // valid enum
         event_location: finalOrder?.event_location || "Pending location",
-        event_start: now, 
+        event_start: now,
         event_end: oneHourLater, // strictly after start
 
         final_guest_count: Math.max(1, Number(finalOrder?.final_guest_count || 1)),
