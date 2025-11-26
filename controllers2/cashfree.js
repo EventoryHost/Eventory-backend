@@ -65,8 +65,8 @@ const createOrder = async (req, res) => {
   }
 };
 
-const verifyPayment = async (req, res) => {
-  const { order_id, ven_id, discount, couponCode } = req.body;
+export const verifyPayment = async (req, res) => {
+  const { order_id, ven_id, discount, couponCode, serviceData } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -75,9 +75,7 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment not found" });
     }
 
-    const payment = response.data
-
-
+    const payment = response.data;
 
     if (payment.order_status !== "PAID") {
       return res.status(400).json({ error: "Payment not successful" });
@@ -87,25 +85,31 @@ const verifyPayment = async (req, res) => {
       invoiceNumber: payment.order_id,
       invoiceDate: new Date().toLocaleDateString(),
       amount: payment.order_amount,
-      method: payment.order_meta.payment_methods !== null ? payment.order_meta.payment_methods : "UPI CC",
+      method:
+        payment.order_meta.payment_methods !== null
+          ? payment.order_meta.payment_methods
+          : "UPI CC",
       discount: discount || 0,
       couponCode: couponCode || null,
       id: ven_id,
+      serviceData: serviceData || null, // NEW
     };
 
     const vendor = await Vendor.findOne({ vendor_id: ven_id });
+
     const sqsMessage = {
       type: "vendorOnboarded",
       customer: vendor,
       paymentDetails: formattedDetails,
     };
 
-    await sqs.send(new SendMessageCommand({
-      QueueUrl: "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
-      MessageBody: JSON.stringify(sqsMessage),
-    }));
-
-
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl:
+          "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+        MessageBody: JSON.stringify(sqsMessage),
+      }),
+    );
 
     return res.status(200).json({ message: "Payment verified" });
   } catch (error) {
@@ -116,7 +120,7 @@ const verifyPayment = async (req, res) => {
 
 async function sendInvoice(req, res) {
   try {
-    const { ven_id, amount, discount, couponCode } = req.body;
+    const { ven_id, amount, discount, couponCode, serviceData } = req.body;
     const payment_id = generatePaymentId();
 
     const formattedDetails = {
@@ -127,6 +131,7 @@ async function sendInvoice(req, res) {
       couponCode: couponCode || null,
       method: "None",
       id: ven_id,
+      serviceData: serviceData || null, // NEW
     };
 
     const vendor = await Vendor.findOne({ vendor_id: ven_id });
@@ -136,10 +141,13 @@ async function sendInvoice(req, res) {
       paymentDetails: formattedDetails,
     };
 
-    await sqs.send(new SendMessageCommand({
-      QueueUrl: "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
-      MessageBody: JSON.stringify(sqsMessage),
-    }));
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl:
+          "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+        MessageBody: JSON.stringify(sqsMessage),
+      }),
+    );
 
     return res.json({ message: "Invoice sent" });
   } catch (error) {
@@ -260,12 +268,22 @@ const getServiceModelById = (service_id) => {
   if (service_id.startsWith("PAV")) return Photographer;
   if (service_id.startsWith("VNP")) return VenueProvider;
   if (service_id.startsWith("MKA")) return MakeupArtist;
+  if (service_id.startsWith("DJS")) return DjArtist;
 
   return null;
 };
 
 const verifyCustomerPayment = async (req, res) => {
-  const { order_id, quotation_id, order_amount, payment_type, couponCode, couponDiscount, service_id } = req.body;
+  const {
+    order_id,
+    quotation_id,
+    order_amount,
+    payment_type,
+    couponCode,
+    couponDiscount,
+    service_id,
+    serviceData,             // NEW from frontend (optional)
+  } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -334,7 +352,6 @@ const verifyCustomerPayment = async (req, res) => {
       return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
     }
 
-    // Fetch the corresponding service document
     const serviceDoc = await ServiceModel.findOne({ service_id });
     if (!serviceDoc) {
       return res.status(404).json({ error: `No service found for service_id: ${service_id}` });
@@ -343,6 +360,9 @@ const verifyCustomerPayment = async (req, res) => {
     if (!serviceDoc.bank_details || Object.keys(serviceDoc.bank_details).length === 0) {
       return res.status(400).json({ error: "Bank details missing for this service" });
     }
+
+    // canonical service snapshot we will put into SQS
+    const serviceSnapshot = serviceData || serviceDoc.toObject();
 
     // name?? 
     const vendorName = serviceDoc.business_details.business_registration_name;
@@ -662,7 +682,7 @@ const verifyCustomerPayment = async (req, res) => {
     const items = contents.map((c, idx) => ({
       name: c.name_of_service || `Item ${idx + 1}`,
       type: finalOrder?.event_type || "-",
-      amount: String(Number(N(c.price).toFixed(2))),
+      amount: String(Number(N(c.total_amount).toFixed(2))),
     }));
 
     const discountForInvoice = Math.max(0, Number(discountAbs.toFixed(2)));
@@ -677,25 +697,37 @@ const verifyCustomerPayment = async (req, res) => {
             ? Math.max(0, N(totalCustomerPayable) - N(alreadyPaid) - 0)
             : N(order_amount);
 
-    const formatDate = (dateInput) => {
-      const date = new Date(dateInput);
-      const day = date.getDate();
-      const getDaySuffix = (d) => {
-        if (d > 3 && d < 21) return "th";
-        switch (d % 10) {
+    const formatDateTimeForDisplay = (dateInput) => {
+      if (!dateInput) return { date: "-", time: "-" };
+      const d = new Date(dateInput);
+      if (isNaN(+d)) return { date: "-", time: "-" };
+
+      // e.g. "18th Nov 2025"
+      const day = d.getDate();
+      const suffix = (() => {
+        if (day > 3 && day < 21) return "th";
+        switch (day % 10) {
           case 1: return "st";
           case 2: return "nd";
           case 3: return "rd";
           default: return "th";
         }
-      };
-      const dayWithSuffix = `${day}${getDaySuffix(day)}`;
-      const month = date.toLocaleString("en-US", { month: "short" });
-      const year = date.getFullYear();
-      return `${dayWithSuffix} ${month} ${year}`;
+      })();
+      const month = d.toLocaleString("en-US", { month: "short", timeZone: "Asia/Kolkata" });
+      const year = d.getFullYear();
+      const dateStr = `${day}${suffix} ${month} ${year}`;
+
+      // e.g. "2:00 PM"
+      const timeStr = d.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
+
+      return { date: dateStr, time: timeStr };
     };
-    const date = formatDate(finalOrder.start_date);
-    const time = finalOrder.time;
+    const { date, time } = formatDateTimeForDisplay(finalOrder.event_start);
     const venue = finalOrder.event_location;
     const customerLink = `https://eventory.in/customerbookingnew/${event_id}`;
     const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
@@ -711,7 +743,6 @@ const verifyCustomerPayment = async (req, res) => {
 
     const vendorPayload = {
       id: vendorDoc.vendor_id,
-      // name: vendorDoc.name,
       mobile: vendorDoc.vendor_mobile,
       businessDetails: {
         businessName: serviceDoc?.business_details?.business_registration_name || "",
@@ -753,6 +784,7 @@ const verifyCustomerPayment = async (req, res) => {
       customerLink,
       vendorLink,
       event_id: event_id,
+      serviceData: serviceSnapshot,      // NEW: full service data into paymentDetails
     };
 
     const sqsMessage = {
@@ -763,7 +795,8 @@ const verifyCustomerPayment = async (req, res) => {
     };
 
     await sqs.send(new SendMessageCommand({
-      QueueUrl: process.env.INVOICE_QUEUE_URL || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      QueueUrl: process.env.INVOICE_QUEUE_URL
+        || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
       MessageBody: JSON.stringify(sqsMessage),
     }));
 
