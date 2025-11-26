@@ -386,9 +386,9 @@ const verifyLoginOtp = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
-
 const verifyCustomerLoginOtp = async (req, res) => {
   const { mobile, code, session, name } = req.body;
+
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
     ClientId: process.env.COGNITO_APP_CLIENT_ID_USERS,
@@ -401,39 +401,59 @@ const verifyCustomerLoginOtp = async (req, res) => {
     },
     Session: session,
   };
+
   try {
     const command = new AdminRespondToAuthChallengeCommand(params);
-    var data = await cognito.send(command);
+    const data = await cognito.send(command);
+
     let user = await Customer.findOne({ contact_number: `+91${mobile}` });
+
+    // --- CASE 1: New Customer, create in DB ---
     if (!user) {
-      try {
-        console.log("flow was here")
-        const customer = new Customer({ customer_name: name, contact_number: `+91${mobile}` });
-        await customer.save();
-        const payload = {
-          id: user.customer_id,
-          mobile: user.contact_number,
-          name: user.customer_name,
-        };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
-        return res
-          .status(200)
-          .json({ message: "Login Success", token, user: customer });
-      } catch (error) {
-        return res.status(400).json({ message: error.message });
-      }
-    }
-    const token = jwt.sign(
-      { id: user.customer_id, mobile: user.contact_number, name: user.customer_name },
-      process.env.JWT_SECRET,
-      {
+      const customer = new Customer({
+        customer_name: name,
+        contact_number: `+91${mobile}`,
+      });
+
+      await customer.save();
+
+      const payload = {
+        id: customer.customer_id,
+        mobile: customer.contact_number,
+        name: customer.customer_name,
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: "24h",
-      }
-    );
-    res.status(200).json({ message: "Login Success", token, user });
+      });
+
+      return res.status(200).json({
+        message: "Login Success",
+        token,
+        user: customer,
+      });
+    }
+
+    // --- CASE 2: Existing customer ---
+    const payload = {
+      id: user.customer_id,
+      mobile: user.contact_number,
+      name: user.customer_name,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "24h",
+    });
+
+    return res.status(200).json({
+      message: "Login Success",
+      token,
+      user,
+    });
+
   } catch (error) {
     console.log(error);
-    res.status(400).json({ error: error.message });
+    return res.status(400).json({ error: error.message });
   }
 };
 
