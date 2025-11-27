@@ -102,6 +102,23 @@ const verifyPAN = async (req, res) => {
     return res.status(400).json({ message: "Please provide a PAN card number" });
   }
 
+  // 🔥 Dummy Bypass Block
+  if (panNo.toUpperCase() === "DUMMYDUMMY") {
+    console.log("🟡 Dummy PAN detected → Bypassing Cashfree API");
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      name: "Dummy User",
+      registered_name: "Dummy User",
+      message: "PAN Card verified successfully (Dummy Mode)",
+      gstin_list: [],
+      originalResponse: {
+        dummy: true,
+        pan: "DUMMY"
+      }
+    });
+  }
+
   // PAN card format validation - 5 letters followed by 4 numbers and then 1 letter
   const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
   if (!process.env.IS_DEV && !panPattern.test(panNo)) {
