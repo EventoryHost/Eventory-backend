@@ -120,10 +120,31 @@ const createChatNotifications = async () => {
                     service_id: chat.service_id,
                     notification_type: 'message_reminder',
                     message: `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chats.`,
-                    order_id : chat.order_id 
+                    order_id: chat.order_id
                 });
-                
-                
+
+                //Fcm Trigger for Vendor Notificaation
+                if (recipient.type === 'vendor') {
+                    sendFCMNotificationToVendor({
+                        vendorId: recipient.id,
+                        notification: {
+                            title: "New Chat Messages",
+                            body: notificationMessage // e.g., "3 new messages in chats."
+                        },
+                        data: {
+                            type: "message_reminder",
+                            chat_id: chat.chat_id,
+                            vendor_id: vendorId,
+                            message: notificationMessage
+                        }
+                    }).then(result => {
+                        console.log(`FCM notifications sent to vendor ${recipient.id} for chat ${chat.chat_id}`, result);
+                    }).catch(error => {
+                        console.error("Failed to send FCM notification for new messages:", error);
+                    });
+                }
+
+
                 console.log(
                     `[Created] ✅✅✅ Notification → ${recipient.type} (${recipient.id}) for chat ${chat.chat_id}`
                 );
