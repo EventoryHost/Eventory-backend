@@ -14,7 +14,6 @@ const sqs = new SQSClient({
 const queueUrl =
   "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
-// Main controller function - Queue-based approach (keeping same endpoint)
 const generateAndStoreAgreement = async (req, res) => {
   try {
     const { serviceType, vendorId } = req.params;
@@ -24,7 +23,6 @@ const generateAndStoreAgreement = async (req, res) => {
     console.log("Received agreement request:", { serviceType, vendorId });
     console.log("Agreement data keys:", Object.keys(agreementData));
 
-    // Validate input
     if (!serviceType || !vendorId) {
       console.error("Missing serviceType or vendorId");
       return res.status(400).json({
@@ -45,9 +43,8 @@ const generateAndStoreAgreement = async (req, res) => {
       });
     }
 
-    // Prepare SQS message for agreement generation (type 2)
     const sqsMessage = {
-      type: 2, // Agreement generation
+      type: 2, 
       serviceType,
       vendorId,
       agreementData,
@@ -55,7 +52,6 @@ const generateAndStoreAgreement = async (req, res) => {
 
     console.log("Sending agreement generation message to SQS queue...");
 
-    // Send message to SQS
     const command = new SendMessageCommand({
       QueueUrl: queueUrl,
       MessageBody: JSON.stringify(sqsMessage),
@@ -84,7 +80,6 @@ const generateAndStoreAgreement = async (req, res) => {
   }
 };
 
-// API endpoint to update vendor agreement (called by invoicing service)
 const addVendorAgreement = async (req, res) => {
   try {
     const { serviceType, vendorId, agreementUrl } = req.body;
@@ -94,15 +89,14 @@ const addVendorAgreement = async (req, res) => {
     );
     console.log(`Agreement URL: ${agreementUrl}`);
 
-    // Import models dynamically to avoid loading issues
     const { ReduxCatererModel } = await import(
       "../models2/reduxModels/caterer.js"
     );
     const { ReduxDecoratorModel } = await import(
       "../models2/reduxModels/decorator.js"
     );
-    // const { ReduxDJModel } = await import("../models2/reduxModels/dj.js");
-    // const { MakeupArtistModel  } = await import("../models2/reduxModels/makeupArtist.js");
+    const { ReduxDJModel } = await import("../models2/reduxModels/dj.js");
+    const { ReduxMakeupArtistModel  } = await import("../models2/reduxModels/makeupArtist.js");
     const { ReduxPhotographerVideographerModel } = await import(
       "../models2/reduxModels/photographerVideographer.js"
     );
@@ -126,7 +120,6 @@ const addVendorAgreement = async (req, res) => {
       case "caterer":
         console.log("Processing caterer case...");
 
-        // Update the temporary catering data
         const tempCateringUpdate = await ReduxCatererModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
@@ -143,7 +136,6 @@ const addVendorAgreement = async (req, res) => {
           await newTempData.save();
         }
 
-        // Try to update main caterer model if it exists
         try {
           await Caterer.updateMany(
             { vendor_id: vendorId },
