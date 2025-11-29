@@ -5,6 +5,7 @@ import vendorNotification from "../models2/vendorNotifications.js";
 import adminNotification from "../models2/emNotifications.js";
 import Chat2 from "../models2/chats.js";
 import Message2 from "../models2/message2.js";
+import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 
 export const createOrUpdateFinalOrder = async (req, res) => {
   console.log("\n📩 FINAL ORDER API HIT");
@@ -194,6 +195,26 @@ export const approveFinalOrder = async (req, res) => {
         message,
       });
 
+      //Trigger for fcm for vendor app for final order
+      sendFCMNotificationToVendor({
+        vendorId: order.vendor_id,
+        notification: {
+          title: "Final Order Approved",
+          body: `Final Order Approved by both Vendor and Customer. (Order ID: ${order.order_id})`
+        },
+        data: {
+          type: "final_order_approved",
+          order_id: order.order_id,
+          quotation_id: order.quotation_id,
+          customer_id: order.customer_id,
+          message: `Final Order Approved by both Vendor and Customer. (Order ID: ${order.order_id})`
+        }
+      }).then(result => {
+        console.log(`FCM notifications sent to vendor ${order.vendor_id} for final order approval ${order.order_id}`, result);
+      }).catch(error => {
+        console.error("Failed to send FCM notification for final order approval:", error);
+      });
+
       try {
         const vendorAdminChat = await Chat2.findOne({
           chat_id: order.quotation_id,
@@ -255,6 +276,27 @@ export const approveFinalOrder = async (req, res) => {
         message,
       });
 
+      //Trigger for fcm for vendor app for final order
+      sendFCMNotificationToVendor({
+        vendorId: order.vendor_id,
+        notification: {
+          title: "Final Order Rejected",
+          body: `Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`
+        },
+        data: {
+          type: "final_order_rejected",
+          order_id: order.order_id,
+          quotation_id: order.quotation_id,
+          customer_id: order.customer_id,
+          rejected_by: userType,
+          message: `Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`
+        }
+      }).then(result => {
+        console.log(`FCM notifications sent to vendor ${order.vendor_id} for final order rejection ${order.order_id}`, result);
+      }).catch(error => {
+        console.error("Failed to send FCM notification for final order rejection:", error);
+      });
+
       const resetOrder = await Order.findOneAndUpdate(
         { order_id },
         { $set: { customer_approval: null, vendor_approval: null } },
@@ -309,6 +351,28 @@ export const approveFinalOrder = async (req, res) => {
       },
       { new: true, upsert: true }
     );
+
+    //Trigger for fcm for vendor app for final order
+    sendFCMNotificationToVendor({
+      vendorId: order.vendor_id,
+      notification: {
+        title: "Final Order Updated",
+        body: `Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.order_id})`
+      },
+      data: {
+        type: "final_order_partial_approval",
+        order_id: order.order_id,
+        quotation_id: order.quotation_id,
+        customer_id: order.customer_id,
+        approved_by: userType,
+        waiting_for: userType === "Vendor" ? "Customer" : "Vendor",
+        message: `Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.order_id})`
+      }
+    }).then(result => {
+      console.log(`FCM notifications sent to vendor ${order.vendor_id} for partial order approval ${order.order_id}`, result);
+    }).catch(error => {
+      console.error("Failed to send FCM notification for partial order approval:", error);
+    });
 
     return res.status(200).json({
       message: `Approval updated for ${userType}. Checkout link temporarily sent.`,

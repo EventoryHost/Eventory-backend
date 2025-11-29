@@ -5,6 +5,7 @@ import { sendConfirmationMessageToWhatsapp } from "../controllers2/waController.
 import CustomerNotification from "../models2/customerNotifications.js";
 import vendorNotification from "../models2/vendorNotifications.js";
 import Message2 from "../models2/message2.js";
+import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 
 // Create a new quotation
 const createQuotation = async (req, res, io) => {
@@ -66,22 +67,22 @@ const createQuotation = async (req, res, io) => {
     const savedQuotation = await newQuotation.save();
 
     const existingCustomerAdminChat = await Chat2.findOne({
-      chat_id : savedQuotation.quotation_id,
+      chat_id: savedQuotation.quotation_id,
       chat_type: "customer-admin",
     });
 
     if (!existingCustomerAdminChat) {
       await Chat2.create({
         chat_id: savedQuotation.quotation_id, // Same ID for linkage
-        service_id : savedQuotation.service_id,
-        customer_id : savedQuotation.customer_id,
-        vendor_id : savedQuotation.vendor_id,
+        service_id: savedQuotation.service_id,
+        customer_id: savedQuotation.customer_id,
+        vendor_id: savedQuotation.vendor_id,
         chat_type: "customer-admin",
         chat_status: "ACTIVE",
       });
     }
-    else{
-       console.log("Customer-admin chat already exists:",savedQuotation.id); 
+    else {
+      console.log("Customer-admin chat already exists:", savedQuotation.id);
     }
 
     // 🧠 Create notification for vendor
@@ -118,6 +119,26 @@ const createQuotation = async (req, res, io) => {
         newNotification.toObject()
       );
     }
+
+    //Trigger notification for vendor app
+    sendFCMNotificationToVendor({
+      vendorId: savedQuotation.vendor_id,
+      notification: {
+        title: "New Quotation Request",
+        body: `New quotation from ${savedQuotation.customer_name}`
+      },
+      data: {
+        type: "quotation",
+        quotation_id: savedQuotation.quotation_id,
+        customer_name: savedQuotation.customer_name,
+        message: `New quotation request from ${savedQuotation.customer_name}`
+      }
+    }).then(result => {
+      console.log(`FCM notifications sent to vendor ${savedQuotation.vendor_id} for quotation ${savedQuotation.quotation_id}`, result);
+    }).catch(error => {
+      console.error("Failed to send FCM notification for new quotation:", error);
+    });
+
 
     res.status(201).json({
       message: "Quotation created successfully!",
@@ -228,7 +249,7 @@ const updateQuotationStatus = async (req, res) => {
     // Find or create chat for this vendor-customer-service combo
     console.log("🔍 Checking for existing chat...");
     let existingChat = await Chat2.findOne({
-      chat_id : quotation_id,
+      chat_id: quotation_id,
       chat_type: "vendor-admin",
     });
 
