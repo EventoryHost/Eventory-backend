@@ -95,7 +95,10 @@ const addVendorAgreement = async (req, res) => {
     const { ReduxDecoratorModel } = await import(
       "../models2/reduxModels/decorator.js"
     );
-    const { ReduxDJModel } = await import("../models2/reduxModels/dj.js");
+    const { DjArtistReduxModel } = await import(
+      "../models2/reduxModels/djArtist.js"
+    );
+    const DJArtist = (await import("../models2/djArtist.js")).default;
     const { ReduxMakeupArtistModel  } = await import("../models2/reduxModels/makeupArtist.js");
     const { ReduxPhotographerVideographerModel } = await import(
       "../models2/reduxModels/photographerVideographer.js"
@@ -269,13 +272,13 @@ const addVendorAgreement = async (req, res) => {
       case "dj":
       case "djartist":
       case "dj-artist":
-        const tempDJUpdate = await ReduxDJModel.findOneAndUpdate(
+        const tempDJUpdate = await DjArtistReduxModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
           { new: true, upsert: false }
         );
         if (!tempDJUpdate) {
-          const newTempDJ = new ReduxDJModel({
+          const newTempDJ = new DjArtistReduxModel({
             vendor_id: vendorId,
             ...updateData,
             pageNumber: 8,
