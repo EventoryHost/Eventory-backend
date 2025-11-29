@@ -14,7 +14,8 @@ import {
   getBookingsByCustomer,
   getAllVendorServiceSchedules,
   addBookingInvoice,
-  updateEventPaymentDetails
+  updateEventPaymentDetails,
+  cancelBooking
 } from "../controllers2/bookingController.js";
 
 const router = express.Router();
@@ -319,5 +320,28 @@ router.post("/add-booking-invoice", addBookingInvoice);
  *         description: Event payment details updated successfully
  */
 router.put("/:event_id/payment-details", updateEventPaymentDetails);
+
+/**
+ * @swagger
+ * /api/bookings/{event_id}/cancel:
+ *   put:
+ *     summary: Cancel a booking
+ *     tags:
+ *       - Bookings
+ *     parameters:
+ *       - name: event_id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booking cancelled successfully
+ *       404:
+ *         description: Booking not found
+ *       400:
+ *         description: Booking already cancelled
+ */
+router.put("/:event_id/cancel", cancelBooking);
 
 export default router;
