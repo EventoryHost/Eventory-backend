@@ -30,33 +30,36 @@ export function generatePaymentId() {
 
   return "pay_" + randomChars(6, upperDigits) + randomChars(8, allChars);
 }
-export function generateSignature(clientId, rawKey, timestamp) {
-  const crypto = require("crypto");
 
-  // clean key in case environment injects \n or spaces
+export function generateSignature(clientId, rawKey, timestamp) {
+  // Clean & normalize key
   const cleaned = rawKey
     .trim()
+    .replace(/-----BEGIN PUBLIC KEY-----/g, "")
+    .replace(/-----END PUBLIC KEY-----/g, "")
     .replace(/\\n/g, "")
     .replace(/\r/g, "")
     .replace(/\s+/g, "");
 
-  const publicKey =
+  const pemKey =
     `-----BEGIN PUBLIC KEY-----\n${cleaned}\n-----END PUBLIC KEY-----`;
 
-  const keyObj = crypto.createPublicKey(publicKey);
+  const keyObj = crypto.createPublicKey({
+    key: pemKey,
+    format: "pem",
+  });
 
   const data = `${clientId}.${timestamp}`;
 
   const encrypted = crypto.publicEncrypt(
     {
       key: keyObj,
-      padding: crypto.constants.RSA_PKCS1_PADDING, // ✔ MUST use THIS
+      padding: crypto.constants.RSA_PKCS1_PADDING,
     },
-    Buffer.from(data)
+    Buffer.from(data, "utf8")
   );
 
   return encrypted.toString("base64");
 }
-
 
 export default generateUniqueId;
