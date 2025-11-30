@@ -28,33 +28,57 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: DEV_ENV,PROD_ENV,MIGRATION_ENV
           script: |
+            set -e
+
             BRANCH=${{ github.ref_name }}
 
+            # Determine APP_DIR + which ENV to use
             if [ "$BRANCH" = "prod" ]; then
               APP_DIR="prod"
-              echo "$PROD_ENV" > ~/.env.temp
+              ENV_CONTENT="$PROD_ENV"
+              START_FILE="api/index.js"
+
             elif [ "$BRANCH" = "dev-migration" ]; then
               APP_DIR="migration"
-              echo "$MIGRATION_ENV" > ~/.env.temp
+              ENV_CONTENT="$MIGRATION_ENV"
+              START_FILE="api/index2.js"
+
             else
               APP_DIR="dev"
-              echo "$DEV_ENV" > ~/.env.temp
+              ENV_CONTENT="$DEV_ENV"
+              START_FILE="api/index.js"
             fi
+
+            echo "Deploying branch: $BRANCH"
+            echo "Directory: $APP_DIR"
+            echo "Start file: $START_FILE"
 
             cd ~
-            rm -rf $APP_DIR
-            git clone -b $BRANCH https://github.com/EventoryHost/Eventory-backend.git $APP_DIR
-            cd $APP_DIR
 
-            mv ~/.env.temp .env
-            npm install
+            # 1. Stop PM2 safely
+            pm2 stop "$BRANCH" || true
 
-            pm2 delete $BRANCH || true
+            # 2. Remove old folder
+            rm -rf "$APP_DIR"
 
-            if [ "$BRANCH" = "dev-migration" ]; then
-              pm2 start api/index2.js --name $BRANCH --namespace $BRANCH
-            else
-              pm2 start api/index.js --name $BRANCH --namespace $BRANCH
-            fi
+            # 3. Clone fresh code
+            git clone -b "$BRANCH" https://github.com/EventoryHost/Eventory-backend.git "$APP_DIR"
+
+            cd "$APP_DIR"
+
+            # 4. Write .env from GitHub Secret
+            printf "%s\n" "$ENV_CONTENT" > .env
+
+            # 5. Install dependencies
+            npm install --legacy-peer-deps
+
+            # 6. Start PM2
+            pm2 delete "$BRANCH" || true
+            pm2 start "$START_FILE" --name "$BRANCH" --namespace "$BRANCH"
+
+            # 7. Reload env properly
+            pm2 restart "$BRANCH" --update-env
 
             pm2 save
+
+            echo "Deployment of $BRANCH completed successfully."
