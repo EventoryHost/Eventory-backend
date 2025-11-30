@@ -246,7 +246,11 @@ function buildPayoutsHeaders() {
   const rawKey = process.env.CASHFREE_PUBLIC_KEY_PAYOUTS.replace(/\n/g, "\n").trim();
   const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
   const timestamp = Math.floor(Date.now() / 1000);
-  const signature = generateSignature(payoutsClientId, publicKey, timestamp);
+  const signature = generateSignature(
+    clientId,
+    process.env.CASHFREE_PUBLIC_KEY,
+    timestamp
+  );  
 
   return {
     "Content-Type": "application/json",
