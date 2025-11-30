@@ -20,16 +20,25 @@ const verifyGSTIN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    let publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+    const rawKey = process.env.CASHFREE_PUBLIC_KEY?.replace(/\\n/g, "\n")
+      .replace(/-----BEGIN PUBLIC KEY-----/g, "")
+      .replace(/-----END PUBLIC KEY-----/g, "")
+      .trim();
 
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+    console.log("PUBLIC KEY VALIDATION:");
+    console.log(publicKey.startsWith("-----BEGIN PUBLIC KEY-----"));
+    console.log(publicKey.endsWith("-----END PUBLIC KEY-----"));
+    console.log("Length:", publicKey.length);
+    
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    var url
-    process.env.IS_DEV === "true" ?
-      url = `https://sandbox.cashfree.com/verification/gstin` :
-      url = `https://api.cashfree.com/verification/gstin`;
+    var url;
+    process.env.IS_DEV === "true"
+      ? (url = `https://sandbox.cashfree.com/verification/gstin`)
+      : (url = `https://api.cashfree.com/verification/gstin`);
 
     const headers = {
       "x-client-id": clientId,
@@ -50,7 +59,7 @@ const verifyGSTIN = async (req, res) => {
         status: "SUCCESS",
         legal_name: response.data.legal_name_of_business,
         message: "GSTIN verified successfully",
-        originalResponse: response.data
+        originalResponse: response.data,
       });
     } else if (response.data) {
       // If we have response data but not the expected field, return what we have
@@ -58,7 +67,7 @@ const verifyGSTIN = async (req, res) => {
         status: "SUCCESS",
         legal_name: response.data.trade_name_of_business || "Verified",
         message: "GSTIN verified successfully but name may be limited",
-        originalResponse: response.data
+        originalResponse: response.data,
       });
     }
   } catch (error) {
@@ -68,7 +77,7 @@ const verifyGSTIN = async (req, res) => {
       const { status } = error.response;
       console.error("GSTIN API error response:", {
         status,
-        data: error.response.data
+        data: error.response.data,
       });
 
       if (status === 429) {
@@ -99,7 +108,9 @@ const verifyPAN = async (req, res) => {
   const vendor_id = req.query.vendor_id; // Get vendor_id from query params if provided
 
   if (!panNo) {
-    return res.status(400).json({ message: "Please provide a PAN card number" });
+    return res
+      .status(400)
+      .json({ message: "Please provide a PAN card number" });
   }
 
   // 🔥 Dummy Bypass Block
@@ -114,8 +125,8 @@ const verifyPAN = async (req, res) => {
       gstin_list: [],
       originalResponse: {
         dummy: true,
-        pan: "DUMMY"
-      }
+        pan: "DUMMY",
+      },
     });
   }
 
@@ -128,19 +139,30 @@ const verifyPAN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    let publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+    const rawKey = process.env.CASHFREE_PUBLIC_KEY?.replace(/\\n/g, "\n")
+      .replace(/-----BEGIN PUBLIC KEY-----/g, "")
+      .replace(/-----END PUBLIC KEY-----/g, "")
+      .trim();
 
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+    console.log("PUBLIC KEY VALIDATION:");
+    console.log(publicKey.startsWith("-----BEGIN PUBLIC KEY-----"));
+    console.log(publicKey.endsWith("-----END PUBLIC KEY-----"));
+    console.log("Length:", publicKey.length);
+    
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    const panUrl = process.env.IS_DEV === "true"
-      ? `https://sandbox.cashfree.com/verification/pan`
-      : `https://api.cashfree.com/verification/pan`;
+    const panUrl =
+      process.env.IS_DEV === "true"
+        ? `https://sandbox.cashfree.com/verification/pan`
+        : `https://api.cashfree.com/verification/pan`;
 
-    const panGstinUrl = process.env.IS_DEV === "true"
-      ? `https://sandbox.cashfree.com/verification/pan-gstin`
-      : `https://api.cashfree.com/verification/pan-gstin`;
+    const panGstinUrl =
+      process.env.IS_DEV === "true"
+        ? `https://sandbox.cashfree.com/verification/pan-gstin`
+        : `https://api.cashfree.com/verification/pan-gstin`;
 
     const headers = {
       "x-client-id": clientId,
@@ -166,7 +188,7 @@ const verifyPAN = async (req, res) => {
         panGstinUrl,
         {
           pan: panNo,
-          verification_id: verification_id
+          verification_id: verification_id,
         },
         { headers }
       );
@@ -184,7 +206,7 @@ const verifyPAN = async (req, res) => {
 
             if (vendor) {
               // Find the first active GSTIN
-              const activeGstin = gstinList.find(g => g.status === "ACTIVE");
+              const activeGstin = gstinList.find((g) => g.status === "ACTIVE");
 
               if (activeGstin) {
                 // Update the vendor's businessDetails
@@ -198,7 +220,9 @@ const verifyPAN = async (req, res) => {
 
                 // Save the changes
                 await vendor.save();
-                console.log(`Updated Vendor ${vendor_id} with GSTIN ${activeGstin.gstin} from PAN verification`);
+                console.log(
+                  `Updated Vendor ${vendor_id} with GSTIN ${activeGstin.gstin} from PAN verification`
+                );
               }
             } else {
               console.log(`Vendor not found with ID: ${vendor_id}`);
@@ -216,7 +240,8 @@ const verifyPAN = async (req, res) => {
     }
 
     // Extract registered name
-    const registeredName = panResponse.data.name ||
+    const registeredName =
+      panResponse.data.name ||
       panResponse.data.pan_holder_name ||
       panResponse.data.registered_name ||
       "Verified";
@@ -228,7 +253,7 @@ const verifyPAN = async (req, res) => {
       registered_name: registeredName,
       message: "PAN Card verified successfully",
       gstin_list: gstinList, // Include the GSTIN list in the response
-      originalResponse: panResponse.data
+      originalResponse: panResponse.data,
     });
   } catch (error) {
     console.error("Error verifying PAN:", error);
@@ -237,7 +262,7 @@ const verifyPAN = async (req, res) => {
       const { status } = error.response;
       console.error("PAN API error response:", {
         status,
-        data: error.response.data
+        data: error.response.data,
       });
 
       if (status === 429) {
@@ -287,7 +312,7 @@ const verifyBankDetails = async (req, res) => {
       "x-client-secret": clientSecret,
       "X-Cf-Signature": signature,
       "X-Timestamp": timestamp.toString(),
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     };
 
     const payload = {
@@ -334,7 +359,10 @@ const verifyBankDetails = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(" Bank verification error:", error?.response?.data || error.message);
+    console.error(
+      " Bank verification error:",
+      error?.response?.data || error.message
+    );
     return res.status(500).json({
       message: "Bank verification failed",
       error: error?.response?.data || error.message,
