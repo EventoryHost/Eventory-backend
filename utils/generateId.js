@@ -33,34 +33,20 @@ export function generatePaymentId() {
 }
 
 export function generateSignature(clientId, rawKey, timestamp) {
-  // Clean & normalize key
-  const cleaned = rawKey
-    .trim()
-    .replace(/-----BEGIN PUBLIC KEY-----/g, "")
-    .replace(/-----END PUBLIC KEY-----/g, "")
-    .replace(/\\n/g, "")
-    .replace(/\r/g, "")
-    .replace(/\s+/g, "");
+  const pemKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
 
-  const pemKey =
-    `-----BEGIN PUBLIC KEY-----\n${cleaned}\n-----END PUBLIC KEY-----`;
-
-  const keyObj = crypto.createPublicKey({
-    key: pemKey,
-    format: "pem",
-  });
+  const keyObj = crypto.createPublicKey(pemKey);
 
   const data = `${clientId}.${timestamp}`;
 
-  const encrypted = crypto.publicEncrypt(
+  return crypto.publicEncrypt(
     {
       key: keyObj,
       padding: crypto.constants.RSA_PKCS1_PADDING,
     },
     Buffer.from(data, "utf8")
-  );
-
-  return encrypted.toString("base64");
+  ).toString("base64");
 }
+
 
 export default generateUniqueId;
