@@ -16,6 +16,7 @@ const generateUniqueId = (type) => {
 };
 
 export function generatePaymentId() {
+  console.log(`Generating payment ID...function hit ...............`);
   const upperDigits = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const allChars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
