@@ -569,6 +569,7 @@ const verifyCustomerPayment = async (req, res) => {
     //Trigger for fcm notification for vendor app
     sendFCMNotificationToVendor({
       vendorId: vendor_id,
+      priority: "high",
       notification: {
         title: "Payment Received",
         body: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
@@ -577,10 +578,9 @@ const verifyCustomerPayment = async (req, res) => {
         type: "payment",
         order_id: internalOrderId,
         quotation_id: quotation_id,
-        customer_name: customerName,
-        vendor_name: vendorName,
-        payment_amount: order_amount,
-        payment_type: payment_type,
+        chat_id: quotation_id,
+        service_id: service_id,
+        vendor_id: vendor_id,
         message: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
       }
     }).then(result => {

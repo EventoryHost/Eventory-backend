@@ -123,6 +123,7 @@ const createQuotation = async (req, res, io) => {
     //Trigger notification for vendor app
     sendFCMNotificationToVendor({
       vendorId: savedQuotation.vendor_id,
+      priority: "high",
       notification: {
         title: "New Quotation Request",
         body: `New quotation from ${savedQuotation.customer_name}`
