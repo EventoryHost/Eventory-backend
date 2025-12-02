@@ -1,6 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import { generateSignature } from "../utils/generateId.js";
+import { generateSignature } from "../utils/generateId2.js";
 import { Vendor } from "../models2/vendor.js";
 
 dotenv.config();
