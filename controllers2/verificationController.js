@@ -20,17 +20,11 @@ const verifyGSTIN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY?.replace(/\\n/g, "\n")
-      .replace(/-----BEGIN PUBLIC KEY-----/g, "")
-      .replace(/-----END PUBLIC KEY-----/g, "")
-      .trim();
 
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
-    console.log("PUBLIC KEY VALIDATION:");
-    console.log(publicKey.startsWith("-----BEGIN PUBLIC KEY-----"));
-    console.log(publicKey.endsWith("-----END PUBLIC KEY-----"));
-    console.log("Length:", publicKey.length);
-    
+
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
+
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
@@ -139,17 +133,11 @@ const verifyPAN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY?.replace(/\\n/g, "\n")
-      .replace(/-----BEGIN PUBLIC KEY-----/g, "")
-      .replace(/-----END PUBLIC KEY-----/g, "")
-      .trim();
 
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
-    console.log("PUBLIC KEY VALIDATION:");
-    console.log(publicKey.startsWith("-----BEGIN PUBLIC KEY-----"));
-    console.log(publicKey.endsWith("-----END PUBLIC KEY-----"));
-    console.log("Length:", publicKey.length);
-    
+
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
+
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
@@ -326,8 +314,7 @@ export const verifyBankDetails = async (req, res) => {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
 
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY.replace(/\\n/g, "\n").trim();
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
 
     const timestamp = Math.floor(Date.now() / 1000);
     const signature = generateSignature(clientId, publicKey, timestamp);
