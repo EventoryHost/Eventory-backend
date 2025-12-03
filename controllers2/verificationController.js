@@ -1,6 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import { generateSignature } from "../utils/generateId.js";
+import { generateSignature } from "../utils/generateId2.js";
 import { Vendor } from "../models2/vendor.js";
 
 dotenv.config();
@@ -20,17 +20,11 @@ const verifyGSTIN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY?.replace(/\\n/g, "\n")
-      .replace(/-----BEGIN PUBLIC KEY-----/g, "")
-      .replace(/-----END PUBLIC KEY-----/g, "")
-      .trim();
 
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
-    console.log("PUBLIC KEY VALIDATION:");
-    console.log(publicKey.startsWith("-----BEGIN PUBLIC KEY-----"));
-    console.log(publicKey.endsWith("-----END PUBLIC KEY-----"));
-    console.log("Length:", publicKey.length);
-    
+
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
+
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
@@ -139,17 +133,11 @@ const verifyPAN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY?.replace(/\\n/g, "\n")
-      .replace(/-----BEGIN PUBLIC KEY-----/g, "")
-      .replace(/-----END PUBLIC KEY-----/g, "")
-      .trim();
 
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
-    console.log("PUBLIC KEY VALIDATION:");
-    console.log(publicKey.startsWith("-----BEGIN PUBLIC KEY-----"));
-    console.log(publicKey.endsWith("-----END PUBLIC KEY-----"));
-    console.log("Length:", publicKey.length);
-    
+
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
+
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
@@ -288,23 +276,47 @@ const verifyPAN = async (req, res) => {
   }
 };
 
-const verifyBankDetails = async (req, res) => {
-  // console.log(" /bank endpoint hit with data:", req.body);
+const DUMMY_ACCOUNT_NO = "0000000000";
+const DUMMY_IFSC = "ABCD0ABCDEF";
+
+export const verifyBankDetails = async (req, res) => {
   const { bank_account, ifsc, name, phone } = req.body;
 
   if (!name || !bank_account || !ifsc) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
+  const cleanedAcc = String(bank_account).trim().replace(/\s+/g, "");
+  const cleanedIfsc = String(ifsc).trim().toUpperCase();
+
+  // 🔹 Dummy bypass: skip Cashfree, return success immediately
+  if (cleanedAcc === DUMMY_ACCOUNT_NO && cleanedIfsc === DUMMY_IFSC) {
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Bank account verified successfully (dummy bypass)",
+      accountDetails: {
+        account_status: "VALID",
+        name_match_result: "EXACT",
+        name_at_bank: name || "DUMMY ACCOUNT",
+        match_score: 100,
+        bank_name: "Dummy Bank",
+        branch: "Dummy Branch",
+        utr: "DUMMYUTR0001",
+      },
+      originalResponse: {
+        dummy: true,
+      },
+    });
+  }
+
+  // 🔹 Existing Cashfree flow below this point
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
 
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY.replace(/\\n/g, "\n").trim();
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
 
     const timestamp = Math.floor(Date.now() / 1000);
-
     const signature = generateSignature(clientId, publicKey, timestamp);
 
     const headers = {
@@ -315,15 +327,8 @@ const verifyBankDetails = async (req, res) => {
       "Content-Type": "application/json",
     };
 
-    const payload = {
-      bank_account,
-      ifsc,
-      name,
-    };
-
-    if (phone) {
-      payload.phone = phone;
-    }
+    const payload = { bank_account, ifsc, name };
+    if (phone) payload.phone = phone;
 
     const url =
       process.env.IS_DEV === "true"
@@ -331,7 +336,6 @@ const verifyBankDetails = async (req, res) => {
         : "https://api.cashfree.com/verification/bank-account/sync";
 
     const response = await axios.post(url, payload, { headers });
-
     const data = response.data;
 
     if (data.account_status === "VALID") {
@@ -370,4 +374,4 @@ const verifyBankDetails = async (req, res) => {
   }
 };
 
-export { verifyGSTIN, verifyPAN, verifyBankDetails };
+export { verifyGSTIN, verifyPAN };
