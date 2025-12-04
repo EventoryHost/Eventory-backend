@@ -57,6 +57,12 @@ const generateAndStoreAgreement = async (req, res) => {
       MessageBody: JSON.stringify(sqsMessage),
     });
 
+    console.log("Queue URL:", queueUrl);
+    console.log("Command prepared:", command);
+    console.log("IS_DEV value:", process.env.IS_DEV);
+    console.log("ENV KEYS:",process.env.AWS_ACCESS_KEY_ID);
+    console.log("ENV KEYS:",process.env.AWS_SECRET);
+    console.log("AWS_REGION:", process.env.AWS_REGION);
     await sqs.send(command);
 
     console.log(
