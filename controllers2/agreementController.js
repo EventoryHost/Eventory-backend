@@ -11,7 +11,7 @@ const sqs = new SQSClient({
   },
 });
 
-const queueUrl =
+const queueUrl = process.env.IS_DEV ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue":
   "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
 const generateAndStoreAgreement = async (req, res) => {
