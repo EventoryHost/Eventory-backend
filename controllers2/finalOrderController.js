@@ -198,6 +198,7 @@ export const approveFinalOrder = async (req, res) => {
       //Trigger for fcm for vendor app for final order
       sendFCMNotificationToVendor({
         vendorId: order.vendor_id,
+        priority: "high",
         notification: {
           title: "Final Order Approved",
           body: `Final Order Approved by both Vendor and Customer. (Order ID: ${order.order_id})`
@@ -205,9 +206,9 @@ export const approveFinalOrder = async (req, res) => {
         data: {
           type: "final_order_approved",
           order_id: order.order_id,
+          chat_id: order.quotation_id,
           quotation_id: order.quotation_id,
           customer_id: order.customer_id,
-          message: `Final Order Approved by both Vendor and Customer. (Order ID: ${order.order_id})`
         }
       }).then(result => {
         console.log(`FCM notifications sent to vendor ${order.vendor_id} for final order approval ${order.order_id}`, result);
@@ -279,6 +280,7 @@ export const approveFinalOrder = async (req, res) => {
       //Trigger for fcm for vendor app for final order
       sendFCMNotificationToVendor({
         vendorId: order.vendor_id,
+        priority: "high",
         notification: {
           title: "Final Order Rejected",
           body: `Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`
@@ -286,10 +288,7 @@ export const approveFinalOrder = async (req, res) => {
         data: {
           type: "final_order_rejected",
           order_id: order.order_id,
-          quotation_id: order.quotation_id,
-          customer_id: order.customer_id,
-          rejected_by: userType,
-          message: `Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`
+          chat_id: order.quotation_id,
         }
       }).then(result => {
         console.log(`FCM notifications sent to vendor ${order.vendor_id} for final order rejection ${order.order_id}`, result);
@@ -355,6 +354,7 @@ export const approveFinalOrder = async (req, res) => {
     //Trigger for fcm for vendor app for final order
     sendFCMNotificationToVendor({
       vendorId: order.vendor_id,
+      priority: "high",
       notification: {
         title: "Final Order Updated",
         body: `Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.order_id})`
@@ -362,11 +362,7 @@ export const approveFinalOrder = async (req, res) => {
       data: {
         type: "final_order_partial_approval",
         order_id: order.order_id,
-        quotation_id: order.quotation_id,
-        customer_id: order.customer_id,
-        approved_by: userType,
-        waiting_for: userType === "Vendor" ? "Customer" : "Vendor",
-        message: `Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.order_id})`
+        chat_id: order.quotation_id,
       }
     }).then(result => {
       console.log(`FCM notifications sent to vendor ${order.vendor_id} for partial order approval ${order.order_id}`, result);

@@ -7,22 +7,17 @@ const sqs = new SQSClient({
   region: process.env.AWS_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-const queueUrl =
+const queueUrl = process.env.IS_DEV ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue":
   "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
 const generateAndStoreAgreement = async (req, res) => {
   try {
     const { serviceType, vendorId } = req.params;
-    console.log("Received request:", { serviceType, vendorId });
     const agreementData = req.body;
-
-    console.log("Received agreement request:", { serviceType, vendorId });
-    console.log("Agreement data keys:", Object.keys(agreementData));
-
     if (!serviceType || !vendorId) {
       console.error("Missing serviceType or vendorId");
       return res.status(400).json({

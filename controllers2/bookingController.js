@@ -683,3 +683,75 @@ export const updateEventPaymentDetails = async (req, res) => {
     });
   }
 };
+
+// Cancel booking
+export const cancelBooking = async (req, res) => {
+  try {
+    const { event_id } = req.params;
+
+    if (!event_id) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    // Try to find in Events collection (new model)
+    let event = await Events.findOne({ event_id });
+    
+    // If not found, try old Booking model
+    if (!event) {
+      const { Booking } = await import("../models/booking.js");
+      const oldBooking = await Booking.findOne({ bookingid: event_id });
+      if (oldBooking) {
+        // Update old booking model
+        oldBooking.status = "Cancelled";
+        await oldBooking.save();
+        return res.status(200).json({
+          message: "Booking cancelled successfully",
+          booking: oldBooking
+        });
+      }
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Check if already cancelled
+    if (event.event_status === "cancelled") {
+      return res.status(400).json({ message: "Booking is already cancelled" });
+    }
+
+    // Update event status to cancelled
+    const updatedEvent = await Events.findOneAndUpdate(
+      { event_id },
+      { 
+        $set: { 
+          event_status: "cancelled",
+          event_updated_at: new Date()
+        } 
+      },
+      { new: true }
+    );
+
+    // Also update order status if order exists
+    if (event.quotation_id) {
+      const Orders = (await import("../models2/orders.js")).default;
+      await Orders.findOneAndUpdate(
+        { quotation_id: event.quotation_id },
+        { 
+          $set: { 
+            order_status: "cancelled",
+            order_updated_at: new Date()
+          } 
+        }
+      );
+    }
+
+    res.status(200).json({
+      message: "Booking cancelled successfully",
+      booking: updatedEvent
+    });
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    res.status(500).json({
+      message: "Failed to cancel booking",
+      error: error.message
+    });
+  }
+};
