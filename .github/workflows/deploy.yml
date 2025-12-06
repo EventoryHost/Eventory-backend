@@ -41,7 +41,7 @@ jobs:
             elif [ "$BRANCH" = "dev-migration" ]; then
               APP_DIR="migration"
               ENV_CONTENT="$MIGRATION_ENV"
-              START_FILE="api/index2.js"
+              START_FILE="api/index.js"
 
             else
               APP_DIR="dev"
