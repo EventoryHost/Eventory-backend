@@ -2,32 +2,40 @@ import { Cashfree, CFEnvironment } from "cashfree-pg";
 
 import generateInvoice from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
-import { Vendor } from "../models/users.js";
-import Order from "../models/finalOrders.js";
-import { Transaction } from "../models/transaction.js";
-import { Quotation } from "../models/quotation.js";
+import { Vendor } from "../models/vendor.js";
+import Order from "../models/orders.js";
+import { Transaction } from "../models/transactions.js";
+import Quotation from "../models/quotations.js";
 import { sendEmailInvoice } from "./sesController.js";
+import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
-import adminNotification from "../models/adminNotification.js";
-import customerNotification from "../models/customerNotification.js";
-import vendorNotification from "../models/vendorNotification.js";
+import adminNotification from "../models/emNotifications.js";
+import customerNotification from "../models/customerNotifications.js";
+import vendorNotification from "../models/vendorNotifications.js";
+import { Caterer } from "../models/caterer.js";
+import { Decorator } from "../models/decorator.js";
+import Photographer from "../models/photographerVideographer.js";
+import VenueProvider from "../models/venueProvider.js";
+import MakeupArtist from "../models/makeupArtist.js";
+import DjArtist from "../models/djArtist.js";
+
 
 dotenv.config();
 
 import { sendInvoiceToWhatsApp } from "./waController.js";
 import axios from "axios";
 import { Customer } from "../models/customer.js";
-import { Booking } from "../models/booking.js";
+import { Events } from "../models/events.js";
+
+const isValidINMobile = (s) => typeof s === "string" && /^[6-9]\d{9}$/.test(s);
 
 const clientId = process.env.CASHFREE_CLIENT_ID_PG;
 const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 
-const cashfree =
-  process.env.IS_DEV === "true"
-    ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`)
-    : new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
+const cashfree = process.env.IS_DEV === "true" ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
+  new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
 
 const createOrder = async (req, res) => {
 
@@ -46,7 +54,6 @@ const createOrder = async (req, res) => {
       },
     };
 
-
     const response = await cashfree.PGCreateOrder(request);
 
     return res.json(response.data);
@@ -59,8 +66,8 @@ const createOrder = async (req, res) => {
   }
 };
 
-const verifyPayment = async (req, res) => {
-  const { order_id, ven_id, discount, couponCode } = req.body;
+export const verifyPayment = async (req, res) => {
+  const { order_id, ven_id, discount, couponCode, serviceData } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
@@ -86,9 +93,11 @@ const verifyPayment = async (req, res) => {
       discount: discount || 0,
       couponCode: couponCode || null,
       id: ven_id,
+      serviceData: serviceData || null, // NEW
     };
 
-    const vendor = await Vendor.findOne({ id: ven_id });
+    const vendor = await Vendor.findOne({ vendor_id: ven_id });
+
     const sqsMessage = {
       type: "vendorOnboarded",
       customer: vendor,
@@ -100,7 +109,7 @@ const verifyPayment = async (req, res) => {
         QueueUrl:
           "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
         MessageBody: JSON.stringify(sqsMessage),
-      })
+      }),
     );
 
     return res.status(200).json({ message: "Payment verified" });
@@ -112,7 +121,7 @@ const verifyPayment = async (req, res) => {
 
 async function sendInvoice(req, res) {
   try {
-    const { ven_id, amount, discount, couponCode } = req.body;
+    const { ven_id, amount, discount, couponCode, serviceData } = req.body;
     const payment_id = generatePaymentId();
 
     const formattedDetails = {
@@ -123,9 +132,10 @@ async function sendInvoice(req, res) {
       couponCode: couponCode || null,
       method: "None",
       id: ven_id,
+      serviceData: serviceData || null, // NEW
     };
 
-    const vendor = await Vendor.findOne({ id: ven_id });
+    const vendor = await Vendor.findOne({ vendor_id: ven_id });
     const sqsMessage = {
       type: "vendorOnboarded",
       customer: vendor,
@@ -137,7 +147,7 @@ async function sendInvoice(req, res) {
         QueueUrl:
           "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
         MessageBody: JSON.stringify(sqsMessage),
-      })
+      }),
     );
 
     return res.json({ message: "Invoice sent" });
@@ -152,8 +162,8 @@ const handleWebhook = async (req, res) => {
     const { type, data } = req.body;
 
     // Verify webhook signature for security
-    const timestamp = req.headers["x-webhook-timestamp"];
-    const signature = req.headers["x-webhook-signature"];
+    const timestamp = req.headers['x-webhook-timestamp'];
+    const signature = req.headers['x-webhook-signature'];
 
     if (!timestamp || !signature) {
       return res.status(400).json({ error: "Missing webhook headers" });
@@ -161,13 +171,13 @@ const handleWebhook = async (req, res) => {
 
     // Process different webhook events
     switch (type) {
-      case "PAYMENT_SUCCESS_WEBHOOK":
+      case 'PAYMENT_SUCCESS_WEBHOOK':
         await handlePaymentSuccess(data);
         break;
-      case "PAYMENT_FAILED_WEBHOOK":
+      case 'PAYMENT_FAILED_WEBHOOK':
         await handlePaymentFailed(data);
         break;
-      case "PAYMENT_USER_DROPPED_WEBHOOK":
+      case 'PAYMENT_USER_DROPPED_WEBHOOK':
         await handlePaymentDropped(data);
         break;
       default:
@@ -214,15 +224,12 @@ const getPaymentSession = async (req, res) => {
   try {
     const { order_id } = req.params;
 
-    const response = await Cashfree.PGOrderFetchPaymentLinks(
-      "2023-08-01",
-      order_id
-    );
+    const response = await Cashfree.PGOrderFetchPaymentLinks("2023-08-01", order_id);
 
     if (response.data) {
       return res.json({
         payment_session_id: response.data.payment_session_id,
-        payment_link: response.data.payment_link,
+        payment_link: response.data.payment_link
       });
     }
 
@@ -239,7 +246,11 @@ function buildPayoutsHeaders() {
   const rawKey = process.env.CASHFREE_PUBLIC_KEY_PAYOUTS.replace(/\n/g, "\n").trim();
   const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
   const timestamp = Math.floor(Date.now() / 1000);
-  const signature = generateSignature(payoutsClientId, publicKey, timestamp);
+  const signature = generateSignature(
+    clientId,
+    process.env.CASHFREE_PUBLIC_KEY,
+    timestamp
+  );  
 
   return {
     "Content-Type": "application/json",
@@ -253,32 +264,53 @@ function buildPayoutsHeaders() {
 
 const N = (v) => Number(v ?? 0)
 
+// Helper function to get the service model by service_id
+const getServiceModelById = (service_id) => {
+  if (!service_id || typeof service_id !== "string") return null;
+
+  if (service_id.startsWith("CAT")) return Caterer;
+  if (service_id.startsWith("DECO")) return Decorator;
+  if (service_id.startsWith("PAV")) return Photographer;
+  if (service_id.startsWith("VNP")) return VenueProvider;
+  if (service_id.startsWith("MKA")) return MakeupArtist;
+  if (service_id.startsWith("DJS")) return DjArtist;
+
+  return null;
+};
+
 const verifyCustomerPayment = async (req, res) => {
-  const { order_id, quotation_id, order_amount, payment_type, couponCode, couponDiscount } = req.body;
+  const {
+    order_id,
+    quotation_id,
+    order_amount,
+    payment_type,
+    couponCode,
+    couponDiscount,
+    service_id,
+    serviceData,             // NEW from frontend (optional)
+  } = req.body;
 
   try {
     const response = await cashfree.PGFetchOrder(order_id);
     if (!response.data || response.data.length === 0) {
       return res.status(400).json({ error: "Payment not found" });
     }
+
     const payment = response.data;
     if (payment.order_status !== "PAID") {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    const finalOrder = await Order.findOne({ quotationId: quotation_id }).lean();
+    // Fetch the final order to get required IDs
+    const finalOrder = await Order.findOne({ quotation_id: quotation_id }).lean();
     if (!finalOrder) {
       return res.status(404).json({ error: "Final order not found for quotation_id" });
     }
 
-    const qoutation = await Quotation.findOne({ id: quotation_id }).lean();
-    if (!qoutation) {
-      return res.status(404).json({ error: "Quotation not found for quotation_id" });
-    }
-
-    const internalOrderId = finalOrder.orderId;
-    const vendorId = finalOrder.vendorId;
-    const customerId = finalOrder.customerId;
+    const internalOrderId = finalOrder.order_id;
+    const vendor_id = finalOrder.vendor_id;
+    const customer_id = finalOrder.customer_id;
+    const em_id = finalOrder.em_id;
 
     const receivableFromOrder =
       Number(
@@ -288,9 +320,10 @@ const verifyCustomerPayment = async (req, res) => {
       ) || null;
 
     const previousTxn = await Transaction.findOne({
-      quotationId: quotation_id,
-      vendorId: vendorId,
-      customerId: customerId,
+      quotation_id: quotation_id,
+      vendor_id: vendor_id,
+      customer_id: customer_id,
+      service_id: service_id,
       internalOrderId: internalOrderId,
     }).lean();
 
@@ -306,28 +339,47 @@ const verifyCustomerPayment = async (req, res) => {
       if (payoutAmount < 0) payoutAmount = 0;
     }
 
-    const vendorDoc = await Vendor.findOne({ id: vendorId });
+    const vendorDoc = await Vendor.findOne({ vendor_id });
     if (!vendorDoc) {
       return res.status(404).json({ error: "Vendor not found" });
     }
-    const customerDoc = await Customer.findOne({ id: customerId });
+    const customerDoc = await Customer.findOne({ customer_id });
     if (!customerDoc) {
       return res.status(404).json({ error: "Customer not found" });
     }
-    if (!vendorDoc.bankDetails || vendorDoc.bankDetails.length === 0) {
-      return res.status(400).json({ error: "Vendor bank details missing" });
+    //Now bank account resides in the respective service collection.
+    // if (!vendorDoc.bankDetails || vendorDoc.bankDetails.length === 0) {
+    //   return res.status(400).json({ error: "Vendor bank details missing" });
+    // }
+
+    const ServiceModel = getServiceModelById(service_id);
+    if (!ServiceModel) {
+      return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
     }
 
-    const vendorName = vendorDoc.name;
-    const customerName = customerDoc.name;
+    const serviceDoc = await ServiceModel.findOne({ service_id });
+    if (!serviceDoc) {
+      return res.status(404).json({ error: `No service found for service_id: ${service_id}` });
+    }
 
-    const primaryBank = vendorDoc.bankDetails[0];
-    let beneficiaryId = primaryBank.beneficiaryId;
+    if (!serviceDoc.bank_details || Object.keys(serviceDoc.bank_details).length === 0) {
+      return res.status(400).json({ error: "Bank details missing for this service" });
+    }
 
-    if (!beneficiaryId) {
-      beneficiaryId = generateUniqueId("bene");
-      primaryBank.beneficiaryId = beneficiaryId;
-      await vendorDoc.save();
+    // canonical service snapshot we will put into SQS
+    const serviceSnapshot = serviceData || serviceDoc.toObject();
+
+    // name?? 
+    const vendorName = serviceDoc.business_details.business_registration_name;
+    const customerName = customerDoc.customer_name;
+
+    const primaryBank = serviceDoc.bank_details;
+    let beneficiary_id = primaryBank.beneficiary_id;
+
+    if (!beneficiary_id) {
+      beneficiary_id = generateUniqueId("BENE");
+      primaryBank.beneficiary_id = beneficiary_id;
+      await serviceDoc.save();
     }
 
     // const payoutsBase = process.env.IS_DEV === "true"
@@ -368,20 +420,21 @@ const verifyCustomerPayment = async (req, res) => {
     //   }
     // }
 
-    const transferId = generateUniqueId("trn");
+    const transfer_id = generateUniqueId("TRN");
 
     await Transaction.create({
-      quotationId: quotation_id,
+      quotation_id,
       internalOrderId,
-      vendorId,
-      customerId,
-      pgOrderId: order_id,
-      pgStatus: payment.order_status || null,
-      transfer_id: transferId,
+      vendor_id,
+      customer_id,
+      service_id,                            // CRITICAL: was missing
+      pgOrderId: order_id,                   // FIX: use pgOrderId (camelCase)
+      pgStatus: payment.order_status || null, // FIX: match schema
+      transfer_id,
       status: "INIT",
       transfer_amount: payoutAmount,
       transfer_mode: "IMPS",
-      beneficiary_id: beneficiaryId,
+      beneficiary_id,
       payment_type,
       paymentDetails: {
         customerPayable: {
@@ -428,15 +481,17 @@ const verifyCustomerPayment = async (req, res) => {
 
     // const transferData = transferResp?.data || {};
     await Transaction.findOneAndUpdate(
-      { transfer_id: transferId },
+      { transfer_id },
       {
         $set: {
-          quotationId: quotation_id,
+          quotation_id,
           internalOrderId,
-          vendorId,
-          customerId,
-          pgOrderId: order_id,
-          pgStatus: payment.order_status,
+          vendor_id,
+          customer_id,
+          service_id,                         // CRITICAL: ensure it's present
+          pgOrderId: order_id,                // FIX: camelCase
+          pgStatus: payment.order_status,     // FIX: camelCase
+          beneficiary_id,
           // cf_transfer_id: transferData.cf_transfer_id || null,
           // status: transferData.status || null,
           // transfer_amount: transferData.transfer_amount ?? payoutAmount,
@@ -444,7 +499,6 @@ const verifyCustomerPayment = async (req, res) => {
           // transfer_utr: transferData.transfer_utr || null,
           // added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
           // updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-          beneficiary_id: beneficiaryId,
           payment_type,
           paymentDetails: {
             customerPayable: {
@@ -465,6 +519,37 @@ const verifyCustomerPayment = async (req, res) => {
       { new: true }
     );
 
+    // Update payment details in the Order model
+    const paymentDetailsUpdate = {
+      paymentStatus:
+        payment_type === "full"
+          ? "Fully Paid"
+          : payment_type === "advance"
+            ? "Partially Paid"
+            : payment_type === "remaining"
+              ? "Fully Paid"
+              : "Unknown",
+      customerPayable: {
+        total: finalOrder?.paymentDetails?.customerPayable?.total ?? order_amount,
+        baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? order_amount,
+        convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+        taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+      },
+      vendorReceivable: {
+        total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? order_amount,
+        baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? order_amount,
+        commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+        taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+      }
+    };
+
+    // Update the order with payment details
+    await Order.findOneAndUpdate(
+      { order_id: internalOrderId },
+      { $set: { paymentDetails: paymentDetailsUpdate } },
+      { new: true }
+    );
+
     const paymentTypeMap = {
       advance: "Advance Payment",
       remaining: "Remaining Payment",
@@ -472,70 +557,129 @@ const verifyCustomerPayment = async (req, res) => {
     };
     const paymentMode = paymentTypeMap[payment_type] || "Payment";
 
-    const customerMessage = `${paymentMode} of ₹${order_amount} done successfully to ${vendorDoc?.businessDetails?.businessName} for Order ID: ${internalOrderId}`;
+    const customerMessage = `${paymentMode} of ₹${order_amount} done successfully to ${vendorName} for Order ID: ${internalOrderId}`;
     const vendorMessage = `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
-    const adminMessage = `${paymentMode} of ₹${order_amount} is done by ${customerName} to ${vendorDoc?.businessDetails?.businessName} for Order ID: ${internalOrderId}`;
+    const adminMessage = `${paymentMode} of ₹${order_amount} is done by ${customerName} to ${vendorName} for Order ID: ${internalOrderId}`;
 
+
+    //notification models are changed
     try {
       await adminNotification.create({
-        orderId: internalOrderId,
-        vendorId,
-        customerId,
+        order_id: internalOrderId,
+        em_id: em_id,
+        chat_id: quotation_id,
         message: adminMessage,
-        quotationId: quotation_id,
         read: false,
-        timestamp: new Date(),
       });
       await vendorNotification.create({
-        orderId: internalOrderId,
-        vendorId,
-        customerId,
+        order_id: internalOrderId,
+        vendor_id,
+        service_id: service_id,
+        chat_id: quotation_id,
         message: vendorMessage,
-        quotationId: quotation_id,
-        type: "payment_done",
+        notification_type: 'checkout_message',
         read: false,
-        timestamp: new Date(),
       });
       await customerNotification.create({
-        customerId,
-        vendorId,
-        orderId: internalOrderId,
+        customer_id,
+        order_id: internalOrderId,
+        chat_id: quotation_id,
         message: customerMessage,
-        quotationId: quotation_id,
+        notification_type: 'checkout_message',
         read: false,
-        createdAt: new Date(),
       });
     } catch { }
 
-    let bookingId;
+    //Trigger for fcm notification for vendor app
+    sendFCMNotificationToVendor({
+      vendorId: vendor_id,
+      priority: "high",
+      notification: {
+        title: "Payment Received",
+        body: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
+      },
+      data: {
+        type: "payment",
+        order_id: internalOrderId,
+        quotation_id: quotation_id,
+        chat_id: quotation_id,
+        service_id: service_id,
+        vendor_id: vendor_id,
+        message: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
+      }
+    }).then(result => {
+      console.log(`FCM notifications sent to vendor ${vendor_id} for payment ${order_id}`, result);
+    }).catch(error => {
+      console.error("Failed to send FCM notification for payment:", error);
+    });
+
+    let event_id;
     if (payment_type !== "remaining") {
-      bookingId = generateUniqueId("book");
-      const preBooking = new Booking({
-        bookingid: bookingId,
-        customerId: customerId,
-        venId: vendorId,
-        serviceId: "temp_service_id",
-        type: "pending",
-        location: "pending location",
-        startDate: new Date(),
-        endDate: new Date(),
-        details: "Pending details",
-        guest: 0,
-        amount: "0",
-        status: "Pending",
-        managerName: "Not Assigned",
-        customerName: "Pending Customer",
-        description: "Pending description",
-        paymentDetails: "{}",
-        paymentStatus: "Pending",
-        capacity: "0",
-        serviceName: "Pending Service Name",
-        serviceLocation: {},
-        serviceAddress: "",
+      const now = new Date();
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+      event_id = generateUniqueId("EVTY");
+      const preBooking = new Events({
+        event_id: event_id,
+        customer_id: customer_id,
+        vendor_id: vendor_id,
+        service_id: service_id || "TEMP_SERVICE_ID", // use real when you have it
+        quotation_id: quotation_id,
+        em_id: em_id,
+
+        // Required event fields (valid defaults)
+        event_type: finalOrder?.event_type || "Pending",
+        location_type: finalOrder?.location_type.toUpperCase(), // valid enum
+        event_location: finalOrder?.event_location || "Pending location",
+        event_start: now,
+        event_end: oneHourLater, // strictly after start
+
+        final_guest_count: Math.max(1, Number(finalOrder?.final_guest_count || 1)),
+        final_amount: Math.max(0, Number(finalOrder?.final_amount || 0)),
+        event_status: "booked", // valid enum
+
+        vendor_manager_name: "Not Assigned",
+        customer_name: customerDoc?.customer_name || "Pending Customer",
+
+        // Contacts (optional but keep sane)
+        vendor_manager_contact_number: isValidINMobile(serviceDoc?.basic_details?.service_contact_number) ? serviceDoc?.basic_details?.service_contact_number : "",
+        vendor_manager_contact_email: vendorDoc?.email || "",
+        customer_contact_number: isValidINMobile(customerDoc?.contact_number) ? customerDoc?.contact_number : "",
+        customer_contact_email: customerDoc?.email_address || "",
+
+        // Payment status for advance flow
+        already_paid_amount: payment_type === "advance" ? Number(order_amount) : 0,
+        advance_amount_paid: payment_type === "advance" ? Number(order_amount) : 0,
+        payment_status: "advance_paid",
+        payment_method: "online",
+
+        // Totals blocks empty for now; real values set later by createBooking
+        payment_details: {
+          customerPayable: {
+            total: 0,
+            baseAmount: 0,
+            convenienceFee: 0,
+            taxOnConvenience: 0,
+            convenienceFeeBefore: 0,
+            taxOnConvenienceBefore: 0,
+            couponCode: null,
+            discountAmount: 0
+          },
+          vendorReceivable: {
+            total: 0,
+            baseAmount: 0,
+            commission: 0,
+            taxOnCommission: 0
+          }
+        },
+
+        // Minimal items; you can also leave an empty array
+        final_order_items: [],
+        payment_method_details: [],
       });
+
       await preBooking.save();
     } else {
-      bookingId = null;
+      event_id = null;
     }
 
     const paymentMethod = payment.order_meta.payment_methods !== null
@@ -562,11 +706,11 @@ const verifyCustomerPayment = async (req, res) => {
     const taxOnCommission = N(vr.taxOnCommission);
     const commissionFee = commission + taxOnCommission;
 
-    const contents = Array.isArray(finalOrder?.finalizedContents) ? finalOrder.finalizedContents : [];
+    const contents = Array.isArray(finalOrder?.final_order_items) ? finalOrder.final_order_items : [];
     const items = contents.map((c, idx) => ({
-      name: c.name || `Item ${idx + 1}`,
+      name: c.name_of_service || `Item ${idx + 1}`,
       type: finalOrder?.event_type || "-",
-      amount: String(Number(N(c.price).toFixed(2))),
+      amount: String(Number(N(c.total_amount).toFixed(2))),
     }));
 
     const discountForInvoice = Math.max(0, Number(discountAbs.toFixed(2)));
@@ -581,48 +725,59 @@ const verifyCustomerPayment = async (req, res) => {
             ? Math.max(0, N(totalCustomerPayable) - N(alreadyPaid) - 0)
             : N(order_amount);
 
-    const formatDate = (dateInput) => {
-      const date = new Date(dateInput);
-      const day = date.getDate();
-      const getDaySuffix = (d) => {
-        if (d > 3 && d < 21) return "th";
-        switch (d % 10) {
+    const formatDateTimeForDisplay = (dateInput) => {
+      if (!dateInput) return { date: "-", time: "-" };
+      const d = new Date(dateInput);
+      if (isNaN(+d)) return { date: "-", time: "-" };
+
+      // e.g. "18th Nov 2025"
+      const day = d.getDate();
+      const suffix = (() => {
+        if (day > 3 && day < 21) return "th";
+        switch (day % 10) {
           case 1: return "st";
           case 2: return "nd";
           case 3: return "rd";
           default: return "th";
         }
-      };
-      const dayWithSuffix = `${day}${getDaySuffix(day)}`;
-      const month = date.toLocaleString("en-US", { month: "short" });
-      const year = date.getFullYear();
-      return `${dayWithSuffix} ${month} ${year}`;
+      })();
+      const month = d.toLocaleString("en-US", { month: "short", timeZone: "Asia/Kolkata" });
+      const year = d.getFullYear();
+      const dateStr = `${day}${suffix} ${month} ${year}`;
+
+      // e.g. "2:00 PM"
+      const timeStr = d.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
+
+      return { date: dateStr, time: timeStr };
     };
-    const date = formatDate(finalOrder.start_date);
-    const time = finalOrder.time;
-    const venue = qoutation.location;
-    const customerLink = `https://eventory.in/customerbooking/${bookingId}`;
+    const { date, time } = formatDateTimeForDisplay(finalOrder.event_start);
+    const venue = finalOrder.event_location;
+    const customerLink = `https://eventory.in/customerbookingnew/${event_id}`;
     const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
 
     const customerPayload = {
-      id: customerDoc.id,
-      name: customerDoc.name,
-      email: customerDoc.email,
-      mobile: customerDoc.mobile,
-      address: customerDoc.address || finalOrder?.location || "",
-      pincode: customerDoc.pincode || customerDoc.pinCode || "",
+      id: customerDoc.customer_id,
+      name: customerDoc.customer_name,
+      email: customerDoc.email_address,
+      mobile: customerDoc.contact_number,
+      address: customerDoc.customer_address || finalOrder?.location || "",
+      pincode: customerDoc.pincode || "",
     };
 
     const vendorPayload = {
-      id: vendorDoc.id,
-      name: vendorDoc.name,
-      mobile: vendorDoc.mobile,
+      id: vendorDoc.vendor_id,
+      mobile: vendorDoc.vendor_mobile,
       businessDetails: {
-        businessName: vendorDoc?.businessDetails?.businessName || vendorDoc?.name || "",
-        businessAddress: vendorDoc?.businessDetails?.businessAddress || "",
-        pinCode: vendorDoc?.businessDetails?.pinCode || "",
-        panNo: vendorDoc?.businessDetails?.panNo || "",
-        gstin: vendorDoc?.businessDetails?.gstin || "",
+        businessName: serviceDoc?.business_details?.business_registration_name || "",
+        businessAddress: serviceDoc?.business_details?.business_address || "",
+        pinCode: serviceDoc?.business_details?.pincode || "",
+        panNo: serviceDoc?.business_details?.pan || "",
+        gstin: serviceDoc?.business_details?.gst || "",
       },
     };
 
@@ -656,9 +811,9 @@ const verifyCustomerPayment = async (req, res) => {
       venue,
       customerLink,
       vendorLink,
-      bookingId: bookingId,
+      event_id: event_id,
+      serviceData: serviceSnapshot,      // NEW: full service data into paymentDetails
     };
-
 
     const sqsMessage = {
       type: "bookingPayment",
@@ -668,17 +823,60 @@ const verifyCustomerPayment = async (req, res) => {
     };
 
     await sqs.send(new SendMessageCommand({
-      QueueUrl: process.env.INVOICE_QUEUE_URL || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      QueueUrl: process.env.INVOICE_QUEUE_URL
+        || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
       MessageBody: JSON.stringify(sqsMessage),
     }));
 
-    return res.status(200).json({ message: "Customer payment verified", payment, bookingId });
+    return res.status(200).json({ message: "Customer payment verified", payment, event_id });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
 
+const getPaymentByOrderId = async (req, res) => {
+  const { order_id } = req.body;
 
+  if (!order_id) {
+    return res.status(400).json({ message: "Missing required field: order_id" });
+  }
+
+  try {
+    const clientId = process.env.CASHFREE_CLIENT_ID_PG;
+    const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
+    const apiVersion = "2025-01-01";
+
+    const headers = {
+      "x-client-id": clientId,
+      "x-client-secret": clientSecret,
+      "x-api-version": apiVersion,
+      "Content-Type": "application/json",
+    };
+
+    const url = process.env.IS_DEV === "true"
+      ? `https://sandbox.cashfree.com/pg/orders/${order_id}/payments`
+      : `https://api.cashfree.com/pg/orders/${order_id}/payments`;
+
+    const response = await axios.get(url, { headers });
+
+    const paymentData = response.data;
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Payment details fetched successfully",
+      order_id,
+      payments: paymentData,
+    });
+  } catch (error) {
+    console.error("❌ getPaymentByOrderId error:", error?.response?.data || error.message);
+
+    return res.status(500).json({
+      status: "FAILED",
+      message: "Failed to fetch payment details",
+      error: error?.response?.data || error.message,
+    });
+  }
+};
 
 export default {
   createOrder,
@@ -686,5 +884,6 @@ export default {
   sendInvoice,
   handleWebhook,
   getPaymentSession,
-  verifyCustomerPayment
+  verifyCustomerPayment,
+  getPaymentByOrderId
 };

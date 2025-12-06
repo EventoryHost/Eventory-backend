@@ -1,48 +1,86 @@
-// models/customerCoupon.js
 import mongoose from "mongoose";
-const Schema = mongoose.Schema;
 
-const customerCouponSchema = new Schema({
-    code: {
-        type: String,
-        required: true,
-        unique: true,
-        uppercase: true,
+const { Schema } = mongoose;
+
+const customerCouponSchema = new Schema(
+  {
+    coupon_code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 20,
     },
-    team: {
-        type: String,
-        required: true,
-        enum: ["Sales", "Social Media", "Event"],
+    coupon_team: {
+      type: String,
+      required: true,
+      enum: ["SALES", "SOCIAL MEDIA", "EVENT"],
+      uppercase: true,
     },
-    discount: {
-        type: Number,
-        required: true,
-        enum: [25, 50, 100],
+    discount_percentage: {
+      type: Number,
+      required: true,
+      enum: [25, 50, 100],
     },
-    isActive: {
-        type: Boolean,
-        default: true,
+    is_active: {
+      type: Boolean,
+      default: true,
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
+    coupon_created_at: {
+      type: Date,
+      default: () => new Date(),
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
+    coupon_updated_at: {
+      type: Date,
+      default: () => new Date(),
     },
+  },
+  {
+    timestamps: false,
+    collection: "customer-coupons",
+  },
+);
+
+const customerCouponUsageSchema = new Schema(
+  {
+    coupon_code: { type: String, required: true },
+    discount_percentage: { type: Number, required: true },
+    applied_at: { type: Date, default: () => new Date() },
+    original_amount: { type: Number, required: true },
+    discount_amount: { type: Number, required: true },
+    final_amount: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+customerCouponSchema.index({ coupon_team: 1 });
+customerCouponSchema.index({ is_active: 1 });
+customerCouponSchema.index({ coupon_team: 1, is_active: 1 });
+
+customerCouponSchema.pre("save", function (next) {
+  const now = new Date();
+  this.coupon_updated_at = now;
+
+  if (this.coupon_code) {
+    this.coupon_code = this.coupon_code.toUpperCase();
+  }
+  if (this.coupon_team) {
+    this.coupon_team = this.coupon_team.toUpperCase();
+  }
+
+  next();
 });
 
-const customerCouponUsageSchema = new Schema({
-    couponCode: { type: String, required: true },
-    discount: { type: Number, required: true }, // percent
-    appliedAt: { type: Date, default: Date.now },
-    originalAmount: { type: Number, required: true }, // original convenience fee or total context
-    discountAmount: { type: Number, required: true }, // absolute
-    finalAmount: { type: Number, required: true }, // final total after discount
+customerCouponSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function (next) {
+  this.set({ coupon_updated_at: new Date() });
+  next();
 });
 
-const CustomerCoupon = mongoose.model("CustomerCoupon", customerCouponSchema);
-const CustomerCouponUsage = mongoose.model("CustomerCouponUsage", customerCouponUsageSchema);
+const CustomerCoupon =
+  mongoose.models.CustomerCoupon ||
+  mongoose.model("CustomerCoupon", customerCouponSchema, "customer-coupons");
 
-export { CustomerCoupon, customerCouponSchema, CustomerCouponUsage, customerCouponUsageSchema };
+export { CustomerCoupon, customerCouponUsageSchema };
+

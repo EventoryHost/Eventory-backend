@@ -11,228 +11,45 @@ import {
   unblockChat,
   getPinnedMessages,
   getBlockedChats,
+  updateChatEmId
 } from "../controllers/chatController.js";
 
 const router = express.Router();
-
-/**
- * @swagger
- * tags:
- *   name: Chats
- *   description: Chat-related APIs
- */
-
-/**
- * @swagger
- * /api/chats/{chatId}/messages:
- *   get:
- *     summary: Get all messages by chat ID
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID of the chat
- *     responses:
- *       200:
- *         description: Messages fetched successfully
- */
+//1. Get all messages by chat ID
 router.get("/:chatId/messages", getMessagesByChatId);
 
-/**
- * @swagger
- * /api/chats/upload-media:
- *   post:
- *     summary: Upload media to a chat
- *     tags: [Chats]
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: Media uploaded successfully
- */
+//2. Upload media to a chat
 router.post("/upload-media", upload("chat").single("file"), uploadChatMedia);
 
-/**
- * @swagger
- * /api/chats/{chatId}/search:
- *   get:
- *     summary: Search messages within a chat
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *         description: Chat ID
- *     responses:
- *       200:
- *         description: Search results
- */
+//3. Search messages within a chat
 router.get("/:chatId/search", searchMessages);
 
-/**
- * @swagger
- * /api/chats/{chatId}/search/{qId}:
- *   get:
- *     summary: Get message context by query ID
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: qId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Context retrieved
- */
+//4. Get message context by query ID
 router.get("/:chatId/search/:qId", getMessageContext);
 
-/**
- * @swagger
- * /api/chats/{chatId}/pinned-messages:
- *   get:
- *     summary: Get pinned messages
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Pinned messages retrieved
- */
-router.get("/:chatId/pinned-messages", getPinnedMessages);
+//5. Pin a message in a chat
+router.post("/chat/:chat_id/pin/:message_id", pinMessageInChat);
 
-/**
- * @swagger
- * /api/chats/chat/{chatId}/pin/{messageId}:
- *   post:
- *     summary: Pin a message in a chat
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: messageId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Message pinned
- */
-router.post("/chat/:chatId/pin/:messageId", pinMessageInChat);
+//6. Get pinned messages
+router.get("/:chat_id/pinned-messages", getPinnedMessages);
 
-/**
- * @swagger
- * /api/chats/chat/{chatId}/unpin/{messageId}:
- *   post:
- *     summary: Unpin a message from a chat
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: messageId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Message unpinned
- */
-router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
 
-/**
- * @swagger
- * /api/chats/chat/{chatId}/block:
- *   post:
- *     summary: Block a chat
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Chat blocked
- */
-router.post("/chat/:chatId/block", blockChat);
+//7. Unpin a message from a chat
+router.post("/chat/:chat_id/unpin/:message_id", unpinMessageInChat);
 
-/**
- * @swagger
- * /api/chats/chat/{chatId}/unblock:
- *   post:
- *     summary: Unblock a chat
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Chat unblocked
- */
-router.post("/chat/:chatId/unblock", unblockChat);
+//8. Block a chat
+router.post("/chat/:chat_id/block", blockChat);
 
-/**
- * @swagger
- * /api/chats/chat/{chatId}/pinned:
- *   get:
- *     summary: Get pinned messages from chat
- *     tags: [Chats]
- *     parameters:
- *       - in: path
- *         name: chatId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Pinned messages retrieved
- */
-router.get("/chat/:chatId/pinned", getPinnedMessages);
+//9. Unblock a chat
+router.post("/chat/:chat_id/unblock", unblockChat);
 
-/**
- * @swagger
- * /api/chats/blocked:
- *   get:
- *     summary: Get all blocked chats
- *     tags: [Chats]
- *     responses:
- *       200:
- *         description: Blocked chats retrieved
- */
+//10. Get pinned messages from chat
+// router.get("/chat/:chatId/pinned", getPinnedMessages);
+
+//11. Get all blocked chats
 router.get("/blocked", getBlockedChats);
+
+//12. Update em_id when admin sends first message
+router.patch("/chat/update-em", updateChatEmId);
 
 export default router;

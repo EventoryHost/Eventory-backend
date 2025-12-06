@@ -88,7 +88,7 @@ reviewRoutes.get("/", getReviewsByVendor);
  *       404:
  *         description: Review not found
  */
-reviewRoutes.put("/:reviewId", updateReview);
+reviewRoutes.put("/:id", updateReview);
 
 /**
  * @swagger
@@ -109,7 +109,7 @@ reviewRoutes.put("/:reviewId", updateReview);
  *       404:
  *         description: Review not found
  */
-reviewRoutes.delete("/:reviewId", deleteReview);
+reviewRoutes.delete("/:id", deleteReview);
 
 
 

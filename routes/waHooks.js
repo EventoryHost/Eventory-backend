@@ -4,6 +4,8 @@ import {
   sendPromotionTemplate,
   handlePromoResponse,
   getVendors,
+  verifyWebhook,
+  verifyPromoResponseWebhook
 } from "../controllers/waController.js";
 
 const waRoutes = Router();
@@ -57,21 +59,7 @@ waRoutes.post("/", sendResponseOnIntroMessage);
  *       403:
  *         description: Verification failed
  */
-waRoutes.get("/", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-  const myToken = "EVENTORY1234";
-
-  if (mode && token) {
-    if (mode === "subscribe" && token === myToken) {
-      console.log("WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
-  }
-});
+waRoutes.get("/", verifyWebhook);
 
 /**
  * @swagger
@@ -160,20 +148,6 @@ waRoutes.post("/promo-response", handlePromoResponse);
  *       403:
  *         description: Verification failed
  */
-waRoutes.get("/promo-response", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-  const myToken = "EVENTORY1234";
-
-  if (mode && token) {
-    if (mode === "subscribe" && token === myToken) {
-      console.log("WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
-  }
-});
+waRoutes.get("/promo-response", verifyPromoResponseWebhook);
 
 export default waRoutes;

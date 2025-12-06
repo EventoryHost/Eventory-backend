@@ -1,6 +1,6 @@
 import initializeFirebase from '../config/firebaseConfig.js';
-import { DeviceToken } from '../models2/deviceToken.js';
-import { Vendor } from '../models2/vendor.js';
+import { DeviceToken } from '../models/deviceToken.js';
+import { Vendor } from '../models/vendor.js';
 
 /**
  * Send FCM notification using Firebase Admin SDK

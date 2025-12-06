@@ -1,13 +1,12 @@
 import { Caterer } from "../models/caterer.js";
 import { Customer } from "../models/customer.js";
-import Photographer from "../models/photographers.js";
-import { Decorator } from "../models/decoraters.js";
-import PropRental from "../models/props.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import PhotographerVideographer from "../models/photographerVideographer.js";
+import { Decorator } from "../models/decorator.js";
+import MakeupArtist from "../models/makeupArtist.js";
 import jwt from "jsonwebtoken";
-import { Venue } from "../models/venue.js";
-import  customerNotification  from "../models/customerNotification.js";
-import { Quotation } from "../models/quotation.js";
+import VenueProvider from "../models/venueProvider.js";
+import customerNotification from "../models/customerNotifications.js";
+import Quotations from "../models/quotations.js";
 
 export const addCustomer = async (req, res) => {
   try {
@@ -29,7 +28,7 @@ export const getCustomer = async (req, res) => {
     if (phone && !phone.startsWith("+91")) {
       phone = "+91" + phone;
     }
-    const customer = await Customer.findOne({ mobile: phone });
+    const customer = await Customer.findOne({ contact_number: phone });
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
@@ -41,53 +40,19 @@ export const getCustomer = async (req, res) => {
 
 export const getBooking = async (req, res) => {
   try {
-    const serviceId = req.params.serId;
-    const customerId = req.params.cusId;
-    const booking = await Customer.findOne({
-      id: customerId,
-      quotations: { $elemMatch: { serviceId: serviceId } },
+    const { service_id, customer_id } = req.params;
+
+    // Look directly in Quotations collection
+    const booking = await Quotations.findOne({
+      service_id: service_id,
+      customer_id: customer_id,
     });
+
     if (!booking) {
       return res.status(204).json({ message: "No bookings found" });
     }
+
     res.status(200).json(booking);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-export const getActiveBooking = async (req, res) => {
-  try {
-    const serviceId = req.params.serId;
-    const customerId = req.params.cusId;
-
-    // Find all quotation IDs recorded for this customer + service
-    const customer = await Customer.findOne({ id: customerId });
-    if (!customer || !Array.isArray(customer.quotations)) {
-      return res.status(204).json({ message: "No bookings found" });
-    }
-
-    const relatedQuotationIds = customer.quotations
-      .filter((q) => q.serviceId === serviceId)
-      .map((q) => q.quotationId);
-
-    if (relatedQuotationIds.length === 0) {
-      return res.status(204).json({ message: "No bookings found" });
-    }
-
-    // Check if any of those quotations are still active (not Rejected)
-    const activeQuotation = await Quotation.findOne({
-      id: { $in: relatedQuotationIds },
-      status: { $ne: "Rejected" },
-    });
-
-    if (!activeQuotation) {
-      // All prior quotations were rejected -> allow new submission
-      return res.status(204).json({ message: "No active bookings found" });
-    }
-
-    // There's an active (pending/accepted/in-progress) quotation
-    return res.status(200).json(activeQuotation);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -95,22 +60,28 @@ export const getActiveBooking = async (req, res) => {
 
 export const addFavourite = async (req, res) => {
   try {
-    const customerId = req.params.cusId;
-    const serviceId = req.params.serviceId;
+    const customer_id = req.params.customer_id;
+    const service_id = req.params.service_id;
 
-    const customer = await Customer.findOne({ id: customerId });
+    console.log("customer_id", customer_id);
+    const customer = await Customer.findOne({ customer_id: customer_id });
+
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    if (!Array.isArray(customer.favoriteServices)) {
-      customer.favoriteServices = [];
+    if (!Array.isArray(customer.wishlisted_services)) {
+      customer.wishlisted_services = [];
     }
-    if (customer.favoriteServices.includes(serviceId)) {
-      return res.status(400).json({ message: "Service already added to favorites" });
+    if (customer.wishlisted_services.includes(service_id)) {
+      return res
+        .status(400)
+        .json({ message: "Service already added to favorites" });
     }
 
-    customer.favoriteServices.push(serviceId);
+    customer.wishlisted_services.push(service_id);
+    console.log("Hellow");
     await customer.save();
+    console.log("byeew");
 
     res.status(200).json({ message: "Added to favorites", customer });
   } catch (error) {
@@ -119,14 +90,14 @@ export const addFavourite = async (req, res) => {
 };
 
 export const getCustomerNotifications = async (req, res) => {
-  const { customerId } = req.params;
+  const { customer_id } = req.params;
 
   try {
-    if (!customerId) {
+    if (!customer_id) {
       return res.status(400).json({ message: "Customer ID is required" });
     }
 
-    const notifications = await customerNotification.find({ customerId });
+    const notifications = await customerNotification.find({ customer_id });
 
     return res.status(200).json({
       message: "Notifications retrieved successfully",
@@ -168,7 +139,10 @@ export const markNotificationAsRead = async (req, res) => {
     console.error("❌ Error marking notification as read:", error);
     return res
       .status(500)
-      .json({ message: "Failed to mark notification as read", error: error.message });
+      .json({
+        message: "Failed to mark notification as read",
+        error: error.message,
+      });
   }
 };
 
@@ -200,7 +174,7 @@ export const getFavoriteServices = async (req, res) => {
       } else if (serviceId.startsWith("dec")) {
         collection = Decorator;
       } else if (serviceId.startsWith("prop")) {
-        collection = PropRental;
+        return res.status(400).json({ message: "Prop rental service is not available" });
       } else if (serviceId.startsWith("mak")) {
         collection = MakeupArtist;
       } else {
@@ -239,17 +213,18 @@ export const getFavoriteServices = async (req, res) => {
 
 export const getFavoriteServiceIds = async (req, res) => {
   try {
-    const customerId = req.params.cusId;
-    const customer = await Customer.findOne({ id: customerId });
+    const customer_id = req.params.customer_id;
+    console.log("customer_id", customer_id);
+    const customer = await Customer.findOne({ customer_id: customer_id });
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    if (!customer.favoriteServices) {
-      customer.favoriteServices = [];
+    if (!customer.wishlisted_services) {
+      customer.wishlisted_services = [];
     }
-    res.status(200).json(customer.favoriteServices);
+    res.status(200).json(customer.wishlisted_services);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -257,22 +232,22 @@ export const getFavoriteServiceIds = async (req, res) => {
 
 export const removeFavourite = async (req, res) => {
   try {
-    const serviceId = req.params.serviceId;
-    const customerId = req.params.cusId;
-    const customer = await Customer.findOne({ id: customerId });
+    const service_id = req.params.service_id;
+    const customer_id = req.params.customer_id;
+    const customer = await Customer.findOne({ customer_id: customer_id });
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    if (!customer.favoriteServices) {
-      customer.favoriteServices = [];
+    if (!customer.wishlisted_services) {
+      customer.wishlisted_services = [];
     }
-    if (!customer.favoriteServices.includes(serviceId)) {
+    if (!customer.wishlisted_services.includes(service_id)) {
       return res
         .status(400)
         .json({ message: "Service not found in favourites" });
     }
-    customer.favoriteServices = customer.favoriteServices.filter(
-      (id) => id !== serviceId,
+    customer.wishlisted_services = customer.wishlisted_services.filter(
+      (id) => id !== service_id
     );
     await customer.save();
     res.status(200).json(customer);
@@ -309,15 +284,17 @@ export const updateCustomer = async (req, res) => {
     if (!mobile) return res.status(403).json({ message: "Invalid token" });
 
     const { mobile: mobileFromBody, ...updates } = req.body;
-    if (!mobileFromBody) return res.status(400).json({ message: "Phone number missing" });
+    if (!mobileFromBody)
+      return res.status(400).json({ message: "Phone number missing" });
 
     const customer = await Customer.findOneAndUpdate(
-      { mobile: mobileFromBody },
+      { contact_number: mobileFromBody }, // fixed to match schema
       { $set: updates },
       { new: true, runValidators: true }
     );
 
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    if (!customer)
+      return res.status(404).json({ message: "Customer not found" });
 
     res.status(200).json(customer);
   } catch (error) {
@@ -330,7 +307,9 @@ export const getCustomerById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const customer = await Customer.findOne({ id: id }).select("-password");
+    const customer = await Customer.findOne({ customer_id: id }).select(
+      "-password"
+    );
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -339,6 +318,37 @@ export const getCustomerById = async (req, res) => {
     res.status(200).json(customer);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getActiveBooking = async (req, res) => {
+  try {
+    const customer_id = req.params.customer_id;
+
+    // Find all quotation IDs recorded for this customer + service
+    const customer = await Customer.findOne({ customer_id });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const quotations = await Quotations.find({
+      customer_id,
+      quote_status: { $ne: "Rejected" },
+    });
+
+    if (!quotations || quotations.length === 0) {
+      return res.status(404).json({ message: "No active bookings found" });
+    }
+
+    return res.status(200).json({
+      message: "Active bookings retrieved successfully!",
+      data: quotations,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error retrieving active booking",
+      error: error.message,
+    });
   }
 };
 
@@ -374,36 +384,32 @@ export const removeQuotationFromCustomer = async (req, res) => {
       customer: updatedCustomer,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error removing quotation object from customer document",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error removing quotation object from customer document",
+      error: error.message,
+    });
   }
 };
 
-
 export const addCustomerInvoice = async (req, res) => {
-  const { invoiceUrl, customerId } = req.body
+  const { invoiceUrl, customerId } = req.body;
   console.log(
     `Received request to add invoice for customer ${customerId} with URL ${invoiceUrl}`
   );
 
-  const customer = await Customer.findOne({ id: customerId });
+  const customer = await Customer.findOne({ customer_id: customerId });
   if (!customer) {
-    return res.status(404).json({ message: "ustomer not found" });
+    return res.status(404).json({ message: "Customer not found" });
   }
 
   try {
-    customer.invoices.push(invoiceUrl);
+    customer.invoices.push(invoiceUrl); 
     await customer.save();
     return res.status(200).json({
       message: "Invoice added successfully",
     });
-  }
-  catch (error) {
+  } catch (error) {
     console.error("Error adding invoice:", error);
     return res.status(500).json({ message: "Internal Server Error", error });
   }
-}
+};

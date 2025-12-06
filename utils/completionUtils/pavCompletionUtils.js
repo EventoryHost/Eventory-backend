@@ -1,4 +1,4 @@
-import photographerVideographer from "../../models2/photographerVideographer.js";
+import photographerVideographer from "../../models/photographerVideographer.js";
 
 export const checkPhotographerProfileCompletion = async (photographerId) => {
   try {

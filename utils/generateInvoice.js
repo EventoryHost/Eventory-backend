@@ -8,7 +8,7 @@ import {
   uploadInvoiceToS3,
   getInvoiceCount,
 } from "../controllers/s3Controller.js";
-import { Vendor } from "../models/users.js";
+import { Vendor } from "../models/vendor.js";
 import chromium from "@sparticuz/chromium";
 
 const puppeteer =

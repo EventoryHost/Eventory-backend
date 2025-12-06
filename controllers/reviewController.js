@@ -1,129 +1,128 @@
-import Review from "../models2/reviews.js";
-import { Venue } from "../models/venue.js";
-import { Caterer } from "../models/caterer.js";
-import { Decorator } from "../models/decoraters.js";
-import Photographer from "../models/photographers.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import Reviews from "../models/reviews.js";
+import { PhotographerVideographer } from "../models/photographerVideographer.js";
+import VenueProvider from "../models/venueProvider.js";
+import Caterer from "../models/caterer.js";
+import { Decorator } from "../models/decorator.js";
+import MakeupArtist from "../models/makeupArtist.js";
+import DjArtist from "../models/djArtist.js";
 
-// Mapping vendor types to their respective Mongoose models
 const vendorModels = {
-  venue: Venue,
+  venue_provider: VenueProvider,
   caterer: Caterer,
-  photographer: Photographer,
+  photographer_videographer: PhotographerVideographer,
   decorator: Decorator,
-  makeupArtist: MakeupArtist,
+  makeupartist: MakeupArtist,
+  djartists: DjArtist,
+};
+
+const normalizeType = (t = "") => {
+  t = String(t).trim().toLowerCase();
+  if (["venue", "venue-provider", "venue provider", "venue_provider"].includes(t)) return "venue_provider";
+  if (["pav", "photographer", "videographer", "photographer-videographer", "photographer_videographer"].includes(t))
+    return "photographer_videographer";
+  if (["makeup", "makeup-artist", "makeup artist", "makeup_artist", "makeupartist"].includes(t)) return "makeupartist";
+  if (["caterer"].includes(t)) return "caterer";
+  if (["decorator"].includes(t)) return "decorator";
+  if (["dj", "dj-artist", "dj artist", "dj_artist", "djartists"].includes(t)) return "djartists"; // OK
+  return t;
 };
 
 // Function to update vendor's average rating
-async function updateVendorRating(serviceId, vendorType) {
-  const VendorModel = vendorModels[vendorType];
-  if (!VendorModel) return;
+// async function updateVendorRating(service_id, service_type) {
+//   const VendorModel = vendorModels[service_type];
+//   if (!VendorModel) return;
 
+//   console.log(VendorModel);
 
-  const result = await Review.aggregate([
-    { $match: { serviceId } },
-    { $group: { _id: "$serviceId", avgRating: { $avg: "$rating" } } },
-  ]);
+//   const result = await Reviews.aggregate([
+//     { $match: { service_id } },
+//     { $group: { _id: "$service_id", avgRating: { $avg: "$rating" } } },
+//   ]);
 
+//   console.log(result);
 
-  const avgRating =
-    result.length > 0 ? parseFloat(result[0].avgRating.toFixed(1)) : 0;
-  await VendorModel.findOneAndUpdate({ id: serviceId }, { rating: avgRating });
-}
+//   const avgRating =
+//     result.length > 0 ? parseFloat(result[0].avgRating.toFixed(1)) : 0;
+
+   
+//   await VendorModel.findOneAndUpdate({ service_id }, { rating: avgRating });
+// }
 
 // Create a new review
 export const createReview = async (req, res) => {
   try {
-    const {
-      serviceId,
-      vendorType,
-      userId,
-      rating,
-      reviewerName,
-      feedback,
-      photos,
-    } = req.body;
+    // accept both frontend’s legacy keys and schema keys and map into Reviews schema fields
+    const body = req.body || {};
+    const service_id = body.service_id || body.serviceId || body.id;
+    const customer_id = body.customer_id || body.userId || body.customerId;
+    const customer_name = body.customer_name || body.reviewerName || body.customerName;
+    const service_type = normalizeType(body.service_type || body.vendorType || body.type);
+    const rating = typeof body.rating === "number" ? body.rating : parseFloat(body.rating);
+    const review = body.review || body.feedback || "";
+    const media_photo = body.media_photo || (Array.isArray(body.photos) ? body.photos[0] : body.photo) || "";
+    const media_video = body.media_video || body.video || "";
 
-    // if (!vendorModels[vendorType]) {
-    //   return res.status(400).json({ error: "Invalid vendor type." });
-    // }
+    if (!service_id || !customer_id || !customer_name || !service_type || !rating) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        required: "service_id, customer_id, customer_name, service_type, rating",
+      });
+    }
 
-    const newReview = await Review.create({
-      serviceId,
-      vendorType,
-      userId,
+    if (!vendorModels[service_type]) {
+      return res.status(400).json({ error: "Invalid vendor type." });
+    }
+
+    const newReview = await Reviews.create({
+      service_id,
+      customer_id,
+      customer_name,
+      service_type,
       rating,
-      reviewerName,
-      feedback,
-      photos,
+      review,
+      media_photo,
+      media_video,
     });
 
-    await updateVendorRating(serviceId, vendorType);
-
-    return res
-      .status(201)
-      .json({ message: "Review created successfully", review: newReview });
+    return res.status(201).json({ message: "Review created successfully", review: newReview });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    return res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
-// Get all reviews for a specific vendor
 export const getReviewsByVendor = async (req, res) => {
   try {
-    const serviceId = req.query.serviceId;
-
-
-    const reviews = await Review.find({ serviceId });
+    const { service_id, vendor_id } = req.query;
+    if (!service_id) {
+      return res.status(400).json({ error: "Missing service_id" });
+    }
+    // Reviews schema has service_id; vendor_id is not stored there by default
+    const reviews = await Reviews.find({ service_id }).sort({ feedback_submitted_at: -1 });
     return res.status(200).json({ reviews });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    return res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
-// Update a review
 export const updateReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
-    const updatedReview = await Review.findByIdAndUpdate(reviewId, req.body, {
-      new: true,
-    });
-
-    if (!updatedReview) {
-      return res.status(404).json({ error: "Review not found" });
-    }
-
-    await updateVendorRating(updatedReview.serviceId, updatedReview.vendorType);
-    return res
-      .status(200)
-      .json({ message: "Review updated successfully", review: updatedReview });
+    const { id } = req.params;
+    const updatedReview = await Reviews.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedReview) return res.status(404).json({ error: "Review not found" });
+    return res.status(200).json({ message: "Review updated successfully", review: updatedReview });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    return res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
-// Delete a review
 export const deleteReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
-    const deletedReview = await Review.findByIdAndDelete(reviewId);
-
-    if (!deletedReview) {
-      return res.status(404).json({ error: "Review not found" });
-    }
-
-    await updateVendorRating(deletedReview.serviceId, deletedReview.vendorType);
+    const { id } = req.params;
+    const deletedReview = await Reviews.findByIdAndDelete(id);
+    if (!deletedReview) return res.status(404).json({ error: "Review not found" });
     return res.status(200).json({ message: "Review deleted successfully" });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    return res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
