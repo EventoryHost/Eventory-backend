@@ -1,4 +1,4 @@
-import VenueProvider from "../../models2/venueProvider.js";
+import VenueProvider from "../../models/venueProvider.js";
 
 export const checkVenueProfileCompletion = async (venueId) => {
   try {

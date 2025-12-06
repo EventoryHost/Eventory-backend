@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const PhotographerVideographer = require('./models2/photographerVideographer');
+const PhotographerVideographer = require('./models/photographerVideographer');
 
 // Database cleanup script for PAV services
 async function cleanupPAVServices() {

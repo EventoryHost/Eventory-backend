@@ -1,170 +1,233 @@
 import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
 import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
-import Chat from "../models/chat.js";
-import Message from "../models/message.js";
+import Chat2 from "../models/chats.js";
+import Message2 from "../models/message2.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
-import customerNotification from "../models/customerNotification.js";
+import customerNotification from "../models/customerNotifications.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
 
-  socket.on("join_chat", async ({ chatId, userType }) => {
+  // ------------------- JOIN CHAT -------------------
+  socket.on("join_chat", async ({ chat_id, sender, chat_type }) => {
     try {
-      const chat = await Chat.findOne({ chatId });
+      if (!chat_type) {
+        socket.emit("error", "chat_type is required");
+        return;
+      }
+
+      const chat = await Chat2.findOne({ chat_id, chat_type });
+      console.log("🔍 Chat lookup:", chat);
 
       if (!chat) {
         socket.emit("error", "Chat room does not exist");
         return;
       }
 
-      socket.join(chatId);
-      socket.emit("joined", `Joined chat room ${chatId}`);
-      console.log(`${userType} joined chat room: ${chatId}`);
+      // Validate user has permission to join this chat type
+      if (chat_type === "vendor-admin" && sender !== "vendor" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      const roomId = `${chat_id}-${chat_type}`;
+      socket.join(roomId);
+      socket.emit("joined", `Joined chat room ${chat_id} (${chat_type})`);
+      console.log(`${sender} joined chat room: ${chat_id} (${chat_type})`);
     } catch (err) {
       console.error("join_chat error:", err);
       socket.emit("error", "Error joining chat");
     }
   });
 
+  // ------------------- SEND MESSAGE -------------------
   socket.on(
     "send_message",
     async (
       {
-        chatId,
-        senderType,
-        content,
-        contentType,
-        mediaUrl,
-        parentId,
-        parentContent,
-        parentSenderType,
-        clientMessageId,
+        chat_id,
+        chat_type,
+        sender,
+        sender_id,
+        message_content,
+        message_type,
+        attachment_url,
+        parent_message_id,
+        parent_message_content,
+        parent_sender,
+        client_message_id,
       },
-      callback,
+      callback
     ) => {
       try {
-        // Fix function name swap - these were incorrectly imported/named
-        if (checkPhoneNumber(content) && checkEmails(content)) {
-          console.log("Phone number or email detected:", content);
-          // Call the callback with error if provided
+        // Validate chatType is provided
+        if (!chat_type) {
           if (typeof callback === "function") {
-            callback("Please refrain from using abusive words!");
+            callback("chat_type is required");
           } else {
-            socket.emit("error", "Please refrain from using abusive words!");
+            socket.emit("error", "chat_type is required");
           }
-          return; // Prevent sending
+          return;
         }
 
-        if (checkProfanity(content)) {
-          // This actually checks for phone numbers
-          console.log("Personal information detected:", content);
-          // Call the callback with error if provided
+        // Validate inputs
+        if (!chat_id || !sender || !message_content || !sender_id) {
+          if (typeof callback === "function")
+            callback("Missing required fields.");
+          else socket.emit("error", "Missing required fields.");
+          return;
+        }
+
+        // Validate sender type
+        const validSenders = ["customer", "vendor", "em"];
+        if (!validSenders.includes(sender)) {
+          if (typeof callback === "function") callback("Invalid sender type");
+          else socket.emit("error", "Invalid sender type");
+          return;
+        }
+
+        // Validate senderType matches chatType permissions
+        if (chat_type === "vendor-admin" && sender !== "vendor" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
+          return;
+        }
+
+        if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
+          return;
+        }
+
+        // Validate content type
+        const validTypes = [
+          "text",
+          "image",
+          "video",
+          "pdf",
+          "file",
+          "approval_request",
+          "order",
+        ];
+        const final_message_type = validTypes.includes(message_type)
+          ? message_type
+          : "text";
+
+        // Detect personal info or profanity
+        if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
+          console.log("❌ Personal information detected:", message_content);
           if (typeof callback === "function") {
             callback("Please refrain from sharing personal information!");
           } else {
             socket.emit(
               "error",
-              "Please refrain from sharing personal information!",
+              "Please refrain from sharing personal information!"
             );
-          }
-          return; // Prevent sending
-        }
-
-        const chat = await Chat.findOne({ chatId });
-        if (!chat) {
-          // Call the callback with error if provided
-          if (typeof callback === "function") {
-            callback("Invalid chatId");
-          } else {
-            socket.emit("error", "Invalid chatId");
           }
           return;
         }
 
-        if (chat.status === "blocked") {
-          // Call the callback with error if provided
+        if (checkProfanity(message_content)) {
+          console.log("❌ Profanity detected:", message_content);
+          if (typeof callback === "function") {
+            callback("Please refrain from using abusive words!");
+          } else {
+            socket.emit("error", "Please refrain from using abusive words!");
+          }
+          return;
+        }
+
+        // Validate chat existence with chatType
+        const chat = await Chat2.findOne({ chat_id, chat_type });
+        if (!chat) {
+          if (typeof callback === "function") callback("Invalid chat_id or chat_type");
+          else socket.emit("error", "Invalid chat_id or chat_type");
+          return;
+        }
+
+        if (chat.chat_status === "BLOCKED") {
           if (typeof callback === "function") {
             callback("This chat is blocked. You cannot send messages.");
           } else {
             socket.emit(
               "error",
-              "This chat is blocked. You cannot send messages.",
+              "This chat is blocked. You cannot send messages."
             );
           }
           return;
         }
 
-        const validSenders = ["cus", "ven", "rm"];
-        const validContentTypes = ["text", "image", "video", "pdf", "file", "approval_request"];
+        // Validate parent message id
+        const validParent =
+          parent_message_id && /^[a-fA-F0-9]{24}$/.test(parent_message_id)
+            ? parent_message_id
+            : null;
 
-        if (!validSenders.includes(senderType)) {
-          // Call the callback with error if provided
-          if (typeof callback === "function") {
-            callback("Invalid sender type");
-          } else {
-            socket.emit("error", "Invalid sender type");
-          }
-          return;
-        }
-
-        if (!validContentTypes.includes(contentType)) {
-          contentType = "text"; // Default to text
-        }
-
-        // Only set parent if it's a valid MongoDB ObjectId (24 hex chars)
-        let parent = undefined;
-        if (parentId && /^[a-fA-F0-9]{24}$/.test(parentId)) {
-          parent = parentId;
-        }
-
-        const message = new Message({
-          chatId,
-          senderType,
-          content,
-          contentType,
-          mediaUrl: mediaUrl || null,
-          parent, // Only set if valid ObjectId
+        // ------------------- CREATE MESSAGE -------------------
+        const message = new Message2({
+          chat_id,
+          chat_type,
+          sender,
+          sender_id,
+          message_content,
+          message_type: final_message_type,
+          attachment_url: attachment_url || null,
+          parent_message_id: validParent,
         });
 
-        await message.save();
+        const savedMessage = await message.save();
 
-        // Include parent message info in the broadcast to ALL clients
-        io.to(chatId).emit("new_message", {
-          _id: message._id,
-          chatId,
-          senderType,
-          content,
-          contentType,
-          parentId: parentId, // Use consistent field names
-          parentContent: parentContent,
-          parentSenderType: parentSenderType,
-          mediaUrl: mediaUrl || null,
-          timestamp: message.createdAt,
-          clientMessageId,
+        // ------------------- EMIT TO ROOM -------------------
+        const roomId = `${chat_id}-${chat_type}`;
+        io.to(roomId).emit("new_message", {
+          _id: savedMessage._id,
+          chat_id: savedMessage.chat_id,
+          chat_type: chat_type,
+          sender: savedMessage.sender,
+          sender_id: savedMessage.sender_id,
+          message_content: savedMessage.message_content,
+          message_type: savedMessage.message_type,
+          attachment_url: savedMessage.attachment_url,
+          parent_message_id: parent_message_id,
+          parent_message_content,
+          parent_sender,
+          message_sent_at: savedMessage.message_sent_at,
+          client_message_id,
         });
 
         console.log(
-          `📤 ${senderType} sent ${contentType} message in chat ${chatId}`,
+          `📤 ${savedMessage.sender} sent ${savedMessage.message_type} message in chat ${savedMessage.chat_id} (${chat_type})`
         );
 
-        // Call the callback with no error to indicate success
+        // ------------------- ACK TO SENDER -------------------
         if (typeof callback === "function") {
-          callback(null);
+          callback(null, savedMessage);
         }
       } catch (err) {
         console.error("send_message error:", err);
-        // Call the callback with error if provided
         if (typeof callback === "function") {
           callback("Error sending message");
         } else {
           socket.emit("error", "Error sending message");
         }
       }
-    },
+    }
   );
 
+  // ------------------- DISCONNECT -------------------
   socket.on("disconnect", () => {
     console.log("🔌 Client disconnected:", socket.id);
   });
@@ -172,22 +235,40 @@ export const handleSocketConnection = (socket, io) => {
 
 export const getMessagesByChatId = async (req, res) => {
   const { chatId } = req.params;
-  const { cursor } = req.query;
+  const { cursor, chatType } = req.query;
   const limit = 15;
 
   try {
-    let query = { chatId };
+    if (!chatType) {
+      return res.status(400).json({ error: "chatType is required" });
+    }
 
+    // Validate chatType
+    if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+      return res.status(400).json({ error: "Invalid chatType" });
+    }
+
+    // Verify the chat exists with this chatType
+    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    if (!chatExists) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    // ✅ match new field name and include chat_type
+    let query = { chat_id: chatId, chat_type: chatType };
+
+    // ✅ for pagination
     if (cursor) {
       query._id = { $lte: new mongoose.Types.ObjectId(cursor) };
     }
 
-    const messages = await Message.find(query)
+    // ✅ update sort fields to match new schema
+    const messages = await Message2.find(query)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .populate({
-        path: "parent",
-        select: "content senderType", // Add senderType to populate
+        path: "parent_message_id",
+        select: "message_content sender", // ✅ new fields
       })
       .lean();
 
@@ -201,12 +282,12 @@ export const getMessagesByChatId = async (req, res) => {
 
     const resultMessages = messages.slice(0, limit);
 
-    // Add parentText and parentSenderType fields from populated parent
+    // ✅ Map populated parent fields properly
     resultMessages.forEach((msg) => {
-      if (msg.parent && typeof msg.parent === "object") {
-        msg.parentText = msg.parent.content;
-        msg.parentSenderType = msg.parent.senderType;
-        msg.parent = msg.parent._id; // Keep parent as ID
+      if (msg.parent_message_id && typeof msg.parent_message_id === "object") {
+        msg.parentText = msg.parent_message_id.message_content;
+        msg.parentSender = msg.parent_message_id.sender;
+        msg.parent_message_id = msg.parent_message_id._id; // keep only ID
       }
     });
 
@@ -220,19 +301,34 @@ export const getMessagesByChatId = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch messages" });
   }
 };
-
 export const searchMessages = async (req, res) => {
-  const { chatId } = req.params;
-  const { q } = req.query;
+  const { chat_id } = req.params;
+  const { q, chatType } = req.query;
 
-  if (!q || !chatId) {
-    return res.status(400).json({ error: "Query (q) and chatId are required" });
+  if (!q || !chat_id) {
+    return res
+      .status(400)
+      .json({ error: "Query (q) and chat_id are required" });
+  }
+
+  if (!chatType) {
+    return res.status(400).json({ error: "chatType is required" });
+  }
+
+  if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+    return res.status(400).json({ error: "Invalid chatType" });
   }
 
   try {
-    const messages = await Message.find({
-      chatId,
-      content: { $regex: q, $options: "i" },
+    const chatExists = await Chat2.findOne({ chat_id, chat_type: chatType });
+    if (!chatExists) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const messages = await Message2.find({
+      chat_id,
+      chat_type: chatType,
+      message_content: { $regex: q, $options: "i" },
     }).sort({ createdAt: -1 });
 
     res.status(200).json({ messages });
@@ -244,28 +340,44 @@ export const searchMessages = async (req, res) => {
 
 export const getMessageContext = async (req, res) => {
   const { chatId, qId } = req.params;
+  const { chatType } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(qId)) {
     return res.status(400).json({ error: "Invalid messageId (qId)" });
   }
 
+  if (!chatType) {
+    return res.status(400).json({ error: "chatType is required" });
+  }
+
+  if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+    return res.status(400).json({ error: "Invalid chatType" });
+  }
+
   try {
-    const currentMessage = await Message.findOne({ _id: qId, chatId });
+    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    if (!chatExists) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const currentMessage = await Message2.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
     if (!currentMessage) {
       return res
         .status(404)
         .json({ error: "Message not found in the given chat" });
     }
 
-    const olderMessages = await Message.find({
-      chatId,
+    const olderMessages = await Message2.find({
+      chat_id: chatId,
+      chat_type: chatType,
       _id: { $lt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: -1 })
       .limit(20);
 
-    const newerMessages = await Message.find({
-      chatId,
+    const newerMessages = await Message2.find({
+      chat_id: chatId,
+      chat_type: chatType,
       _id: { $gt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: 1 })
@@ -329,64 +441,92 @@ export const uploadChatMedia = (req, res) => {
 
     return res.status(200).json({
       message: "File uploaded successfully",
-      url: cloudFrontUrl,
-      contentType: contentType,
-      originalName: req.file.originalname,
+      attachment_url: cloudFrontUrl,
+      message_type: contentType,
+      original_name: req.file.originalname,
     });
   } catch (error) {
     console.error("Error uploading chat media:", error);
     return res.status(500).json({ error: "Failed to upload media" });
   }
 };
-
 export const pinMessageInChat = async (req, res) => {
   try {
-    const { chatId } = req.params;
-    const { messageId } = req.body;
+    const { chat_id , message_id } = req.params;
 
-    if (!chatId || !messageId) {
+    console.log(`chat_id: ${chat_id}, message_id: ${message_id}`);
+
+    if (!chat_id || !message_id) {
       return res
         .status(400)
-        .json({ error: "chatId and messageId are required" });
+        .json({ error: "chat_id and message_id are required" });
     }
 
-    const chat = await Chat.findOne({ chatId });
+    // Validate MongoDB IDs
+    if (
+      // !mongoose.Types.ObjectId.isValid(chat_id) ||
+      !mongoose.Types.ObjectId.isValid(message_id)
+    ) {
+      return res.status(400).json({ error: "Invalid chat_id or message_id" });
+    }
 
+    // Find chat
+    const chat = await Chat2.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    if (!chat.pinnedMessages.includes(messageId)) {
-      chat.pinnedMessages.push(messageId);
+    // Initialize pinned_chat_messages if not present
+    if (!Array.isArray(chat.pinned_chat_messages)) {
+      chat.pinned_chat_messages = [];
+    }
+
+    // Pin message if not already pinned
+    if (!chat.pinned_chat_messages.includes(message_id)) {
+      chat.pinned_chat_messages.push(message_id);
       await chat.save();
     }
 
     return res.status(200).json({
       message: "Message pinned successfully",
-      pinnedMessages: chat.pinnedMessages,
+      pinned_chat_messages: chat.pinned_chat_messages,
     });
   } catch (error) {
-    console.error("Couldn't pin chat:", error);
+    console.error("Error while pinning message:", error);
     return res.status(500).json({ error: "Could not pin message" });
   }
 };
-
 export const unpinMessageInChat = async (req, res) => {
   try {
-    const { chatId, messageId } = req.params;
+    const { chat_id, message_id } = req.params;
 
-    const chat = await Chat.findOne({ chatId });
+    if (!chat_id || !message_id) {
+      return res
+        .status(400)
+        .json({ error: "chat_id and message_id are required" });
+    }
 
+    // Find chat by chat_id
+    const chat = await Chat2.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    chat.pinnedMessages = chat.pinnedMessages.filter((id) => id !== messageId);
+    // If pinned_chat_messages is empty, return
+    if (!Array.isArray(chat.pinned_chat_messages)) {
+      chat.pinned_chat_messages = [];
+    }
+
+    // Remove message_id (convert to string for reliable comparison)
+    chat.pinned_chat_messages = chat.pinned_chat_messages.filter(
+      (id) => id.toString() !== message_id.toString()
+    );
+
     await chat.save();
 
     return res.status(200).json({
       message: "Message unpinned successfully",
-      pinnedMessages: chat.pinnedMessages,
+      pinned_chat_messages: chat.pinned_chat_messages,
     });
   } catch (error) {
     console.error("Couldn't unpin message:", error);
@@ -396,23 +536,32 @@ export const unpinMessageInChat = async (req, res) => {
 
 export const blockChat = async (req, res) => {
   try {
-    const { chatId } = req.params;
+    const { chat_id } = req.params;
+    const {chat_type} = req.query;
 
-    if (!chatId) {
+    if (!chat_id) {
       return res.status(400).json({ error: "chatId is required" });
     }
 
-    const chat = await Chat.findOne({ chatId });
+    if(!chat_type){
+      return res.status(400).json({ error: "chat_type is required" });
+    }
+
+    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+      return res.status(400).json({ error: "Invalid chat_type" });
+    }
+
+    const chat = await Chat2.findOne({ chat_id , chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    if (chat.status === "blocked") {
+    if (chat.chat_status === "BLOCKED") {
       return res.status(200).json({ message: "Chat is already blocked" });
     }
 
-    chat.status = "blocked";
+    chat.chat_status = "BLOCKED";
     await chat.save();
 
     return res.status(200).json({ message: "Chat blocked successfully", chat });
@@ -424,19 +573,32 @@ export const blockChat = async (req, res) => {
 
 export const unblockChat = async (req, res) => {
   try {
-    const { chatId } = req.params;
+    const { chat_id } = req.params;
+    const {chat_type} = req.query;
 
-    const chat = await Chat.findOne({ chatId });
+    if (!chat_id) {
+      return res.status(400).json({ error: "chatId is required" });
+    }
+
+    if(!chat_type){
+      return res.status(400).json({ error: "chat_type is required" });
+    } 
+
+    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+      return res.status(400).json({ error: "Invalid chat_type" });
+    }
+
+    const chat = await Chat2.findOne({ chat_id ,chat_type });    
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    if (chat.status === "active") {
-      return res.status(200).json({ message: "Chat is already active" });
+    if (chat.chat_status === "ACTIVE") {
+      return res.status(200).json({ message: "Chat is already ACTIVE" });
     }
 
-    chat.status = "active";
+    chat.chat_status = "ACTIVE";
     await chat.save();
 
     return res
@@ -447,32 +609,38 @@ export const unblockChat = async (req, res) => {
     return res.status(500).json({ error: "Could not unblock chat" });
   }
 };
-
 export const getPinnedMessages = async (req, res) => {
   try {
-    const { chatId } = req.params;
+    const { chat_id } = req.params;
 
-    const chat = await Chat.findOne({ chatId });
+    // Find chat by chat_id
+    const chat = await Chat2.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const pinnedMessages = await Message.find({
-      _id: { $in: chat.pinnedMessages },
-    }).select("content contentType senderType mediaUrl timestamp");
+    // If there are no pinned messages
+    if (!chat.pinned_chat_messages || chat.pinned_chat_messages.length === 0) {
+      return res.status(200).json({ pinned_chat_messages: [] });
+    }
 
-    return res.status(200).json({ pinnedMessages });
+    // Find messages using message_id (not _id)
+    const pinnedMessages = await Message2.find({
+      message_id: { $in: chat.pinned_chat_messages.map(id => new mongoose.Types.ObjectId(id)) },
+    }).select("message_content message_type sender attachment_url message_sent_at");
+
+    return res.status(200).json({ pinned_chat_messages: pinnedMessages });
   } catch (error) {
     console.error("Error fetching pinned messages:", error);
     return res.status(500).json({ error: "Server error" });
   }
 };
 
+
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
   try {
-    const blockedChats = await Chat.find({ status: "blocked" })
-      .select("chatId status")
+    const blockedChats = await Chat2.find({ chat_status: "BLOCKED" })
       .sort({ updatedAt: -1 }); // Sort by most recently updated
     return res.status(200).json({ blockedChats });
   } catch (error) {
@@ -492,14 +660,14 @@ export const getBlockedChats = async (req, res) => {
 // };
 export const getCustomerNotifications = async (req, res) => {
   try {
-    const { customerId } = req.params;
+    const { customer_id } = req.params;
 
-    if (!customerId) {
+    if (!customer_id) {
       return res.status(400).json({ error: "Customer ID is required" });
     }
 
     const notifications = await customerNotification
-      .find({ customerId })
+      .find({ customer_id })
       .sort({ createdAt: -1 }); // Sort by most recent notifications
 
     return res.status(200).json({ notifications });
@@ -509,47 +677,112 @@ export const getCustomerNotifications = async (req, res) => {
   }
 };
 
-export const markNotificationAsRead = async (req, res) => {
-  try {
-    const { notificationId } = req.params;
+// Not worked on this yet.
+// export const markNotificationAsRead = async (req, res) => {
+//   try {
+//     const { notificationId } = req.params;
 
-    if (!notificationId) {
-      return res.status(400).json({ error: "Notification ID is required" });
-    }
+//     if (!notificationId) {
+//       return res.status(400).json({ error: "Notification ID is required" });
+//     }
 
-    // Assuming you have a Notification model
-    const notification = await customerNotification.findById(notificationId);
-    if (!notification) {
-      return res.status(404).json({ error: "Notification not found" });
-    }
+//     // Assuming you have a Notification model
+//     const notification = await customerNotification.findById(notificationId);
+//     if (!notification) {
+//       return res.status(404).json({ error: "Notification not found" });
+//     }
 
-    notification.read = true; // Mark as read
-    await notification.save();
+//     notification.read = true; // Mark as read
+//     await notification.save();
 
-    return res.status(200).json({ message: "Notification marked as read" });
-  } catch (error) {
-    console.error("Error marking notification as read:", error);
-    return res.status(500).json({ error: "Failed to mark notification as read" });
-  }
-}
+//     return res.status(200).json({ message: "Notification marked as read" });
+//   } catch (error) {
+//     console.error("Error marking notification as read:", error);
+//     return res
+//       .status(500)
+//       .json({ error: "Failed to mark notification as read" });
+//   }
+// };
 
 export const markAllCustomerNotificationsAsRead = async (req, res) => {
   try {
-    const { customerId } = req.params;
+    const { customer_id } = req.params;
 
-    if (!customerId) {
+    if (!customer_id) {
       return res.status(400).json({ error: "Customer ID is required" });
     }
 
     await customerNotification.updateMany(
-      { customerId, read: false },
+      { customer_id, read: false },
       { $set: { read: true } }
     );
 
-    return res.status(200).json({ message: "All notifications marked as read" });
+    return res
+      .status(200)
+      .json({ message: "All notifications marked as read" });
   } catch (error) {
     console.error("Error marking notifications as read:", error);
-    return res.status(500).json({ error: "Failed to mark notifications as read" });
+    return res
+      .status(500)
+      .json({ error: "Failed to mark notifications as read" });
+  }
+};
+
+// Update em_id in Chat when admin sends first message
+export const updateChatEmId = async (req, res) => {
+  try {
+    const { chat_id, em_id } = req.body;
+
+
+    console.log(`Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`);
+    
+    if (!chat_id || !em_id) {
+      return res.status(400).json({ 
+        message: "chat_id and em_id are required" 
+      });
+    }
+
+    // Only update if current em_id is "admin-rm" (default/dummy value)
+    const updatedChat = await Chat2.findOneAndUpdate(
+      { 
+        chat_id: chat_id,
+        em_id: "admin-rm" // Only update if it's still the default
+      },
+      { 
+        $set: { em_id: em_id } 
+      },
+      { 
+        new: true // Return the updated document
+      }
+    );
+
+    if (!updatedChat) {
+      // Either chat not found OR em_id was already updated
+      const existingChat = await Chat2.findOne({ chat_id: chat_id });
+      
+      if (!existingChat) {
+        return res.status(404).json({ 
+          message: "Chat not found" 
+        });
+      }
+      
+      // Chat exists but em_id was already set (not "admin-rm")
+      return res.status(200).json({
+        message: "Chat already has an assigned EM",
+        data: existingChat
+      });
+    }
+
+    res.status(200).json({
+      message: "Chat em_id updated successfully",
+      data: updatedChat
+    });
+  } catch (error) {
+    console.error("Error updating chat em_id:", error);
+    res.status(500).json({
+      message: "Error updating chat em_id",
+      error: error.message
+    });
   }
 };
 

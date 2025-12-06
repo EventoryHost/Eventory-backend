@@ -1,241 +1,104 @@
-// backend/routes/reduxRoutes/venue-provider.js
 import express from "express";
+import  { ReduxVenueProviderModel }  from "../../models/reduxModels/venueProvider.js";
+
 const router = express.Router();
-import VenueModel from "../../models/reduxStores/venue-provider.js";
 
-/**
- * @swagger
- * tags:
- *   name: VenueDetails
- *   description: Manage venue provider details
- */
+/** VENUE PROVIDER DETAILS ROUTES **/
 
-/**
- * @swagger
- * /api/venue-provider-details:
- *   post:
- *     summary: Save or update venue details
- *     tags: [VenueDetails]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [id, venueData]
- *             properties:
- *               id:
- *                 type: string
- *                 description: User ID
- *               venueData:
- *                 type: object
- *                 additionalProperties: true
- *                 example:
- *                   venueName: "The Grand Palace"
- *                   location: "New Delhi"
- *                   capacity: 500
- *                   price: 150000
- *     responses:
- *       201:
- *         description: Venue details saved successfully
- *       200:
- *         description: Venue details updated successfully
- *       400:
- *         description: Missing required fields
- *       500:
- *         description: Server error
- */
-// POST or PUT route to save or update venue details
+// POST or PUT route to save or update venue provider details
+// Route: /venue-provider-details/
 router.post("/", async (req, res) => {
-  const { id, venueData } = req.body;
+    // Use the top-level vendor_id as the canonical source
+    const { vendor_id, venueProviderData } = req.body; 
+  
+    if (!vendor_id) {
+      return res.status(400).json({ message: "Vendor ID is required." });
+    }
+  
+    if (!venueProviderData || Object.keys(venueProviderData).length === 0) {
+      return res.status(400).json({ message: "Venue details are required." });
+    }
 
-  // Validate id and venueData
-  if (!id) {
-    return res.status(400).json({ message: "User ID is required." });
-  }
+    try {
+        // Create a data object for the update/create operation.
+        // This ensures the vendor_id from the top-level body is used.
+        const dataToSave = { 
+            vendor_id, 
+            ...venueProviderData 
+        };
 
-  if (!venueData || Object.keys(venueData).length === 0) {
-    return res.status(400).json({ message: "Venue details are required." });
-  }
+        // Find and update the existing document, or create a new one if not found.
+        const updatedDetails = await ReduxVenueProviderModel.findOneAndUpdate(
+          { vendor_id },
+          dataToSave,
+          { new: true, upsert: true }
+        );
+        
+        // This response works for both creation and update.
+        const message = updatedDetails.isNew ? "Venue details saved successfully." : "Venue details updated successfully.";
 
-  try {
-    const existingDetails = await VenueModel.findOne({ id });
+        return res.status(200).json({
+          message,
+          data: updatedDetails,
+        });
 
-    if (existingDetails) {
-      // Handle photos and videos properly as objects with original and preview properties
-      if (venueData.photos && typeof venueData.photos === 'string') {
-        // Convert string URL to proper object format
-        venueData.photos = [{
-          original: venueData.photos,
-          preview: venueData.photos.replace('original', 'preview')
-        }];
-      } else if (Array.isArray(venueData.photos) && venueData.photos.length > 0 && typeof venueData.photos[0] === 'string') {
-        // Convert array of strings to array of objects
-        venueData.photos = venueData.photos.map(photo => ({
-          original: photo,
-          preview: photo.replace('original', 'preview')
-        }));
-      }
-      
-      if (venueData.videos && typeof venueData.videos === 'string') {
-        try {
-          const arr = JSON.parse(venueData.videos);
-          venueData.videos = Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.length > 0) : [];
-        } catch (e) {
-          venueData.videos = [venueData.videos];
-        }
-      } else if (Array.isArray(venueData.videos)) {
-        venueData.videos = venueData.videos.filter(v => typeof v === 'string' && v.length > 0);
-      }
-      
-      const updatedDetails = await VenueModel.findOneAndUpdate(
-        { id },
-        { $set: venueData },
-        { new: true, upsert: false },
-      );
-      return res.status(200).json({
-        message: "Venue details updated successfully.",
-        data: updatedDetails,
-      });
-    } else {
-      // Handle photos and videos properly as objects with original and preview properties
-      if (venueData.photos && typeof venueData.photos === 'string') {
-        // Convert string URL to proper object format
-        venueData.photos = [{
-          original: venueData.photos,
-          preview: venueData.photos.replace('original', 'preview')
-        }];
-      } else if (Array.isArray(venueData.photos) && venueData.photos.length > 0 && typeof venueData.photos[0] === 'string') {
-        // Convert array of strings to array of objects
-        venueData.photos = venueData.photos.map(photo => ({
-          original: photo,
-          preview: photo.replace('original', 'preview')
-        }));
-      }
-      
-      if (venueData.videos && typeof venueData.videos === 'string') {
-        // Convert string URL to proper object format
-        venueData.videos = [{
-          original: venueData.videos,
-          preview: venueData.videos.replace('original', 'preview').replace('.mp4', '.webp')
-        }];
-      } else if (Array.isArray(venueData.videos) && venueData.videos.length > 0 && typeof venueData.videos[0] === 'string') {
-        // Convert array of strings to array of objects
-        venueData.videos = venueData.videos.map(video => ({
-          original: video,
-          preview: video.replace('original', 'preview').replace('.mp4', '.webp')
-        }));
-      }
-      
-      const newVenueDetails = new VenueModel({ id, ...venueData });
-      await newVenueDetails.save();
-      return res.status(201).json({
-        message: "Venue details saved successfully.",
-        data: newVenueDetails,
+    } catch (error) {
+      console.error("Error saving/updating venue details:", error);
+      res.status(500).json({
+        message: "Failed to save or update venue details.",
+        error: error.message,
       });
     }
-  } catch (error) {
-    console.error("Error saving/updating venue details:", error);
-    res.status(500).json({
-      message: "Failed to save or update venue details.",
-      error: error.message,
-    });
-  }
 });
-
-/**
- * @swagger
- * /api/venue-provider-details/{id}:
- *   get:
- *     summary: Get venue details by user ID
- *     tags: [VenueDetails]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: User ID
- *     responses:
- *       200:
- *         description: Venue details retrieved successfully
- *       404:
- *         description: Venue details not found
- *       500:
- *         description: Server error
- */
-// GET route to retrieve venue details by user ID
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const venueDetails = await VenueModel.findOne({ id });
-
-    if (!venueDetails) {
-      return res.status(404).json({ message: "Venue details not found." });
+  
+// GET route to retrieve venue details by vendor ID
+// Route: /venue-provider-details/:vendor_id
+router.get("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    try {
+      const venueDetails = await ReduxVenueProviderModel.findOne({ vendor_id: vendor_id.trim() });
+  
+      if (!venueDetails) {
+        return res.status(404).json({ message: "Venue details not found." });
+      }
+  
+      res.status(200).json(venueDetails);
+    } catch (error) {
+      console.error("Error retrieving venue details:", error);
+      res.status(500).json({
+        message: "Failed to retrieve venue details.",
+        error: error.message,
+      });
     }
-
-    res.status(200).json(venueDetails);
-  } catch (error) {
-    console.error("Error retrieving venue details:", error);
-    res.status(500).json({
-      message: "Failed to retrieve venue details.",
-      error: error.message,
-    });
-  }
 });
-
-/**
- * @swagger
- * /api/venue-provider-details/{id}:
- *   delete:
- *     summary: Delete venue details by user ID
- *     tags: [VenueDetails]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: User ID
- *     responses:
- *       200:
- *         description: Venue details deleted successfully
- *       404:
- *         description: Venue details not found for deletion
- *       500:
- *         description: Server error
- */
-// DELETE route to remove venue details by user ID
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params;
-  console.log("🗑️ Deleting venue details for ID:", id);
-
-  if (!id) {
-    return res
-      .status(400)
-      .json({ message: "User ID is required for deletion." });
-  }
-
-  try {
-    const deletedDetails = await VenueModel.findOneAndDelete({ id });
-
-    if (!deletedDetails) {
-      return res
-        .status(404)
-        .json({ message: "Venue details not found for deletion." });
+  
+// DELETE route to remove venue details by vendor ID
+// Route: /venue-provider-details/:vendor_id
+router.delete("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    if (!vendor_id || vendor_id.trim() === '') {
+      return res.status(400).json({ message: "Vendor ID is required for deletion." });
     }
-
-    console.log("✅ Deleted venue details:", deletedDetails);
-    res.status(200).json({ message: "Venue details deleted successfully." });
-  } catch (error) {
-    console.error("❌ Error deleting Venue details:", error);
-    res.status(500).json({
-      message: "Failed to delete Venue details.",
-      error: error.message,
-    });
-  }
+  
+    try {
+      const deletedDetails = await ReduxVenueProviderModel.findOneAndDelete({ vendor_id: vendor_id }); 
+  
+      if (!deletedDetails) {
+        return res.status(404).json({ message: "Venue details not found for deletion." });
+      }
+  
+      res.status(200).json({ message: "Venue details deleted successfully." });
+  
+    } catch (error) {
+      console.error("Error deleting venue details:", error);
+      res.status(500).json({
+        message: "Failed to delete venue details.",
+        error: error.message,
+      });
+    }
 });
 
-// Export the router
-export { router as venueRoutes };
+// Export the router so it can be used in other files
+export default router;

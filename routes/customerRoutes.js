@@ -12,7 +12,7 @@ import {
   getPinnedMessages,
   getBlockedChats,
   getCustomerNotifications,
-  markNotificationAsRead,
+  // markNotificationAsRead,
   markAllCustomerNotificationsAsRead,
 } from "../controllers/chatController.js";
 import {
@@ -23,9 +23,11 @@ import {
   removeFavourite,
   getFavoriteServiceIds,
   getBooking,
-  removeQuotationFromCustomer,
-  addCustomerInvoice,
-  getActiveBooking
+  // removeQuotationFromCustomer,
+  // addCustomerInvoice,
+  getActiveBooking,
+  markNotificationAsRead,
+  addCustomerInvoice
 } from "../controllers/customerController.js";
 
 const router = express.Router();
@@ -55,7 +57,7 @@ router.patch("/update-customer/:id", updateCustomer);
  *     summary: Add a vendor to customer's favorites
  *     tags: [Customer]
  */
-router.post("/add-fav/:cusId/:serviceId", addFavourite);
+router.post("/add-fav/:customer_id/:service_id", addFavourite);
 
 /**
  * @swagger
@@ -64,7 +66,7 @@ router.post("/add-fav/:cusId/:serviceId", addFavourite);
  *     summary: Get favorite service IDs for a customer
  *     tags: [Customer]
  */
-router.get("/get-fav-id/:cusId", getFavoriteServiceIds);
+router.get("/get-fav-id/:customer_id", getFavoriteServiceIds);
 
 /**
  * @swagger
@@ -73,16 +75,7 @@ router.get("/get-fav-id/:cusId", getFavoriteServiceIds);
  *     summary: Get bookings for a customer and service
  *     tags: [Customer]
  */
-router.get("/get-booking/:cusId/:serId", getBooking);
-
-/**
- * @swagger
- * /api/customer/get-active-booking/{cusId}/{serId}:
- *   get:
- *     summary: Get active (non-rejected) bookings for a customer and service
- *     tags: [Customer]
- */
-router.get("/get-active-booking/:cusId/:serId", getActiveBooking);
+router.get("/get-booking/:customer_id/:service_id", getBooking);
 
 /**
  * @swagger
@@ -91,7 +84,7 @@ router.get("/get-active-booking/:cusId/:serId", getActiveBooking);
  *     summary: Remove vendor from customer's favorites
  *     tags: [Customer]
  */
-router.delete("/remove-fav/:cusId/:serviceId", removeFavourite);
+router.delete("/remove-fav/:customer_id/:service_id", removeFavourite);
 
 /**
  * @swagger
@@ -136,7 +129,7 @@ router.get("/:chatId/search/:qId", getMessageContext);
  *     summary: Pin message in chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/pin/:messageId", pinMessageInChat);
+router.post("/chat/:chat_id/pin/:message_id", pinMessageInChat);
 
 /**
  * @swagger
@@ -145,7 +138,7 @@ router.post("/chat/:chatId/pin/:messageId", pinMessageInChat);
  *     summary: Unpin message in chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
+router.post("/chat/:chat_id/unpin/:message_id", unpinMessageInChat);
 
 /**
  * @swagger
@@ -154,7 +147,7 @@ router.post("/chat/:chatId/unpin/:messageId", unpinMessageInChat);
  *     summary: Block a chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/block", blockChat);
+router.post("/chat/:chat_id/block", blockChat);
 
 /**
  * @swagger
@@ -163,7 +156,7 @@ router.post("/chat/:chatId/block", blockChat);
  *     summary: Unblock a chat
  *     tags: [Chat]
  */
-router.post("/chat/:chatId/unblock", unblockChat);
+router.post("/chat/:chat_id/unblock", unblockChat);
 
 /**
  * @swagger
@@ -172,7 +165,7 @@ router.post("/chat/:chatId/unblock", unblockChat);
  *     summary: Get pinned messages in chat
  *     tags: [Chat]
  */
-router.get("/chat/:chatId/pinned", getPinnedMessages);
+router.get("/:chat_id/pinned-messages", getPinnedMessages);
 
 /**
  * @swagger
@@ -190,7 +183,7 @@ router.get("/blocked", getBlockedChats);
  *     summary: Get customer notifications
  *     tags: [Notifications]
  */
-router.get("/:customerId/customerNotifications", getCustomerNotifications);
+router.get("/:customer_id/customerNotifications", getCustomerNotifications);
 
 /**
  * @swagger
@@ -208,10 +201,7 @@ router.patch("/notifications/read/:notificationId", markNotificationAsRead);
  *     summary: Mark all customer notifications as read
  *     tags: [Notifications]
  */
-router.patch(
-  "/:customerId/customerNotifications/read-all",
-  markAllCustomerNotificationsAsRead
-);
+router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
 
 /**
  * @swagger
@@ -222,8 +212,9 @@ router.patch(
  */
 router.get("/:id", getCustomerById);
 
-router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
-
+//to be done 
+router.get("/get-active-booking/:customer_id", getActiveBooking);
 router.post("/add-customer-invoice", addCustomerInvoice);
+// router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);
 
 export default router;

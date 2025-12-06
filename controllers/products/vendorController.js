@@ -1,55 +1,87 @@
 import { Caterer } from "../../models/caterer.js";
-import { Decorator } from "../../models/decoraters.js";
-import { Venue } from "../../models/venue.js";
-import propRental from "../../models/props.js";
-import Photographer from "../../models/photographers.js";
-import { Vendor } from "../../models/users.js";
-import MakeupArtist from "../../models/makeupArtists.js";
+import { Decorator } from "../../models/decorator.js";
+import VenueProvider from "../../models/venueProvider.js";
+import Photographer from "../../models/photographerVideographer.js";
+import { Vendor } from "../../models/vendor.js";
+import MakeupArtist from "../../models/makeupArtist.js";
 import DjArtist from "../../models/djArtist.js";
-import generateUniqueId from "../../utils/generateId.js";
 
+// A mapping object to dynamically select the model based on the category
 const vendorModels = {
   caterer: Caterer,
   decorator: Decorator,
-  "venue-provider": Venue,
-  "prop-rental": propRental,
+  "venue-provider": VenueProvider,
   pav: Photographer,
-  venue: Venue,
+  venue: VenueProvider,
   photographer: Photographer,
-  propRental: propRental,
   makeupArtist: MakeupArtist,
   djArtist: DjArtist,
 };
 
+export const getServiceModel = (service_id) => {
+  if (service_id.startsWith("VNP")) return VenueProvider;
+  if (service_id.startsWith("CAT")) return Caterer;
+  if (service_id.startsWith("DECO")) return Decorator;
+  if (service_id.startsWith("MKA")) return MakeupArtist;
+  if (service_id.startsWith("PAV")) return Photographer;
+  return null;
+};
+
+export const findService = async (vendor_id, service_id) => {
+  const ServiceModel = getServiceModel(service_id);
+
+  if (!ServiceModel) {
+    throw new Error("Invalid service_id prefix");
+  }
+
+  const service = await ServiceModel.findOne({ vendor_id, service_id });
+
+  if (!service) {
+    throw new Error("Service not found");
+  }
+
+  return service;
+};
+
 // Function to get a vendor by ID and category
-const getVendorByIdAndCategory = async (req, res) => {
+export const getVendorByIdAndCategory = async (req, res) => {
   try {
-    const { vendor, id } = req.params; // Extract vendor (category) and id from request params
+    const { service_id, vendor_id } = req.params;
 
-    // Check if the passed vendor category exists in the vendorModels map
-    const VendorModel = vendorModels[vendor];
-
-    if (!VendorModel) {
-      return res.status(400).json({ message: "Invalid vendor category" });
+    // Validate input
+    if (!service_id || !vendor_id) {
+      return res.status(400).json({ message: "service_id and vendor_id are required" });
     }
 
-    // Find vendor by both ID and category model
-    const foundVendor = await VendorModel.findOne({ id: id });
+    // ✅ Get the correct Mongoose model based on prefix
+    const ServiceModel = getServiceModel(service_id);
+    if (!ServiceModel) {
+      return res.status(400).json({ message: "Invalid service_id prefix" });
+    }
 
-    if (!foundVendor) {
+    // ✅ Fetch vendor/service document
+    const vendor = await ServiceModel.findOne({ service_id, vendor_id });
+
+    if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    res.json(foundVendor);
+    res.status(200).json({
+      message: "Vendor fetched successfully",
+      vendor,
+    });
   } catch (error) {
     console.error("Error fetching vendor:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Error fetching vendor",
+      error: error.message,
+    });
   }
 };
 
 export const getVenue = async (req, res) => {
   try {
-    const venue = await Venue.find();
+    const venue = await VenueProvider.find();
     res.json(venue);
   } catch (error) {
     console.error("Error fetching venue:", error);
@@ -60,93 +92,164 @@ export const getVenue = async (req, res) => {
 // Function to add bank details to a specific vendor
 const getBankDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params;
-    const vendor = await Vendor.findOne({ id: vendorId });
+    const { vendor_id } = req.params;
 
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+    if (!vendor_id) {
+      return res.status(400).json({ message: "vendor_id is required" });
     }
 
-    res.status(200).json(vendor.bankDetails); // Return all bank details
+    // ✅ Fetch all services of this vendor
+    const [venue, caterer, decorator, makeupArtist, photographer] = await Promise.all([
+      VenueProvider.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
+      Caterer.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
+      Decorator.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
+      MakeupArtist.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
+      Photographer.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
+    ]);
+
+    // ✅ Combine results (only include those that exist)
+    const bankDetails = [];
+
+    if (venue?.bank_details && Object.keys(venue.bank_details).length > 0) {
+      bankDetails.push({
+        service_type: "VenueProvider",
+        service_id: venue.service_id,
+        bank_details: venue.bank_details,
+      });
+    }
+
+    if (caterer?.bank_details && Object.keys(caterer.bank_details).length > 0) {
+      bankDetails.push({
+        service_type: "Caterer",
+        service_id: caterer.service_id,
+        bank_details: caterer.bank_details,
+      });
+    }
+
+    if (decorator?.bank_details && Object.keys(decorator.bank_details).length > 0) {
+      bankDetails.push({
+        service_type: "Decorator",
+        service_id: decorator.service_id,
+        bank_details: decorator.bank_details,
+      });
+    }
+
+    if (makeupArtist?.bank_details && Object.keys(makeupArtist.bank_details).length > 0) {
+      bankDetails.push({
+        service_type: "MakeupArtist",
+        service_id: makeupArtist.service_id,
+        bank_details: makeupArtist.bank_details,
+      });
+    }
+
+    if (photographer?.bank_details && Object.keys(photographer.bank_details).length > 0) {
+      bankDetails.push({
+        service_type: "PhotographerVideographer",
+        service_id: photographer.service_id,
+        bank_details: photographer.bank_details,
+      });
+    }
+
+    // ✅ If no bank details found
+    if (bankDetails.length === 0) {
+      return res.status(404).json({ message: "No bank details found for this vendor" });
+    }
+
+    // ✅ Success response
+    res.status(200).json({
+      vendor_id,
+      total_services_with_bank_details: bankDetails.length,
+      bankDetails,
+    });
+
   } catch (error) {
     console.error("Error fetching bank details:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching bank details", error: error.message });
+    res.status(500).json({
+      message: "Error fetching bank details",
+      error: error.message,
+    });
   }
 };
 
-const addBankDetails = async (req, res) => {
+export const addBankDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params;
-    const { bankName, accountName, accountNo, ifscCode } = req.body;
+    const { vendor_id } = req.params;
+    const { bank_name, account_number, account_type, ifsc, service_id } = req.body;
 
-    if (!bankName || !accountName || !accountNo || !ifscCode) {
-      return res
-        .status(400)
-        .json({ message: "All bank details fields are required" });
+    if (!bank_name || !account_number || !account_type || !ifsc || !service_id || !vendor_id) {
+      return res.status(400).json({ message: "All bank details fields are required" });
     }
 
-    const vendor = await Vendor.findOne({ id: vendorId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+    const ServiceModel = getServiceModel(service_id);
+    if (!ServiceModel) {
+      return res.status(400).json({ message: "Invalid service_id prefix" });
     }
 
-    if (!vendor.bankDetails) {
-      vendor.bankDetails = [];
+    const updateResult = await ServiceModel.updateOne(
+      { vendor_id: vendor_id, service_id: service_id },
+      {
+        $set: {
+          bank_details: {
+            vendor_id,
+            service_id,
+            bank_name,
+            account_number,
+            account_type,
+            ifsc,
+          },
+        },
+      },
+      { runValidators: true }
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      return res.status(404).json({ message: "Service not found or no changes made" });
     }
-
-    const beneficiaryId = generateUniqueId("bene");
-
-    const newBankDetails = { bankName, accountName, accountNo, ifscCode, beneficiaryId, };
-    vendor.bankDetails.push(newBankDetails);
-
-
-    await vendor.save();
-    const updatedVendor = await Vendor.findOne({ id: vendorId });
 
     res.status(200).json({
-      message: "Bank details added successfully",
-      bankDetails: vendor.bankDetails,
+      message: "Bank details added/updated successfully",
     });
   } catch (error) {
     console.error("Error adding bank details:", error);
-    res
-      .status(500)
-      .json({ message: "Error adding bank details", error: error.message });
+    res.status(500).json({
+      message: error.message || "Error adding bank details",
+    });
   }
 };
 
-const deleteBankDetails = async (req, res) => {
+export const deleteBankDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params; // Extract vendorId from the URL parameters
+    const { vendor_id } = req.params;
+    const { service_id } = req.body;
 
-    // Find the vendor by vendorId
-    const vendor = await Vendor.findOne({ id: vendorId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+    if (!vendor_id || !service_id) {
+      return res.status(400).json({ message: "vendor_id and service_id are required" });
     }
 
-    // Remove bank details if they exist
-    if (vendor.bankDetails) {
-      vendor.bankDetails = null; // Remove bank details
-      await vendor.save(); // Save the updated vendor document
-      return res
-        .status(200)
-        .json({ message: "Bank details deleted successfully" });
-    } else {
-      return res.status(400).json({ message: "No bank details to delete" });
+    const ServiceModel = getServiceModel(service_id);
+    if (!ServiceModel) {
+      return res.status(400).json({ message: "Invalid service_id prefix" });
     }
+
+    const updateResult = await ServiceModel.updateOne(
+      { vendor_id: vendor_id, service_id: service_id },
+      { $unset: { bank_details: "" } }
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      return res.status(404).json({ message: "Service not found or no bank details to delete" });
+    }
+
+    res.status(200).json({
+      message: "Bank details deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting bank details:", error);
-    res
-      .status(500)
-      .json({ message: "Error deleting bank details", error: error.message });
+    res.status(500).json({
+      message: error.message || "Error deleting bank details",
+    });
   }
 };
-
 export default {
   getVendorByIdAndCategory,
   addBankDetails,

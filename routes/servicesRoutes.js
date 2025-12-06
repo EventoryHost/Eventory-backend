@@ -5,7 +5,7 @@ import {
   getServiceByServiceId,
   getVendorLimit,
   handleSearch,
-  updateScheduleColor,
+  updateScheduleColor
 } from "../controllers/servicesController.js";
 
 const serviceRouter = Router();
@@ -36,7 +36,7 @@ const serviceRouter = Router();
  *       404:
  *         description: Services not found
  */
-serviceRouter.get("/getServices/:vendortype/:vendorid", getService);
+serviceRouter.get("/getServices/:vendor_type/:vendor_id", getService);
 
 /**
  * @swagger
@@ -64,7 +64,7 @@ serviceRouter.get("/getServices/:vendortype/:vendorid", getService);
  *       404:
  *         description: Vendor not found
  */
-serviceRouter.get("/getService/:vendortype/:vendorid", getVendorLimit);
+serviceRouter.get("/getService/:vendor_type/:vendor_id", getVendorLimit);
 
 /**
  * @swagger
@@ -120,8 +120,8 @@ serviceRouter.post("/review", addReviews);
  *         description: Missing or invalid query
  */
 serviceRouter.get("/search", handleSearch);
-serviceRouter.get("/get-service/:serviceType/:serviceId", getServiceByServiceId);
+serviceRouter.get("/get-service/:service_type/:service_id", getServiceByServiceId);
 
+//to be done 
 serviceRouter.put("/update-schedule-color/:serviceId/:eventId", updateScheduleColor);
-
 export default serviceRouter;

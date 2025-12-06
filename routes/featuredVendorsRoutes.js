@@ -16,6 +16,6 @@ const router = Router();
  *       500:
  *         description: Server error while fetching featured vendors
  */
-router.get("/featured-vendors", getFeaturedVendors);
+router.get("/", getFeaturedVendors);
 
 export default router;

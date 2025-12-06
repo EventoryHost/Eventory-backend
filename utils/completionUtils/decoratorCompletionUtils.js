@@ -1,4 +1,4 @@
-import { Decorator }  from "../../models2/decorator.js";
+import { Decorator }  from "../../models/decorator.js";
 
 export const checkDecoratorProfileCompletion = async (decoratorId) => {
   try {

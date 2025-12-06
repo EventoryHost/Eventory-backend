@@ -1,4 +1,4 @@
-import DjArtist from "../../models2/djArtist.js";
+import DjArtist from "../../models/djArtist.js";
 
 export const checkDjArtistProfileCompletion = async (artistId) => { 
     

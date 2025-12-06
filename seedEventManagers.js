@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import EventManager from "./models2/eventManager.js";
+import EventManager from "./models/eventManager.js";
 
 dotenv.config();
 

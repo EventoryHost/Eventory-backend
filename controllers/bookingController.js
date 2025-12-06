@@ -1,298 +1,246 @@
-import { Booking } from "../models/booking.js";
+import { Events } from "../models/events.js";
 import { Caterer } from "../models/caterer.js";
-import { Decorator } from "../models/decoraters.js";
-import { Venue } from "../models/venue.js";
-import Photographer from "../models/photographers.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import { Decorator } from "../models/decorator.js";
+import VenueProvider from "../models/venueProvider.js";
+import Photographer from "../models/photographerVideographer.js";
+import MakeupArtist from "../models/makeupArtist.js";
 import generateUniqueId from "../utils/generateId.js";
-import { sendVendorEventBookingMessage } from "./waController.js";
-import { sendCustomerEventBookingMessage } from "./waController.js";
-import { Vendor } from "../models/users.js";
-import { Customer } from "../models/customer.js";
-import adminNotification from "../models/adminNotification.js";
-import customerNotification from "../models/customerNotification.js";
-import vendorNotification from "../models/vendorNotification.js";
-import DjArtist from "../models/djArtist.js";
+import { Calendar } from "../models/calendar.js";
 
-const prefixToModelMap = {
-  cat: { Model: Caterer, vendorType: "caterer" },
-  dec: { Model: Decorator, vendorType: "decorator" },
-  mak: { Model: MakeupArtist, vendorType: "makeup" },
-  pav: { Model: Photographer, vendorType: "photographer" },
-  veu: { Model: Venue, vendorType: "venue" },
-  dj: { Model: DjArtist, vendorType: "dj" },
-  // future vendors can be added here (e.g., mc: { Model: MCAnchor, vendorType: "mc" })
+const toUpperEnum = (v) => (typeof v === "string" ? v.trim().toUpperCase() : v);
+const toISODate = (v) => (v ? new Date(v) : null);
+const asNumber = (v, d = 0) => {
+  const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) ? n : d;
 };
-import { sendSlackBookingMessage } from "../utils/slackNotifier.js";
-
-function modelFromServiceId(serviceId) {
-  if (!serviceId || typeof serviceId !== "string") return null;
-
-  const lowerId = serviceId.toLowerCase();
-
-  // find the first matching prefix dynamically
-  for (const prefix of Object.keys(prefixToModelMap)) {
-    if (lowerId.startsWith(prefix)) {
-      return prefixToModelMap[prefix];
-    }
-  }
-
-  return null; // no matching vendor
-}
-
-
-function getStatusColor(paymentDetails) {
-  if (!paymentDetails) return "yellow";
-  if (typeof paymentDetails === "string") {
-    try {
-      paymentDetails = JSON.parse(paymentDetails);
-    } catch {
-      return "yellow";
-    }
-  }
-  if (
-    paymentDetails.fullPaid !== undefined &&
-    paymentDetails.fullPaid !== null
-  ) {
-    return "green";
-  }
-  return "yellow";
-}
+const nonEmptyArray = (a) => (Array.isArray(a) ? a.filter(Boolean) : []);
 
 export const createBooking = async (req, res) => {
-  const {
-    bookingid,
-    customerId,
-    venId,
-    serviceId,
-    type,
-    location,
-    startDate,
-    endDate,
-    details,
-    guest,
-    amount,
-    managerName,
-    customerName,
-    description,
-    paymentDetails,
-    status,
-    paymentStatus,
-    capacity,
-    vendorBusinessDetails,
-    rating,
-    finalizedContents,
-    serviceName,
-    serviceLocation,
-    eventLocation,
-    eventTime,
-    eventType,
-  } = req.body;
-
-  const eventId = generateUniqueId("eve");
-
   try {
-    let savedBooking;
-    if (bookingid) {
-      savedBooking = await Booking.findOneAndUpdate(
-        { bookingid },
-        {
-          $set: {
-            customerId,
-            venId,
-            serviceId,
-            type,
-            location,
-            startDate,
-            endDate,
-            details,
-            guest,
-            amount,
-            managerName,
-            customerName,
-            description,
-            paymentDetails,
-            status,
-            paymentStatus,
-            capacity,
-            vendorBusinessDetails,
-            rating,
-            finalizedContents,
-            serviceName,
-            serviceLocation,
-            eventLocation,
-            eventTime,
-            eventType,
-            eventId,
-          },
+    // Extract raw body
+    const body = req.body || {};
+
+    // Allow both camelCase and snake_case from client
+    const {
+      event_id,                    // optional: if present, update existing pending EVTY
+      customer_id,
+      vendor_id,
+      service_id,
+      quotation_id,
+      em_id,
+
+      event_type,
+      location_type,               // expects INDOOR | OUTDOOR (any case)
+      event_location,
+      event_start,
+      event_end,
+
+      final_guest_count,
+      specific_terms,              // string[] optional
+
+      final_amount,
+
+      event_status,                // booked|upcoming|ongoing|completed|cancelled (any case)
+
+      vendor_manager_name,
+      customer_name,
+
+      vendor_manager_contact_number,
+      vendor_manager_contact_email,
+      customer_contact_number,
+      customer_contact_email,
+
+      already_paid_amount,
+      advance_amount_paid,
+
+      payment_status,              // advance_paid|fully_paid|refunded (any case)
+      payment_method,
+
+      // Payment blocks from order
+      paymentDetails,              // { customerPayable, vendorReceivable }
+      payment_method_details,      // array of method entries
+
+      // For compatibility with some callers
+      final_order_items,           // cart items array
+    } = body;
+
+    // Required validations (minimal)
+    const missing = [];
+    if (!customer_id) missing.push("customer_id");
+    if (!vendor_id) missing.push("vendor_id");
+    if (!service_id) missing.push("service_id");
+    if (!event_location) missing.push("event_location");
+    if (!event_start) missing.push("event_start");
+    if (typeof final_amount === "undefined" || final_amount === null) missing.push("final_amount");
+    if (!customer_name) missing.push("customer_name");
+
+    if (missing.length > 0) {
+      return res.status(400).json({ message: `Missing required fields: ${missing.join(", ")}` });
+    }
+
+    // Normalize fields to match schema
+    const locType = toUpperEnum(location_type);
+    if (locType && !["INDOOR", "OUTDOOR"].includes(locType)) {
+      return res.status(400).json({ message: "location_type must be INDOOR or OUTDOOR" });
+    }
+
+    const statusNorm = event_status ? event_status.toLowerCase() : undefined;
+    if (statusNorm && !["booked", "upcoming", "ongoing", "completed", "cancelled"].includes(statusNorm)) {
+      return res.status(400).json({ message: "event_status is invalid" });
+    }
+
+    const payStatusNorm = payment_status ? payment_status.toLowerCase() : undefined;
+    if (payStatusNorm && !["advance_paid", "fully_paid", "refunded"].includes(payStatusNorm)) {
+      return res.status(400).json({ message: "payment_status is invalid" });
+    }
+
+    const eventStartDate = toISODate(event_start);
+    const eventEndDate = event_end ? toISODate(event_end) : null;
+    if (!(eventStartDate instanceof Date) || isNaN(eventStartDate)) {
+      return res.status(400).json({ message: "event_start must be a valid date" });
+    }
+    if (eventEndDate && !(eventEndDate instanceof Date) || (eventEndDate && eventEndDate <= eventStartDate)) {
+      return res.status(400).json({ message: "event_end must be after event_start" });
+    }
+
+    const finalAmountNum = asNumber(final_amount);
+    const alreadyPaid = asNumber(already_paid_amount, 0);
+    const advancePaid = asNumber(advance_amount_paid, 0);
+
+    if (alreadyPaid > finalAmountNum) {
+      return res.status(400).json({ message: "already_paid_amount cannot exceed final_amount" });
+    }
+    if (advancePaid > finalAmountNum) {
+      return res.status(400).json({ message: "advance_amount_paid cannot exceed final_amount" });
+    }
+
+    // Map paymentDetails to schema payment_details
+    const payment_details = paymentDetails
+      ? {
+        customerPayable: {
+          total: asNumber(paymentDetails?.customerPayable?.total, 0),
+          baseAmount: asNumber(paymentDetails?.customerPayable?.baseAmount, 0),
+          convenienceFee: asNumber(paymentDetails?.customerPayable?.convenienceFee, 0),
+          taxOnConvenience: asNumber(paymentDetails?.customerPayable?.taxOnConvenience, 0),
+          convenienceFeeBefore: asNumber(paymentDetails?.customerPayable?.convenienceFeeBefore, 0),
+          taxOnConvenienceBefore: asNumber(paymentDetails?.customerPayable?.taxOnConvenienceBefore, 0),
+          couponCode: paymentDetails?.customerPayable?.couponCode ?? null,
+          discountAmount: asNumber(paymentDetails?.customerPayable?.discountAmount, 0),
         },
-        { new: true }
+        vendorReceivable: {
+          total: asNumber(paymentDetails?.vendorReceivable?.total, 0),
+          baseAmount: asNumber(paymentDetails?.vendorReceivable?.baseAmount, 0),
+          commission: asNumber(paymentDetails?.vendorReceivable?.commission, 0),
+          taxOnCommission: asNumber(paymentDetails?.vendorReceivable?.taxOnCommission, 0),
+        },
+      }
+      : undefined;
+
+    // Normalize payment_method_details array
+    const normalizedMethodDetails = Array.isArray(payment_method_details)
+      ? payment_method_details.map((m) => ({
+        channel: m?.channel,
+        cf_payment_id: m?.cf_payment_id,
+        payment_amount: asNumber(m?.payment_amount),
+        payment_completion_time: m?.payment_completion_time ? new Date(m.payment_completion_time) : undefined,
+        payment_status: m?.payment_status,
+        payment_message: m?.payment_message,
+        payment_group: m?.payment_group,
+        method_details: m?.method_details || {},
+      }))
+      : undefined;
+
+    // Normalize cart items
+    const items = Array.isArray(final_order_items)
+      ? final_order_items.map((it) => ({
+        entity: it?.entity,
+        name_of_service: it?.name_of_service,
+        service_asset: Array.isArray(it?.service_asset) ? it.service_asset : [],
+        quantity: asNumber(it?.quantity, 1),
+        description: it?.description,
+        price: asNumber(it?.price, 0),
+        tax_rate: asNumber(it?.tax_rate, 0),
+        tax_type: it?.tax_type,
+        tax_amount: asNumber(it?.tax_amount, 0),
+        total_amount: asNumber(it?.total_amount, 0),
+      }))
+      : [];
+
+    // Build document payload
+    const doc = {
+      // event_id: let schema default create if not provided or generate on update path
+      customer_id,
+      vendor_id,
+      service_id,
+      quotation_id,
+      em_id,
+      event_type,
+      location_type: locType || "INDOOR",
+      event_location,
+      event_start: eventStartDate,
+      event_end: eventEndDate || undefined,
+      final_guest_count: asNumber(final_guest_count),
+      specific_terms: nonEmptyArray(specific_terms),
+      final_amount: finalAmountNum,
+      event_status: statusNorm || "booked",
+      vendor_manager_name,
+      customer_name,
+      vendor_manager_contact_number,
+      vendor_manager_contact_email,
+      customer_contact_number,
+      customer_contact_email,
+      already_paid_amount: alreadyPaid,
+      advance_amount_paid: advancePaid,
+      payment_status: payStatusNorm || "advance_paid",
+      payment_method,
+      payment_details,
+      payment_method_details: normalizedMethodDetails,
+      final_order_items: items,
+    };
+
+    let saved;
+    if (event_id) {
+      // Update the pre-created EVTY document (from verifyCustomerPayment)
+      saved = await Events.findOneAndUpdate(
+        { event_id },
+        { $set: doc },
+        { new: true, upsert: false }
       );
-      if (!savedBooking) {
-        savedBooking = new Booking({
-          bookingid,
-          customerId,
-          venId,
-          serviceId,
-          type,
-          location,
-          startDate,
-          endDate,
-          details,
-          guest,
-          amount,
-          managerName,
-          customerName,
-          description,
-          paymentDetails,
-          status,
-          paymentStatus,
-          capacity,
-          vendorBusinessDetails,
-          rating,
-          finalizedContents,
-          serviceName,
-          serviceLocation,
-          eventLocation,
-          eventTime,
-          eventType,
-          eventId,
-        });
-        await savedBooking.save();
+      if (!saved) {
+        // If not found, create a fresh with given event_id to preserve linkage
+        saved = await Events.create({ event_id, ...doc });
       }
     } else {
-      savedBooking = new Booking({
-        bookingid: generateUniqueId("book"),
-        customerId,
-        venId,
-        serviceId,
-        type,
-        location,
-        startDate,
-        endDate,
-        details,
-        guest,
-        amount,
-        managerName,
-        customerName,
-        description,
-        paymentDetails,
-        status,
-        paymentStatus,
-        capacity,
-        vendorBusinessDetails,
-        rating,
-        finalizedContents,
-        serviceName,
-        serviceLocation,
-        eventLocation,
-        eventTime,
-        eventType,
-        eventId,
-      });
-      await savedBooking.save();
+      // Create new booking; event_id and event_number handled by schema
+      saved = await Events.create(doc);
     }
 
-    const color = getStatusColor(paymentDetails);
-
-    try {
-      const resolved = modelFromServiceId(serviceId);
-      if (resolved) {
-        const { Model } = resolved;
-        const eventObj = {
-          id: eventId,
-          title: eventType,
-          description:
-            (description && description.trim()) ||
-            `Booking ${savedBooking.bookingid} - ${customerName || ""}`.trim(),
-          start: startDate,
-          end: endDate,
-          color,
-        };
-        await Model.findOneAndUpdate(
-          { id: serviceId },
-          { $push: { schedule: eventObj } },
-          { new: true }
-        ).lean();
-      }
-    } catch {
-      // ignore errors here, but log if desired
-    }
-
-    res.status(201).json({
-      message: "Booking saved successfully",
-      booking: savedBooking,
+    return res.status(201).json({
+      message: "Event created successfully",
+      event: saved,
     });
-
-    const vendor = await Vendor.findOne({ id: venId }).lean();
-    const customer = await Customer.findOne({ id: customerId }).lean();
-
-    const adminMessage = `New booking ${savedBooking.bookingid} created by ${customer?.name} for ${vendor?.businessDetails?.businessName || vendor?.name}.`;
-    const vendorMessage = `You have a new booking ${savedBooking.bookingid} from ${customer?.name}.`;
-    const customerMessage = `Your booking ${savedBooking.bookingid} for ${vendor?.businessDetails?.businessName || vendor?.name} has been confirmed.`;
-
-    try {
-      await adminNotification.create({
-        orderId: savedBooking.bookingid,
-        vendorId: venId,
-        customerId,
-        message: adminMessage,
-        quotationId: "",
-        read: false,
-        timestamp: new Date(),
-      });
-
-      await vendorNotification.create({
-        orderId: savedBooking.bookingid,
-        vendorId: venId,
-        customerId,
-        message: vendorMessage,
-        type: "booking_confirmed",
-        read: false,
-        timestamp: new Date(),
-      });
-
-      await customerNotification.create({
-        orderId: savedBooking.bookingid,
-        vendorId: venId,
-        customerId,
-        message: customerMessage,
-        read: false,
-        createdAt: new Date(),
-      });
-
-      await sendSlackBookingMessage({
-        bookingid: savedBooking.bookingid,
-        customer: customer?.name || "",
-        vendor: vendor?.businessDetails?.businessName || vendor?.name || "",
-        serviceName: savedBooking.serviceName || "",
-        guest: savedBooking.guest || 0,
-        startDate: new Date(savedBooking.startDate).toLocaleDateString("en-IN"),
-      });
-    } catch (notifError) {
-      console.error("Notification creation failed:", notifError);
-    }
   } catch (error) {
-    console.error("Create booking error:", error);
-    res.status(500).json({
-      message: "An error occurred while saving the booking",
+    console.error("Error creating event:", error);
+    return res.status(500).json({
+      message: "An error occurred while creating the event",
       error: error.message,
     });
   }
 };
 
+
 export const getBooking = async (req, res) => {
   try {
-    const { serId, venId } = req.query;
+    const { service_id, vendor_id } = req.query;
 
-    if (!serId) {
+    if (!service_id) {
       return res.status(400).json({ message: "Please provide service ID" });
     }
-    if (!venId) {
+    if (!vendor_id) {
       return res.status(400).json({ message: "Please provide vendor ID" });
     }
 
-    const booking = await Booking.find({ venId: venId, serviceId: serId });
+    const booking = await Events.find({ vendor_id, service_id });
 
     if (!booking || booking.length === 0) {
       return res.status(404).json({ message: "Booking not found." });
@@ -306,13 +254,13 @@ export const getBooking = async (req, res) => {
 
 export const fetchBooking = async (req, res) => {
   try {
-    const { serId } = req.query;
+    const { service_id } = req.query;
 
-    if (!serId) {
+    if (!service_id) {
       return res.status(400).json({ message: "Please provide service ID" });
     }
 
-    const booking = await Booking.find({ serviceId: serId });
+    const booking = await Events.find({ service_id });
 
     if (!booking || booking.length === 0) {
       return res.status(404).json({ message: "Booking not found." });
@@ -325,13 +273,13 @@ export const fetchBooking = async (req, res) => {
 };
 
 export const updateBooking = async (req, res) => {
-  const { bookingId } = req.params;
-  const updateData = req.body;
+  const { event_id } = req.params; // Retrieve the booking ID from the URL parameters
+  const updateData = req.body; // Expecting the updated data from the request body
 
   try {
-    const updatedBooking = await Booking.findOneAndUpdate(
-      { bookingid: bookingId },
-      { $set: updateData },
+    const updatedBooking = await Events.findOneAndUpdate(
+      { event_id: event_id }, // filter object
+      updateData,
       { new: true }
     );
 
@@ -351,10 +299,10 @@ export const updateBooking = async (req, res) => {
 };
 
 export const deleteBooking = async (req, res) => {
-  const { bookingId } = req.params; // Retrieve the booking ID from the URL parameters
+  const { event_id } = req.params; // Retrieve event_id from URL parameters
 
   try {
-    const deletedBooking = await Booking.findByIdAndDelete(bookingId);
+    const deletedBooking = await Events.findOneAndDelete({ event_id });
 
     if (!deletedBooking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -362,15 +310,13 @@ export const deleteBooking = async (req, res) => {
 
     res.status(200).json({ message: "Booking deleted successfully" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "An error occurred", error: error.message });
+    res.status(500).json({ message: "An error occurred", error: error.message });
   }
 };
 
 export const getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find();
+    const bookings = await Events.find();
     res.status(200).json(bookings);
   } catch (error) {
     res
@@ -379,20 +325,21 @@ export const getAllBookings = async (req, res) => {
   }
 };
 
-// addOfflineEvent
 export const addOfflineEvent = async (req, res) => {
+  //type -> service_type
   try {
-    const { title, start, end, calendarId, type, description, color } = req.body;
-    const { serId } = req.query;
+    const { event_start, event_end, type, event_description, event_highlight, event_name, quotation_id } = req.body;
+    const { service_id } = req.query;
 
-    if (!serId || !title || !start || !end || !type || !color) {
+    if (!service_id || !event_start || !event_end || !type || !event_highlight || !event_description) {
       return res.status(400).json({
         message: "Missing required fields: serId, title, start, end, type, color",
       });
     }
 
-    const startDate = new Date(start);  
-    const endDate = new Date(end);
+    // Expect start/end to be ISO UTC strings (from frontend fix). Coerce and validate.
+    const startDate = new Date(event_start);   // e.g., 2025-10-15T04:30:00.000Z
+    const endDate = new Date(event_end);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return res.status(400).json({ message: "Invalid start or end datetime" });
@@ -409,169 +356,72 @@ export const addOfflineEvent = async (req, res) => {
       "#F050E3": "purple",
     };
 
-    let vendorModel;
-    switch (type) {
-      case "venue-provider": vendorModel = Venue; break;
-      case "caterer": vendorModel = Caterer; break;
-      case "decorator": vendorModel = Decorator; break;
-      case "pav": vendorModel = Photographer; break;
-      case "makeup-artist": vendorModel = MakeupArtist; break;
-      case "dj-vendor": vendorModel = DjArtist; break;
-      default: return res.status(400).json({ message: "Invalid vendor type" });
-    }
+    const calendar = new Calendar({
+      service_id: service_id,
+      event_start: startDate,
+      event_end: endDate,
+      event_name: event_name,
+      event_description: event_description,
+      event_highlight: event_highlight,
+      event_source: 'EXTERNAL',
+      event_type: 'booked'
+    });
 
-    const vendor = await vendorModel.findOne({ id: serId });
-    if (!vendor) return res.status(404).json({ message: `${type} not found` });
+    await calendar.save();
 
-    if (!Array.isArray(vendor.schedule)) vendor.schedule = [];
-
-    const event = {
-      calendarId: generateUniqueId("cal"),
-      id: vendor.schedule.length + 1,
-      title,
-      description,
-      start: startDate,
-      end: endDate,
-      color: colorOptions[color] ?? color,
-    };
-
-    vendor.schedule.push(event);
-    await vendor.save();
-
-    return res.status(200).json({ message: "Event added successfully", event });
+    return res.status(200).json({ message: "Event added successfully", calendar });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-
-// editOfflineEvent
 export const editOfflineEvent = async (req, res) => {
   try {
-    const { serId, type, calendarId, updatedEventData } = req.body.data;
+    const { event_id, updatedEventData } = req.body;
 
-    if (!serId || !calendarId || !type || !updatedEventData) {
+
+    // Validation
+    if (!event_id || !updatedEventData) {
       return res.status(400).json({
-        message: "Missing required fields: serId, calendarId, type, or updatedEventData",
+        message: "Missing required fields: service_id, event_id, or updatedEventData",
       });
     }
 
-    let vendorModel;
-    switch (type.toLowerCase()) {
-      case "venue-provider": vendorModel = Venue; break;
-      case "caterer": vendorModel = Caterer; break;
-      case "decorator": vendorModel = Decorator; break;
-      case "photographer": vendorModel = Photographer; break;
-      case "makeup-artist": vendorModel = MakeupArtist; break;
-      case "dj-vendor": vendorModel = DjArtist; break;
-      default: return res.status(400).json({ message: "Invalid vendor type" });
+    // Find the calendar entry by event_id
+    const calendar = await Calendar.findOne({ event_id });
+    if (!calendar) {
+      return res.status(404).json({ message: "Event not found" });
     }
 
-    const vendor = await vendorModel.findOne({ id: serId });
-    if (!vendor) return res.status(404).json({ message: `${type} not found` });
+    // Update allowed fields
+    Object.assign(calendar, updatedEventData);
 
-    if (!Array.isArray(vendor.schedule)) vendor.schedule = [];
-
-    const index = vendor.schedule.findIndex(
-      (event) => event.calendarId === updatedEventData.calendarId
-    );
-    if (index === -1) {
-      return res.status(404).json({ message: "Event not found in schedule" });
-    }
-
-    const patch = { ...updatedEventData };
-
-    if (patch.start) {
-      const s = new Date(patch.start);
-      if (isNaN(s.getTime())) {
-        return res.status(400).json({ message: "Invalid start datetime" });
-      }
-      patch.start = s; 
-    }
-
-    if (patch.end) {
-      const e = new Date(patch.end);
-      if (isNaN(e.getTime())) {
-        return res.status(400).json({ message: "Invalid end datetime" });
-      }
-      patch.end = e; 
-    }
-
-    if (patch.start && patch.end && patch.end <= patch.start) {
-      return res.status(400).json({ message: "end must be after start" });
-    }
-
-    vendor.schedule[index] = {
-      ...vendor.schedule[index],
-      ...patch,
-    };
-
-    await vendor.save();
+    // Save the updated calendar
+    await calendar.save();
 
     return res.status(200).json({
       message: "Event updated successfully",
-      updatedEvent: vendor.schedule[index],
+      updatedCalendar: calendar,
     });
   } catch (error) {
-    console.error("Error in editOfflineEvent:", error);
+    console.error("Error updating offline event:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-
 export const deleteOfflineEvent = async (req, res) => {
   try {
-    const { serId, type, calendarId } = req.body.data; 
+    const { event_id } = req.body; // Extract parameters
 
-    if (!serId || !calendarId || !type) {
+    if (!event_id) {
       return res
         .status(400)
-        .json({ message: "Missing required fields: serId, calendarId, type" });
+        .json({ message: "Missing event_id" });
     }
 
-    let vendorModel;
-
-    switch (type) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "photographer":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-        case "dj-vendor":
-        vendorModel = DjArtist;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid vendor type" });
-    }
-
-    const vendor = await vendorModel.findOne({ id: serId });
-
-    if (!vendor) {
-      return res.status(404).json({ message: `${type} not found` });
-    }
-
-    const updatedSchedule = vendor.schedule.filter(
-      (event) => event.calendarId !== calendarId
-    );
-
-    if (updatedSchedule.length === vendor.schedule.length) {
-      return res.status(404).json({ message: "Event not found in schedule" });
-    }
-
-    vendor.schedule = updatedSchedule;
-
-    await vendor.save();
+    //delete the calendar by event_id
+    await Calendar.deleteOne({ event_id });
 
     return res.status(200).json({ message: "Event deleted successfully" });
   } catch (error) {
@@ -582,105 +432,118 @@ export const deleteOfflineEvent = async (req, res) => {
 
 export const getVendorBookings = async (req, res) => {
   try {
-    const { year, month, serId, type } = req.query;
+    const { service_id } = req.query;
 
-    let vendorModel;
-
-    switch (type) {
-      case "venue-provider":
-        vendorModel = Venue;
-        break;
-      case "caterer":
-        vendorModel = Caterer;
-        break;
-      case "decorator":
-        vendorModel = Decorator;
-        break;
-      case "photographer":
-        vendorModel = Photographer;
-        break;
-      case "makeup-artist":
-        vendorModel = MakeupArtist;
-        break;
-      case "dj-vendor":
-        vendorModel = DjArtist;
-        break;
-      default:
-        return res.status(400).json({ error: "Invalid vendor type." });
+    if (!service_id) {
+      return res.status(400).json({ message: "service_id is required" });
     }
 
-    const vendor = await vendorModel.findOne({ id: serId }, { schedule: 1 }).lean();
-    const schedule = Array.isArray(vendor?.schedule) ? vendor.schedule : [];
-
-    const offlineBookings = schedule.filter((ev) => {
-      const evId = ev?.id;
-      return !(typeof evId === 'string' && evId.startsWith('eve'));
+    // Fetch offline bookings from Calendar collection
+    const offlineBookings = await Calendar.find({
+      service_id,
+      event_source: "EXTERNAL"
     });
 
-    const onlineBookings = await Booking.find({ serviceId: serId }).lean();
+    // Fetch online bookings from Events collection
+    const onlineBookings = await Events.find({ service_id });
 
-    res.status(200).json({
+    const totalBookings = offlineBookings.length + onlineBookings.length;
+
+    // Respond
+    return res.status(200).json({
+      success: true,
+      totalBookings: totalBookings,
+      offlineCount: offlineBookings.length,
+      onlineCount: onlineBookings.length,
       offlineBookings,
       onlineBookings,
     });
   } catch (error) {
     console.error("Error fetching bookings:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
+// GET /api/bookings/get-by-id/:event_id
 export const getBookingById = async (req, res) => {
   try {
-    const { bookingId } = req.params;
+    const { event_id } = req.params;
+    if (!event_id) return res.status(400).json({ message: "Event ID is required" });
 
-    if (!bookingId) {
-      return res.status(400).json({ message: "Booking ID is required" });
+    // 1) Load event
+    const booking = await Events.findOne({ event_id });
+    if (!booking) return res.status(404).json({ message: "Event not found" });
+
+    // 2) Resolve service model by service_id prefix
+    const sid = booking.service_id || "";
+    let serviceModel = null;
+    if (sid.startsWith("CAT")) {
+      const { Caterer } = await import("../models/caterer.js");
+      serviceModel = Caterer;
+    } else if (sid.startsWith("DECO")) {
+      const { Decorator } = await import("../models/decorator.js");
+      serviceModel = Decorator;
+    } else if (sid.startsWith("VNP")) {
+      const { default: VenueProvider } = await import("../models/venueProvider.js");
+      serviceModel = VenueProvider;
+    } else if (sid.startsWith("PAV")) {
+      const { default: PhotographerVideographer } = await import("../models/photographerVideographer.js");
+      serviceModel = PhotographerVideographer;
+    } else if (sid.startsWith("MKA")) {
+      const { default: MakeupArtist } = await import("../models/makeupArtist.js");
+      serviceModel = MakeupArtist;
+    } else if (sid.startsWith("DJS")) {
+      const { default: DjArtist } = await import("../models/djArtist.js");
+      serviceModel = DjArtist;
+    } else if (sid.startsWith("PRO")) {
+      serviceModel = null; // Prop rental not implemented
+    } else {
+      serviceModel = null; // Unknown type; continue without service
     }
 
-    const booking = await Booking.findOne({ bookingid: bookingId });
-
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
+    // 3) Load service document if model found
+    let service = null;
+    if (serviceModel) {
+      service = await serviceModel.findOne({ service_id: sid });
     }
 
-    res.status(200).json({ booking });
+    // 4) Respond with unified payload
+    return res.status(200).json({ booking, service });
   } catch (error) {
     console.error("Error fetching booking:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 export const getBookingsByCustomer = async (req, res) => {
   try {
-    const { customerId } = req.params;
+    const { customer_id } = req.params;
 
-    if (!customerId) {
+    if (!customer_id) {
       return res.status(400).json({ message: "Customer ID is required" });
     }
 
-    const bookings = await Booking.find({ customerId });
+    const bookings = await Events.find({ customer_id });
 
     if (!bookings || bookings.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No bookings found for this customer" });
+      return res.status(404).json({ message: "No bookings found for this customer" });
     }
 
     res.status(200).json({ bookings });
   } catch (error) {
     console.error("Error fetching bookings by customerId:", error);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
+// rm admin api for getting services of a vendor
+// NOT UPDATED YET 
 export const getAllVendorServiceSchedules = async (req, res) => {
   const { vendorId, services } = req.body;
 
   if (!vendorId || !Array.isArray(services) || services.length === 0) {
-    return res
-      .status(400)
-      .json({ message: "vendorId and services array are required" });
+    return res.status(400).json({ message: "vendorId and services array are required" });
   }
 
   try {
@@ -710,17 +573,11 @@ export const getAllVendorServiceSchedules = async (req, res) => {
         case "makeupartist":
           vendorModel = MakeupArtist;
           break;
-        case "dj-vendor":
-          vendorModel = DjArtist;
-          break;
         default:
           continue;
       }
 
-      const vendorDoc = await vendorModel.findOne(
-        { id: serviceId },
-        "schedule"
-      );
+      const vendorDoc = await vendorModel.findOne({ id: serviceId }, "schedule");
       const onlineBookings = await Booking.find({ venId: vendorId, serviceId });
 
       if (!groupedByType[serviceType]) {
@@ -732,41 +589,34 @@ export const getAllVendorServiceSchedules = async (req, res) => {
       }
 
       // Append offline & online bookings for this type
-      groupedByType[serviceType].offlineBookings.push(
-        ...(vendorDoc?.schedule || [])
-      );
+      groupedByType[serviceType].offlineBookings.push(...(vendorDoc?.schedule || []));
       groupedByType[serviceType].onlineBookings.push(...onlineBookings);
     }
 
     return res.status(200).json({ services: Object.values(groupedByType) });
   } catch (error) {
     console.error("Error fetching all schedules:", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
-
+//to be done
 export const addBookingInvoice = async (req, res) => {
   try {
     const { bookingId, customerInvoiceUrl, vendorInvoiceUrl } = req.body;
 
     if (!bookingId) {
-      return res.status(400).json({ error: "bookingId is required" });
+      return res.status(400).json({ error: 'bookingId is required' });
     }
 
     if (!customerInvoiceUrl && !vendorInvoiceUrl) {
-      return res
-        .status(400)
-        .json({ error: "At least one invoice URL is required" });
+      return res.status(400).json({ error: 'At least one invoice URL is required' });
     }
 
     const update = {};
-    if (customerInvoiceUrl)
-      update["$push"] = { "invoices.customerInvoices": customerInvoiceUrl };
+    if (customerInvoiceUrl) update['$push'] = { 'invoices.customerInvoices': customerInvoiceUrl };
     if (vendorInvoiceUrl) {
-      if (!update["$push"]) update["$push"] = {};
-      update["$push"]["invoices.vendorInvoices"] = vendorInvoiceUrl;
+      if (!update['$push']) update['$push'] = {};
+      update['$push']['invoices.vendorInvoices'] = vendorInvoiceUrl;
     }
 
     const updatedBooking = await Booking.findOneAndUpdate(
@@ -776,17 +626,131 @@ export const addBookingInvoice = async (req, res) => {
     );
 
     if (!updatedBooking) {
-      return res
-        .status(404)
-        .json({ error: `Booking with id ${bookingId} not found` });
+      return res.status(404).json({ error: `Booking with id ${bookingId} not found` });
     }
 
     res.status(200).json({
-      message: "Invoice URLs added successfully",
+      message: 'Invoice URLs added successfully',
       booking: updatedBooking,
     });
   } catch (error) {
-    console.error("Error adding invoice URLs to booking:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error adding invoice URLs to booking:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ---------------------- UPDATE EVENT PAYMENT DETAILS ----------------------
+export const updateEventPaymentDetails = async (req, res) => {
+  try {
+    const { event_id } = req.params;
+    const { paymentDetails, payment_method_details } = req.body;
+
+    // Validate required payment details fields
+    if (!paymentDetails && !payment_method_details) {
+      return res.status(400).json({
+        message: "Either paymentDetails or payment_method_details is required"
+      });
+    }
+
+    const updateFields = {};
+    if (paymentDetails) {
+      updateFields.paymentDetails = paymentDetails;
+    }
+    if (payment_method_details) {
+      updateFields.payment_method_details = payment_method_details;
+    }
+
+    const updatedEvent = await Events.findOneAndUpdate(
+      { event_id },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!updatedEvent) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.status(200).json({
+      message: "Event payment details updated successfully",
+      data: updatedEvent
+    });
+  } catch (error) {
+    console.error("Failed to update event payment details:", error);
+    res.status(500).json({
+      message: "Failed to update event payment details",
+      error: error.message
+    });
+  }
+};
+
+// Cancel booking
+export const cancelBooking = async (req, res) => {
+  try {
+    const { event_id } = req.params;
+
+    if (!event_id) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    // Try to find in Events collection (new model)
+    let event = await Events.findOne({ event_id });
+    
+    // If not found, try old Booking model
+    if (!event) {
+      const { Booking } = await import("../models/booking.js");
+      const oldBooking = await Booking.findOne({ bookingid: event_id });
+      if (oldBooking) {
+        // Update old booking model
+        oldBooking.status = "Cancelled";
+        await oldBooking.save();
+        return res.status(200).json({
+          message: "Booking cancelled successfully",
+          booking: oldBooking
+        });
+      }
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Check if already cancelled
+    if (event.event_status === "cancelled") {
+      return res.status(400).json({ message: "Booking is already cancelled" });
+    }
+
+    // Update event status to cancelled
+    const updatedEvent = await Events.findOneAndUpdate(
+      { event_id },
+      { 
+        $set: { 
+          event_status: "cancelled",
+          event_updated_at: new Date()
+        } 
+      },
+      { new: true }
+    );
+
+    // Also update order status if order exists
+    if (event.quotation_id) {
+      const Orders = (await import("../models/orders.js")).default;
+      await Orders.findOneAndUpdate(
+        { quotation_id: event.quotation_id },
+        { 
+          $set: { 
+            order_status: "cancelled",
+            order_updated_at: new Date()
+          } 
+        }
+      );
+    }
+
+    res.status(200).json({
+      message: "Booking cancelled successfully",
+      booking: updatedEvent
+    });
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    res.status(500).json({
+      message: "Failed to cancel booking",
+      error: error.message
+    });
   }
 };

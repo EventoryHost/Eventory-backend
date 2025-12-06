@@ -1,5 +1,5 @@
 // utils/completionUtils/catererCompletionUtils.js
-import { Caterer } from "../../models2/caterer.js";
+import { Caterer } from "../../models/caterer.js";
 
 export const checkCatererProfileCompletion = async (catererId) => {
   try {

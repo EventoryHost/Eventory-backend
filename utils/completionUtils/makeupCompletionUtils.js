@@ -1,4 +1,4 @@
-import { MakeupArtist } from "../../models2/makeupArtist.js";
+import { MakeupArtist } from "../../models/makeupArtist.js";
 
 export const checkMakeupArtistProfileCompletion = async (artistId) => {
   try {
