@@ -39,6 +39,7 @@ import emNotificationRoutes from "../routes/emNotificationRoutes.js";
 import customerNotificationRoutes from "../routes/customerNotificationRoutes.js";
 import invoiceRoutes from "../routes/invoiceRoutes.js";
 import deviceTokenRoutes from "../routes/deviceTokenRoutes.js";
+import whatsappRoutes from "../routes/whatsappRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -84,6 +85,7 @@ router.use("/customer-notifications", customerNotificationRoutes);
 router.use("/invoices", invoiceRoutes);
 router.use("/device-tokens", deviceTokenRoutes);
 router.use("/webhook", waRoutes);
+router.use("/whatsapp", whatsappRoutes);
 
 return router;
 }

@@ -7,6 +7,10 @@ import {
   verifyWebhook,
   verifyPromoResponseWebhook
 } from "../controllers/waController.js";
+import {
+  verifyWhatsappWebhook,
+  handleIncomingWhatsappMessage
+} from "../controllers/whatsappController.js";
 
 const waRoutes = Router();
 
@@ -149,5 +153,25 @@ waRoutes.post("/promo-response", handlePromoResponse);
  *         description: Verification failed
  */
 waRoutes.get("/promo-response", verifyPromoResponseWebhook);
+
+
+
+/**
+ * @swagger
+ * /webhook/whatsapp:
+ *   get:
+ *     summary: Verify WhatsApp Webhook
+ *     tags: [WhatsApp Integration]
+ */
+waRoutes.get("/whatsapp", verifyWhatsappWebhook);
+
+/**
+ * @swagger
+ * /webhook/whatsapp:
+ *   post:
+ *     summary: Receive WhatsApp Messages
+ *     tags: [WhatsApp Integration]
+ */
+waRoutes.post("/whatsapp", handleIncomingWhatsappMessage);
 
 export default waRoutes;
