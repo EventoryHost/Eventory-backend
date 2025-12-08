@@ -27,7 +27,7 @@ const customerNotificationSchema = new mongoose.Schema({
   notification_type: {
     type: String,
     required: true,
-    enum: ['chat_message', 'checkout_message']
+    enum: ['chat_message', 'checkout_message', 'payment_reminder']
   },
   message: {
     type: String,
