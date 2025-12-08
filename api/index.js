@@ -16,6 +16,9 @@ import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js"
 import caterer from "../routes/reduxRoutes/caterer.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
 import decorator from "../routes/reduxRoutes/decorator.js";
+
+import "../utils/paymentReminderCron.js";
+
 dotenv.config();
 
 const app = express();
