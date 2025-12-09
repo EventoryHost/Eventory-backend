@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import VendorNotifications from "../models2/vendorNotifications.js";
-import CustomerNotification from "../models2/customerNotifications.js";
-import EMNotifications from "../models2/emNotifications.js";
+import VendorNotifications from "../models/vendorNotifications.js";
+import CustomerNotification from "../models/customerNotifications.js";
+import EMNotifications from "../models/emNotifications.js";
 
 export const markAsReadAndDelete = async (req, res) => {
     console.log("[API] Request to delete notification 🟢");

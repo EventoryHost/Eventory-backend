@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
-import Chat2 from "../models2/chats.js";
-import Message2 from "../models2/message2.js";
-import EMNotifications from "../models2/emNotifications.js";
-import CustomerNotification from "../models2/customerNotifications.js";
-import VendorNotifications from "../models2/vendorNotifications.js";
+import Chat2 from "../models/chats.js";
+import Message2 from "../models/message2.js";
+import EMNotifications from "../models/emNotifications.js";
+import CustomerNotification from "../models/customerNotifications.js";
+import VendorNotifications from "../models/vendorNotifications.js";
 
-var SCHEDULE_INTERVAL_MS = 1 * 60 * 1000;
-// SCHEDULE_INTERVAL_MS = 10 * 1000;
+var SCHEDULE_INTERVAL_MS = 2 * 60 * 60 * 1000;
+
+// var SCHEDULE_INTERVAL_MS = 2 * 10 * 1000;
 
 /**
  * Creates chat notifications for recipients based on unread messages.
