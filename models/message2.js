@@ -57,7 +57,7 @@ const messageSchema = new Schema(
     },
     parent_message_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message2",
+      ref: "Message",
     },
     is_edited: {
       type: Boolean,
@@ -69,7 +69,7 @@ const messageSchema = new Schema(
   },
   {
     timestamps: true,
-    collection: "Message2",
+    collection: "Message",
   }
 );
 
@@ -80,6 +80,6 @@ messageSchema.index({ message_type: 1 });
 messageSchema.index({ parent_message_id: 1 });
 
 // Check if model already exists to prevent OverwriteModelError
-const Message2 =
-  mongoose.models.Message2 || mongoose.model("Message2", messageSchema);
-export default Message2;
+const Message =
+  mongoose.models.Message || mongoose.model("Message", messageSchema);
+export default Message;

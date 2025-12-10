@@ -1,7 +1,7 @@
 import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
 import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
-import Chat2 from "../models/chats.js";
-import Message2 from "../models/message2.js";
+import Chat from "../models/chats.js";
+import Message from "../models/message2.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
@@ -18,7 +18,7 @@ export const handleSocketConnection = (socket, io) => {
         return;
       }
 
-      const chat = await Chat2.findOne({ chat_id, chat_type });
+      const chat = await Chat.findOne({ chat_id, chat_type });
       console.log("🔍 Chat lookup:", chat);
 
       if (!chat) {
@@ -151,7 +151,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Validate chat existence with chatType
-        const chat = await Chat2.findOne({ chat_id, chat_type });
+        const chat = await Chat.findOne({ chat_id, chat_type });
         if (!chat) {
           if (typeof callback === "function") callback("Invalid chat_id or chat_type");
           else socket.emit("error", "Invalid chat_id or chat_type");
@@ -177,7 +177,7 @@ export const handleSocketConnection = (socket, io) => {
             : null;
 
         // ------------------- CREATE MESSAGE -------------------
-        const message = new Message2({
+        const message = new Message({
           chat_id,
           chat_type,
           sender,
@@ -419,7 +419,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // Verify the chat exists with this chatType
-    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id: chatId, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -433,7 +433,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // ✅ update sort fields to match new schema
-    const messages = await Message2.find(query)
+    const messages = await Message.find(query)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .populate({
@@ -490,12 +490,12 @@ export const searchMessages = async (req, res) => {
   }
 
   try {
-    const chatExists = await Chat2.findOne({ chat_id, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const messages = await Message2.find({
+    const messages = await Message.find({
       chat_id,
       chat_type: chatType,
       message_content: { $regex: q, $options: "i" },
@@ -525,19 +525,19 @@ export const getMessageContext = async (req, res) => {
   }
 
   try {
-    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id: chatId, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const currentMessage = await Message2.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
+    const currentMessage = await Message.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
     if (!currentMessage) {
       return res
         .status(404)
         .json({ error: "Message not found in the given chat" });
     }
 
-    const olderMessages = await Message2.find({
+    const olderMessages = await Message.find({
       chat_id: chatId,
       chat_type: chatType,
       _id: { $lt: new mongoose.Types.ObjectId(qId) },
@@ -545,7 +545,7 @@ export const getMessageContext = async (req, res) => {
       .sort({ _id: -1 })
       .limit(20);
 
-    const newerMessages = await Message2.find({
+    const newerMessages = await Message.find({
       chat_id: chatId,
       chat_type: chatType,
       _id: { $gt: new mongoose.Types.ObjectId(qId) },
@@ -641,7 +641,7 @@ export const pinMessageInChat = async (req, res) => {
     }
 
     // Find chat
-    const chat = await Chat2.findOne({ chat_id });
+    const chat = await Chat.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -677,7 +677,7 @@ export const unpinMessageInChat = async (req, res) => {
     }
 
     // Find chat by chat_id
-    const chat = await Chat2.findOne({ chat_id });
+    const chat = await Chat.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -721,7 +721,7 @@ export const blockChat = async (req, res) => {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
-    const chat = await Chat2.findOne({ chat_id , chat_type });
+    const chat = await Chat.findOne({ chat_id , chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -758,7 +758,7 @@ export const unblockChat = async (req, res) => {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
-    const chat = await Chat2.findOne({ chat_id ,chat_type });    
+    const chat = await Chat.findOne({ chat_id ,chat_type });    
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -784,7 +784,7 @@ export const getPinnedMessages = async (req, res) => {
     const { chat_id } = req.params;
 
     // Find chat by chat_id
-    const chat = await Chat2.findOne({ chat_id });
+    const chat = await Chat.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -795,7 +795,7 @@ export const getPinnedMessages = async (req, res) => {
     }
 
     // Find messages using message_id (not _id)
-    const pinnedMessages = await Message2.find({
+    const pinnedMessages = await Message.find({
       message_id: { $in: chat.pinned_chat_messages.map(id => new mongoose.Types.ObjectId(id)) },
     }).select("message_content message_type sender attachment_url message_sent_at");
 
@@ -810,7 +810,7 @@ export const getPinnedMessages = async (req, res) => {
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
   try {
-    const blockedChats = await Chat2.find({ chat_status: "BLOCKED" })
+    const blockedChats = await Chat.find({ chat_status: "BLOCKED" })
       .sort({ updatedAt: -1 }); // Sort by most recently updated
     return res.status(200).json({ blockedChats });
   } catch (error) {
@@ -913,7 +913,7 @@ export const updateChatEmId = async (req, res) => {
     }
 
     // Only update if current em_id is "admin-rm" (default/dummy value)
-    const updatedChat = await Chat2.findOneAndUpdate(
+    const updatedChat = await Chat.findOneAndUpdate(
       { 
         chat_id: chat_id,
         em_id: "" // Only update if it's still the default
@@ -928,7 +928,7 @@ export const updateChatEmId = async (req, res) => {
 
     if (!updatedChat) {
       // Either chat not found OR em_id was already updated
-      const existingChat = await Chat2.findOne({ chat_id: chat_id });
+      const existingChat = await Chat.findOne({ chat_id: chat_id });
       
       if (!existingChat) {
         return res.status(404).json({ 

@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 
 // --- CONFIGURATION ---
 const SERVER_URL = "http://localhost:4000"; // Your backend server
-const CHAT_ID = "QUO11102025111727007"; // Must exist in Chat2 collection
+const CHAT_ID = "QUO11102025111727007"; // Must exist in Chat collection
 const DELAY_MS = 1500; // Delay between messages
 
 const CUSTOMER_TYPE = "customer";
