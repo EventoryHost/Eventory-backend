@@ -227,6 +227,176 @@ export const handleSocketConnection = (socket, io) => {
     }
   );
 
+  // ------------------- EDIT MESSAGE -------------------
+  socket.on(
+    "edit_message",
+    async (
+      {
+        message_id,
+        new_content,
+        chat_id,
+        chat_type,
+        sender_id,
+      },
+      callback
+    ) => {
+      try {
+        // Validate required fields
+        if (!message_id || !new_content || !chat_id || !chat_type || !sender_id) {
+          if (typeof callback === "function") {
+            callback("Missing required fields for edit");
+          } else {
+            socket.emit("error", "Missing required fields for edit");
+          }
+          return;
+        }
+
+        // Validate message_id format
+        if (!mongoose.Types.ObjectId.isValid(message_id)) {
+          if (typeof callback === "function") {
+            callback("Invalid message_id");
+          } else {
+            socket.emit("error", "Invalid message_id");
+          }
+          return;
+        }
+
+        // Validate chat_type
+        if (!chat_type) {
+          if (typeof callback === "function") {
+            callback("chat_type is required");
+          } else {
+            socket.emit("error", "chat_type is required");
+          }
+          return;
+        }
+
+        // Check if chat exists and is not blocked
+        const chat = await Chat2.findOne({ chat_id, chat_type });
+        if (!chat) {
+          if (typeof callback === "function") {
+            callback("Chat not found");
+          } else {
+            socket.emit("error", "Chat not found");
+          }
+          return;
+        }
+
+        if (chat.chat_status === "BLOCKED") {
+          if (typeof callback === "function") {
+            callback("Cannot edit messages in a blocked chat");
+          } else {
+            socket.emit("error", "Cannot edit messages in a blocked chat");
+          }
+          return;
+        }
+
+        // Find the message
+        const message = await Message2.findOne({
+          _id: message_id,
+          chat_id,
+          chat_type,
+        });
+
+        if (!message) {
+          if (typeof callback === "function") {
+            callback("Message not found");
+          } else {
+            socket.emit("error", "Message not found");
+          }
+          return;
+        }
+
+        // Validate ownership - only sender can edit their message
+        if (message.sender_id !== sender_id) {
+          if (typeof callback === "function") {
+            callback("You can only edit your own messages");
+          } else {
+            socket.emit("error", "You can only edit your own messages");
+          }
+          return;
+        }
+
+        // Validate message type - cannot edit system, approval_request, or order messages
+        const nonEditableTypes = ["system", "approval_request", "order"];
+        if (nonEditableTypes.includes(message.message_type)) {
+          if (typeof callback === "function") {
+            callback(`Cannot edit ${message.message_type} messages`);
+          } else {
+            socket.emit("error", `Cannot edit ${message.message_type} messages`);
+          }
+          return;
+        }
+
+        // Validate content for profanity and personal info
+        if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
+          console.log("❌ Personal information detected in edit:", new_content);
+          if (typeof callback === "function") {
+            callback("Please refrain from sharing personal information!");
+          } else {
+            socket.emit(
+              "error",
+              "Please refrain from sharing personal information!"
+            );
+          }
+          return;
+        }
+
+        if (checkProfanity(new_content)) {
+          console.log("❌ Profanity detected in edit:", new_content);
+          if (typeof callback === "function") {
+            callback("Please refrain from using abusive words!");
+          } else {
+            socket.emit("error", "Please refrain from using abusive words!");
+          }
+          return;
+        }
+
+        // Update the message
+        const now = new Date();
+        message.message_content = new_content;
+        message.is_edited = true;
+        message.edited_at = now;
+
+        const updatedMessage = await message.save();
+
+        // Emit to entire room for real-time update
+        const roomId = `${chat_id}-${chat_type}`;
+        io.to(roomId).emit("message_edited", {
+          message_id: updatedMessage._id,
+          chat_id: updatedMessage.chat_id,
+          chat_type: updatedMessage.chat_type,
+          new_content: updatedMessage.message_content,
+          is_edited: updatedMessage.is_edited,
+          edited_at: updatedMessage.edited_at,
+          sender: updatedMessage.sender,
+          sender_id: updatedMessage.sender_id,
+        });
+
+        console.log(
+          `✏️ Message ${message_id} edited by ${message.sender} in chat ${chat_id} (${chat_type})`
+        );
+
+        // Send acknowledgment to sender
+        if (typeof callback === "function") {
+          callback(null, {
+            message_id: updatedMessage._id,
+            new_content: updatedMessage.message_content,
+            is_edited: true,
+            edited_at: updatedMessage.edited_at,
+          });
+        }
+      } catch (err) {
+        console.error("edit_message error:", err);
+        if (typeof callback === "function") {
+          callback("Error editing message");
+        } else {
+          socket.emit("error", "Error editing message");
+        }
+      }
+    }
+  );
+
   // ------------------- DISCONNECT -------------------
   socket.on("disconnect", () => {
     console.log("🔌 Client disconnected:", socket.id);
@@ -746,7 +916,7 @@ export const updateChatEmId = async (req, res) => {
     const updatedChat = await Chat2.findOneAndUpdate(
       { 
         chat_id: chat_id,
-        em_id: "admin-rm" // Only update if it's still the default
+        em_id: "" // Only update if it's still the default
       },
       { 
         $set: { em_id: em_id } 
@@ -837,3 +1007,107 @@ export const updateChatEmId = async (req, res) => {
 //     return res.status(500).json({ error: "Failed to upload media" });
 //   }
 // };
+
+// REST API endpoint for editing messages (fallback when socket is unavailable)
+export const editMessage = async (req, res) => {
+  try {
+    const { message_id } = req.params;
+    const { new_content, chat_id, chat_type, sender_id } = req.body;
+
+    // Validate required fields
+    if (!new_content || !chat_id || !chat_type || !sender_id) {
+      return res.status(400).json({ 
+        error: "Missing required fields: new_content, chat_id, chat_type, sender_id" 
+      });
+    }
+
+    // Validate message_id format
+    if (!mongoose.Types.ObjectId.isValid(message_id)) {
+      return res.status(400).json({ error: "Invalid message_id" });
+    }
+
+    // Validate chat_type
+    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
+      return res.status(400).json({ error: "Invalid chat_type" });
+    }
+
+    // Check if chat exists and is not blocked
+    const chat = await Chat2.findOne({ chat_id, chat_type });
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    if (chat.chat_status === "BLOCKED") {
+      return res.status(403).json({ 
+        error: "Cannot edit messages in a blocked chat" 
+      });
+    }
+
+    // Find the message
+    const message = await Message2.findOne({
+      _id: message_id,
+      chat_id,
+      chat_type,
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+
+    // Validate ownership - only sender can edit their message
+    if (message.sender_id !== sender_id) {
+      return res.status(403).json({ 
+        error: "You can only edit your own messages" 
+      });
+    }
+
+    // Validate message type - cannot edit system, approval_request, or order messages
+    const nonEditableTypes = ["system", "approval_request", "order"];
+    if (nonEditableTypes.includes(message.message_type)) {
+      return res.status(403).json({ 
+        error: `Cannot edit ${message.message_type} messages` 
+      });
+    }
+
+    // Validate content for profanity and personal info
+    if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
+      return res.status(400).json({ 
+        error: "Please refrain from sharing personal information!" 
+      });
+    }
+
+    if (checkProfanity(new_content)) {
+      return res.status(400).json({ 
+        error: "Please refrain from using abusive words!" 
+      });
+    }
+
+    // Update the message
+    const now = new Date();
+    message.message_content = new_content;
+    message.is_edited = true;
+    message.edited_at = now;
+
+    const updatedMessage = await message.save();
+
+    return res.status(200).json({
+      message: "Message edited successfully",
+      data: {
+        message_id: updatedMessage._id,
+        chat_id: updatedMessage.chat_id,
+        chat_type: updatedMessage.chat_type,
+        new_content: updatedMessage.message_content,
+        is_edited: updatedMessage.is_edited,
+        edited_at: updatedMessage.edited_at,
+        sender: updatedMessage.sender,
+        sender_id: updatedMessage.sender_id,
+      },
+    });
+  } catch (error) {
+    console.error("Error editing message:", error);
+    return res.status(500).json({ 
+      error: "Failed to edit message",
+      details: error.message 
+    });
+  }
+};

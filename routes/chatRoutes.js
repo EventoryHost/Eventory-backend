@@ -11,7 +11,8 @@ import {
   unblockChat,
   getPinnedMessages,
   getBlockedChats,
-  updateChatEmId
+  updateChatEmId,
+  editMessage
 } from "../controllers/chatController.js";
 
 const router = express.Router();
@@ -51,5 +52,8 @@ router.get("/blocked", getBlockedChats);
 
 //12. Update em_id when admin sends first message
 router.patch("/chat/update-em", updateChatEmId);
+
+//13. Edit a message (REST API fallback)
+router.patch("/message/:message_id/edit", editMessage);
 
 export default router;
