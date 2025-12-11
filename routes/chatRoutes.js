@@ -15,7 +15,14 @@ import {
   editMessage
 } from "../controllers/chatController.js";
 
-const router = express.Router();
+export default function chatRoutes(io) {
+  const router = express.Router();
+
+  // Middleware to attach io to all requests
+  router.use((req, res, next) => {
+    req.io = io;
+    next();
+  });
 //1. Get all messages by chat ID
 router.get("/:chatId/messages", getMessagesByChatId);
 
@@ -56,4 +63,5 @@ router.patch("/chat/update-em", updateChatEmId);
 //13. Edit a message (REST API fallback)
 router.patch("/message/:message_id/edit", editMessage);
 
-export default router;
+  return router;
+}
