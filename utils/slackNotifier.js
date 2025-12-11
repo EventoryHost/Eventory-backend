@@ -12,7 +12,6 @@ const slackClient = new WebClient(accessToken);
 export async function sendSlackMessage({
   id,
   customer,
-  vendor,
   service,
   vendorId,
   guests,
@@ -44,10 +43,6 @@ export async function sendSlackMessage({
             {
               type: "mrkdwn",
               text: `*Customer:*\n${customer}`,
-            },
-            {
-              type: "mrkdwn",
-              text: `*Vendor:*\n${vendor}`,
             },
             {
               type: "mrkdwn",
@@ -84,7 +79,7 @@ export async function sendSlackMessage({
 export async function sendSlackBookingMessage({
   bookingid,
   customer,
-  vendor,
+  vendorId,
   serviceName,
   guest,
   startDate,
@@ -118,7 +113,7 @@ export async function sendSlackBookingMessage({
             },
             {
               type: "mrkdwn",
-              text: `*Vendor:*\n${vendor}`,
+              text: `*Vendor ID:*\n${vendorId}`,
             },
             {
               type: "mrkdwn",
