@@ -216,6 +216,7 @@ export const createBooking = async (req, res) => {
       saved = await Events.create(doc);
     }
 
+    if(process.env.IS_DEV === 'true') return;
     sendSlackBookingMessage({
       bookingid: saved.event_id || saved._id,
       customer: saved.customer_name,
