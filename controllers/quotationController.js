@@ -1,10 +1,10 @@
 import Quotations from "../models/quotations.js";
-import Chat2 from "../models/chats.js"; // New import
+import Chat from "../models/chats.js"; // New import
 import APIFeatures from "../utils/apiFeatures.js";
 import { sendConfirmationMessageToWhatsapp } from "../controllers/waController.js"; // New import
 import CustomerNotification from "../models/customerNotifications.js";
 import vendorNotification from "../models/vendorNotifications.js";
-import Message2 from "../models/message2.js";
+import Message from "../models/message2.js";
 import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 
 // Create a new quotation
@@ -66,13 +66,13 @@ const createQuotation = async (req, res, io) => {
 
     const savedQuotation = await newQuotation.save();
 
-    const existingCustomerAdminChat = await Chat2.findOne({
+    const existingCustomerAdminChat = await Chat.findOne({
       chat_id: savedQuotation.quotation_id,
       chat_type: "customer-admin",
     });
 
     if (!existingCustomerAdminChat) {
-      await Chat2.create({
+      await Chat.create({
         chat_id: savedQuotation.quotation_id, // Same ID for linkage
         service_id: savedQuotation.service_id,
         customer_id: savedQuotation.customer_id,
@@ -97,14 +97,14 @@ const createQuotation = async (req, res, io) => {
     await newNotification.save();
 
     // ✅ Create Chat immediately between Admin & Customer (Vendor can join later)
-    const existingChat = await Chat2.findOne({
+    const existingChat = await Chat.findOne({
       customer_id,
       vendor_id,
       service_id,
     });
 
     if (!existingChat) {
-      await Chat2.create({
+      await Chat.create({
         chat_id: savedQuotation.quotation_id, // Same ID for linkage
         customer_id,
         vendor_id,
@@ -249,7 +249,7 @@ const updateQuotationStatus = async (req, res) => {
 
     // Find or create chat for this vendor-customer-service combo
     console.log("🔍 Checking for existing chat...");
-    let existingChat = await Chat2.findOne({
+    let existingChat = await Chat.findOne({
       chat_id: quotation_id,
       chat_type: "vendor-admin",
     });
@@ -258,7 +258,7 @@ const updateQuotationStatus = async (req, res) => {
       console.log("✅ Existing chat found:", existingChat.chat_id);
     } else if (!existingChat && quote_status === "Accepted") {
       console.log("🆕 No existing chat found. Creating new one...");
-      existingChat = await Chat2.create({
+      existingChat = await Chat.create({
         chat_id: quotation_id,
         service_id,
         customer_id,
@@ -283,7 +283,7 @@ const updateQuotationStatus = async (req, res) => {
     // --- Insert system message if applicable ---
     if (messageContent && existingChat?.chat_id) {
       console.log("💬 Inserting system message:", messageContent);
-      await Message2.create({
+      await Message.create({
         chat_id: existingChat.chat_id,
         sender: "em", // 'em' means system/admin message
         chat_type: existingChat.chat_type,
@@ -300,7 +300,7 @@ const updateQuotationStatus = async (req, res) => {
         console.log(
           "🕓 Instance method missing — manually updating timestamps..."
         );
-        await Chat2.updateOne(
+        await Chat.updateOne(
           { chat_id: existingChat.chat_id },
           {
             $set: {
