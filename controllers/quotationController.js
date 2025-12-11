@@ -155,6 +155,7 @@ const createQuotation = async (req, res, io) => {
       });
     });
 
+    if(process.env.IS_DEV === 'true') return;
     sendSlackMessage({
       id: savedQuotation.quotation_id,
       customer: savedQuotation.customer_name,
