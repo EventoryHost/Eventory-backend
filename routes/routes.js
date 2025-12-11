@@ -53,7 +53,7 @@ router.use("/email", emailRoutes);
 router.use("/about-email", aboutEmailRoutes);
 router.use("/files", fileRoutes);
 router.use("/quotations", quotationRoutes(io));
-router.use("/chats", chatRoutes);
+router.use("/chats", chatRoutes(io));
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);
