@@ -409,8 +409,9 @@ const getQuotations = async (req, res, next) => {
     }
 
     if (start_date && end_date) {
-      filter.event_start = { $gte: new Date(start_date) };
-      filter.event_end = { $lte: new Date(end_date) };
+      const start = new Date(start_date);
+      const end = new Date(end_date);
+      filter.event_start = { $gte: start, $lte: end };
     }
 
     if (status) {

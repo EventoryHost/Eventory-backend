@@ -575,7 +575,7 @@ const verifyCustomerPayment = async (req, res) => {
         order_id: internalOrderId,
         vendor_id,
         service_id: service_id,
-        chat_id: quotation_id,
+        chat_id: "",
         message: vendorMessage,
         notification_type: 'checkout_message',
         read: false,
@@ -583,9 +583,10 @@ const verifyCustomerPayment = async (req, res) => {
       await customerNotification.create({
         customer_id,
         order_id: internalOrderId,
-        chat_id: quotation_id,
+        chat_id: "",
         message: customerMessage,
         notification_type: 'checkout_message',
+        checkout_url: "/customerbookingnew", // Link to customer bookings
         read: false,
       });
     } catch { }
