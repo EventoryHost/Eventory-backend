@@ -272,7 +272,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Check if chat exists and is not blocked
-        const chat = await Chat2.findOne({ chat_id, chat_type });
+        const chat = await Chat.findOne({ chat_id, chat_type });
         if (!chat) {
           if (typeof callback === "function") {
             callback("Chat not found");
@@ -292,8 +292,8 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Find the message
-        const message = await Message2.findOne({
-          _id: message_id,
+        const message = await Message.findOne({
+          message_id: message_id,
           chat_id,
           chat_type,
         });
@@ -622,7 +622,7 @@ export const uploadChatMedia = (req, res) => {
 };
 export const pinMessageInChat = async (req, res) => {
   try {
-    const { chat_id , message_id } = req.params;
+    const { chat_id, message_id } = req.params;
 
     console.log(`chat_id: ${chat_id}, message_id: ${message_id}`);
 
@@ -707,21 +707,21 @@ export const unpinMessageInChat = async (req, res) => {
 export const blockChat = async (req, res) => {
   try {
     const { chat_id } = req.params;
-    const {chat_type} = req.query;
+    const { chat_type } = req.query;
 
     if (!chat_id) {
       return res.status(400).json({ error: "chatId is required" });
     }
 
-    if(!chat_type){
+    if (!chat_type) {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
-    const chat = await Chat.findOne({ chat_id , chat_type });
+    const chat = await Chat.findOne({ chat_id, chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -744,21 +744,21 @@ export const blockChat = async (req, res) => {
 export const unblockChat = async (req, res) => {
   try {
     const { chat_id } = req.params;
-    const {chat_type} = req.query;
+    const { chat_type } = req.query;
 
     if (!chat_id) {
       return res.status(400).json({ error: "chatId is required" });
     }
 
-    if(!chat_type){
+    if (!chat_type) {
       return res.status(400).json({ error: "chat_type is required" });
-    } 
+    }
 
-    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
-    const chat = await Chat.findOne({ chat_id ,chat_type });    
+    const chat = await Chat.findOne({ chat_id, chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -905,23 +905,23 @@ export const updateChatEmId = async (req, res) => {
 
 
     console.log(`Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`);
-    
+
     if (!chat_id || !em_id) {
-      return res.status(400).json({ 
-        message: "chat_id and em_id are required" 
+      return res.status(400).json({
+        message: "chat_id and em_id are required"
       });
     }
 
     // Only update if current em_id is "admin-rm" (default/dummy value)
     const updatedChat = await Chat.findOneAndUpdate(
-      { 
+      {
         chat_id: chat_id,
         em_id: "" // Only update if it's still the default
       },
-      { 
-        $set: { em_id: em_id } 
+      {
+        $set: { em_id: em_id }
       },
-      { 
+      {
         new: true // Return the updated document
       }
     );
@@ -929,13 +929,13 @@ export const updateChatEmId = async (req, res) => {
     if (!updatedChat) {
       // Either chat not found OR em_id was already updated
       const existingChat = await Chat.findOne({ chat_id: chat_id });
-      
+
       if (!existingChat) {
-        return res.status(404).json({ 
-          message: "Chat not found" 
+        return res.status(404).json({
+          message: "Chat not found"
         });
       }
-      
+
       // Chat exists but em_id was already set (not "admin-rm")
       return res.status(200).json({
         message: "Chat already has an assigned EM",
@@ -1014,8 +1014,8 @@ export const editMessage = async (req, res) => {
     const { new_content, chat_id, chat_type, sender_id } = req.body;
 
     if (!new_content || !chat_id || !chat_type || !sender_id) {
-      return res.status(400).json({ 
-        error: "Missing required fields: new_content, chat_id, chat_type, sender_id" 
+      return res.status(400).json({
+        error: "Missing required fields: new_content, chat_id, chat_type, sender_id"
       });
     }
 
@@ -1033,8 +1033,8 @@ export const editMessage = async (req, res) => {
     }
 
     if (chat.chat_status === "BLOCKED") {
-      return res.status(403).json({ 
-        error: "Cannot edit messages in a blocked chat" 
+      return res.status(403).json({
+        error: "Cannot edit messages in a blocked chat"
       });
     }
 
@@ -1049,27 +1049,27 @@ export const editMessage = async (req, res) => {
     }
 
     if (message.sender_id !== sender_id) {
-      return res.status(403).json({ 
-        error: "You can only edit your own messages" 
+      return res.status(403).json({
+        error: "You can only edit your own messages"
       });
     }
 
     const nonEditableTypes = ["system", "approval_request", "order"];
     if (nonEditableTypes.includes(message.message_type)) {
-      return res.status(403).json({ 
-        error: `Cannot edit ${message.message_type} messages` 
+      return res.status(403).json({
+        error: `Cannot edit ${message.message_type} messages`
       });
     }
 
     if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
-      return res.status(400).json({ 
-        error: "Please refrain from sharing personal information!" 
+      return res.status(400).json({
+        error: "Please refrain from sharing personal information!"
       });
     }
 
     if (checkProfanity(new_content)) {
-      return res.status(400).json({ 
-        error: "Please refrain from using abusive words!" 
+      return res.status(400).json({
+        error: "Please refrain from using abusive words!"
       });
     }
 
@@ -1114,9 +1114,9 @@ export const editMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("Error editing message:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "Failed to edit message",
-      details: error.message 
+      details: error.message
     });
   }
 };
