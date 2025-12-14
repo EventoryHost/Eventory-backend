@@ -1039,7 +1039,7 @@ export const editMessage = async (req, res) => {
     }
 
     const message = await Message.findOne({
-      _id: message_id,
+      message_id: message_id,
       chat_id,
       chat_type,
     });
@@ -1085,7 +1085,7 @@ export const editMessage = async (req, res) => {
     if (io) {
       const roomId = `${chat_id}-${chat_type}`;
       io.to(roomId).emit("message_edited", {
-        message_id: updatedMessage._id.toString(),
+        message_id: updatedMessage.message_id,
         chat_id: updatedMessage.chat_id,
         chat_type: updatedMessage.chat_type,
         new_content: updatedMessage.message_content,
@@ -1102,7 +1102,7 @@ export const editMessage = async (req, res) => {
     return res.status(200).json({
       message: "Message edited successfully",
       data: {
-        message_id: updatedMessage._id,
+        message_id: updatedMessage.message_id,
         chat_id: updatedMessage.chat_id,
         chat_type: updatedMessage.chat_type,
         new_content: updatedMessage.message_content,
