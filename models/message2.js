@@ -59,6 +59,13 @@ const messageSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
     },
+    is_edited: {
+      type: Boolean,
+      default: false,
+    },
+    edited_at: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
