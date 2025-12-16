@@ -9,7 +9,7 @@ import { Server } from "socket.io";
 import dotenv from "dotenv";
 import MainRoutes from "../routes/routes.js";
 import { handleSocketConnection } from "../controllers/chatController.js";
-
+import { initializeWorkers } from "../utils/notificationScheduler.js";
 import authRoutes from "../routes/authRoutes.js";
 import productRoutes from "../routes/productRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
@@ -41,6 +41,9 @@ app.use(morgan("dev"));
 
 // Connect to database
 connectDB();
+// 🔥 START THE BACKGROUND NOTIFICATION WORKER
+// This starts the 30-minute timer for checking unread chats.
+initializeWorkers();
 
 app.use(express.json());
 
