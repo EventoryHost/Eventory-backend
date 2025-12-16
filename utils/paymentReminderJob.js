@@ -48,7 +48,7 @@ export async function runPaymentReminderJob() {
         });
         if (alreadySent) continue;
 
-        const checkoutUrl = `https://eventory.in/customerbookingnew/${ev.event_id}`;
+        const checkoutUrl = `/customerbookingnew/${ev.event_id}`;
 
         const eventDate = ev.event_start
             ? new Date(ev.event_start).toDateString()

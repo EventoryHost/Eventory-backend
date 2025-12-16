@@ -6,6 +6,7 @@ import Photographer from "../models/photographerVideographer.js";
 import MakeupArtist from "../models/makeupArtist.js";
 import generateUniqueId from "../utils/generateId.js";
 import { Calendar } from "../models/calendar.js";
+import { sendSlackBookingMessage } from "../utils/slackNotifier.js";
 
 const toUpperEnum = (v) => (typeof v === "string" ? v.trim().toUpperCase() : v);
 const toISODate = (v) => (v ? new Date(v) : null);
@@ -214,6 +215,20 @@ export const createBooking = async (req, res) => {
       // Create new booking; event_id and event_number handled by schema
       saved = await Events.create(doc);
     }
+
+    if(process.env.IS_DEV === 'true') return;
+    sendSlackBookingMessage({
+      bookingid: saved.event_id || saved._id,
+      customer: saved.customer_name,
+      vendorId: saved.vendor_id, 
+      serviceName: saved.service_id,
+      guest: saved.final_guest_count || 0,
+      startDate: new Date(saved.event_start).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    });
 
     return res.status(201).json({
       message: "Event created successfully",
