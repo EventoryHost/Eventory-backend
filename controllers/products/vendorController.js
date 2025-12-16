@@ -24,6 +24,7 @@ export const getServiceModel = (service_id) => {
   if (service_id.startsWith("DECO")) return Decorator;
   if (service_id.startsWith("MKA")) return MakeupArtist;
   if (service_id.startsWith("PAV")) return Photographer;
+  if (service_id.startsWith("DJS")) return DjArtist;
   return null;
 };
 
@@ -99,12 +100,13 @@ const getBankDetails = async (req, res) => {
     }
 
     // ✅ Fetch all services of this vendor
-    const [venue, caterer, decorator, makeupArtist, photographer] = await Promise.all([
+    const [venue, caterer, decorator, makeupArtist, photographer, djArtist] = await Promise.all([
       VenueProvider.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
       Caterer.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
       Decorator.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
       MakeupArtist.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
       Photographer.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
+      DjArtist.findOne({ vendor_id }, { bank_details: 1, service_id: 1 }),
     ]);
 
     // ✅ Combine results (only include those that exist)
