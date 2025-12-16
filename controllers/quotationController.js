@@ -6,6 +6,7 @@ import CustomerNotification from "../models/customerNotifications.js";
 import vendorNotification from "../models/vendorNotifications.js";
 import Message from "../models/message2.js";
 import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
+import { sendSlackMessage } from "../utils/slackNotifier.js";
 
 // Create a new quotation
 const createQuotation = async (req, res, io) => {
@@ -153,6 +154,21 @@ const createQuotation = async (req, res, io) => {
         id: savedQuotation.quotation_id,
       });
     });
+
+    if(process.env.IS_DEV === 'true') return;
+    sendSlackMessage({
+      id: savedQuotation.quotation_id,
+      customer: savedQuotation.customer_name,
+      service: savedQuotation.service_id,
+      vendorId: savedQuotation.vendor_id,
+      guests: savedQuotation.guest_count,
+      date: new Date(savedQuotation.event_start).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    });
+
   } catch (error) {
     res.status(500).json({
       message: "Error creating quotation",
