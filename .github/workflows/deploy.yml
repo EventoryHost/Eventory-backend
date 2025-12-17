@@ -13,6 +13,7 @@ jobs:
     env:
       DEV_ENV: ${{ secrets.DEV_ENV }}
       PROD_ENV: ${{ secrets.PROD_ENV }}
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
     steps:
       - name: Checkout code
