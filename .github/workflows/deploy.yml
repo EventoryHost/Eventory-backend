@@ -5,7 +5,6 @@ on:
     branches:
       - prod
       - dev
-      - dev-migration
 
 jobs:
   deploy:
@@ -14,7 +13,6 @@ jobs:
     env:
       DEV_ENV: ${{ secrets.DEV_ENV }}
       PROD_ENV: ${{ secrets.PROD_ENV }}
-      MIGRATION_ENV: ${{ secrets.MIGRATION_ENV }}
 
     steps:
       - name: Checkout code
@@ -26,7 +24,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DEV_ENV,PROD_ENV,MIGRATION_ENV
+          envs: DEV_ENV,PROD_ENV,FIREBASE_SERVICE_ACCOUNT
           script: |
             set -e
 
@@ -36,16 +34,13 @@ jobs:
             if [ "$BRANCH" = "prod" ]; then
               APP_DIR="prod"
               ENV_CONTENT="$PROD_ENV"
-              START_FILE="api/index.js"
-
-            elif [ "$BRANCH" = "dev-migration" ]; then
-              APP_DIR="migration"
-              ENV_CONTENT="$MIGRATION_ENV"
+              FIREBASE_SERVICE_ACCOUNT="$FIREBASE_SERVICE_ACCOUNT"
               START_FILE="api/index.js"
 
             else
               APP_DIR="dev"
               ENV_CONTENT="$DEV_ENV"
+              FIREBASE_SERVICE_ACCOUNT="$FIREBASE_SERVICE_ACCOUNT"
               START_FILE="api/index.js"
             fi
 
@@ -68,6 +63,7 @@ jobs:
 
             # 4. Write .env from GitHub Secret
             printf "%s\n" "$ENV_CONTENT" > .env
+            printf "%s\n" "$FIREBASE_SERVICE_ACCOUNT" > firebase-service-account.json
 
             # 5. Install dependencies
             npm install --legacy-peer-deps
