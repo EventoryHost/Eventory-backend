@@ -1,6 +1,7 @@
 import "dotenv/config.js";
 import express, { Router } from "express";
 import connectDB from "../config/db.js";
+import initializeFirebase from "../config/firebaseConfig.js";
 import cors from "cors";
 import chalk from "chalk";
 import morgan from "morgan";
@@ -44,6 +45,8 @@ connectDB();
 // 🔥 START THE BACKGROUND NOTIFICATION WORKER
 // This starts the 30-minute timer for checking unread chats.
 initializeWorkers();
+
+initializeFirebase();
 
 app.use(express.json());
 
