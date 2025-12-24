@@ -1,7 +1,7 @@
 import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
 import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
-import Chat2 from "../models/chats.js";
-import Message2 from "../models/message2.js";
+import Chat from "../models/chats.js";
+import Message from "../models/message2.js";
 import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
@@ -18,7 +18,7 @@ export const handleSocketConnection = (socket, io) => {
         return;
       }
 
-      const chat = await Chat2.findOne({ chat_id, chat_type });
+      const chat = await Chat.findOne({ chat_id, chat_type });
       console.log("🔍 Chat lookup:", chat);
 
       if (!chat) {
@@ -151,7 +151,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Validate chat existence with chatType
-        const chat = await Chat2.findOne({ chat_id, chat_type });
+        const chat = await Chat.findOne({ chat_id, chat_type });
         if (!chat) {
           if (typeof callback === "function") callback("Invalid chat_id or chat_type");
           else socket.emit("error", "Invalid chat_id or chat_type");
@@ -177,7 +177,7 @@ export const handleSocketConnection = (socket, io) => {
             : null;
 
         // ------------------- CREATE MESSAGE -------------------
-        const message = new Message2({
+        const message = new Message({
           chat_id,
           chat_type,
           sender,
@@ -227,6 +227,176 @@ export const handleSocketConnection = (socket, io) => {
     }
   );
 
+  // ------------------- EDIT MESSAGE -------------------
+  socket.on(
+    "edit_message",
+    async (
+      {
+        message_id,
+        new_content,
+        chat_id,
+        chat_type,
+        sender_id,
+      },
+      callback
+    ) => {
+      try {
+        // Validate required fields
+        if (!message_id || !new_content || !chat_id || !chat_type || !sender_id) {
+          if (typeof callback === "function") {
+            callback("Missing required fields for edit");
+          } else {
+            socket.emit("error", "Missing required fields for edit");
+          }
+          return;
+        }
+
+        // Validate message_id format
+        if (!mongoose.Types.ObjectId.isValid(message_id)) {
+          if (typeof callback === "function") {
+            callback("Invalid message_id");
+          } else {
+            socket.emit("error", "Invalid message_id");
+          }
+          return;
+        }
+
+        // Validate chat_type
+        if (!chat_type) {
+          if (typeof callback === "function") {
+            callback("chat_type is required");
+          } else {
+            socket.emit("error", "chat_type is required");
+          }
+          return;
+        }
+
+        // Check if chat exists and is not blocked
+        const chat = await Chat.findOne({ chat_id, chat_type });
+        if (!chat) {
+          if (typeof callback === "function") {
+            callback("Chat not found");
+          } else {
+            socket.emit("error", "Chat not found");
+          }
+          return;
+        }
+
+        if (chat.chat_status === "BLOCKED") {
+          if (typeof callback === "function") {
+            callback("Cannot edit messages in a blocked chat");
+          } else {
+            socket.emit("error", "Cannot edit messages in a blocked chat");
+          }
+          return;
+        }
+
+        // Find the message
+        const message = await Message.findOne({
+          message_id: message_id,
+          chat_id,
+          chat_type,
+        });
+
+        if (!message) {
+          if (typeof callback === "function") {
+            callback("Message not found");
+          } else {
+            socket.emit("error", "Message not found");
+          }
+          return;
+        }
+
+        // Validate ownership - only sender can edit their message
+        if (message.sender_id !== sender_id) {
+          if (typeof callback === "function") {
+            callback("You can only edit your own messages");
+          } else {
+            socket.emit("error", "You can only edit your own messages");
+          }
+          return;
+        }
+
+        // Validate message type - cannot edit system, approval_request, or order messages
+        const nonEditableTypes = ["system", "approval_request", "order"];
+        if (nonEditableTypes.includes(message.message_type)) {
+          if (typeof callback === "function") {
+            callback(`Cannot edit ${message.message_type} messages`);
+          } else {
+            socket.emit("error", `Cannot edit ${message.message_type} messages`);
+          }
+          return;
+        }
+
+        // Validate content for profanity and personal info
+        if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
+          console.log("❌ Personal information detected in edit:", new_content);
+          if (typeof callback === "function") {
+            callback("Please refrain from sharing personal information!");
+          } else {
+            socket.emit(
+              "error",
+              "Please refrain from sharing personal information!"
+            );
+          }
+          return;
+        }
+
+        if (checkProfanity(new_content)) {
+          console.log("❌ Profanity detected in edit:", new_content);
+          if (typeof callback === "function") {
+            callback("Please refrain from using abusive words!");
+          } else {
+            socket.emit("error", "Please refrain from using abusive words!");
+          }
+          return;
+        }
+
+        // Update the message
+        const now = new Date();
+        message.message_content = new_content;
+        message.is_edited = true;
+        message.edited_at = now;
+
+        const updatedMessage = await message.save();
+
+        // Emit to entire room for real-time update
+        const roomId = `${chat_id}-${chat_type}`;
+        io.to(roomId).emit("message_edited", {
+          message_id: updatedMessage._id,
+          chat_id: updatedMessage.chat_id,
+          chat_type: updatedMessage.chat_type,
+          new_content: updatedMessage.message_content,
+          is_edited: updatedMessage.is_edited,
+          edited_at: updatedMessage.edited_at,
+          sender: updatedMessage.sender,
+          sender_id: updatedMessage.sender_id,
+        });
+
+        console.log(
+          `✏️ Message ${message_id} edited by ${message.sender} in chat ${chat_id} (${chat_type})`
+        );
+
+        // Send acknowledgment to sender
+        if (typeof callback === "function") {
+          callback(null, {
+            message_id: updatedMessage._id,
+            new_content: updatedMessage.message_content,
+            is_edited: true,
+            edited_at: updatedMessage.edited_at,
+          });
+        }
+      } catch (err) {
+        console.error("edit_message error:", err);
+        if (typeof callback === "function") {
+          callback("Error editing message");
+        } else {
+          socket.emit("error", "Error editing message");
+        }
+      }
+    }
+  );
+
   // ------------------- DISCONNECT -------------------
   socket.on("disconnect", () => {
     console.log("🔌 Client disconnected:", socket.id);
@@ -249,7 +419,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // Verify the chat exists with this chatType
-    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id: chatId, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -263,7 +433,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // ✅ update sort fields to match new schema
-    const messages = await Message2.find(query)
+    const messages = await Message.find(query)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .populate({
@@ -320,12 +490,12 @@ export const searchMessages = async (req, res) => {
   }
 
   try {
-    const chatExists = await Chat2.findOne({ chat_id, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const messages = await Message2.find({
+    const messages = await Message.find({
       chat_id,
       chat_type: chatType,
       message_content: { $regex: q, $options: "i" },
@@ -355,19 +525,19 @@ export const getMessageContext = async (req, res) => {
   }
 
   try {
-    const chatExists = await Chat2.findOne({ chat_id: chatId, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id: chatId, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const currentMessage = await Message2.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
+    const currentMessage = await Message.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
     if (!currentMessage) {
       return res
         .status(404)
         .json({ error: "Message not found in the given chat" });
     }
 
-    const olderMessages = await Message2.find({
+    const olderMessages = await Message.find({
       chat_id: chatId,
       chat_type: chatType,
       _id: { $lt: new mongoose.Types.ObjectId(qId) },
@@ -375,7 +545,7 @@ export const getMessageContext = async (req, res) => {
       .sort({ _id: -1 })
       .limit(20);
 
-    const newerMessages = await Message2.find({
+    const newerMessages = await Message.find({
       chat_id: chatId,
       chat_type: chatType,
       _id: { $gt: new mongoose.Types.ObjectId(qId) },
@@ -452,7 +622,7 @@ export const uploadChatMedia = (req, res) => {
 };
 export const pinMessageInChat = async (req, res) => {
   try {
-    const { chat_id , message_id } = req.params;
+    const { chat_id, message_id } = req.params;
 
     console.log(`chat_id: ${chat_id}, message_id: ${message_id}`);
 
@@ -471,7 +641,7 @@ export const pinMessageInChat = async (req, res) => {
     }
 
     // Find chat
-    const chat = await Chat2.findOne({ chat_id });
+    const chat = await Chat.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -507,7 +677,7 @@ export const unpinMessageInChat = async (req, res) => {
     }
 
     // Find chat by chat_id
-    const chat = await Chat2.findOne({ chat_id });
+    const chat = await Chat.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -537,21 +707,21 @@ export const unpinMessageInChat = async (req, res) => {
 export const blockChat = async (req, res) => {
   try {
     const { chat_id } = req.params;
-    const {chat_type} = req.query;
+    const { chat_type } = req.query;
 
     if (!chat_id) {
       return res.status(400).json({ error: "chatId is required" });
     }
 
-    if(!chat_type){
+    if (!chat_type) {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
-    const chat = await Chat2.findOne({ chat_id , chat_type });
+    const chat = await Chat.findOne({ chat_id, chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -574,21 +744,21 @@ export const blockChat = async (req, res) => {
 export const unblockChat = async (req, res) => {
   try {
     const { chat_id } = req.params;
-    const {chat_type} = req.query;
+    const { chat_type } = req.query;
 
     if (!chat_id) {
       return res.status(400).json({ error: "chatId is required" });
     }
 
-    if(!chat_type){
+    if (!chat_type) {
       return res.status(400).json({ error: "chat_type is required" });
-    } 
+    }
 
-    if(!["vendor-admin", "customer-admin"].includes(chat_type)){
+    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
-    const chat = await Chat2.findOne({ chat_id ,chat_type });    
+    const chat = await Chat.findOne({ chat_id, chat_type });
 
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
@@ -614,7 +784,7 @@ export const getPinnedMessages = async (req, res) => {
     const { chat_id } = req.params;
 
     // Find chat by chat_id
-    const chat = await Chat2.findOne({ chat_id });
+    const chat = await Chat.findOne({ chat_id });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
@@ -625,7 +795,7 @@ export const getPinnedMessages = async (req, res) => {
     }
 
     // Find messages using message_id (not _id)
-    const pinnedMessages = await Message2.find({
+    const pinnedMessages = await Message.find({
       message_id: { $in: chat.pinned_chat_messages.map(id => new mongoose.Types.ObjectId(id)) },
     }).select("message_content message_type sender attachment_url message_sent_at");
 
@@ -640,7 +810,7 @@ export const getPinnedMessages = async (req, res) => {
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
   try {
-    const blockedChats = await Chat2.find({ chat_status: "BLOCKED" })
+    const blockedChats = await Chat.find({ chat_status: "BLOCKED" })
       .sort({ updatedAt: -1 }); // Sort by most recently updated
     return res.status(200).json({ blockedChats });
   } catch (error) {
@@ -735,37 +905,37 @@ export const updateChatEmId = async (req, res) => {
 
 
     console.log(`Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`);
-    
+
     if (!chat_id || !em_id) {
-      return res.status(400).json({ 
-        message: "chat_id and em_id are required" 
+      return res.status(400).json({
+        message: "chat_id and em_id are required"
       });
     }
 
     // Only update if current em_id is "admin-rm" (default/dummy value)
-    const updatedChat = await Chat2.findOneAndUpdate(
-      { 
+    const updatedChat = await Chat.findOneAndUpdate(
+      {
         chat_id: chat_id,
-        em_id: "admin-rm" // Only update if it's still the default
+        em_id: "" // Only update if it's still the default
       },
-      { 
-        $set: { em_id: em_id } 
+      {
+        $set: { em_id: em_id }
       },
-      { 
+      {
         new: true // Return the updated document
       }
     );
 
     if (!updatedChat) {
       // Either chat not found OR em_id was already updated
-      const existingChat = await Chat2.findOne({ chat_id: chat_id });
-      
+      const existingChat = await Chat.findOne({ chat_id: chat_id });
+
       if (!existingChat) {
-        return res.status(404).json({ 
-          message: "Chat not found" 
+        return res.status(404).json({
+          message: "Chat not found"
         });
       }
-      
+
       // Chat exists but em_id was already set (not "admin-rm")
       return res.status(200).json({
         message: "Chat already has an assigned EM",
@@ -837,3 +1007,116 @@ export const updateChatEmId = async (req, res) => {
 //     return res.status(500).json({ error: "Failed to upload media" });
 //   }
 // };
+
+export const editMessage = async (req, res) => {
+  try {
+    const { message_id } = req.params;
+    const { new_content, chat_id, chat_type, sender_id } = req.body;
+
+    if (!new_content || !chat_id || !chat_type || !sender_id) {
+      return res.status(400).json({
+        error: "Missing required fields: new_content, chat_id, chat_type, sender_id"
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(message_id)) {
+      return res.status(400).json({ error: "Invalid message_id" });
+    }
+
+    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
+      return res.status(400).json({ error: "Invalid chat_type" });
+    }
+
+    const chat = await Chat.findOne({ chat_id, chat_type });
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    if (chat.chat_status === "BLOCKED") {
+      return res.status(403).json({
+        error: "Cannot edit messages in a blocked chat"
+      });
+    }
+
+    const message = await Message.findOne({
+      message_id: message_id,
+      chat_id,
+      chat_type,
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+
+    if (message.sender_id !== sender_id) {
+      return res.status(403).json({
+        error: "You can only edit your own messages"
+      });
+    }
+
+    const nonEditableTypes = ["system", "approval_request", "order"];
+    if (nonEditableTypes.includes(message.message_type)) {
+      return res.status(403).json({
+        error: `Cannot edit ${message.message_type} messages`
+      });
+    }
+
+    if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
+      return res.status(400).json({
+        error: "Please refrain from sharing personal information!"
+      });
+    }
+
+    if (checkProfanity(new_content)) {
+      return res.status(400).json({
+        error: "Please refrain from using abusive words!"
+      });
+    }
+
+    const now = new Date();
+    message.message_content = new_content;
+    message.is_edited = true;
+    message.edited_at = now;
+
+    const updatedMessage = await message.save();
+
+    // Emit to all clients in the room via Socket.IO
+    const io = req.io;
+    if (io) {
+      const roomId = `${chat_id}-${chat_type}`;
+      io.to(roomId).emit("message_edited", {
+        message_id: updatedMessage.message_id,
+        chat_id: updatedMessage.chat_id,
+        chat_type: updatedMessage.chat_type,
+        new_content: updatedMessage.message_content,
+        is_edited: true,
+        edited_at: updatedMessage.edited_at,
+        sender: updatedMessage.sender,
+        sender_id: updatedMessage.sender_id,
+      });
+      console.log(`✏️ [REST API] Emitted message_edited to room ${roomId}`);
+    } else {
+      console.warn("⚠️ Socket.IO instance not available in editMessage controller");
+    }
+
+    return res.status(200).json({
+      message: "Message edited successfully",
+      data: {
+        message_id: updatedMessage.message_id,
+        chat_id: updatedMessage.chat_id,
+        chat_type: updatedMessage.chat_type,
+        new_content: updatedMessage.message_content,
+        is_edited: updatedMessage.is_edited,
+        edited_at: updatedMessage.edited_at,
+        sender: updatedMessage.sender,
+        sender_id: updatedMessage.sender_id,
+      },
+    });
+  } catch (error) {
+    console.error("Error editing message:", error);
+    return res.status(500).json({
+      error: "Failed to edit message",
+      details: error.message
+    });
+  }
+};

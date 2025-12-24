@@ -28,7 +28,7 @@ const vendorNotificationsSchema = new Schema({
   notification_type: {
     type: String,
     required: true,
-    enum: ['chat_message', 'checkout_message']
+    enum: ['chat_message', 'checkout_message', "message_reminder" ]
   },
   message: {
     type: String,

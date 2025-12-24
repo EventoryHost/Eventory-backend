@@ -3,8 +3,8 @@ import { Events } from "../models/events.js";
 import customerNotification from "../models/customerNotifications.js";
 import vendorNotification from "../models/vendorNotifications.js";
 import adminNotification from "../models/emNotifications.js";
-import Chat2 from "../models/chats.js";
-import Message2 from "../models/message2.js";
+import Chat from "../models/chats.js";
+import Message from "../models/message2.js";
 import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 
 export const createOrUpdateFinalOrder = async (req, res) => {
@@ -33,7 +33,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
 
     // DELETE OLD APPROVAL MESSAGES FOR NEW NEGOTIATION
     if (!skipClean) {
-      const deletedMessages = await Message2.deleteMany({
+      const deletedMessages = await Message.deleteMany({
         chat_id: quotation_id,
         message_type: "approval_request",
       });
@@ -217,7 +217,7 @@ export const approveFinalOrder = async (req, res) => {
       });
 
       try {
-        const vendorAdminChat = await Chat2.findOne({
+        const vendorAdminChat = await Chat.findOne({
           chat_id: order.quotation_id,
           chat_type: "vendor-admin",
         });
@@ -227,7 +227,7 @@ export const approveFinalOrder = async (req, res) => {
           await vendorAdminChat.save();
         }
 
-        const customerAdminChat = await Chat2.findOne({
+        const customerAdminChat = await Chat.findOne({
           chat_id: order.quotation_id,
           chat_type: "customer-admin",
         });
@@ -627,7 +627,7 @@ export const deleteApprovalForOrder = async (req, res) => {
     }
 
     // Delete approval messages (both vendor-admin & customer-admin)
-    const deletedMessages = await Message2.deleteMany({
+    const deletedMessages = await Message.deleteMany({
       chat_id: quotation_id,
       message_type: "approval_request",
     });

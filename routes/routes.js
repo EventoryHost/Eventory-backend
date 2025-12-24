@@ -40,6 +40,7 @@ import customerNotificationRoutes from "../routes/customerNotificationRoutes.js"
 import invoiceRoutes from "../routes/invoiceRoutes.js";
 import deviceTokenRoutes from "../routes/deviceTokenRoutes.js";
 import whatsappRoutes from "../routes/whatsappRoutes.js";
+import notificationApiRoutes from "../routes/notificationApiRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -53,7 +54,7 @@ router.use("/email", emailRoutes);
 router.use("/about-email", aboutEmailRoutes);
 router.use("/files", fileRoutes);
 router.use("/quotations", quotationRoutes(io));
-router.use("/chats", chatRoutes);
+router.use("/chats", chatRoutes(io));
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);
@@ -82,6 +83,7 @@ router.use("/vendor-edit", vendorEditRoutes);
 router.use("/vendor-notifications", vendorNotificationRoutes);
 router.use("/em-notifications", emNotificationRoutes);
 router.use("/customer-notifications", customerNotificationRoutes);
+router.use("/notifications", notificationApiRoutes);
 router.use("/invoices", invoiceRoutes);
 router.use("/device-tokens", deviceTokenRoutes);
 router.use("/webhook", waRoutes);

@@ -15,7 +15,7 @@ import { checkMakeupArtistProfileCompletion } from "../utils/completionUtils/mak
 import { checkDjArtistProfileCompletion } from "../utils/completionUtils/djCompletionUtils.js";
 
 import { Calendar } from "../models/calendar.js";
-import Chat2 from "../models/chats.js";
+import Chat from "../models/chats.js";
 import { Events } from "../models/events.js";
 import Orders from "../models/orders.js";
 import Quotations from "../models/quotations.js";
@@ -1242,7 +1242,7 @@ export const deleteServiceProfile = async (req, res) => {
     await Calendar.deleteMany({ service_id: serviceId }, { session });
 
     // Delete all chat threads where this service is involved
-    await Chat2.deleteMany({ service_id: serviceId }, { session });
+    await Chat.deleteMany({ service_id: serviceId }, { session });
 
     // Delete all event/booking records created for this service
     await Events.deleteMany({ service_id: serviceId }, { session });
