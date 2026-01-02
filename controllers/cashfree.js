@@ -250,7 +250,7 @@ function buildPayoutsHeaders() {
     clientId,
     process.env.CASHFREE_PUBLIC_KEY,
     timestamp
-  );  
+  );
 
   return {
     "Content-Type": "application/json",
@@ -347,10 +347,7 @@ const verifyCustomerPayment = async (req, res) => {
     if (!customerDoc) {
       return res.status(404).json({ error: "Customer not found" });
     }
-    //Now bank account resides in the respective service collection.
-    // if (!vendorDoc.bankDetails || vendorDoc.bankDetails.length === 0) {
-    //   return res.status(400).json({ error: "Vendor bank details missing" });
-    // }
+
 
     const ServiceModel = getServiceModelById(service_id);
     if (!ServiceModel) {
@@ -382,43 +379,43 @@ const verifyCustomerPayment = async (req, res) => {
       await serviceDoc.save();
     }
 
-    // const payoutsBase = process.env.IS_DEV === "true"
-    //   ? "https://sandbox.cashfree.com/payout"
-    //   : "https://api.cashfree.com/payout";
-    // const headers = buildPayoutsHeaders();
+    const payoutsBase = process.env.IS_DEV === "true"
+      ? "https://sandbox.cashfree.com/payout"
+      : "https://api.cashfree.com/payout";
+    const headers = buildPayoutsHeaders();
 
-    // const getBeneUrl = `${payoutsBase}/beneficiary`;
-    // let hasBeneficiary = false;
-    // try {
-    //   await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiaryId } });
-    //   hasBeneficiary = true;
-    // } catch (e) {
-    //   const status = e?.response?.status;
-    //   if (status !== 404) {
-    //     return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
-    //   }
-    // }
+    const getBeneUrl = `${payoutsBase}/beneficiary`;
+    let hasBeneficiary = false;
+    try {
+      await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
+      hasBeneficiary = true;
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status !== 404) {
+        return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
+      }
+    }
 
-    // if (!hasBeneficiary) {
-    //   const createBody = {
-    //     beneficiary_id: beneficiaryId,
-    //     beneficiary_name: primaryBank.accountName,
-    //     beneficiary_instrument_details: {
-    //       bank_account_number: primaryBank.accountNo,
-    //       bank_ifsc: primaryBank.ifscCode,
-    //     },
-    //     beneficiary_contact_details: {
-    //       beneficiary_email: vendorDoc.email || "noreply@example.com",
-    //       beneficiary_phone: (vendorDoc.mobile || "").replace(/\s+/g, ""),
-    //       beneficiary_country_code: "+91",
-    //     },
-    //   };
-    //   try {
-    //     await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
-    //   } catch (e) {
-    //     return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
-    //   }
-    // }
+    if (!hasBeneficiary) {
+      const createBody = {
+        beneficiary_id: beneficiary_id,
+        beneficiary_name: primaryBank.accountName,
+        beneficiary_instrument_details: {
+          bank_account_number: primaryBank.accountNo,
+          bank_ifsc: primaryBank.ifscCode,
+        },
+        beneficiary_contact_details: {
+          beneficiary_email: vendorDoc.email || "noreply@example.com",
+          beneficiary_phone: (vendorDoc.mobile || "").replace(/\s+/g, ""),
+          beneficiary_country_code: "+91",
+        },
+      };
+      try {
+        await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+      } catch (e) {
+        return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+      }
+    }
 
     const transfer_id = generateUniqueId("TRN");
 
@@ -452,34 +449,34 @@ const verifyCustomerPayment = async (req, res) => {
       },
     });
 
-    // const transferBody = {
-    //   transfer_id: transferId,
-    //   transfer_amount: payoutAmount,
-    //   beneficiary_details: { beneficiary_id: beneficiaryId },
-    // };
+    const transferBody = {
+      transfer_id: transfer_id,
+      transfer_amount: payoutAmount,
+      beneficiary_details: { beneficiary_id: beneficiary_id },
+    };
 
-    // let transferResp;
-    // try {
-    //   transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-    // } catch (e) {
-    //   await Transaction.findOneAndUpdate(
-    //     { transfer_id: transferId },
-    //     {
-    //       $set: {
-    //         status: "FAILED_INIT",
-    //         cf_transfer_id: null,
-    //         transfer_amount: payoutAmount,
-    //         transfer_mode: "IMPS",
-    //         added_on: undefined,
-    //         updated_on: new Date(),
-    //       },
-    //     },
-    //     { new: true }
-    //   );
-    //   return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
-    // }
+    let transferResp;
+    try {
+      transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+    } catch (e) {
+      await Transaction.findOneAndUpdate(
+        { transfer_id: transfer_id },
+        {
+          $set: {
+            status: "FAILED_INIT",
+            cf_transfer_id: null,
+            transfer_amount: payoutAmount,
+            transfer_mode: "IMPS",
+            added_on: undefined,
+            updated_on: new Date(),
+          },
+        },
+        { new: true }
+      );
+      return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+    }
 
-    // const transferData = transferResp?.data || {};
+    const transferData = transferResp?.data || {};
     await Transaction.findOneAndUpdate(
       { transfer_id },
       {
@@ -492,13 +489,13 @@ const verifyCustomerPayment = async (req, res) => {
           pgOrderId: order_id,                // FIX: camelCase
           pgStatus: payment.order_status,     // FIX: camelCase
           beneficiary_id,
-          // cf_transfer_id: transferData.cf_transfer_id || null,
-          // status: transferData.status || null,
-          // transfer_amount: transferData.transfer_amount ?? payoutAmount,
-          // transfer_mode: transferData.transfer_mode || "IMPS",
-          // transfer_utr: transferData.transfer_utr || null,
-          // added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-          // updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+          cf_transfer_id: transferData.cf_transfer_id || null,
+          status: transferData.status || null,
+          transfer_amount: transferData.transfer_amount ?? payoutAmount,
+          transfer_mode: transferData.transfer_mode || "IMPS",
+          transfer_utr: transferData.transfer_utr || null,
+          added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+          updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
           payment_type,
           paymentDetails: {
             customerPayable: {
