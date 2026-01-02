@@ -68,7 +68,7 @@ router.use("/review", reviewRoutes);
 router.use("/emadmin", emadminRoutes);
 router.use("/sales", salesRoutes);
 router.use("/vendors", Vendor);
-router.use("/final-orders", finalOrders);
+router.use("/final-orders", finalOrders(io));
 router.use("/agreements", agreementRoutes);
 router.use("/coupons", couponRoutes);
 router.use("/catering-details", catererPersistenceRoutes);
