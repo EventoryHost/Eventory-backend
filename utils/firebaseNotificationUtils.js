@@ -28,16 +28,6 @@ async function sendFCMNotification(messageOptions) {
   try {
     // Initialize Firebase if not already done
     const admin = initializeFirebase();
-    
-    // Check if Firebase is initialized
-    if (!admin) {
-      console.warn('Firebase is not initialized. Skipping FCM notification.');
-      return {
-        success: false,
-        error: 'Firebase not initialized',
-        skipped: true
-      };
-    }
 
     // Validate required parameters
     if (!messageOptions.token && !messageOptions.topic && !messageOptions.condition) {
@@ -144,16 +134,6 @@ async function sendFCMNotifications(messageOptions) {
     }
 
     const admin = initializeFirebase();
-    
-    // Check if Firebase is initialized
-    if (!admin) {
-      console.warn('Firebase is not initialized. Skipping FCM notifications.');
-      return {
-        success: false,
-        error: 'Firebase not initialized',
-        skipped: true
-      };
-    }
 
     // Create multicast message
     const multicastMessage = {};
