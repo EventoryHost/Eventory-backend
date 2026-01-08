@@ -15,7 +15,14 @@ import {
   deleteApprovalForOrder,
 } from "../controllers/finalOrderController.js";
 
-const router = express.Router();
+export default function finalOrdersRoutes(io) {
+  const router = express.Router();
+
+  // Middleware to attach io to all requests
+  router.use((req, res, next) => {
+    req.io = io;
+    next();
+  });
 
 router.post("/finalOrder", createOrUpdateFinalOrder);
 router.get("/finalOrder", getAllFinalOrders);
@@ -31,4 +38,5 @@ router.get("/finalOrder/:order_id", getOrderById);
 router.delete("/finalOrder/:order_id", deleteFinalOrder);
 router.delete("/delete-approval", deleteApprovalForOrder);
 
-export default router;
+  return router;
+}
