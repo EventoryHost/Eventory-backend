@@ -1,7 +1,7 @@
 import DjArtist from "../../models/djArtist.js";
 import { Vendor } from "../../models/vendor.js";
 import { sendEmailToSlack } from "../sesController.js";
-import generateUniqueId from "../../utils/generateId2.js";
+import generateUniqueId from "../../utils/generateId.js";
 import { DjArtistReduxModel } from "../../models/reduxModels/djArtist.js";
 
 // Helpers

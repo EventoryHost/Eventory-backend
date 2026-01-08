@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -60,7 +60,7 @@ reviewsSchema.index({ customer_id: 1 });
 reviewsSchema.index({ rating: -1 });
 
 // Pre-save middleware
-reviewsSchema.pre('save', function(next) {
+reviewsSchema.pre('save', function (next) {
   // Ensure rating is within bounds
   if (this.rating < 1) this.rating = 1;
   if (this.rating > 5) this.rating = 5;

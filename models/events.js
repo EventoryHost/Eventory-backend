@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 import Counter from "./counter.model.js";
 
 // Event Cart Schema according to ERD
 const cartItemSchema = new mongoose.Schema({
   entity: {
     type: String
-  }, 
+  },
   name_of_service: {
     type: String,
     required: true
@@ -73,7 +73,7 @@ const eventsSchema = new mongoose.Schema({
   quotation_id: {
     type: String
   },
-  em_id :{
+  em_id: {
     type: String
   },
   event_type: {
@@ -84,7 +84,7 @@ const eventsSchema = new mongoose.Schema({
     required: true,
     enum: ['INDOOR', 'OUTDOOR'],
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return ['INDOOR', 'OUTDOOR'].includes(v);
       },
       message: 'Location type must be either INDOOR (vendor visits customer) or OUTDOOR (customer visits vendor)'
@@ -98,7 +98,7 @@ const eventsSchema = new mongoose.Schema({
     type: Date,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v instanceof Date && !isNaN(v);
       },
       message: 'Event start date must be a valid date'
@@ -107,7 +107,7 @@ const eventsSchema = new mongoose.Schema({
   event_end: {
     type: Date,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v instanceof Date && !isNaN(v) && v > this.event_start;
       },
       message: 'Event end date must be after event start date'
@@ -144,7 +144,7 @@ const eventsSchema = new mongoose.Schema({
     required: true,
     min: 0,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v >= 0;
       },
       message: 'Final amount must be non-negative'
@@ -166,7 +166,7 @@ const eventsSchema = new mongoose.Schema({
   vendor_manager_contact_number: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true; // Allow empty
         return /^[6-9]\d{9}$/.test(v);
       },
@@ -176,7 +176,7 @@ const eventsSchema = new mongoose.Schema({
   vendor_manager_contact_email: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true;
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
@@ -186,7 +186,7 @@ const eventsSchema = new mongoose.Schema({
   customer_contact_number: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true; // Allow empty
         return /^[6-9]\d{9}$/.test(v);
       },
@@ -196,7 +196,7 @@ const eventsSchema = new mongoose.Schema({
   customer_contact_email: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true;
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
@@ -226,8 +226,8 @@ const eventsSchema = new mongoose.Schema({
   },
   payment_details: {
     customerPayable: {
-      total: { type: Number, default: 0 },                
-      baseAmount: { type: Number, default: 0 },           
+      total: { type: Number, default: 0 },
+      baseAmount: { type: Number, default: 0 },
       convenienceFee: { type: Number, default: 0 },
       taxOnConvenience: { type: Number, default: 0 },
       convenienceFeeBefore: { type: Number, default: 0 },
@@ -319,7 +319,7 @@ eventsSchema.pre("save", async function (next) {
     try {
       const counter = await Counter.findOneAndUpdate(
         { id: "event_number" },
-        { $inc: { seq: 1} },
+        { $inc: { seq: 1 } },
         { new: true, upsert: true } // create if doesn't exist
       );
 
@@ -332,28 +332,28 @@ eventsSchema.pre("save", async function (next) {
   next();
 });
 // Pre-save middleware to update event_updated_at on every save
-eventsSchema.pre('save', function(next) {
+eventsSchema.pre('save', function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     this.event_updated_at = new Date(now.getTime() + istOffset);
   }
-  
+
   // Basic validation only
   if (this.already_paid_amount > this.final_amount) {
     return next(new Error('Already paid amount cannot exceed final amount'));
   }
-  
+
   if (this.advance_amount_paid > this.final_amount) {
     return next(new Error('Advance amount cannot exceed final amount'));
   }
-  
+
   next();
 });
 
 // Pre-update middleware to update event_updated_at on updates
-eventsSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+eventsSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;

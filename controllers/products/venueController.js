@@ -7,7 +7,7 @@ import { Caterer } from "../../models/caterer.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../../controllers/sesController.js";
 import { ReduxVenueProviderModel } from "../../models/reduxModels/venueProvider.js";
-import generateUniqueId from "../../utils/generateId2.js";
+import generateUniqueId from "../../utils/generateId.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -63,20 +63,20 @@ export function normalizeVideos(input) {
 }
 
 const checkCompletion = (section) => {
-    if (!section || typeof section !== "object") return false; // Validate input
-  
-    return Object.keys(section).every((key) => {
-      const value = section[key];
-  
-      // Check if the value is an array and not empty
-      if (Array.isArray(value)) {
-        return value.length > 0;
-      }
-  
-      // Check if the value is non-empty for other types
-      return value !== undefined && value !== null && value !== "";
-    });
-  };
+  if (!section || typeof section !== "object") return false; // Validate input
+
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+
+    // Check if the value is an array and not empty
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    // Check if the value is non-empty for other types
+    return value !== undefined && value !== null && value !== "";
+  });
+};
 
 const updateSectionCompletion = async (venId) => {
   try {
@@ -141,60 +141,60 @@ const createVenue = async (req, res) => {
     const asset_videos = normalizeVideos(rawVideos);   // [string]
 
     const fieldsToCheck = [
-        req.body.business_name,
-        req.body.business_email,
-        req.body.business_contact_number,
-        req.body.business_address,
-        req.body.business_description,
-        req.body.pan_number,
-        req.body.category,
-        req.body.service_type,
-        req.body.business_registration_name,
-        req.body.gst,
-        req.body.verification_type,
-        req.body.team_size,
-        req.body.years_of_operation,
-        req.body.annual_revenue,
-        req.body.annual_bookings,
-        req.body.pincode,
-        req.body.bank_name,
-        req.body.account_type,
-        req.body.account_number,
-        req.body.ifsc,
-        req.body.service_id,
-        req.body.vendor_id,
-        req.body.point_of_contact,
-        req.body.service_contact_number,
-        req.body.description,
-        req.body.min_booking_capacity,
-        req.body.max_booking_capacity,
-        req.body.venue_name,
-        req.body.service_type_details?.length > 0,
-        req.body.event_types_venue?.length > 0,
-        req.body.lat,
-        req.body.lon,
-        req.body.service_opening_time,
-        req.body.service_closing_time,
-        req.body.service_pincode,
-        req.body.google_map_link,
-        req.body.in_house_catering,
-        req.body.in_house_decoration,
-        req.body.venue_types_available?.length > 0,
-        req.body.av_eqp_available_at_venue?.length > 0,
-        req.body.accessibility_features_of_venue?.length > 0,
-        req.body.restriction_policies_on_venue?.length > 0,
-        req.body.special_features_in_venue?.length > 0,
-        req.body.fascilities_at_venue?.length > 0,
-        req.body.asset_images?.length > 0,
-        req.body.asset_videos?.length > 0,
-        req.body.min_booking_period,
-        req.body.max_booking_period,
-        req.body.prices_starts_from,
-        req.body.ig_socials_link,
-        req.body.web_social_link,
-        req.body.cancellation_policy,
-        req.body.terms_and_conditions,
-      ];
+      req.body.business_name,
+      req.body.business_email,
+      req.body.business_contact_number,
+      req.body.business_address,
+      req.body.business_description,
+      req.body.pan_number,
+      req.body.category,
+      req.body.service_type,
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.verification_type,
+      req.body.team_size,
+      req.body.years_of_operation,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
+      req.body.pincode,
+      req.body.bank_name,
+      req.body.account_type,
+      req.body.account_number,
+      req.body.ifsc,
+      req.body.service_id,
+      req.body.vendor_id,
+      req.body.point_of_contact,
+      req.body.service_contact_number,
+      req.body.description,
+      req.body.min_booking_capacity,
+      req.body.max_booking_capacity,
+      req.body.venue_name,
+      req.body.service_type_details?.length > 0,
+      req.body.event_types_venue?.length > 0,
+      req.body.lat,
+      req.body.lon,
+      req.body.service_opening_time,
+      req.body.service_closing_time,
+      req.body.service_pincode,
+      req.body.google_map_link,
+      req.body.in_house_catering,
+      req.body.in_house_decoration,
+      req.body.venue_types_available?.length > 0,
+      req.body.av_eqp_available_at_venue?.length > 0,
+      req.body.accessibility_features_of_venue?.length > 0,
+      req.body.restriction_policies_on_venue?.length > 0,
+      req.body.special_features_in_venue?.length > 0,
+      req.body.fascilities_at_venue?.length > 0,
+      req.body.asset_images?.length > 0,
+      req.body.asset_videos?.length > 0,
+      req.body.min_booking_period,
+      req.body.max_booking_period,
+      req.body.prices_starts_from,
+      req.body.ig_socials_link,
+      req.body.web_social_link,
+      req.body.cancellation_policy,
+      req.body.terms_and_conditions,
+    ];
 
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profile_completion_score =
@@ -495,7 +495,7 @@ export const getVenueReviews = async (req, res) => {
 export const getVenueById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Calculate completion before fetching
     const { checkVenueProfileCompletion } = await import("../../utils/completionUtils/venueCompletionUtils.js");
     try {
@@ -504,7 +504,7 @@ export const getVenueById = async (req, res) => {
       console.warn("Error calculating venue completion:", completionError);
       // Continue even if completion calculation fails
     }
-    
+
     const venue = await VenueProvider.findOne({ service_id: id });
 
     if (!venue) {
