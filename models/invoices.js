@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 // Counter Schema for auto-incremental invoice numbers
 const counterSchema = new mongoose.Schema({
@@ -79,7 +79,7 @@ invoicesSchema.index({ type: 1 });
 invoicesSchema.index({ invoice_created_at: -1 });
 
 // Pre-save middleware
-invoicesSchema.pre('save', async function(next) {
+invoicesSchema.pre('save', async function (next) {
   try {
     // Generate auto-incremental invoice number for new documents
     if (this.isNew && !this.invoice_no) {
@@ -90,16 +90,16 @@ invoicesSchema.pre('save', async function(next) {
     if (this.type === 'registration' && this.customer_id) {
       return next(new Error('Customer ID should be null for registration type invoices'));
     }
-    
+
     if (this.type !== 'registration' && !this.customer_id) {
       return next(new Error('Customer ID is required for non-registration invoices'));
     }
-    
+
     // Validation: event_id should be null for registration type
     if (this.type === 'registration' && this.event_id) {
       return next(new Error('Event ID should be null for registration type invoices'));
     }
-    
+
     next();
   } catch (error) {
     next(error);

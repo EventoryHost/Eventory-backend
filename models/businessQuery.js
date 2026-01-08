@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -31,7 +31,7 @@ const businessQuerySchema = new Schema({
   sender_email: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
       message: 'Invalid email format'
@@ -70,7 +70,7 @@ const businessQuerySchema = new Schema({
 });
 
 // Pre-save middleware to update query_updated_at on every save
-businessQuerySchema.pre('save', function(next) {
+businessQuerySchema.pre('save', function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
@@ -81,7 +81,7 @@ businessQuerySchema.pre('save', function(next) {
 });
 
 // Pre-update middleware to update query_updated_at on updates
-businessQuerySchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+businessQuerySchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;

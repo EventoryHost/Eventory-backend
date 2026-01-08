@@ -1,5 +1,5 @@
 import { Schema as _Schema, model } from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = _Schema;
 
@@ -37,9 +37,9 @@ const vendorSchema = new Schema({
     service_status: {
       type: String,
       required: true,
-      default : "Inactive"
-  }
-  }, {_id: false}],
+      default: "Inactive"
+    }
+  }, { _id: false }],
   coupons_used: [{
     type: String
   }],
@@ -75,7 +75,7 @@ const vendorSchema = new Schema({
 });
 
 // Pre-save middleware to update vendor_updated_at on every save
-vendorSchema.pre('save', function(next) {
+vendorSchema.pre('save', function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
@@ -86,7 +86,7 @@ vendorSchema.pre('save', function(next) {
 });
 
 // Pre-update middleware to update vendor_updated_at on updates
-vendorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+vendorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -95,14 +95,14 @@ vendorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next)
 });
 
 // Method to update last_coupon_used_at when a coupon is used
-vendorSchema.methods.useCoupon = function(couponCode) {
+vendorSchema.methods.useCoupon = function (couponCode) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
-  
+
   this.coupons_used.push(couponCode);
   this.last_coupon_used_at = new Date(now.getTime() + istOffset);
-  
+
   return this.save();
 };
 
@@ -115,7 +115,7 @@ vendorSchema.index({ email_address: 1 });
 
 const Vendor = model("Vendor", vendorSchema);
 
-export { 
-  Vendor, 
+export {
+  Vendor,
   vendorSchema
 };

@@ -1,7 +1,7 @@
 import mongoose, { Schema as _Schema, model } from "mongoose";
 import { bankDetailsSchema } from "./bankDetails.js";
 import { businessDetailsSchema } from "./businessDetails.js";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 const Schema = _Schema;
 
 // Service Location Schema for DJ Artist

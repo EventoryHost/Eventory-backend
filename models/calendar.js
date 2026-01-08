@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 // Calendar Schema according to ERD
 const calendarSchema = new mongoose.Schema({
@@ -7,7 +7,7 @@ const calendarSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    default: function() {
+    default: function () {
       // If event_source is eventory, use EVTY prefix, else use EXTY prefix
       const prefix = this.event_source === 'EVENTORY' ? 'EVTY' : 'EXTY';
       return generateUniqueId(prefix);
@@ -30,7 +30,7 @@ const calendarSchema = new mongoose.Schema({
     type: Date,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v instanceof Date && !isNaN(v);
       },
       message: 'Event start date must be a valid date'
@@ -40,7 +40,7 @@ const calendarSchema = new mongoose.Schema({
     type: Date,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v instanceof Date && !isNaN(v) && v > this.event_start;
       },
       message: 'Event end date must be after event start date'
@@ -52,7 +52,7 @@ const calendarSchema = new mongoose.Schema({
   event_type: {
     type: String,
     required: true,
-    enum: ['booked','upcoming', 'ongoing', 'completed', 'cancelled'],
+    enum: ['booked', 'upcoming', 'ongoing', 'completed', 'cancelled'],
     default: 'upcoming'
   },
   event_highlight: {
@@ -83,7 +83,7 @@ const calendarSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware to update event_updated_at on every save
-calendarSchema.pre('save', function(next) {
+calendarSchema.pre('save', function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
@@ -94,7 +94,7 @@ calendarSchema.pre('save', function(next) {
 });
 
 // Pre-update middleware to update event_updated_at on updates
-calendarSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+calendarSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -103,9 +103,9 @@ calendarSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(nex
 });
 
 // Pre-save middleware to automatically update event_type based on dates
-calendarSchema.pre('save', function(next) {
+calendarSchema.pre('save', function (next) {
   const now = new Date();
-  
+
   if (this.event_type !== 'cancelled') {
     if (this.event_end < now) {
       this.event_type = 'completed';
@@ -115,7 +115,7 @@ calendarSchema.pre('save', function(next) {
       this.event_type = 'upcoming';
     }
   }
-  
+
   next();
 });
 

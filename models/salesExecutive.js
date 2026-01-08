@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -22,7 +22,7 @@ const salesExecutiveSchema = new Schema({
   profile_photo: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true;
         return /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
       },
@@ -42,7 +42,7 @@ const salesExecutiveSchema = new Schema({
   contact_number: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true;
         return /^[6-9]\d{9}$/.test(v);
       },
@@ -62,12 +62,12 @@ const salesExecutiveSchema = new Schema({
 salesExecutiveSchema.index({ contact_number: 1 });
 
 // Pre-save middleware
-salesExecutiveSchema.pre('save', function(next) {
+salesExecutiveSchema.pre('save', function (next) {
   // Ensure contact_number doesn't have any spaces or special characters
   if (this.contact_number) {
     this.contact_number = this.contact_number.replace(/[\s\-\(\)]/g, '');
   }
-  
+
   next();
 });
 

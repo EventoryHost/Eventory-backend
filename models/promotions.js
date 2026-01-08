@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -20,17 +20,17 @@ const promotionsSchema = new Schema({
     type: String,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[6-9]\d{9}$/.test(v);
       },
       message: 'Invalid mobile number format'
     }
     // mobile_no
   },
-is_promotions_stopped: {
-  type: Boolean,
-  default: false
-},
+  is_promotions_stopped: {
+    type: Boolean,
+    default: false
+  },
   promotions_stopped_at: {
     type: Date
     // Separate field as per ERD
@@ -76,12 +76,12 @@ promotionsSchema.index({ vendor_type: 1 });
 promotionsSchema.index({ last_sent_at: -1 });
 
 // Pre-save middleware
-promotionsSchema.pre('save', function(next) {
+promotionsSchema.pre('save', function (next) {
   // Ensure mobile number doesn't have any spaces or special characters
   if (this.promo_sent_to) {
     this.promo_sent_to = this.promo_sent_to.replace(/[\s\-\(\)]/g, '');
   }
-  
+
   next();
 });
 

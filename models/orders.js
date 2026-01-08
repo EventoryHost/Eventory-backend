@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -115,7 +115,7 @@ const ordersSchema = new Schema({
     required: true
     // Customer's name for which booking has been placed
   },
-  customer_id : {
+  customer_id: {
     type: String,
     required: true
     // Customer's id for which booking has been placed
@@ -123,7 +123,7 @@ const ordersSchema = new Schema({
   event_start: {
     type: Date,
     required: true,
-    set: function(value) {
+    set: function (value) {
       if (value instanceof Date) {
         // Convert to IST (UTC+5:30) if it's a Date object
         const istOffset = 5.5 * 60 * 60 * 1000;
@@ -136,7 +136,7 @@ const ordersSchema = new Schema({
   event_end: {
     type: Date,
     required: true,
-    set: function(value) {
+    set: function (value) {
       if (value instanceof Date) {
         // Convert to IST (UTC+5:30) if it's a Date object
         const istOffset = 5.5 * 60 * 60 * 1000;
@@ -145,7 +145,7 @@ const ordersSchema = new Schema({
       return value;
     },
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v instanceof Date && !isNaN(v) && v > this.event_start;
       },
       message: 'Event end date must be after event start date'
@@ -219,7 +219,7 @@ const ordersSchema = new Schema({
     type: String,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
       message: 'Invalid email format'
@@ -235,7 +235,7 @@ const ordersSchema = new Schema({
     type: String,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
       message: 'Invalid email format'
@@ -275,26 +275,26 @@ const ordersSchema = new Schema({
 });
 
 // Pre-save middleware to update order_updated_at on every save
-ordersSchema.pre('save', function(next) {
+ordersSchema.pre('save', function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     this.order_updated_at = new Date(now.getTime() + istOffset);
   }
-  
+
   // Update order status based on approvals
   if (this.vendor_approval && this.customer_approval) {
     this.order_status = 'approved';
   } else if (this.vendor_approval || this.customer_approval) {
     this.order_status = 'semi-approved';
   }
-  
+
   next();
 });
 
 // Pre-update middleware to update order_updated_at on updates
-ordersSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+ordersSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;

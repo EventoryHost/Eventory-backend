@@ -240,25 +240,26 @@ const getPaymentSession = async (req, res) => {
   }
 };
 
+
+
 function buildPayoutsHeaders() {
-  const payoutsClientId = process.env.CASHFREE_CLIENT_ID_PAYOUTS; // set in env
-  const payoutsSecret = process.env.CASHFREE_CLIENT_SECRET_PAYOUTS; // set in env
-  const rawKey = process.env.CASHFREE_PUBLIC_KEY_PAYOUTS.replace(/\n/g, "\n").trim();
-  const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+  const payoutsClientId = process.env.CASHFREE_CLIENT_ID; // set in env
+  const payoutsSecret = process.env.CASHFREE_CLIENT_SECRET; // set in env
+  const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = generateSignature(
-    clientId,
-    process.env.CASHFREE_PUBLIC_KEY,
+    payoutsClientId,
+    publicKey,
     timestamp
   );
+
 
   return {
     "Content-Type": "application/json",
     "x-api-version": "2024-01-01",
-    "x-client-id": payoutsClientId,
-    "x-client-secret": payoutsSecret,
-    "x-cf-signature": signature, // header name per your 2FA setup
-    "x-cf-timestamp": String(timestamp), // send timestamp used for signature
+    "x-client-id": `${payoutsClientId}`,
+    "x-client-secret": `${payoutsSecret}`,
+    "x-cf-signature": `${signature}`,
   };
 }
 
@@ -382,13 +383,15 @@ const verifyCustomerPayment = async (req, res) => {
     const payoutsBase = process.env.IS_DEV === "true"
       ? "https://sandbox.cashfree.com/payout"
       : "https://api.cashfree.com/payout";
+
     const headers = buildPayoutsHeaders();
 
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
     try {
-      await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
+      const beneficiary = await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
       hasBeneficiary = true;
+      console.log(beneficiary.data);
     } catch (e) {
       const status = e?.response?.status;
       if (status !== 404) {
@@ -396,24 +399,31 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
+    console.log(vendorDoc)
+
     if (!hasBeneficiary) {
       const createBody = {
         beneficiary_id: beneficiary_id,
-        beneficiary_name: primaryBank.accountName,
+        beneficiary_name: vendorName,
         beneficiary_instrument_details: {
-          bank_account_number: primaryBank.accountNo,
-          bank_ifsc: primaryBank.ifscCode,
+          bank_account_number: primaryBank.account_number,
+          bank_ifsc: primaryBank.ifsc,
         },
         beneficiary_contact_details: {
           beneficiary_email: vendorDoc.email || "noreply@example.com",
-          beneficiary_phone: (vendorDoc.mobile || "").replace(/\s+/g, ""),
+          beneficiary_phone: (vendorDoc.vendor_mobile || "").replace(/\D/g, "").slice(-10),
           beneficiary_country_code: "+91",
         },
       };
       try {
-        await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+        console.log("Creating beneficiary:", createBody);
+        console.log("Headers:", headers);
+        console.log(payoutsBase)
+        const beneficiary = await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+        console.log(beneficiary.data);
       } catch (e) {
-        return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+        console.error("Error creating beneficiary:", e.message);
+        return res.status(500).json({ error: "Failed to create beneficiary", details: e.message });
       }
     }
 
@@ -453,11 +463,13 @@ const verifyCustomerPayment = async (req, res) => {
       transfer_id: transfer_id,
       transfer_amount: payoutAmount,
       beneficiary_details: { beneficiary_id: beneficiary_id },
+      transfer_mode: "imps",
     };
 
     let transferResp;
     try {
       transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+      console.log(transferResp.data);
     } catch (e) {
       await Transaction.findOneAndUpdate(
         { transfer_id: transfer_id },
@@ -473,6 +485,7 @@ const verifyCustomerPayment = async (req, res) => {
         },
         { new: true }
       );
+      console.log(e.response.data);
       return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
     }
 
@@ -755,8 +768,15 @@ const verifyCustomerPayment = async (req, res) => {
     };
     const { date, time } = formatDateTimeForDisplay(finalOrder.event_start);
     const venue = finalOrder.event_location;
-    const customerLink = `https://eventory.in/customerbookingnew/${event_id}`;
-    const vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
+    var customerLink = `https://eventory.in/customerbookingnew/${event_id}`;
+    var vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
+
+    if (process.env.IS_LOCAL === "true") {
+      customerLink = `http://localhost:3000/customerbookingnew/${event_id}`;
+      vendorLink = "http://localhost:3000/dashboard?q=Manage%20Bookings";
+    }
+
+    console.log(customerLink, vendorLink);
 
     const customerPayload = {
       id: customerDoc.customer_id,
@@ -826,6 +846,7 @@ const verifyCustomerPayment = async (req, res) => {
       MessageBody: JSON.stringify(sqsMessage),
     }));
 
+    console.log("Invoice generated successfully");
     return res.status(200).json({ message: "Customer payment verified", payment, event_id });
   } catch (error) {
     return res.status(500).json({ error: error.message });

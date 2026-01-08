@@ -679,17 +679,15 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       event_id: eventId,
     });
 
-    if (paymentType != "remaining") {
-      if (customer.mobile) {
-        await sendCustomerEventBookingMessage(
-          custInvoiceUrl,
-          customer.mobile,
-          paymentDetails.date,
-          paymentDetails.time,
-          paymentDetails.venue,
-          paymentDetails.customerLink
-        );
-      }
+    if (customer.mobile) {
+      await sendCustomerEventBookingMessage(
+        custInvoiceUrl,
+        customer.mobile,
+        paymentDetails.date,
+        paymentDetails.time,
+        paymentDetails.venue,
+        paymentDetails.customerLink
+      );
     }
 
     // ---------- VENDOR INVOICE PDF ----------
@@ -813,17 +811,15 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       event_id: eventId,
     });
 
-    if (paymentType != "remaining") {
-      if (vendor.mobile) {
-        await sendVendorEventBookingMessage(
-          venInvoiceUrl,
-          vendor.mobile,
-          paymentDetails.date,
-          paymentDetails.time,
-          paymentDetails.venue,
-          paymentDetails.vendorLink
-        );
-      }
+    if (vendor.mobile) {
+      await sendVendorEventBookingMessage(
+        venInvoiceUrl,
+        vendor.mobile,
+        paymentDetails.date,
+        paymentDetails.time,
+        paymentDetails.venue,
+        paymentDetails.vendorLink
+      );
     }
   } catch (err) {
     try {

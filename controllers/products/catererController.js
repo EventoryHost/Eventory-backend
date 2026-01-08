@@ -2,7 +2,7 @@ import { Caterer } from "../../models/caterer.js";
 import { ReduxCatererModel } from "../../models/reduxModels/caterer.js";
 import { Vendor } from "../../models/vendor.js";
 
-import generateUniqueId from "../../utils/generateId2.js";
+import generateUniqueId from "../../utils/generateId.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
 
@@ -364,13 +364,13 @@ const getAllCaterers = async (req, res) => {
 const getCatererById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const caterer = await Caterer.findOne({ service_id: id });
-    
+
     if (!caterer) {
       return res.status(404).json({ message: "Caterer not found" });
     }
-    
+
     res.status(200).json(caterer);
   } catch (e) {
     res.status(400).json({ message: e.message });

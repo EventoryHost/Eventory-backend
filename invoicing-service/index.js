@@ -24,16 +24,18 @@ async function pollSQS() {
       const command = new ReceiveMessageCommand({
         QueueUrl: queueUrl,
         MaxNumberOfMessages: 1,
-        WaitTimeSeconds: 20,
+        WaitTimeSeconds: 5,
         VisibilityTimeout: 300,
       });
 
       const data = await sqs.send(command);
 
+      console.log("Received SQS message:", data.Messages);
       if (data.Messages) {
         console.log(`Processing ${data.Messages.length} message(s)`);
 
         for (const message of data.Messages) {
+          console.log("Received SQS message:", message.Body);
           const body = JSON.parse(message.Body);
           const messageType = body.type;
 
@@ -46,14 +48,14 @@ async function pollSQS() {
                 throw new Error("Invalid vendor onboarded message: missing customer or paymentDetails");
               }
               await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
-              
+
             } else if (messageType === 2) {
               // Agreement generation
               if (!body.serviceType || !body.vendorId || !body.agreementData) {
                 throw new Error("Invalid agreement message: missing serviceType, vendorId, or agreementData");
               }
               await generateAndStoreAgreement(body.serviceType, body.vendorId, body.agreementData);
-              
+
             } else {
               await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
             }

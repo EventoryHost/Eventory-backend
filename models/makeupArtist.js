@@ -1,13 +1,13 @@
 import mongoose, { Schema as _Schema, model } from "mongoose";
 import { bankDetailsSchema } from "./bankDetails.js";
 import { businessDetailsSchema } from "./businessDetails.js";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = _Schema;
 
 // Service Location Schema for Makeup Artist
 const serviceLocationMakeupSchema = new Schema({
-  service_address:{
+  service_address: {
     type: String
   },
   lat: {
@@ -30,7 +30,7 @@ const serviceLocationMakeupSchema = new Schema({
     type: Number,
     required: false,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (v === undefined || v === null) return true;
         return /^\d{6}$/.test(String(v));
       },
@@ -195,7 +195,7 @@ const makeupArtistSchema = new Schema({
   bank_details: {
     type: bankDetailsSchema,
     required: false,
-    default: function() {
+    default: function () {
       return {};
     }
   },
@@ -241,7 +241,7 @@ const makeupArtistSchema = new Schema({
   collection: 'makeup-artists'
 });
 // Pre-save middleware to update makeup_artist_updated_at on every save
-makeupArtistSchema.pre('save', function(next) {
+makeupArtistSchema.pre('save', function (next) {
   if (!this.isNew) {
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -261,7 +261,7 @@ makeupArtistSchema.pre('save', function(next) {
 });
 
 // Pre-update middleware to update makeup_artist_updated_at on updates
-makeupArtistSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+makeupArtistSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);

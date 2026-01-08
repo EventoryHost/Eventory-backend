@@ -1,7 +1,7 @@
 import MakeupArtist from "../../models/makeupArtist.js";
 import { Vendor } from "../../models/vendor.js";
 import { MakeupArtistModel } from "../../models/reduxModels/makeupArtist.js";
-import generateUniqueId from "../../utils/generateId2.js";
+import generateUniqueId from "../../utils/generateId.js";
 import parseRange from "../../utils/parseRange.js";
 
 const getFileUrls = (files, fieldName) => {
@@ -278,7 +278,7 @@ const createMakeupArtist = async (req, res) => {
     const completedFields = fieldsToCheck.filter((field) => field).length;
     const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-   
+
     const newMakeupArtist = new MakeupArtist({
       vendor_id,
       service_type: "Makeup-Artist",

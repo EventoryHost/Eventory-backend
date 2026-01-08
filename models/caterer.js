@@ -1,5 +1,5 @@
 import { Schema as _Schema, model } from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 import { bankDetailsSchema } from "./bankDetails.js";
 import { businessDetailsSchema } from "./businessDetails.js";
 
@@ -7,7 +7,7 @@ const Schema = _Schema;
 
 // Service Location Schema for Caterers
 const serviceLocationCatererSchema = new Schema({
-  service_address:{
+  service_address: {
     type: String
   },
   lat: {
@@ -19,7 +19,7 @@ const serviceLocationCatererSchema = new Schema({
   service_pincode: {
     type: Number,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (v === undefined || v === null) return true;
         return /^\d{6}$/.test(String(v));
       },
@@ -201,7 +201,7 @@ const catererSchema = new Schema({
     type: Boolean,
     default: false
   },
-  profile_completion_score: { 
+  profile_completion_score: {
     type: Number,
     default: 0
   },
@@ -210,7 +210,7 @@ const catererSchema = new Schema({
   }],
   bank_details: {
     type: bankDetailsSchema,
-    default: function() {
+    default: function () {
       return {};
     }
   },
@@ -302,8 +302,8 @@ catererSchema.index({ caterer_updated_at: -1 });
 const Caterer = model("Caterers", catererSchema);
 
 export default Caterer;
-export { 
-  Caterer, 
+export {
+  Caterer,
   catererSchema,
   catererBasicDetailsSchema,
   catererEventDetailsSchema,

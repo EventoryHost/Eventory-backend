@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -92,8 +92,8 @@ quotationsSchema.index({ event_start: 1 });
 // Pre-save middleware
 // quotationsSchema.pre('save', function(next) {
 //   this.quotation_updated_at = new Date();
-  
-  // Validate event dates
+
+// Validate event dates
 //   if (this.event_start && this.event_end && this.event_start >= this.event_end) {
 //     next(new Error('Event end date must be after start date'));
 //   } else {
