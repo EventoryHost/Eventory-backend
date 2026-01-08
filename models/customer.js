@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 import { customerCouponUsageSchema } from "./customerCoupon.js";
 
 // Customer Schema
@@ -26,7 +26,7 @@ const customerSchema = new mongoose.Schema({
   email_address: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true; // Allow empty email
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
@@ -39,7 +39,7 @@ const customerSchema = new mongoose.Schema({
   pincode: {
     type: String, // Changed from Number to String to match ERD
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true;
         return /^\d{6}$/.test(v);
       },
@@ -97,7 +97,7 @@ const customerSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware to update customer_updated_at on every save
-customerSchema.pre('save', function(next) {
+customerSchema.pre('save', function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
@@ -108,7 +108,7 @@ customerSchema.pre('save', function(next) {
 });
 
 // Pre-update middleware to update customer_updated_at on updates
-customerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+customerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -117,31 +117,31 @@ customerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(nex
 });
 
 // Method to add service to wishlist
-customerSchema.methods.addToWishlist = function(serviceId) {
+customerSchema.methods.addToWishlist = function (serviceId) {
   if (!this.wishlisted_services.includes(serviceId)) {
     this.wishlisted_services.push(serviceId);
-    
+
     // Update timestamp in IST
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     this.customer_updated_at = new Date(now.getTime() + istOffset);
-    
+
     return this.save();
   }
   return Promise.resolve(this);
 };
 
 // Method to remove service from wishlist
-customerSchema.methods.removeFromWishlist = function(serviceId) {
+customerSchema.methods.removeFromWishlist = function (serviceId) {
   const index = this.wishlisted_services.indexOf(serviceId);
   if (index > -1) {
     this.wishlisted_services.splice(index, 1);
-    
+
     // Update timestamp in IST
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     this.customer_updated_at = new Date(now.getTime() + istOffset);
-    
+
     return this.save();
   }
   return Promise.resolve(this);

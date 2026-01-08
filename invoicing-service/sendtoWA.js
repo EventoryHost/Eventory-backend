@@ -28,7 +28,7 @@ export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor")
                   type: "document",
                   document: {
                     link: link,
-                    filename: "invoice-eventory.pdf", 
+                    filename: "invoice-eventory.pdf",
                   },
                 },
               ],
@@ -38,7 +38,7 @@ export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor")
               parameters: [
                 {
                   type: "text",
-                  text: vendorName, 
+                  text: vendorName,
                 },
               ],
             },
@@ -74,7 +74,7 @@ export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor")
   }
 }
 
-export async function sendVendorEventBookingMessage(invoice_link,vendor_mobile,date,time,venue,link) {
+export async function sendVendorEventBookingMessage(invoice_link, vendor_mobile, date, time, venue, link) {
 
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
@@ -88,11 +88,11 @@ export async function sendVendorEventBookingMessage(invoice_link,vendor_mobile,d
       WHATSAPP_API_URL,
       {
         messaging_product: "whatsapp",
-        to: `${vendor_mobile}`, 
+        to: `${vendor_mobile}`,
         type: "template",
         template: {
-          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57", 
-          name: "vendor_booking_message_1_v1", 
+          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+          name: "vendor_booking_message_1_v1",
           language: {
             code: "en",
           },
@@ -107,10 +107,10 @@ export async function sendVendorEventBookingMessage(invoice_link,vendor_mobile,d
 
               type: "body",
               parameters: [
-                { type: "text", text: date },   
-                { type: "text", text: time },   
-                { type: "text", text: venue },  
-                { type: "text", text: link },   
+                { type: "text", text: date },
+                { type: "text", text: time },
+                { type: "text", text: venue },
+                { type: "text", text: link },
               ],
             },
           ],
@@ -126,7 +126,7 @@ export async function sendVendorEventBookingMessage(invoice_link,vendor_mobile,d
   }
 }
 
-export async function sendCustomerEventBookingMessage(invoice_link, customer_mobile, date, time, venue,link) {
+export async function sendCustomerEventBookingMessage(invoice_link, customer_mobile, date, time, venue, link) {
 
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
@@ -140,11 +140,11 @@ export async function sendCustomerEventBookingMessage(invoice_link, customer_mob
       WHATSAPP_API_URL,
       {
         messaging_product: "whatsapp",
-        to: `${customer_mobile}`, 
+        to: `${customer_mobile}`,
         type: "template",
         template: {
-          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57", 
-          name: "customer_booking_message_1_v1", 
+          namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+          name: "customer_booking_message_1_v1",
           language: {
             code: "en",
           },
@@ -156,7 +156,7 @@ export async function sendCustomerEventBookingMessage(invoice_link, customer_mob
                   type: "document",
                   document: {
                     link: invoice_link,
-                    filename: "booking.pdf", 
+                    filename: "booking.pdf",
                   },
                 },
               ],
@@ -165,10 +165,10 @@ export async function sendCustomerEventBookingMessage(invoice_link, customer_mob
 
               type: "body",
               parameters: [
-                { type: "text", text: date },   
-                { type: "text", text: time },   
-                { type: "text", text: venue },  
-                { type: "text", text: link },   
+                { type: "text", text: date },
+                { type: "text", text: time },
+                { type: "text", text: venue },
+                { type: "text", text: link },
               ],
             },
           ],
@@ -177,6 +177,43 @@ export async function sendCustomerEventBookingMessage(invoice_link, customer_mob
       { headers }
     );
 
+    console.log(JSON.stringify({
+      messaging_product: "whatsapp",
+      to: `${customer_mobile}`,
+      type: "template",
+      template: {
+        namespace: "0049ed7f_abf6_48d9_84dc_49ea2de33f57",
+        name: "customer_booking_message_1_v1",
+        language: {
+          code: "en",
+        },
+        components: [
+          {
+            type: "header",
+            parameters: [
+              {
+                type: "document",
+                document: {
+                  link: invoice_link,
+                  filename: "booking.pdf",
+                },
+              },
+            ],
+          },
+          {
+
+            type: "body",
+            parameters: [
+              { type: "text", text: date },
+              { type: "text", text: time },
+              { type: "text", text: venue },
+              { type: "text", text: link },
+            ],
+          },
+        ],
+      },
+    }, null, 2));
+    console.log("Customer event booking message sent successfully", messageResponse.data);
     return messageResponse.data;
   } catch (error) {
     console.error("Error sending customer event booking message:", error.response?.data || error.message);

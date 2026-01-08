@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -38,7 +38,7 @@ const emNotificationsSchema = new Schema({
   notification_type: {
     type: String,
     required: true,
-    enum: ['chat_message', 'checkout_message', "message_reminder" ]
+    enum: ['chat_message', 'checkout_message', "message_reminder"]
   },
 }, {
   timestamps: true,
@@ -51,7 +51,7 @@ emNotificationsSchema.index({ chat_id: 1 });
 emNotificationsSchema.index({ updated_at: -1 });
 
 // Pre-save middleware
-emNotificationsSchema.pre('save', function(next) {
+emNotificationsSchema.pre('save', function (next) {
   this.updated_at = new Date().toISOString();
   next();
 });

@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
 
 // Customer Notifications Schema according to ERD
 const customerNotificationSchema = new mongoose.Schema({
@@ -27,7 +26,7 @@ const customerNotificationSchema = new mongoose.Schema({
   notification_type: {
     type: String,
     required: true,
-    enum: ['chat_message', 'checkout_message', "message_reminder" , 'payment_reminder']
+    enum: ['chat_message', 'checkout_message', "message_reminder", 'payment_reminder']
   },
   message: {
     type: String,
@@ -64,7 +63,7 @@ customerNotificationSchema.index({ customer_id: 1, read: 1 });
 customerNotificationSchema.index({ customer_id: 1, updated_at: -1 });
 
 // Pre-save middleware to update timestamp when read status changes
-customerNotificationSchema.pre('save', function(next) {
+customerNotificationSchema.pre('save', function (next) {
   if (this.isModified('read') || this.isModified('message') || this.isModified('checkout_url')) {
     this.updated_at = new Date().toISOString();
   }

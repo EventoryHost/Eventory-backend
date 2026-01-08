@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = mongoose.Schema;
 
@@ -22,7 +22,7 @@ const eventManagerSchema = new Schema({
   profile_photo: {
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (!v) return true;
         return /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
       },
@@ -43,7 +43,7 @@ const eventManagerSchema = new Schema({
     type: String,
     required: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[6-9]\d{9}$/.test(v);
       },
       message: 'Invalid contact number format'
@@ -81,12 +81,12 @@ const eventManagerSchema = new Schema({
 eventManagerSchema.index({ contact_number: 1 });
 
 // Pre-save middleware
-eventManagerSchema.pre('save', function(next) {
+eventManagerSchema.pre('save', function (next) {
   // Ensure contact_number doesn't have any spaces or special characters
   if (this.contact_number) {
     this.contact_number = this.contact_number.replace(/[\s\-\(\)]/g, '');
   }
-  
+
   next();
 });
 

@@ -46,7 +46,7 @@ connectDB();
 // This starts the 30-minute timer for checking unread chats.
 initializeWorkers();
 
-initializeFirebase();
+// initializeFirebase();
 
 app.use(express.json());
 

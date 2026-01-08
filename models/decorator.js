@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { bankDetailsSchema } from "./bankDetails.js";
 import { businessDetailsSchema } from "./businessDetails.js";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 // Decorator Basic Details Schema
 const decoratorBasicDetailsSchema = new mongoose.Schema({
@@ -181,14 +181,14 @@ const decoratorSchema = new mongoose.Schema({
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,
-    default: function() {
+    default: function () {
       return {};
     }
   },
   business_details: {
     type: businessDetailsSchema,
     required: true,
-    default: function() {
+    default: function () {
       return {};
     }
   },
@@ -231,47 +231,47 @@ const decoratorSchema = new mongoose.Schema({
   collection: 'decorators'
 });
 // Pre-save middleware to update decorator_updated_at on every save
-decoratorSchema.pre('save', function(next) {
+decoratorSchema.pre('save', function (next) {
   // Declare now and istOffset once at the top of the function
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);
-  
+
   // Set decorator_updated_at for all saves (new or existing)
   this.decorator_updated_at = istTime;
-  
+
   // Update nested document timestamps if they exist and are modified
   if (this.isModified('bank_details') && this.bank_details) {
     this.bank_details.bank_updated_at = istTime;
   }
-  
+
   if (this.isModified('business_details') && this.business_details) {
     this.business_details.business_updated_at = istTime;
   }
-  
+
   next();
 });
 
 // Pre-update middleware to update decorator_updated_at on updates
-decoratorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+decoratorSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Declare now and istOffset once at the top of the function
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);
-  
+
   this.set({ decorator_updated_at: istTime });
-  
+
   // Update nested document timestamps if they are being updated
   const update = this.getUpdate();
-  
+
   if (update.bank_details) {
     this.set({ 'bank_details.bank_updated_at': istTime });
   }
-  
+
   if (update.business_details) {
     this.set({ 'business_details.business_updated_at': istTime });
   }
-  
+
   next();
 });
 
@@ -285,7 +285,7 @@ decoratorSchema.index({ decorator_updated_at: -1 });
 
 const Decorator = mongoose.model('Decorators', decoratorSchema);
 
-export { 
+export {
   Decorator,
   decoratorBasicDetailsSchema,
   decoratorServiceDetailsSchema,

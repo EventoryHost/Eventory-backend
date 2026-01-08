@@ -1,7 +1,7 @@
 import PhotographerVideographer from "../../models/photographerVideographer.js";
 import { ReduxPhotographerVideographerModel } from "../../models/reduxModels/photographerVideographer.js";
 import { Vendor } from "../../models/vendor.js";
-import generateUniqueId from "../../utils/generateId2.js";
+import generateUniqueId from "../../utils/generateId.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
 

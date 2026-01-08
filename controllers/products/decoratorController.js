@@ -4,7 +4,7 @@ import { Decorator } from "../../models/decorator.js";
 import { Vendor } from "../../models/vendor.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
-import generateUniqueId from "../../utils/generateId2.js";
+import generateUniqueId from "../../utils/generateId.js";
 import { ReduxDecoratorModel } from "../../models/reduxModels/decorator.js";
 
 const getFileUrls = (files, fieldName) => {

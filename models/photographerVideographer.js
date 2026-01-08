@@ -1,13 +1,13 @@
 import mongoose, { Schema as _Schema, model } from "mongoose";
 import { bankDetailsSchema } from "./bankDetails.js";
 import { businessDetailsSchema } from "./businessDetails.js";
-import generateUniqueId from "../utils/generateId2.js";
+import generateUniqueId from "../utils/generateId.js";
 
 const Schema = _Schema;
 
 // Service Location Schema for PAV
 const serviceLocationPAVSchema = new Schema({
-  service_address:{
+  service_address: {
     type: String
   },
   lat: {
@@ -19,7 +19,7 @@ const serviceLocationPAVSchema = new Schema({
   service_pincode: {
     type: Number,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         if (v === undefined || v === null) return true;
         return /^\d{6}$/.test(String(v));
       },
@@ -198,7 +198,7 @@ const photographerVideographerSchema = new Schema({
   // Embedded bank and business details using common schemas
   bank_details: {
     type: bankDetailsSchema,
-    default: function() {
+    default: function () {
       return {};
     }
   },
@@ -244,7 +244,7 @@ const photographerVideographerSchema = new Schema({
   collection: 'photographer-videographers'
 });
 // Pre-save middleware to update pav_updated_at on every save
-photographerVideographerSchema.pre('save', function(next) {
+photographerVideographerSchema.pre('save', function (next) {
   // Declare variables at the top to make them accessible to the entire function
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -253,40 +253,40 @@ photographerVideographerSchema.pre('save', function(next) {
   if (!this.isNew) {
     this.pav_updated_at = istTime;
   }
-  
+
   // Update nested document timestamps if they exist and are modified
   if (this.isModified('bank_details') && this.bank_details) {
     this.bank_details.bank_updated_at = istTime;
   }
-  
+
   if (this.isModified('business_details') && this.business_details) {
     this.business_details.business_updated_at = istTime;
   }
-  
+
   next();
 });
 
 // Pre-update middleware to update pav_updated_at on updates
 // This function is already correct and doesn't need to be changed.
-photographerVideographerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+photographerVideographerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
   // Convert to IST (UTC+5:30)
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istTime = new Date(now.getTime() + istOffset);
-  
+
   this.set({ pav_updated_at: istTime });
-  
+
   // Update nested document timestamps if they are being updated
   const update = this.getUpdate();
-  
+
   if (update.bank_details || update['bank_details']) {
     this.set({ 'bank_details.bank_updated_at': istTime });
   }
-  
+
   if (update.business_details || update['business_details']) {
     this.set({ 'business_details.business_updated_at': istTime });
   }
-  
+
   next();
 });
 
@@ -301,7 +301,7 @@ photographerVideographerSchema.index({ pav_updated_at: -1 });
 // Removed duplicate service_id index - it's already created by unique: true constraint
 
 // Check if model already exists to prevent OverwriteModelError
-const PhotographerVideographer = mongoose.models.PhotographerVideographer || 
+const PhotographerVideographer = mongoose.models.PhotographerVideographer ||
   model('PhotographerVideographer', photographerVideographerSchema);
 
 export default PhotographerVideographer;

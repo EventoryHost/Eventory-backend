@@ -1,6 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import { generateSignature } from "../utils/generateId2.js";
+import { generateSignature } from "../utils/generateId.js";
 import { Vendor } from "../models/vendor.js";
 
 dotenv.config();
@@ -34,14 +34,23 @@ const verifyGSTIN = async (req, res) => {
       ? (url = `https://sandbox.cashfree.com/verification/gstin`)
       : (url = `https://api.cashfree.com/verification/gstin`);
 
-    const headers = {
-      "x-client-id": clientId,
-      "x-client-secret": clientSecret,
-      "X-Environment": "sandbox",
-      "X-Cf-Signature": signature,
-      "X-Timestamp": timestamp.toString(),
-      "Content-Type": "application/json",
-    };
+    var headers = {}
+    process.env.IS_DEV === "true" ?
+      headers = {
+        "x-client-id": clientId,
+        "x-client-secret": clientSecret,
+        "X-Cf-Signature": signature,
+        "X-Timestamp": timestamp.toString(),
+        "x-environment": "sandbox",
+        "Content-Type": "application/json",
+      } :
+      headers = {
+        "x-client-id": clientId,
+        "x-client-secret": clientSecret,
+        "X-Cf-Signature": signature,
+        "X-Timestamp": timestamp.toString(),
+        "Content-Type": "application/json",
+      };
 
     const response = await axios.post(url, { gstin: gstIn }, { headers });
 
