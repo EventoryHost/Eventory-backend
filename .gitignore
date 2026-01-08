@@ -136,3 +136,4 @@ dist
 
 #firebase configs
 .firebase-service-account.json
+firebase-service-account.json

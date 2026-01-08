@@ -389,9 +389,8 @@ const verifyCustomerPayment = async (req, res) => {
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
     try {
-      const beneficiary = await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
+      await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
       hasBeneficiary = true;
-      console.log(beneficiary.data);
     } catch (e) {
       const status = e?.response?.status;
       if (status !== 404) {
@@ -416,14 +415,9 @@ const verifyCustomerPayment = async (req, res) => {
         },
       };
       try {
-        console.log("Creating beneficiary:", createBody);
-        console.log("Headers:", headers);
-        console.log(payoutsBase)
-        const beneficiary = await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
-        console.log(beneficiary.data);
+        await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
       } catch (e) {
-        console.error("Error creating beneficiary:", e.message);
-        return res.status(500).json({ error: "Failed to create beneficiary", details: e.message });
+        return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
       }
     }
 
@@ -469,7 +463,6 @@ const verifyCustomerPayment = async (req, res) => {
     let transferResp;
     try {
       transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-      console.log(transferResp.data);
     } catch (e) {
       await Transaction.findOneAndUpdate(
         { transfer_id: transfer_id },
@@ -485,7 +478,6 @@ const verifyCustomerPayment = async (req, res) => {
         },
         { new: true }
       );
-      console.log(e.response.data);
       return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
     }
 
