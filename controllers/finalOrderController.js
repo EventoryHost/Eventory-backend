@@ -192,6 +192,7 @@ export const approveFinalOrder = async (req, res) => {
         order_id: order.order_id,
         chat_id: order.quotation_id,
         em_id: order.em_id,
+        notification_type: "checkout_message",
         message,
       });
 
@@ -215,6 +216,63 @@ export const approveFinalOrder = async (req, res) => {
       }).catch(error => {
         console.error("Failed to send FCM notification for final order approval:", error);
       });
+
+      // Send message to customer chat only for payment/checkout
+      try {
+        const systemMessageContent = `✅ Final Order has been approved by both parties. Please proceed to payment.\n\nCheckout Link: ${checkout_url}`;
+        
+        // Send to customer-admin chat only
+        const customerAdminChat = await Chat.findOne({
+          chat_id: order.quotation_id,
+          chat_type: "customer-admin",
+        });
+        
+        if (customerAdminChat) {
+          const savedMessage = await Message.create({
+            chat_id: order.quotation_id,
+            chat_type: "customer-admin",
+            sender: "em",
+            sender_id: order.em_id || "system",
+            message_type: "system",
+            message_content: systemMessageContent,
+          });
+          
+          // Update chat timestamp so message appears
+          if (typeof customerAdminChat.updateLastMessage === "function") {
+            await customerAdminChat.updateLastMessage();
+          } else {
+            await Chat.updateOne(
+              { chat_id: order.quotation_id, chat_type: "customer-admin" },
+              { 
+                $set: { 
+                  last_message_updated_at: new Date(),
+                  chat_updated_at: new Date()
+                } 
+              }
+            );
+          }
+          
+          // Emit message via Socket.IO
+          if (req.io) {
+            const roomId = `${order.quotation_id}-customer-admin`;
+            req.io.to(roomId).emit("new_message", {
+              _id: savedMessage._id,
+              chat_id: savedMessage.chat_id,
+              chat_type: savedMessage.chat_type,
+              sender: savedMessage.sender,
+              sender_id: savedMessage.sender_id,
+              message_content: savedMessage.message_content,
+              message_type: savedMessage.message_type,
+              message_sent_at: savedMessage.message_sent_at,
+            });
+            console.log(`📤 Emitted payment message to room: ${roomId}`);
+          }
+          
+          console.log("✅ Chat message sent to customer-admin chat for payment");
+        }
+      } catch (messageError) {
+        console.error("❌ Failed to send chat message:", messageError);
+      }
 
       try {
         const vendorAdminChat = await Chat.findOne({

@@ -39,6 +39,7 @@ const createQuotation = async (req, res, io) => {
     const existingQuotation = await Quotations.findOne({
       customer_id,
       service_id,
+      quote_status: { $ne: 'In_Booking' }
     });
     if (existingQuotation) {
       return res.status(400).json({

@@ -7,6 +7,7 @@ import MakeupArtist from "../models/makeupArtist.js";
 import generateUniqueId from "../utils/generateId.js";
 import { Calendar } from "../models/calendar.js";
 import { sendSlackBookingMessage } from "../utils/slackNotifier.js";
+import Quotations from "../models/quotations.js";
 
 const toUpperEnum = (v) => (typeof v === "string" ? v.trim().toUpperCase() : v);
 const toISODate = (v) => (v ? new Date(v) : null);
@@ -214,6 +215,13 @@ export const createBooking = async (req, res) => {
     } else {
       // Create new booking; event_id and event_number handled by schema
       saved = await Events.create(doc);
+    }
+
+    if (quotation_id) {
+      await Quotations.findOneAndUpdate(
+        { quotation_id },
+        { $set: { quote_status: 'In_Booking' } }
+      );
     }
 
     if(process.env.IS_DEV === 'true') return;
