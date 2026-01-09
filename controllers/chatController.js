@@ -37,6 +37,20 @@ export const handleSocketConnection = (socket, io) => {
         return;
       }
 
+      if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      // For anonymous chat, if chat_id is not provided but anon_customer_id is, try to find active chat
+      // This allows joining without knowing the chat_id if the user is anonymous
+      // However, the current signature expects chat_id. 
+      // We will stick to the requirement that frontend must provide chat_id.
+      // But we can add a log to help debugging.
+      if (chat_type === "anon_customer-admin" && !chat_id) {
+         console.log("⚠️ Anonymous chat join attempted without chat_id");
+      }
+
       const roomId = `${chat_id}-${chat_type}`;
       socket.join(roomId);
       socket.emit("joined", `Joined chat room ${chat_id} (${chat_type})`);
@@ -86,7 +100,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Validate sender type
-        const validSenders = ["customer", "vendor", "em"];
+        const validSenders = ["customer", "vendor", "em", "anonymous_customer"];
         if (!validSenders.includes(sender)) {
           if (typeof callback === "function") callback("Invalid sender type");
           else socket.emit("error", "Invalid sender type");
@@ -104,6 +118,15 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
+          return;
+        }
+
+        if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
@@ -414,7 +437,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // Validate chatType
-    if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+    if (!["vendor-admin", "customer-admin", "anon_customer-admin"].includes(chatType)) {
       return res.status(400).json({ error: "Invalid chatType" });
     }
 
@@ -717,7 +740,7 @@ export const blockChat = async (req, res) => {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
+    if (!["vendor-admin", "customer-admin", "anon_customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
@@ -754,7 +777,7 @@ export const unblockChat = async (req, res) => {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
+    if (!["vendor-admin", "customer-admin", "anon_customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 

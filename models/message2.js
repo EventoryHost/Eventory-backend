@@ -17,11 +17,11 @@ const messageSchema = new Schema(
     chat_type: { 
       type: String, 
       required: true, 
-      enum: ["vendor-admin", "customer-admin"] 
+      enum: ["vendor-admin", "customer-admin", "anon_customer-admin"] 
     },
     sender: {
       type: String,
-      enum: ["customer", "vendor", "em"],
+      enum: ["customer", "vendor", "em", "anonymous_customer"],
       required: true,
     },
     sender_id: {
@@ -39,6 +39,7 @@ const messageSchema = new Schema(
         "approval_request",
         "order",
         "system",
+        "vendor_card",
       ],
       required: true,
       default: "text",

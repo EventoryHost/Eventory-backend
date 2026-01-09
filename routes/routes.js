@@ -41,6 +41,7 @@ import invoiceRoutes from "../routes/invoiceRoutes.js";
 import deviceTokenRoutes from "../routes/deviceTokenRoutes.js";
 import whatsappRoutes from "../routes/whatsappRoutes.js";
 import notificationApiRoutes from "../routes/notificationApiRoutes.js";
+import anonChatRoutes from "../routes/anonChatRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -55,6 +56,7 @@ router.use("/about-email", aboutEmailRoutes);
 router.use("/files", fileRoutes);
 router.use("/quotations", quotationRoutes(io));
 router.use("/chats", chatRoutes(io));
+router.use("/anon-chats", anonChatRoutes(io));
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);
