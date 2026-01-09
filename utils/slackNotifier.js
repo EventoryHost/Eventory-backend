@@ -6,8 +6,6 @@ dotenv.config();
 const accessToken = process.env.SLACK_ACCESS_TOKEN;
 const channelId = process.env.SLACK_CHANNEL_ID;
 
-console.log("Slack Access Token:", accessToken);
-console.log("Slack Channel ID:", channelId);
 const slackClient = new WebClient(accessToken);
 export async function sendSlackMessage({
   id,
@@ -70,8 +68,6 @@ export async function sendSlackMessage({
         },
       ],
     });
-
-    console.log("Slack notification sent!");
   } catch (error) {
     console.error("Slack Message Error:", error?.message || error);
   }
@@ -137,8 +133,6 @@ export async function sendSlackBookingMessage({
         },
       ],
     });
-
-    console.log("Slack Booking Notification Sent!");
   } catch (error) {
     console.error("Slack Booking Message Error:", error?.message || error);
   }
