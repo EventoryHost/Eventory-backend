@@ -184,3 +184,40 @@ export const getVendorFlowType = async (req, res) => {
     });
   }
 };
+
+// 📦 GET /api/vendors/:vendor_id/has-services
+export const checkVendorHasServices = async (req, res) => {
+  try {
+    const { vendor_id } = req.params;
+
+    const vendor = await Vendor.findOne({ vendor_id }).lean();
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    const hasServiceTypes = Array.isArray(vendor.service_types) && vendor.service_types.length > 0;
+    const hasServices = Array.isArray(vendor.services) && vendor.services.length > 0;
+    const hasAnyService = hasServiceTypes && hasServices;
+
+    res.status(200).json({
+      success: true,
+      vendor_id: vendor.vendor_id,
+      has_services: hasAnyService,
+      details: {
+        service_types_count: vendor.service_types?.length || 0,
+        services_count: vendor.services?.length || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error checking vendor services:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while checking vendor services",
+      error: error.message,
+    });
+  }
+};
