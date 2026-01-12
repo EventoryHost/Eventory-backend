@@ -571,6 +571,7 @@ const verifyCustomerPayment = async (req, res) => {
         em_id: em_id,
         chat_id: quotation_id,
         message: adminMessage,
+        notification_type: 'checkout_message',
         read: false,
       });
       await vendorNotification.create({

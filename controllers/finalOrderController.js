@@ -323,6 +323,7 @@ export const approveFinalOrder = async (req, res) => {
         order_id: order.order_id,
         chat_id: order.quotation_id,
         em_id: order.em_id,
+        notification_type: "chat_message",
         message,
       });
 
@@ -388,6 +389,7 @@ export const approveFinalOrder = async (req, res) => {
       order_id: order.order_id,
       chat_id: order.quotation_id,
       em_id: order.em_id,
+      notification_type: "chat_message",
       message,
     });
 
