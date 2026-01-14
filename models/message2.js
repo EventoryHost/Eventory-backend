@@ -17,7 +17,7 @@ const messageSchema = new Schema(
     chat_type: { 
       type: String, 
       required: true, 
-      enum: ["vendor-admin", "customer-admin", "anon_customer-admin"] 
+      enum: ["vendor-admin", "customer-admin", "anon_customer-admin","vendor-enquiry"], 
     },
     sender: {
       type: String,

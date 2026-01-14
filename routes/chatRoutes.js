@@ -12,7 +12,7 @@ import {
   getPinnedMessages,
   getBlockedChats,
   updateChatEmId,
-  editMessage
+  // editMessage
 } from "../controllers/chatController.js";
 
 export default function chatRoutes(io) {
@@ -61,7 +61,7 @@ router.get("/blocked", getBlockedChats);
 router.patch("/chat/update-em", updateChatEmId);
 
 //13. Edit a message (REST API fallback)
-router.patch("/message/:message_id/edit", editMessage);
+// router.patch("/message/:message_id/edit", editMessage);
 
   return router;
 }

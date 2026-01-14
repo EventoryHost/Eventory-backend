@@ -17,7 +17,10 @@ const generateUniqueId = (type) => {
     milliseconds: istTime.getUTCMilliseconds().toString().padStart(3, "0"),
   };
 
-  return `${type}${day}${month}${year}${hours}${minutes}${seconds}${milliseconds}`;
+  // Add random suffix to prevent collisions when multiple IDs generated in same millisecond
+  const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
+
+  return `${type}${day}${month}${year}${hours}${minutes}${seconds}${milliseconds}${randomSuffix}`;
 };
 
 // Export the main function as default and named export
