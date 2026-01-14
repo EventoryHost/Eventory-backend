@@ -2,6 +2,7 @@ import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
 import { sendSlackAnonChatMessage } from "../utils/slackNotifier.js";
 import generateUniqueId from "../utils/generateId.js";
+import AnonymousUser from "../models/anonymousUser.js";
 
 // Send a message (and create chat if needed)
 export const sendAnonymousMessage = async (req, res) => {
@@ -63,6 +64,11 @@ export const sendAnonymousMessage = async (req, res) => {
         metadata
       });
     }
+
+    // Update AnonymousUser activity (fire and forget or await)
+    await AnonymousUser.findOneAndUpdate({ anon_id: anon_customer_id }, { 
+        last_seen_at: new Date() 
+    }).catch(err => console.error("Failed to update anon user activity:", err));
 
     res.status(201).json({ 
         message: "Message sent", 

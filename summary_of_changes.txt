@@ -48,3 +48,28 @@
 9. Verification
    - Created `test_anon_chat.js` to verify the complete flow (REST + WebSocket).
    - Verified chat creation, message history retrieval, and real-time messaging.
+
+10. Meta Ads Integration & Anonymous User Tracking
+    - Created `models/anonymousUser.js`:
+      - Stores anonymous user data with `anon_id` (format: `ANON...`).
+      - Tracks acquisition parameters (`fbclid`, `utm_campaign`, etc.).
+      - Tracks device info (`ip_hash`, `user_agent`, etc.).
+      - Tracks `first_seen_at` and `last_seen_at`.
+    - Created `controllers/anonymousUserController.js`:
+      - `initializeAnonymousUser`: Generates/Returns `anon_id`, saves user data, and sets HTTP-only cookie.
+      - `updateAnonymousUserActivity`: Updates `last_seen_at` for heartbeat.
+    - Created `routes/anonUserRoutes.js`:
+      - `POST /api/anon-users/init`
+      - `POST /api/anon-users/:anon_user_id/heartbeat`
+    - Integration:
+      - Updated `controllers/anonChatController.js` to update `AnonymousUser` activity (`last_seen_at`) whenever a message is sent.
+
+11. Slack Notification Updates
+    - Updated `utils/slackNotifier.js`:
+      - Added check for `IS_LOCAL` environment variable.
+      - Skips sending notifications to Slack if `IS_LOCAL=true` to prevent spam during development.
+
+12. Admin Notification API Identification
+    - Identified endpoints for marking admin notifications as read:
+      - `PATCH /api/em-notifications/read/:notificationId` (Single)
+      - `PATCH /api/em-notifications/:em_id/mark-all-read` (All)

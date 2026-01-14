@@ -42,6 +42,7 @@ import deviceTokenRoutes from "../routes/deviceTokenRoutes.js";
 import whatsappRoutes from "../routes/whatsappRoutes.js";
 import notificationApiRoutes from "../routes/notificationApiRoutes.js";
 import anonChatRoutes from "../routes/anonChatRoutes.js";
+import anonUserRoutes from "../routes/anonUserRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -57,6 +58,7 @@ router.use("/files", fileRoutes);
 router.use("/quotations", quotationRoutes(io));
 router.use("/chats", chatRoutes(io));
 router.use("/anon-chats", anonChatRoutes(io));
+router.use("/anon-users", anonUserRoutes);
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);

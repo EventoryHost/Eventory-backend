@@ -18,6 +18,10 @@ export async function sendSlackMessage({
   date,
 }) {
   try {
+    if (process.env.IS_LOCAL === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true)");
+      return;
+    }
     await slackClient.chat.postMessage({
       channel: channelId,
       text: `New Quotation Created`,
@@ -85,6 +89,10 @@ export async function sendSlackBookingMessage({
   startDate,
 }) {
   try {
+    if (process.env.IS_LOCAL === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true)");
+      return;
+    }
     await slackClient.chat.postMessage({
       channel: channelId,
       text: `New Booking Created`,
@@ -151,6 +159,10 @@ export async function sendSlackAnonChatMessage({
   metadata,
 }) {
   try {
+    if (process.env.IS_LOCAL === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true)");
+      return;
+    }
     await slackClient.chat.postMessage({
       channel: channelId,
       text: `New Anonymous Chat Started`,
