@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
 import customerNotification from "../models/customerNotifications.js";
 import { updateEnquiryWithMessage } from "./vendorEnquiryController.js";
+import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -256,6 +257,13 @@ export const handleSocketConnection = (socket, io) => {
         // ------------------- ACK TO SENDER -------------------
         if (typeof callback === "function") {
           callback(null, savedMessage);
+        }
+
+        // ------------------- INTERACTIVE FLOW (AUTO-REPLY) -------------------
+        if (chat_type === "anon_customer-admin" && sender === "anonymous_customer") {
+            // We need the anon_customer_id. 
+            // In socket send_message, we have sender_id which SHOULD be the anon_customer_id for anonymous users.
+            await handleInteractiveMessage(chat_id, sender_id, message_content, io);
         }
       } catch (err) {
         console.error("send_message error:", err);
