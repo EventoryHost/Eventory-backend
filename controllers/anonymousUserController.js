@@ -1,4 +1,7 @@
 import AnonymousUser from "../models/anonymousUser.js";
+import Chat from "../models/chats.js";
+import Message from "../models/message2.js";
+import generateUniqueId from "../utils/generateId.js";
 import crypto from 'crypto';
 
 // Helper to hash IP
@@ -48,6 +51,42 @@ export const initializeAnonymousUser = async (req, res) => {
     });
 
     await newUser.save();
+
+    // Create ACTIVE chat session immediately
+    const chatId = generateUniqueId("CHAT");
+    const newChat = await Chat.create({
+      chat_id: chatId,
+      anon_customer_id: newUser.anon_id,
+      chat_type: "anon_customer-admin",
+      chat_status: "ACTIVE"
+    });
+
+    // Send default welcome message
+    await Message.create({
+      chat_id: chatId,
+      chat_type: "anon_customer-admin",
+      sender: "admin",
+      sender_id: "admin",
+      message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
+      message_type: "text"
+    });
+
+    // Send Event Type Options
+    await Message.create({
+      chat_id: chatId,
+      chat_type: "anon_customer-admin",
+      sender: "admin",
+      sender_id: "admin",
+      message_content: "Please select your event type",
+      message_type: "options",
+      options: [
+        { label: "Birthday Party", value: "Birthday Party" },
+        { label: "Anniversary", value: "Anniversary" },
+        { label: "Corporate Event", value: "Corporate Event" },
+        { label: "Society Party", value: "Society Party" },
+        { label: "Other", value: "Other" }
+      ]
+    });
 
     // Set HTTP-only cookie
     res.cookie('anon_user_id', newUser.anon_id, {

@@ -3,6 +3,7 @@ import Message from "../models/message2.js";
 import { sendSlackAnonChatMessage } from "../utils/slackNotifier.js";
 import generateUniqueId from "../utils/generateId.js";
 import AnonymousUser from "../models/anonymousUser.js";
+import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 
 // Send a message (and create chat if needed)
 export const sendAnonymousMessage = async (req, res) => {
@@ -64,6 +65,10 @@ export const sendAnonymousMessage = async (req, res) => {
         metadata
       });
     }
+
+    // --- INTERACTIVE FLOW LOGIC ---
+    // Delegate to service
+    await handleInteractiveMessage(chat.chat_id, anon_customer_id, message_content, req.io);
 
     // Update AnonymousUser activity (fire and forget or await)
     await AnonymousUser.findOneAndUpdate({ anon_id: anon_customer_id }, { 

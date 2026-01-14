@@ -8,7 +8,10 @@ import {
 const router = express.Router();
 
 const anonChatRoutes = (io) => {
-    router.post("/message", sendAnonymousMessage);
+    router.post("/message", (req, res) => {
+        req.io = io;
+        sendAnonymousMessage(req, res);
+    });
     router.get("/:anon_customer_id/messages", getAnonymousMessages);
     router.get("/:anon_customer_id/status", getAnonymousChatStatus);
     
