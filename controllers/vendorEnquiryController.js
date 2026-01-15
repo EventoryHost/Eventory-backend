@@ -1,5 +1,6 @@
 import VendorEnquiry from "../models/vendorEnquiry.js";
 import Chat from "../models/chats.js";
+import VendorNotifications from "../models/vendorNotifications.js";
 import generateUniqueId from "../utils/generateId.js";
 
 /**
@@ -64,6 +65,15 @@ export const createVendorEnquiry = async (req, res) => {
       enquiry_status: "active",
     });
 
+    await VendorNotifications.create({
+      service_id: service_id || null,
+      vendor_id,
+      chat_id: chat.chat_id,
+      notification_type: "chat_message",
+      message: `New enquiry from admin. Please check your messages.`,
+      read: false,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Vendor enquiry created successfully",
@@ -117,7 +127,9 @@ export const getAllVendorEnquiries = async (req, res) => {
     
     if (search) {
       query.$or = [
-        { service_name: { $regex: search, $options: 'i' } },
+        { enquiry_id: { $regex: search, $options: 'i' } },
+        { vendor_name: { $regex: search, $options: 'i' } },
+        { service_id: { $regex: search, $options: 'i' } },
         { vendor_id: { $regex: search, $options: 'i' } },
       ];
     }
