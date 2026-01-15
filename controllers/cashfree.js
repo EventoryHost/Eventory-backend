@@ -571,6 +571,7 @@ const verifyCustomerPayment = async (req, res) => {
         em_id: em_id,
         chat_id: quotation_id,
         message: adminMessage,
+        notification_type: 'checkout_message',
         read: false,
       });
       await vendorNotification.create({
@@ -682,7 +683,8 @@ const verifyCustomerPayment = async (req, res) => {
 
       await preBooking.save();
     } else {
-      event_id = null;
+      const event = await Events.findOne({ quotation_id: quotation_id });
+      event_id = event.event_id;
     }
 
     const paymentMethod = payment.order_meta.payment_methods !== null
@@ -796,6 +798,7 @@ const verifyCustomerPayment = async (req, res) => {
       paidAmount: String(Number(paidAmount.toFixed(2))),
       method: paymentMethod,
       items,
+      finalAmount,
       amount: String(Number(totalCustomerPayable.toFixed(2))), // pre-discount total
       discount: String(Number(discountForInvoice.toFixed(2))),  // absolute coupon discount
       advanceAmount: String(Number((payment_type === "advance" ? order_amount : 0).toFixed(2))),
