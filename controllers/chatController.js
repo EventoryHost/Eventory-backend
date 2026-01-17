@@ -150,36 +150,41 @@ export const handleSocketConnection = (socket, io) => {
           "file",
           "approval_request",
           "order",
+          "vendor_card",        
+          "system",             
+          "options",            
+          "order_summary",
+          "login_prompt",
+          "review_prompt"
         ];
         const final_message_type = validTypes.includes(message_type)
           ? message_type
           : "text";
 
-        // Detect personal info or profanity
-        if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
-          console.log("❌ Personal information detected:", message_content);
-          if (typeof callback === "function") {
-            callback("Please refrain from sharing personal information!");
-          } else {
-            socket.emit(
-              "error",
-              "Please refrain from sharing personal information!"
-            );
+        const systemMessageTypes = ["vendor_card", "approval_request", "order", "system", "options", "order_summary", "login_prompt", "review_prompt"];
+
+        if (!systemMessageTypes.includes(message_type)) {
+          if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
+            console.log("Personal information detected:", message_content);
+            if (typeof callback === "function") {
+              callback("Please refrain from sharing personal information!");
+            } else {
+              socket.emit("error", "Please refrain from sharing personal information!");
+            }
+            return;
           }
-          return;
+
+          if (checkProfanity(message_content)) {
+            console.log("Profanity detected:", message_content);
+            if (typeof callback === "function") {
+              callback("Please refrain from using abusive words!");
+            } else {
+              socket.emit("error", "Please refrain from using abusive words!");
+            }
+            return;
+          }
         }
 
-        if (checkProfanity(message_content)) {
-          console.log("❌ Profanity detected:", message_content);
-          if (typeof callback === "function") {
-            callback("Please refrain from using abusive words!");
-          } else {
-            socket.emit("error", "Please refrain from using abusive words!");
-          }
-          return;
-        }
-
-        // Validate chat existence with chatType
         const chat = await Chat.findOne({ chat_id, chat_type });
         if (!chat) {
           if (typeof callback === "function") callback("Invalid chat_id or chat_type");

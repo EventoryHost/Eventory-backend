@@ -104,6 +104,8 @@ async function sendConfirmationMessageToWhatsapp(event) {
   }
 }
 
+
+
 async function sendResponseOnIntroMessage(req, res) {
   const { mobile } = req.body;
 
