@@ -46,7 +46,6 @@ const anonymousUserSchema = new mongoose.Schema({
 anonymousUserSchema.index({ 'acquisition.fbclid': 1 });
 anonymousUserSchema.index({ 'acquisition.utm_campaign': 1 });
 anonymousUserSchema.index({ first_seen_at: -1 });
-anonymousUserSchema.index({ anon_id: 1 });
 
 const AnonymousUser = mongoose.model('AnonymousUser', anonymousUserSchema);
 

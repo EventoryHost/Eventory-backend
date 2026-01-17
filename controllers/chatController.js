@@ -44,6 +44,11 @@ export const handleSocketConnection = (socket, io) => {
         return;
       }
 
+      if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
       const roomId = `${chat_id}-${chat_type}`;
       socket.join(roomId);
       socket.emit("joined", `Joined chat room ${chat_id} (${chat_type})`);
@@ -111,15 +116,6 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
-          if (typeof callback === "function") {
-            callback("You don't have permission to send messages in this chat");
-          } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
-          }
-          return;
-        }
-
-        if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
@@ -230,6 +226,14 @@ export const handleSocketConnection = (socket, io) => {
             message_content,
             sender
           );
+        }
+
+        // ------------------- AUTO-ASSIGN EM TO CHAT -------------------
+        // If sender is EM and chat doesn't have an assigned EM, update it.
+        if (sender === "em" && (!chat.em_id || chat.em_id === "")) {
+            chat.em_id = sender_id;
+            await chat.save();
+            console.log(`✅ Auto-assigned EM ${sender_id} to chat ${chat_id}`);
         }
 
         // ------------------- EMIT TO ROOM -------------------
@@ -965,36 +969,25 @@ export const updateChatEmId = async (req, res) => {
       });
     }
 
-    // Only update if current em_id is "admin-rm" (default/dummy value)
-    const updatedChat = await Chat.findOneAndUpdate(
-      {
-        chat_id: chat_id,
-        em_id: "" // Only update if it's still the default
-      },
-      {
-        $set: { em_id: em_id }
-      },
-      {
-        new: true // Return the updated document
-      }
-    );
+    // Find the chat first
+    const chat = await Chat.findOne({ chat_id });
 
-    if (!updatedChat) {
-      // Either chat not found OR em_id was already updated
-      const existingChat = await Chat.findOne({ chat_id: chat_id });
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
 
-      if (!existingChat) {
-        return res.status(404).json({
-          message: "Chat not found"
-        });
-      }
-
-      // Chat exists but em_id was already set (not "admin-rm")
-      return res.status(200).json({
+    // Check if em_id is already set (truthy value)
+    // If em_id is null, undefined, or "", we allow update.
+    if (chat.em_id) {
+       return res.status(200).json({
         message: "Chat already has an assigned EM",
-        data: existingChat
+        data: chat
       });
     }
+
+    // Update em_id
+    chat.em_id = em_id;
+    const updatedChat = await chat.save();
 
     res.status(200).json({
       message: "Chat em_id updated successfully",
@@ -1173,3 +1166,30 @@ export const updateChatEmId = async (req, res) => {
 //     });
 //   }
 // };
+
+export const getChatDetails = async (req, res) => {
+  try {
+    const { chat_id } = req.params;
+
+    if (!chat_id) {
+      return res.status(400).json({ error: "chat_id is required" });
+    }
+
+    const chat = await Chat.findOne({ chat_id });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      chat_id: chat.chat_id,
+      em_id: chat.em_id,
+      chat_status: chat.chat_status,
+      chat_type: chat.chat_type
+    });
+  } catch (error) {
+    console.error("Error fetching chat details:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

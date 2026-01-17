@@ -8,18 +8,27 @@ import { handleInteractiveMessage } from "../services/interactiveChatService.js"
 // Send a message (and create chat if needed)
 export const sendAnonymousMessage = async (req, res) => {
   try {
-    const { anon_customer_id, message_content, message_type, attachment_url, metadata } = req.body;
+    const { anon_customer_id, message_content, message_type, attachment_url, metadata, chat_id } = req.body;
 
     if (!anon_customer_id || !message_content) {
       return res.status(400).json({ error: "anon_customer_id and message_content are required" });
     }
 
-    // Find ACTIVE chat for this anonymous customer
-    let chat = await Chat.findOne({ 
-        anon_customer_id, 
-        chat_type: "anon_customer-admin",
-        chat_status: "ACTIVE"
-    });
+    let chat;
+
+    // 1. Try to find chat by chat_id if provided (Robustness fix)
+    if (chat_id) {
+        chat = await Chat.findOne({ chat_id, chat_type: "anon_customer-admin" });
+    }
+
+    // 2. If no chat_id or chat not found, try to find ACTIVE chat by anon_customer_id
+    if (!chat) {
+        chat = await Chat.findOne({ 
+            anon_customer_id, 
+            chat_type: "anon_customer-admin",
+            chat_status: "ACTIVE"
+        });
+    }
     
     let isNewChat = false;
 
@@ -173,7 +182,7 @@ export const getAnonymousChatStatus = async (req, res) => {
         });
 
         if (chat) {
-            res.status(200).json({ status: "ACTIVE", chat_id: chat.chat_id });
+            res.status(200).json({ status: "ACTIVE", chat_id: chat.chat_id, em_id: chat.em_id });
         } else {
             // Check if there was a finished chat
              const finishedChat = await Chat.findOne({ 
@@ -183,7 +192,7 @@ export const getAnonymousChatStatus = async (req, res) => {
             }).sort({ updatedAt: -1 });
             
             if (finishedChat) {
-                res.status(200).json({ status: "FINISHED", chat_id: finishedChat.chat_id });
+                res.status(200).json({ status: "FINISHED", chat_id: finishedChat.chat_id, em_id: finishedChat.em_id });
             } else {
                 res.status(200).json({ status: "NONE" });
             }
@@ -191,6 +200,58 @@ export const getAnonymousChatStatus = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching chat status:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// Get all anonymous chats for admin
+export const getAllAnonymousChats = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search } = req.query;
+        const skip = (page - 1) * limit;
+
+        let query = { chat_type: "anon_customer-admin" };
+
+        if (search) {
+            query.anon_customer_id = { $regex: search, $options: "i" };
+        }
+
+        const chats = await Chat.find(query)
+            .sort({ last_message_updated_at: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean();
+
+        const total = await Chat.countDocuments(query);
+
+        const enrichedChats = await Promise.all(chats.map(async (chat) => {
+            const lastMsg = await Message.findOne({ chat_id: chat.chat_id })
+                .sort({ createdAt: -1 })
+                .select('message_content createdAt')
+                .lean();
+            
+            return {
+                chat_id: chat.chat_id,
+                anon_user_id: chat.anon_customer_id,
+                created_at: chat.chat_created_at || chat.createdAt,
+                last_message: lastMsg ? lastMsg.message_content : "",
+                last_message_time: lastMsg ? lastMsg.createdAt : chat.last_message_updated_at,
+                status: chat.chat_status ? chat.chat_status.toLowerCase() : "active"
+            };
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: enrichedChats,
+            pagination: {
+                total,
+                page: parseInt(page),
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching all anonymous chats:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };

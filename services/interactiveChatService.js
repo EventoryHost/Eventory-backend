@@ -1,8 +1,17 @@
 import Message from "../models/message2.js";
 import CustomerEnquiry from "../models/customerEnquiry.js";
+import Chat from "../models/chats.js";
 
-export const handleInteractiveMessage = async (chatId, anonCustomerId, messageContent, io) => {
+export const handleInteractiveMessage = async (chatId, socketSenderId, messageContent, io) => {
     try {
+        // Fetch Chat to get the correct anon_customer_id
+        const chat = await Chat.findOne({ chat_id: chatId });
+        if (!chat) {
+            console.error(`Chat not found: ${chatId}`);
+            return;
+        }
+        const anonCustomerId = chat.anon_customer_id;
+
         // 1. Check for Vendor Card Actions (Like/Dislike) or Order Confirmation
         if (messageContent.startsWith("LIKE_VENDOR:") || messageContent.startsWith("DISLIKE_VENDOR:")) {
             const [action, vendorId] = messageContent.split(":");
@@ -70,12 +79,20 @@ export const handleInteractiveMessage = async (chatId, anonCustomerId, messageCo
             return;
         }
 
-        // 2. Check for Existing Enquiry (Status: OPEN)
-        // If OPEN, we expect Event Time.
-        let enquiry = await CustomerEnquiry.findOne({ anon_customer_id: anonCustomerId, status: "OPEN" });
+        // 2. Check for Existing Enquiry (Status: OPEN or PROCESSING)
+        let enquiry = await CustomerEnquiry.findOne({ 
+            anon_customer_id: anonCustomerId, 
+            status: { $in: ["OPEN", "PROCESSING"] } 
+        }).sort({ created_at: -1 });
 
         if (enquiry) {
-            // We have an Event Type, now we are receiving Event Time
+            if (enquiry.status === "PROCESSING") {
+                // User is already in processing state, just ignore (it's a normal chat message)
+                // Do NOT trigger "How soon" or "Event Type" flow again.
+                return;
+            }
+
+            // Status is OPEN, so we expect Event Time
             enquiry.event_time = messageContent;
             enquiry.status = "PROCESSING";
             await enquiry.save();
@@ -108,7 +125,7 @@ export const handleInteractiveMessage = async (chatId, anonCustomerId, messageCo
             return;
         }
 
-        // 3. No Open Enquiry -> Treat Input as Event Type
+        // 3. No Open/Processing Enquiry -> Treat Input as Event Type
         // Handle "Other" case: Don't create enquiry yet, let them type.
         if (messageContent === "Other") {
             // Optional: Send a prompt "Please specify your event type"

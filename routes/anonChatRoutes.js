@@ -2,7 +2,8 @@ import express from "express";
 import { 
     sendAnonymousMessage, 
     getAnonymousMessages, 
-    getAnonymousChatStatus 
+    getAnonymousChatStatus,
+    getAllAnonymousChats
 } from "../controllers/anonChatController.js";
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const anonChatRoutes = (io) => {
     });
     router.get("/:anon_customer_id/messages", getAnonymousMessages);
     router.get("/:anon_customer_id/status", getAnonymousChatStatus);
+    router.get("/all", getAllAnonymousChats);
     
     return router;
 };
