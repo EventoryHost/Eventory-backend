@@ -12,7 +12,8 @@ import {
   getPinnedMessages,
   getBlockedChats,
   updateChatEmId,
-  editMessage
+  getChatDetails
+  // editMessage
 } from "../controllers/chatController.js";
 
 export default function chatRoutes(io) {
@@ -60,8 +61,11 @@ router.get("/blocked", getBlockedChats);
 //12. Update em_id when admin sends first message
 router.patch("/chat/update-em", updateChatEmId);
 
+//13. Get chat details (em_id, status) by chat_id
+router.get("/:chat_id/details", getChatDetails);
+
 //13. Edit a message (REST API fallback)
-router.patch("/message/:message_id/edit", editMessage);
+// router.patch("/message/:message_id/edit", editMessage);
 
   return router;
 }

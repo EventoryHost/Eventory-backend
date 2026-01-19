@@ -6,6 +6,13 @@ import {
   getEMProfile,
   updateEMProfile,
 } from "../controllers/emadminController.js";
+import {
+  createVendorEnquiry,
+  getAllVendorEnquiries,
+  getVendorEnquiry,
+  updateVendorEnquiry,
+  deleteVendorEnquiry
+} from "../controllers/vendorEnquiryController.js";
 
 const router = express.Router(); 
 /**
@@ -164,6 +171,164 @@ router.get("/em_profile/:em_id", getEMProfile);
  */
 router.put("/em_profile/:em_id", updateEMProfile);
 
+/**
+ * @swagger
+ * /api/emadmin/vendor-enquiries:
+ *   post:
+ *     summary: Create a new vendor enquiry and establish chat
+ *     tags:
+ *       - Vendor Enquiry
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               vendor_id:
+ *                 type: string
+ *               vendor_name:
+ *                 type: string
+ *               vendor_email:
+ *                 type: string
+ *               vendor_mobile:
+ *                 type: string
+ *               vendor_type:
+ *                 type: string
+ *               service_id:
+ *                 type: string
+ *               em_id:
+ *                 type: string
+ *               em_name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Vendor enquiry created successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
+router.post("/vendor-enquiries", createVendorEnquiry);
 
+/**
+ * @swagger
+ * /api/emadmin/vendor-enquiries:
+ *   get:
+ *     summary: Get all vendor enquiries with pagination and filters
+ *     tags:
+ *       - Vendor Enquiry
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, resolved, closed]
+ *       - in: query
+ *         name: em_id
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: vendor_id
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vendor enquiries fetched successfully
+ *       500:
+ *         description: Server error
+ */
+router.get("/vendor-enquiries", getAllVendorEnquiries);
+
+/**
+ * @swagger
+ * /api/emadmin/vendor-enquiries/{enquiry_id}:
+ *   get:
+ *     summary: Get a single vendor enquiry
+ *     tags:
+ *       - Vendor Enquiry
+ *     parameters:
+ *       - in: path
+ *         name: enquiry_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vendor enquiry fetched successfully
+ *       404:
+ *         description: Vendor enquiry not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/vendor-enquiries/:enquiry_id", getVendorEnquiry);
+
+/**
+ * @swagger
+ * /api/emadmin/vendor-enquiries/{enquiry_id}:
+ *   patch:
+ *     summary: Update vendor enquiry status or notes
+ *     tags:
+ *       - Vendor Enquiry
+ *     parameters:
+ *       - in: path
+ *         name: enquiry_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enquiry_status:
+ *                 type: string
+ *                 enum: [active, resolved, closed]
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Vendor enquiry updated successfully
+ *       404:
+ *         description: Vendor enquiry not found
+ *       500:
+ *         description: Server error
+ */
+router.patch("/vendor-enquiries/:enquiry_id", updateVendorEnquiry);
+
+/**
+ * @swagger
+ * /api/emadmin/vendor-enquiries/{enquiry_id}:
+ *   delete:
+ *     summary: Delete a vendor enquiry
+ *     tags:
+ *       - Vendor Enquiry
+ *     parameters:
+ *       - in: path
+ *         name: enquiry_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vendor enquiry deleted successfully
+ *       404:
+ *         description: Vendor enquiry not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/vendor-enquiries/:enquiry_id", deleteVendorEnquiry);
 
 export default router;
