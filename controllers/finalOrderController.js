@@ -513,12 +513,12 @@ export const getOrdersByCustomer = async (req, res) => {
 export const getOrderById = async (req, res) => {
   try {
     const { order_id } = req.params;
-    const order = await Order.find({ order_id });
-    if (!order) return res.status(404).json({ message: "Booking not found" });
-
+      const order = await Order.findOne({ order_id });
+      if (!order) return res.status(404).json({ message: "Order not found" });
+    
     res
       .status(200)
-      .json({ message: "Booking retrieved successfully", data: order });
+      .json({ message: "Booking retrieved successfully", data: [order] });
   } catch (error) {
     res
       .status(500)
