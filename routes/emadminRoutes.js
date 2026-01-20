@@ -1,6 +1,7 @@
 import express from "express";
 import {
   authenticateEMAdmin,
+  authenticateSalesAdmin,
   getEMNotifications,
   markAllNotificationsAsRead,
   getEMProfile,
@@ -46,6 +47,36 @@ const router = express.Router();
 
 // POST route for checking if a user exists
 router.post("/emauth", authenticateEMAdmin);
+
+/**
+ * @swagger
+ * /api/emadmin/salesauth:
+ *   post:
+ *     summary: Authenticate Sales Admin user
+ *     tags:
+ *       - EM Admin
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_name:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User authenticated successfully
+ *       400:
+ *         description: Missing username or password
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/salesauth", authenticateSalesAdmin);
 
 /**
  * @swagger
