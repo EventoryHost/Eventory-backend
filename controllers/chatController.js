@@ -6,6 +6,8 @@ import APIFeatures from "../utils/apiFeatures.js";
 import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
 import customerNotification from "../models/customerNotifications.js";
+import { updateEnquiryWithMessage } from "./vendorEnquiryController.js";
+import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -33,6 +35,16 @@ export const handleSocketConnection = (socket, io) => {
       }
 
       if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      if (chat_type === "vendor-enquiry" && sender !== "vendor" && sender !== "em") {
+        socket.emit("error", "You don't have permission to join this chat");
+        return;
+      }
+
+      if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
@@ -86,7 +98,7 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Validate sender type
-        const validSenders = ["customer", "vendor", "em"];
+        const validSenders = ["customer", "vendor", "em", "anonymous_customer"];
         if (!validSenders.includes(sender)) {
           if (typeof callback === "function") callback("Invalid sender type");
           else socket.emit("error", "Invalid sender type");
@@ -112,6 +124,23 @@ export const handleSocketConnection = (socket, io) => {
           return;
         }
 
+        if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
+          return;
+        }
+
+        if (chat_type === "vendor-enquiry" && sender !== "vendor" && sender !== "em") {
+          if (typeof callback === "function") {
+            callback("You don't have permission to send messages in this chat");
+          } else {
+            socket.emit("error", "You don't have permission to send messages in this chat");
+          }
+          return;
+        }
         // Validate content type
         const validTypes = [
           "text",
@@ -121,36 +150,41 @@ export const handleSocketConnection = (socket, io) => {
           "file",
           "approval_request",
           "order",
+          "vendor_card",        
+          "system",             
+          "options",            
+          "order_summary",
+          "login_prompt",
+          "review_prompt"
         ];
         const final_message_type = validTypes.includes(message_type)
           ? message_type
           : "text";
 
-        // Detect personal info or profanity
-        if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
-          console.log("❌ Personal information detected:", message_content);
-          if (typeof callback === "function") {
-            callback("Please refrain from sharing personal information!");
-          } else {
-            socket.emit(
-              "error",
-              "Please refrain from sharing personal information!"
-            );
+        const systemMessageTypes = ["vendor_card", "approval_request", "order", "system", "options", "order_summary", "login_prompt", "review_prompt"];
+
+        if (!systemMessageTypes.includes(message_type)) {
+          if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
+            console.log("Personal information detected:", message_content);
+            if (typeof callback === "function") {
+              callback("Please refrain from sharing personal information!");
+            } else {
+              socket.emit("error", "Please refrain from sharing personal information!");
+            }
+            return;
           }
-          return;
+
+          if (checkProfanity(message_content)) {
+            console.log("Profanity detected:", message_content);
+            if (typeof callback === "function") {
+              callback("Please refrain from using abusive words!");
+            } else {
+              socket.emit("error", "Please refrain from using abusive words!");
+            }
+            return;
+          }
         }
 
-        if (checkProfanity(message_content)) {
-          console.log("❌ Profanity detected:", message_content);
-          if (typeof callback === "function") {
-            callback("Please refrain from using abusive words!");
-          } else {
-            socket.emit("error", "Please refrain from using abusive words!");
-          }
-          return;
-        }
-
-        // Validate chat existence with chatType
         const chat = await Chat.findOne({ chat_id, chat_type });
         if (!chat) {
           if (typeof callback === "function") callback("Invalid chat_id or chat_type");
@@ -190,6 +224,23 @@ export const handleSocketConnection = (socket, io) => {
 
         const savedMessage = await message.save();
 
+        // ------------------- UPDATE VENDOR ENQUIRY IF APPLICABLE -------------------
+        if (chat_type === "vendor-enquiry") {
+          await updateEnquiryWithMessage(
+            chat_id,
+            message_content,
+            sender
+          );
+        }
+
+        // ------------------- AUTO-ASSIGN EM TO CHAT -------------------
+        // If sender is EM and chat doesn't have an assigned EM, update it.
+        if (sender === "em" && (!chat.em_id || chat.em_id === "")) {
+            chat.em_id = sender_id;
+            await chat.save();
+            console.log(`✅ Auto-assigned EM ${sender_id} to chat ${chat_id}`);
+        }
+
         // ------------------- EMIT TO ROOM -------------------
         const roomId = `${chat_id}-${chat_type}`;
         io.to(roomId).emit("new_message", {
@@ -215,6 +266,13 @@ export const handleSocketConnection = (socket, io) => {
         // ------------------- ACK TO SENDER -------------------
         if (typeof callback === "function") {
           callback(null, savedMessage);
+        }
+
+        // ------------------- INTERACTIVE FLOW (AUTO-REPLY) -------------------
+        if (chat_type === "anon_customer-admin" && sender === "anonymous_customer") {
+            // We need the anon_customer_id. 
+            // In socket send_message, we have sender_id which SHOULD be the anon_customer_id for anonymous users.
+            await handleInteractiveMessage(chat_id, sender_id, message_content, io);
         }
       } catch (err) {
         console.error("send_message error:", err);
@@ -242,6 +300,7 @@ export const handleSocketConnection = (socket, io) => {
     ) => {
       try {
         // Validate required fields
+        console.log("edit_message called with:", {message_id, new_content, chat_id, chat_type, sender_id});
         if (!message_id || !new_content || !chat_id || !chat_type || !sender_id) {
           if (typeof callback === "function") {
             callback("Missing required fields for edit");
@@ -293,7 +352,10 @@ export const handleSocketConnection = (socket, io) => {
 
         // Find the message
         const message = await Message.findOne({
-          message_id: message_id,
+            $or: [
+            { _id: message_id },
+            { message_id: message_id }
+        ],
           chat_id,
           chat_type,
         });
@@ -414,7 +476,7 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // Validate chatType
-    if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+    if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
       return res.status(400).json({ error: "Invalid chatType" });
     }
 
@@ -485,7 +547,7 @@ export const searchMessages = async (req, res) => {
     return res.status(400).json({ error: "chatType is required" });
   }
 
-  if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+  if (!["vendor-admin", "customer-admin", "vendor-enquiry"].includes(chatType)) {
     return res.status(400).json({ error: "Invalid chatType" });
   }
 
@@ -520,7 +582,7 @@ export const getMessageContext = async (req, res) => {
     return res.status(400).json({ error: "chatType is required" });
   }
 
-  if (!["vendor-admin", "customer-admin"].includes(chatType)) {
+  if (!["vendor-admin", "customer-admin", "vendor-enquiry"].includes(chatType)) {
     return res.status(400).json({ error: "Invalid chatType" });
   }
 
@@ -717,7 +779,7 @@ export const blockChat = async (req, res) => {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
+    if (!["vendor-admin", "customer-admin", "anon_customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
@@ -754,7 +816,7 @@ export const unblockChat = async (req, res) => {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
+    if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chat_type)) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
@@ -912,36 +974,25 @@ export const updateChatEmId = async (req, res) => {
       });
     }
 
-    // Only update if current em_id is "admin-rm" (default/dummy value)
-    const updatedChat = await Chat.findOneAndUpdate(
-      {
-        chat_id: chat_id,
-        em_id: "" // Only update if it's still the default
-      },
-      {
-        $set: { em_id: em_id }
-      },
-      {
-        new: true // Return the updated document
-      }
-    );
+    // Find the chat first
+    const chat = await Chat.findOne({ chat_id });
 
-    if (!updatedChat) {
-      // Either chat not found OR em_id was already updated
-      const existingChat = await Chat.findOne({ chat_id: chat_id });
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
 
-      if (!existingChat) {
-        return res.status(404).json({
-          message: "Chat not found"
-        });
-      }
-
-      // Chat exists but em_id was already set (not "admin-rm")
-      return res.status(200).json({
+    // Check if em_id is already set (truthy value)
+    // If em_id is null, undefined, or "", we allow update.
+    if (chat.em_id) {
+       return res.status(200).json({
         message: "Chat already has an assigned EM",
-        data: existingChat
+        data: chat
       });
     }
+
+    // Update em_id
+    chat.em_id = em_id;
+    const updatedChat = await chat.save();
 
     res.status(200).json({
       message: "Chat em_id updated successfully",
@@ -1008,115 +1059,142 @@ export const updateChatEmId = async (req, res) => {
 //   }
 // };
 
-export const editMessage = async (req, res) => {
+// export const editMessage = async (req, res) => {
+//   try {
+//     const { message_id } = req.params;
+//     const { new_content, chat_id, chat_type, sender_id } = req.body;
+
+//     if (!new_content || !chat_id || !chat_type || !sender_id) {
+//       return res.status(400).json({
+//         error: "Missing required fields: new_content, chat_id, chat_type, sender_id"
+//       });
+//     }
+
+//     if (!mongoose.Types.ObjectId.isValid(message_id)) {
+//       return res.status(400).json({ error: "Invalid message_id" });
+//     }
+
+//     if (!["vendor-admin", "customer-admin", "vendor-enquiry"].includes(chat_type)) {
+//       return res.status(400).json({ error: "Invalid chat_type" });
+//     }
+
+//     const chat = await Chat.findOne({ chat_id, chat_type });
+//     if (!chat) {
+//       return res.status(404).json({ error: "Chat not found" });
+//     }
+
+//     if (chat.chat_status === "BLOCKED") {
+//       return res.status(403).json({
+//         error: "Cannot edit messages in a blocked chat"
+//       });
+//     }
+
+//     const message = await Message.findOne({
+//       message_id: message_id,
+//       chat_id,
+//       chat_type,
+//     });
+
+//     if (!message) {
+//       return res.status(404).json({ error: "Message not found" });
+//     }
+
+//     if (message.sender_id !== sender_id) {
+//       return res.status(403).json({
+//         error: "You can only edit your own messages"
+//       });
+//     }
+
+//     const nonEditableTypes = ["system", "approval_request", "order"];
+//     if (nonEditableTypes.includes(message.message_type)) {
+//       return res.status(403).json({
+//         error: `Cannot edit ${message.message_type} messages`
+//       });
+//     }
+
+//     if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
+//       return res.status(400).json({
+//         error: "Please refrain from sharing personal information!"
+//       });
+//     }
+
+//     if (checkProfanity(new_content)) {
+//       return res.status(400).json({
+//         error: "Please refrain from using abusive words!"
+//       });
+//     }
+
+//     const now = new Date();
+//     message.message_content = new_content;
+//     message.is_edited = true;
+//     message.edited_at = now;
+
+//     const updatedMessage = await message.save();
+
+//     // Emit to all clients in the room via Socket.IO
+//     const io = req.io;
+//     if (io) {
+//       const roomId = `${chat_id}-${chat_type}`;
+//       io.to(roomId).emit("message_edited", {
+//         message_id: updatedMessage.message_id,
+//         chat_id: updatedMessage.chat_id,
+//         chat_type: updatedMessage.chat_type,
+//         new_content: updatedMessage.message_content,
+//         is_edited: true,
+//         edited_at: updatedMessage.edited_at,
+//         sender: updatedMessage.sender,
+//         sender_id: updatedMessage.sender_id,
+//       });
+//       console.log(`✏️ [REST API] Emitted message_edited to room ${roomId}`);
+//     } else {
+//       console.warn("⚠️ Socket.IO instance not available in editMessage controller");
+//     }
+
+//     return res.status(200).json({
+//       message: "Message edited successfully",
+//       data: {
+//         message_id: updatedMessage.message_id,
+//         chat_id: updatedMessage.chat_id,
+//         chat_type: updatedMessage.chat_type,
+//         new_content: updatedMessage.message_content,
+//         is_edited: updatedMessage.is_edited,
+//         edited_at: updatedMessage.edited_at,
+//         sender: updatedMessage.sender,
+//         sender_id: updatedMessage.sender_id,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error editing message:", error);
+//     return res.status(500).json({
+//       error: "Failed to edit message",
+//       details: error.message
+//     });
+//   }
+// };
+
+export const getChatDetails = async (req, res) => {
   try {
-    const { message_id } = req.params;
-    const { new_content, chat_id, chat_type, sender_id } = req.body;
+    const { chat_id } = req.params;
 
-    if (!new_content || !chat_id || !chat_type || !sender_id) {
-      return res.status(400).json({
-        error: "Missing required fields: new_content, chat_id, chat_type, sender_id"
-      });
+    if (!chat_id) {
+      return res.status(400).json({ error: "chat_id is required" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(message_id)) {
-      return res.status(400).json({ error: "Invalid message_id" });
-    }
+    const chat = await Chat.findOne({ chat_id });
 
-    if (!["vendor-admin", "customer-admin"].includes(chat_type)) {
-      return res.status(400).json({ error: "Invalid chat_type" });
-    }
-
-    const chat = await Chat.findOne({ chat_id, chat_type });
     if (!chat) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    if (chat.chat_status === "BLOCKED") {
-      return res.status(403).json({
-        error: "Cannot edit messages in a blocked chat"
-      });
-    }
-
-    const message = await Message.findOne({
-      message_id: message_id,
-      chat_id,
-      chat_type,
-    });
-
-    if (!message) {
-      return res.status(404).json({ error: "Message not found" });
-    }
-
-    if (message.sender_id !== sender_id) {
-      return res.status(403).json({
-        error: "You can only edit your own messages"
-      });
-    }
-
-    const nonEditableTypes = ["system", "approval_request", "order"];
-    if (nonEditableTypes.includes(message.message_type)) {
-      return res.status(403).json({
-        error: `Cannot edit ${message.message_type} messages`
-      });
-    }
-
-    if (checkPhoneNumber(new_content) || checkEmails(new_content)) {
-      return res.status(400).json({
-        error: "Please refrain from sharing personal information!"
-      });
-    }
-
-    if (checkProfanity(new_content)) {
-      return res.status(400).json({
-        error: "Please refrain from using abusive words!"
-      });
-    }
-
-    const now = new Date();
-    message.message_content = new_content;
-    message.is_edited = true;
-    message.edited_at = now;
-
-    const updatedMessage = await message.save();
-
-    // Emit to all clients in the room via Socket.IO
-    const io = req.io;
-    if (io) {
-      const roomId = `${chat_id}-${chat_type}`;
-      io.to(roomId).emit("message_edited", {
-        message_id: updatedMessage.message_id,
-        chat_id: updatedMessage.chat_id,
-        chat_type: updatedMessage.chat_type,
-        new_content: updatedMessage.message_content,
-        is_edited: true,
-        edited_at: updatedMessage.edited_at,
-        sender: updatedMessage.sender,
-        sender_id: updatedMessage.sender_id,
-      });
-      console.log(`✏️ [REST API] Emitted message_edited to room ${roomId}`);
-    } else {
-      console.warn("⚠️ Socket.IO instance not available in editMessage controller");
-    }
-
     return res.status(200).json({
-      message: "Message edited successfully",
-      data: {
-        message_id: updatedMessage.message_id,
-        chat_id: updatedMessage.chat_id,
-        chat_type: updatedMessage.chat_type,
-        new_content: updatedMessage.message_content,
-        is_edited: updatedMessage.is_edited,
-        edited_at: updatedMessage.edited_at,
-        sender: updatedMessage.sender,
-        sender_id: updatedMessage.sender_id,
-      },
+      success: true,
+      chat_id: chat.chat_id,
+      em_id: chat.em_id,
+      chat_status: chat.chat_status,
+      chat_type: chat.chat_type
     });
   } catch (error) {
-    console.error("Error editing message:", error);
-    return res.status(500).json({
-      error: "Failed to edit message",
-      details: error.message
-    });
+    console.error("Error fetching chat details:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

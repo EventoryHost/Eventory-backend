@@ -23,10 +23,10 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       ...incomingData
     } = req.body;
 
-    if (!quotation_id) {
-      console.log("❌ quotation_id missing");
-      return res.status(400).json({ message: "quotation_id is required" });
-    }
+    // if (!quotation_id) {
+    //   console.log("❌ quotation_id missing");
+    //   return res.status(400).json({ message: "quotation_id is required" });
+    // }
 
     // Initialize update fields
     const updateFields = {};

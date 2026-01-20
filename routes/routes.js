@@ -41,6 +41,10 @@ import invoiceRoutes from "../routes/invoiceRoutes.js";
 import deviceTokenRoutes from "../routes/deviceTokenRoutes.js";
 import whatsappRoutes from "../routes/whatsappRoutes.js";
 import notificationApiRoutes from "../routes/notificationApiRoutes.js";
+import anonChatRoutes from "../routes/anonChatRoutes.js";
+import anonUserRoutes from "../routes/anonUserRoutes.js";
+import vendorPreferenceRoutes from "../routes/vendorPreferences.js";
+import anonOrderRoutes from "../routes/anonOrderRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -55,6 +59,9 @@ router.use("/about-email", aboutEmailRoutes);
 router.use("/files", fileRoutes);
 router.use("/quotations", quotationRoutes(io));
 router.use("/chats", chatRoutes(io));
+router.use("/anon-chats", anonChatRoutes(io));
+router.use("/anon-users", anonUserRoutes);
+router.use("/anon-orders", anonOrderRoutes(io));
 router.use("/verification", verificationRoutes);
 router.use("/bookings", BookingRoutes);
 router.use("/service", serviceRouter);
@@ -88,6 +95,7 @@ router.use("/invoices", invoiceRoutes);
 router.use("/device-tokens", deviceTokenRoutes);
 router.use("/webhook", waRoutes);
 router.use("/whatsapp", whatsappRoutes);
+router.use("/vendor-preferences", vendorPreferenceRoutes);
 
 return router;
 }

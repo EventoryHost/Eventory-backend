@@ -334,3 +334,165 @@ export const updateScheduleColor = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * Get all services from all models with optional category filtering
+ * @route GET /api/services/all
+ * @query category - Optional filter by category (caterer, decorator, venue_provider, photographer_videographer, makeupartist, dj_artist, all)
+ * @query page - Page number (default: 1)
+ * @query limit - Items per page (default: 20, max: 100)
+ * @query search - Search across vendor ID, vendor names, mobile, email
+ * @query sortBy - Field to sort by (default: vendor_name)
+ * @query order - Sort order: asc/desc (default: asc)
+ * @query fields - Comma-separated fields to return
+ */
+export const getAllServices = async (req, res) => {
+  try {
+    const { 
+      category, 
+      page = 1, 
+      limit = 20, 
+      search = '', 
+      sortBy = 'vendor_name', 
+      order = 'asc',
+      fields 
+    } = req.query;
+    
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+    const sortOrder = order.toLowerCase() === 'desc' ? -1 : 1;
+    
+    const serviceModels = {
+      caterer: Caterer,
+      decorator: Decorator,
+      venue_provider: VenueProvider,
+      photographer_videographer: PhotographerVideographer,
+      makeupartist: MakeupArtist,
+      dj_artist: DjArtist
+    };
+
+    const searchQuery = search ? {
+      $or: [
+        { vendor_id: { $regex: search, $options: 'i' } },
+        { vendor_name: { $regex: search, $options: 'i' } },
+        { vendor_mobile: { $regex: search, $options: 'i' } },
+        { email_address: { $regex: search, $options: 'i' } }
+      ]
+    } : {};
+
+    let selectFields = {};
+    if (fields) {
+      const fieldArray = fields.split(',').map(f => f.trim());
+      fieldArray.forEach(field => {
+        selectFields[field] = 1;
+      });
+    }
+
+    let allServices = [];
+    let totalCount = 0;
+
+    if (category && category.toLowerCase() !== 'all') {
+      const normalizedCategory = category.toLowerCase();
+      const Model = serviceModels[normalizedCategory];
+      
+      if (!Model) {
+        return res.status(400).json({ 
+          error: "Invalid category",
+          validCategories: [...Object.keys(serviceModels), 'all']
+        });
+      }
+
+      totalCount = await Model.countDocuments(searchQuery);
+
+      const query = Model.find(searchQuery)
+        .sort({ [sortBy]: sortOrder })
+        .skip(skip)
+        .limit(limitNum)
+        .lean();
+
+      if (fields) {
+        query.select(selectFields);
+      }
+
+      const services = await query;
+      allServices = services.map(service => ({
+        ...service,
+        category: normalizedCategory
+      }));
+    } else {
+      const fetchPromises = Object.entries(serviceModels).map(async ([categoryName, Model]) => {
+        const count = await Model.countDocuments(searchQuery);
+        const query = Model.find(searchQuery).lean();
+        
+        if (fields) {
+          query.select(selectFields);
+        }
+        
+        const services = await query;
+        return {
+          services: services.map(service => ({
+            ...service,
+            category: categoryName
+          })),
+          count
+        };
+      });
+
+      const results = await Promise.all(fetchPromises);
+      
+      const combinedServices = results.flatMap(r => r.services);
+      totalCount = results.reduce((sum, r) => sum + r.count, 0);
+      
+      let filteredServices = combinedServices;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredServices = combinedServices.filter(service => 
+          (service.vendor_id && service.vendor_id.toLowerCase().includes(searchLower)) ||
+          (service.vendor_name && service.vendor_name.toLowerCase().includes(searchLower)) ||
+          (service.vendor_mobile && service.vendor_mobile.includes(search)) ||
+          (service.email_address && service.email_address.toLowerCase().includes(searchLower))
+        );
+        totalCount = filteredServices.length;
+      }
+      
+      filteredServices.sort((a, b) => {
+        const aVal = a[sortBy] || '';
+        const bVal = b[sortBy] || '';
+        if (typeof aVal === 'string') {
+          return sortOrder === 1 
+            ? aVal.localeCompare(bVal)
+            : bVal.localeCompare(aVal);
+        }
+        return sortOrder === 1 ? aVal - bVal : bVal - aVal;
+      });
+      
+      allServices = filteredServices.slice(skip, skip + limitNum);
+    }
+
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPreviousPage = pageNum > 1;
+
+    return res.status(200).json({
+      success: true,
+      category: category || 'all',
+      count: totalCount,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages,
+        hasNextPage,
+        hasPreviousPage
+      },
+      data: allServices
+    });
+  } catch (error) {
+    console.error("Error fetching all services:", error);
+    return res.status(500).json({ 
+      error: "An error occurred while fetching services",
+      message: error.message 
+    });
+  }
+};

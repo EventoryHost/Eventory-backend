@@ -154,6 +154,8 @@ const createQuotation = async (req, res, io) => {
         customer_name: savedQuotation.customer_name,
         id: savedQuotation.quotation_id,
       });
+
+      
     });
 
     if(process.env.IS_DEV === 'true') return;

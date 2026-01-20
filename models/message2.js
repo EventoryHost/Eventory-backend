@@ -17,11 +17,11 @@ const messageSchema = new Schema(
     chat_type: { 
       type: String, 
       required: true, 
-      enum: ["vendor-admin", "customer-admin"] 
+      enum: ["vendor-admin", "customer-admin", "anon_customer-admin","vendor-enquiry"], 
     },
     sender: {
       type: String,
-      enum: ["customer", "vendor", "em"],
+      enum: ["customer", "vendor", "em", "anonymous_customer", "admin"],
       required: true,
     },
     sender_id: {
@@ -39,6 +39,11 @@ const messageSchema = new Schema(
         "approval_request",
         "order",
         "system",
+        "vendor_card",
+        "options",
+        "order_summary",
+        "login_prompt",
+        "review_prompt"
       ],
       required: true,
       default: "text",
@@ -46,6 +51,19 @@ const messageSchema = new Schema(
     message_content: {
       type: String,
       required: true,
+    },
+    // For interactive messages (buttons)
+    options: [{
+      label: String,
+      value: String
+    }],
+    // For specific actions (e.g., "request_review", "login_prompt")
+    action: {
+      type: String
+    },
+    // For rich cards (vendor details, order summary)
+    card_data: {
+      type: mongoose.Schema.Types.Mixed
     },
     attachment_url: {
       type: String,

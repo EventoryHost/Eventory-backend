@@ -16,6 +16,10 @@ export async function sendSlackMessage({
   date,
 }) {
   try {
+    if (process.env.IS_LOCAL === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true)");
+      return;
+    }
     await slackClient.chat.postMessage({
       channel: channelId,
       text: `New Quotation Created`,
@@ -81,6 +85,10 @@ export async function sendSlackBookingMessage({
   startDate,
 }) {
   try {
+    if (process.env.IS_LOCAL === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true)");
+      return;
+    }
     await slackClient.chat.postMessage({
       channel: channelId,
       text: `New Booking Created`,
@@ -135,5 +143,67 @@ export async function sendSlackBookingMessage({
     });
   } catch (error) {
     console.error("Slack Booking Message Error:", error?.message || error);
+  }
+}
+
+export async function sendSlackAnonChatMessage({
+  chatId,
+  anonCustomerId,
+  messageContent,
+  metadata,
+}) {
+  try {
+    if (process.env.IS_LOCAL === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true)");
+      return;
+    }
+    await slackClient.chat.postMessage({
+      channel: channelId,
+      text: `New Anonymous Chat Started`,
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: "🕵️ New Anonymous Chat",
+          },
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*Chat ID:*\n${chatId}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*Customer ID:*\n${anonCustomerId}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*First Message:*\n${messageContent}`,
+            },
+             {
+              type: "mrkdwn",
+              text: `*Source:*\n${metadata?.source || "N/A"}`,
+            },
+          ],
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `🔗 *Open Admin Inbox:* <https://admin.eventory.in/inbox>`,
+          },
+        },
+      ],
+    });
+
+    console.log("Slack Anonymous Chat Notification Sent!");
+  } catch (error) {
+    console.error("Slack Anonymous Chat Message Error:", error?.message || error);
   }
 }
