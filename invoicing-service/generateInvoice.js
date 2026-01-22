@@ -433,7 +433,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   }
 }
 
-export async function generateBookingPaymentInvoice(customer, vendor, paymentDetails = {}) {
+export async function generateBookingPaymentInvoice(customer, vendor, paymentDetails) {
   let browser = null;
   let page = null;
   let pdfPath = "";
@@ -449,11 +449,11 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const items = Array.isArray(paymentDetails.items) ? paymentDetails.items : [];
     const totalAmount = Number(paymentDetails.amount) || 0;
     const discountAmount = Number(paymentDetails.discount) || 0;
-    const finalAmount = Math.max(0, totalAmount - discountAmount);
+    const finalAmount = Math.max(0, paymentDetails.finalAmount || paymentDetails.amount);
     const convinienceFee = Number(paymentDetails.convinienceFee) || 0;
     const commissionFee = Number(paymentDetails.commissionFee) || 0;
     const couponCode = (paymentDetails.couponCode || "").toString().toUpperCase();
-
+    const paymentId = paymentDetails.invoiceNumber || paymentDetails.paymentId || "-";
     const paymentMethod =
       discountAmount >= totalAmount
         ? "Eventory-Coupon-Code"
@@ -491,7 +491,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       const net = gross / 1.18;
       const tax = gross - net;
 
-      if (isDelhiPincode) {
+      if (!isDelhiPincode) {
         const half = tax / 2;
         tableRows += `
           <tr>
@@ -527,22 +527,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       runningSerial++;
     });
 
-    if (discountAmount > 0) {
-      const couponCodeRow = couponCode || "DISCOUNT";
-      tableRows += `
-        <tr>
-          <td style="text-align:center;">${runningSerial}</td>
-          <td>Discount</td>
-          <td style="text-align:center;">${couponCodeRow}</td>
-          <td style="text-align:center;"></td>
-          <td style="text-align:center;"></td>
-          <td style="text-align:center;"></td>
-          <td style="text-align:center;"></td>
-          <td style="text-align:center;">- Rs ${discountAmount.toFixed(2)}</td>
-        </tr>
-      `;
-      runningSerial++;
-    }
+
 
     const discountTotalsRow =
       discountAmount > 0
@@ -622,7 +607,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     html = html
       .replace("{{invoiceCount}}", invoiceNumber)
-      .replace("{{paymentId}}", paymentDetails.invoiceNumber || paymentDetails.paymentId || "-")
+      .replace("{{paymentId}}", paymentId)
       .replace("{{paymentMethod}}", paymentMethod)
       .replace("{{invoiceDate}}", invoiceDate)
       .replace("{{amount}}", `Rs ${paidAmountNum.toFixed(2)}`)
@@ -648,7 +633,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     const custInvoiceUrl = await uploadToS3(
       pdfBuffer,
-      `invoices/bookings/customers/${customer.id}/customer-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
+      `invoices/bookings/${paymentDetails.event_id}/customers/${customer.id}/customer-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
     );
 
 
@@ -683,10 +668,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       await sendCustomerEventBookingMessage(
         custInvoiceUrl,
         customer.mobile,
-        paymentDetails.date,
-        paymentDetails.time,
-        paymentDetails.venue,
-        paymentDetails.customerLink
+        paymentDetails.date
       );
     }
 
@@ -698,7 +680,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       const net = gross / 1.18;
       const tax = gross - net;
 
-      if (isDelhiPincode) {
+      if (!isDelhiPincode) {
         const half = tax / 2;
         tableRows += `
         <tr>
@@ -740,6 +722,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     `;
 
     const vendorReceivedNum = paidAmountNum;
+    const vendorTotalReceivableNum = paymentDetails.vendorReceivable.total;
 
     const vendorTotalRow = `
     <tr class="total-row">
@@ -748,7 +731,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     </tr>
     <tr class="total-row">
       <td colspan="7" style="text-align:right;font-weight:bold;">Total Receivable:</td>
-      <td style="font-weight:bold;">Rs ${paymentDetails.vendorReceivable.total.toFixed(2)}</td>
+      <td style="font-weight:bold;">Rs ${vendorTotalReceivableNum.toFixed(2)}</td>
     </tr>
     <tr class="total-row">
       <td colspan="7" style="text-align:right;font-weight:bold;">Received:</td>
@@ -789,7 +772,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     const venInvoiceUrl = await uploadToS3(
       pdfBuffer,
-      `invoices/bookings/vendors/${vendor.id}/vendor-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
+      `invoices/bookings/${paymentDetails.event_id}/vendors/${vendor.id}/vendor-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
     );
 
 
@@ -816,9 +799,6 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         venInvoiceUrl,
         vendor.mobile,
         paymentDetails.date,
-        paymentDetails.time,
-        paymentDetails.venue,
-        paymentDetails.vendorLink
       );
     }
   } catch (err) {
@@ -826,7 +806,6 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       if (page && !page.isClosed()) await page.close();
       if (browser) await browser.close();
     } catch { }
-    throw err;
   }
 
   return pdfPath;

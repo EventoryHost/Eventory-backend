@@ -30,9 +30,7 @@ async function pollSQS() {
 
       const data = await sqs.send(command);
 
-      console.log("Received SQS message:", data.Messages);
       if (data.Messages) {
-        console.log(`Processing ${data.Messages.length} message(s)`);
 
         for (const message of data.Messages) {
           console.log("Received SQS message:", message.Body);
