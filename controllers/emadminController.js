@@ -20,8 +20,10 @@ export const authenticateEMAdmin = async (req, res) => {
   }
 
   try {
-    // 1️⃣ Find user by username
-    const user = await EventManager.findOne({ user_name });
+    // 1️⃣ Find user by username (case-insensitive)
+    const user = await EventManager.findOne({ 
+      user_name: { $regex: new RegExp(`^${user_name}$`, 'i') } 
+    });
 
     if (!user) {
       return res.status(404).json({

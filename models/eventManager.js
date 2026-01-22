@@ -71,6 +71,17 @@ const eventManagerSchema = new Schema({
   eventory_events: [{
     type: String
     // Array of event_ids
+  }],
+  experience: {
+    type: String,
+    default: ""
+  },
+  specialised_in: {
+    type: String,
+    default: ""
+  },
+  media: [{
+    type: String
   }]
 }, {
   timestamps: true,

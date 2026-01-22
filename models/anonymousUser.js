@@ -24,6 +24,9 @@ const anonymousUserSchema = new mongoose.Schema({
     utm_campaign: String,
     utm_adset: String,
     utm_ad: String,
+    utm_term: String,
+    utm_content: String,
+    utm_id: String,
     landing_page: String,
     referrer: String
   },
