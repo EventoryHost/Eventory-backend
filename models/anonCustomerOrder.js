@@ -64,6 +64,10 @@ const anonPaymentDetailsSchema = new mongoose.Schema({
 }, { _id: false });
 
 const anonCustomerOrderSchema = new mongoose.Schema({
+  checkout_url: {
+    type: String,
+    default: null
+  },
   anon_order_id: {
     type: String,
     required: true,

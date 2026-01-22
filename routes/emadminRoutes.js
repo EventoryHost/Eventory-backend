@@ -190,6 +190,14 @@ router.get("/em_profile/:em_id", getEMProfile);
  *                 type: string
  *               yoe:
  *                 type: string
+ *               experience:
+ *                 type: string
+ *               specialised_in:
+ *                 type: string
+ *               media:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Profile updated successfully

@@ -18,6 +18,9 @@ export const initializeAnonymousUser = async (req, res) => {
       utm_campaign, 
       utm_adset, 
       utm_ad, 
+      utm_term,
+      utm_content,
+      utm_id,
       landing_page, 
       referrer,
       device_info,
@@ -50,6 +53,9 @@ export const initializeAnonymousUser = async (req, res) => {
           utm_campaign: utm_campaign || user.acquisition.utm_campaign,
           utm_adset: utm_adset || user.acquisition.utm_adset,
           utm_ad: utm_ad || user.acquisition.utm_ad,
+          utm_term: utm_term || user.acquisition.utm_term,
+          utm_content: utm_content || user.acquisition.utm_content,
+          utm_id: utm_id || user.acquisition.utm_id,
           landing_page: landing_page || user.acquisition.landing_page,
           referrer: referrer || user.acquisition.referrer
         };
@@ -83,6 +89,9 @@ export const initializeAnonymousUser = async (req, res) => {
                 utm_campaign,
                 utm_adset,
                 utm_ad,
+                utm_term,
+                utm_content,
+                utm_id,
                 landing_page,
                 referrer
             },
