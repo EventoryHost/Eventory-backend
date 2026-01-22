@@ -121,7 +121,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
           customer_approval: true,
           original_ask_by_customer: customer_requirements || existingOrder.customer_requirements || '',
           order_status: 'approved',
-          vendor_manager_contact_number: vendor_manager_contact_number || '',
+          vendor_manager_contact_number: vendor_manager_contact_number || '0000000000',
           vendor_manager_contact_email: vendor_manager_contact_email || 'no-reply@eventory.com',
           customer_contact_number: customer_contact_number || existingOrder.customer_contact_number || '',
           customer_contact_email: customer_contact_email || existingOrder.customer_contact_email || 'no-reply@eventory.com',
