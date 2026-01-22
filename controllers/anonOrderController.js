@@ -218,7 +218,13 @@ export const createOrUpdateAnonOrder = async (req, res) => {
             }
             servicesMap.get(serviceName).items.push({
               name: item.name_of_service,
-              price: item.total_amount || 0,
+              description: item.description || "",
+              quantity: item.quantity || 1,
+              price: item.price || 0,
+              tax_rate: item.tax_rate || 0,
+              tax_type: item.tax_type || "GST",
+              tax_amount: item.tax_amount || 0,
+              total_amount: item.total_amount || 0,
             });
           });
         }
@@ -241,6 +247,8 @@ export const createOrUpdateAnonOrder = async (req, res) => {
             location: order.event_location,
             guests: `${order.guest_count || 0} guests`,
             services: Array.from(servicesMap.values()),
+            payment_breakdown: order.paymentDetails?.customerPayable || {},
+            advance_amount_requested: order.advance_amount_requested || 0,
             checkout_url: order.checkout_url || checkout_url || null,
           },
         });
@@ -364,7 +372,13 @@ export const createOrUpdateAnonOrder = async (req, res) => {
             }
             servicesMap.get(serviceName).items.push({
               name: item.name_of_service,
-              price: item.total_amount || 0,
+              description: item.description || "",
+              quantity: item.quantity || 1,
+              price: item.price || 0,
+              tax_rate: item.tax_rate || 0,
+              tax_type: item.tax_type || "GST",
+              tax_amount: item.tax_amount || 0,
+              total_amount: item.total_amount || 0,
             });
           });
         }
@@ -387,6 +401,8 @@ export const createOrUpdateAnonOrder = async (req, res) => {
             location: order.event_location,
             guests: `${order.guest_count || 0} guests`,
             services: Array.from(servicesMap.values()),
+            payment_breakdown: order.paymentDetails?.customerPayable || {},
+            advance_amount_requested: order.advance_amount_requested || 0,
           },
         });
 
