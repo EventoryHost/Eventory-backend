@@ -15,8 +15,8 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- * name: Quotations
- * description: Quotation management APIs
+ *   - name: Quotations
+ *     description: Quotation management APIs
  */
 
 /**
@@ -192,19 +192,19 @@ router.get("/:id", getQuotationById);
 // router.get("/", async (req, res) => {
 //   try {
 //     const { vendor_id } = req.query;
-
+// 
 //     if (!vendor_id) {
 //       return res.status(400).json({ message: "vendor_id is required" });
 //     }
-
+// 
 //     const quotations = await Quotation.find({ vendor_id });
-
+// 
 //     if (quotations.length === 0) {
 //       return res
 //         .status(404)
 //         .json({ message: `No quotations found for vendor_id: ${vendor_id}` });
 //     }
-
+// 
 //     res.status(200).json({
 //       message: "Quotations retrieved successfully!",
 //       data: quotations,

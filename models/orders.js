@@ -146,9 +146,9 @@ const ordersSchema = new Schema({
     },
     validate: {
       validator: function (v) {
-        return v instanceof Date && !isNaN(v) && v > this.event_start;
+        return v instanceof Date && !isNaN(v) && v >= this.event_start;
       },
-      message: 'Event end date must be after event start date'
+      message: 'Event end date must be on or after event start date'
     }
     // When the event will get over
   },

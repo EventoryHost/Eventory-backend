@@ -17,6 +17,8 @@ import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js"
 import caterer from "../routes/reduxRoutes/caterer.js";
 import verificationRoutes from "../routes/verificationRoutes.js";
 import decorator from "../routes/reduxRoutes/decorator.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "../swagger.js";
 
 import "../utils/paymentReminderCron.js";
 
@@ -68,6 +70,7 @@ app.use(
 
 app.use("/", router);
 app.use("/api", MainRoutes(io));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 app.get("/", (req, res) => {
