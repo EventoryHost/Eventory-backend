@@ -20,6 +20,7 @@ import Photographer from "../models/photographerVideographer.js";
 import VenueProvider from "../models/venueProvider.js";
 import MakeupArtist from "../models/makeupArtist.js";
 import DjArtist from "../models/djArtist.js";
+import AnonymousUser from "../models/anonymousUser.js";
 
 
 dotenv.config();
@@ -282,13 +283,13 @@ const getServiceModelById = (service_id) => {
 const verifyCustomerPayment = async (req, res) => {
   const {
     order_id,
-    quotation_id,
+    internal_order_id,
     order_amount,
     payment_type,
     couponCode,
     couponDiscount,
     service_id,
-    serviceData,             // NEW from frontend (optional)
+    serviceData,
   } = req.body;
 
   try {
@@ -303,15 +304,42 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     // Fetch the final order to get required IDs
-    const finalOrder = await Order.findOne({ quotation_id: quotation_id }).lean();
+    const finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
     if (!finalOrder) {
-      return res.status(404).json({ error: "Final order not found for quotation_id" });
+      return res.status(404).json({ error: "Final order not found for internal_order_id" });
     }
 
+    const quotation_id = finalOrder.quotation_id;
     const internalOrderId = finalOrder.order_id;
     const vendor_id = finalOrder.vendor_id;
-    const customer_id = finalOrder.customer_id;
     const em_id = finalOrder.em_id;
+
+    let finalCustomerId = finalOrder.customer_id;
+
+
+    if (finalCustomerId && finalCustomerId.startsWith("ANON")) {
+      console.log("[VerifyPayment] Resolving anonymous user:", finalCustomerId);
+      try {
+        const anonUser = await AnonymousUser.findOne({ anon_id: finalCustomerId });
+        if (anonUser) {
+          if (anonUser.converted_user_id) {
+            console.log("[VerifyPayment] Resolved anonymous user:", anonUser.converted_user_id);
+            await Order.findOneAndUpdate(
+              { order_id: internalOrderId },
+              { $set: { customer_id: anonUser.converted_user_id } }
+            );
+            finalCustomerId = anonUser.converted_user_id;
+            // Also update the local finalOrder object to ensure consistency
+            if (finalOrder) {
+              finalOrder.customer_id = finalCustomerId;
+            }
+            console.log("[VerifyPayment] Updated final order customer ID:", finalCustomerId);
+          }
+        }
+      } catch (err) {
+        console.error("[VerifyPayment] Error resolving anonymous user:", err);
+      }
+    }
 
     const receivableFromOrder =
       Number(
@@ -323,7 +351,7 @@ const verifyCustomerPayment = async (req, res) => {
     const previousTxn = await Transaction.findOne({
       quotation_id: quotation_id,
       vendor_id: vendor_id,
-      customer_id: customer_id,
+      customer_id: finalCustomerId,
       service_id: service_id,
       internalOrderId: internalOrderId,
     }).lean();
@@ -344,7 +372,8 @@ const verifyCustomerPayment = async (req, res) => {
     if (!vendorDoc) {
       return res.status(404).json({ error: "Vendor not found" });
     }
-    const customerDoc = await Customer.findOne({ customer_id });
+
+    const customerDoc = await Customer.findOne({ customer_id: finalCustomerId });
     if (!customerDoc) {
       return res.status(404).json({ error: "Customer not found" });
     }
@@ -427,10 +456,10 @@ const verifyCustomerPayment = async (req, res) => {
       quotation_id,
       internalOrderId,
       vendor_id,
-      customer_id,
-      service_id,                            // CRITICAL: was missing
-      pgOrderId: order_id,                   // FIX: use pgOrderId (camelCase)
-      pgStatus: payment.order_status || null, // FIX: match schema
+      customer_id: finalCustomerId,
+      service_id,
+      pgOrderId: order_id,
+      pgStatus: payment.order_status || null,
       transfer_id,
       status: "INIT",
       transfer_amount: payoutAmount,
@@ -486,13 +515,11 @@ const verifyCustomerPayment = async (req, res) => {
       { transfer_id },
       {
         $set: {
-          quotation_id,
-          internalOrderId,
           vendor_id,
-          customer_id,
-          service_id,                         // CRITICAL: ensure it's present
-          pgOrderId: order_id,                // FIX: camelCase
-          pgStatus: payment.order_status,     // FIX: camelCase
+          customer_id: finalCustomerId,
+          service_id,
+          pgOrderId: order_id,
+          pgStatus: payment.order_status,
           beneficiary_id,
           cf_transfer_id: transferData.cf_transfer_id || null,
           status: transferData.status || null,
@@ -583,7 +610,7 @@ const verifyCustomerPayment = async (req, res) => {
         read: false,
       });
       await customerNotification.create({
-        customer_id,
+        customer_id: finalCustomerId,
         order_id: internalOrderId,
         chat_id: "",
         message: customerMessage,
@@ -621,11 +648,12 @@ const verifyCustomerPayment = async (req, res) => {
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
       event_id = generateUniqueId("EVTY");
+      console.log(`[VerifyPayment] Creating event ${event_id} with Customer ID: ${finalCustomerId}`);
       const preBooking = new Events({
         event_id: event_id,
-        customer_id: customer_id,
+        customer_id: finalCustomerId,
         vendor_id: vendor_id,
-        service_id: service_id || "TEMP_SERVICE_ID", // use real when you have it
+        service_id: service_id,
         quotation_id: quotation_id,
         em_id: em_id,
 
@@ -768,7 +796,6 @@ const verifyCustomerPayment = async (req, res) => {
       vendorLink = "http://localhost:3000/dashboard?q=Manage%20Bookings";
     }
 
-    console.log(customerLink, vendorLink);
 
     const customerPayload = {
       id: customerDoc.customer_id,

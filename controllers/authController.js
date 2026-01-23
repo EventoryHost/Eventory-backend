@@ -17,6 +17,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { Vendor } from "../models/vendor.js";
 import { Customer } from "../models/customer.js";
+import AnonymousUser from "../models/anonymousUser.js";
 
 // EMAIL ADDRESS LOGIC CHANGED
 
@@ -387,7 +388,7 @@ const verifyLoginOtp = async (req, res) => {
   }
 };
 const verifyCustomerLoginOtp = async (req, res) => {
-  const { mobile, code, session, name } = req.body;
+  const { mobile, code, session, name, anonId } = req.body;
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -416,6 +417,19 @@ const verifyCustomerLoginOtp = async (req, res) => {
       });
 
       await customer.save();
+
+      // LINK ANONYMOUS USER IF EXISTS
+      if (anonId) {
+        try {
+          await AnonymousUser.findOneAndUpdate(
+            { anon_id: anonId },
+            { converted_user_id: customer.customer_id }
+          );
+        } catch (err) {
+          console.error("Failed to link anonymous user:", err);
+          // Don't fail signup if linking fails
+        }
+      }
 
       const payload = {
         id: customer.customer_id,
