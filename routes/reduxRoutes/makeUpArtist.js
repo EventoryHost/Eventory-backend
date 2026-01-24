@@ -1,123 +1,104 @@
 import express from "express";
+import { MakeupArtistModel } from "../../models/reduxModels/makeupArtist.js";
+
 const router = express.Router();
-import MakeupArtistModel from "../../models/reduxStores/makeUpArtist.js";
+
+/** MAKEUP ARTIST DETAILS ROUTES **/
 
 // POST or PUT route to save or update makeup artist details
+// Route: /makeup-artist-details/
 router.post("/", async (req, res) => {
-  const { id, data } = req.body;
+  const { vendor_id, makeupArtistData } = req.body;
 
-  // Validate id and data
-  if (!id) {
-    console.log("Error: User ID is required.");
-    return res.status(400).json({ message: "User ID is required." });
+  // Validate vendor_id
+  if (!vendor_id) {
+    return res.status(400).json({ message: "Vendor ID is required." });
   }
 
-  if (!data || Object.keys(data).length === 0) {
-    console.log("Error: Makeup artist details are required.");
-    return res
-      .status(400)
-      .json({ message: "Makeup artist details are required." });
+  // Validate makeupArtistData
+  if (!makeupArtistData || Object.keys(makeupArtistData).length === 0) {
+    return res.status(400).json({ message: "Makeup artist details are required." });
   }
 
   try {
-    console.log("Finding existing makeup artist details for id:", id);
-    const existingDetails = await MakeupArtistModel.findOne({ id });
+    // Prepare data
+    const dataToSave = {
+      vendor_id,
+      ...makeupArtistData
+    };
 
-    if (existingDetails) {
-      console.log("Found existing details for id:", id);
-      console.log("Updating makeup artist details:", data);
-      const updatedDetails = await MakeupArtistModel.findOneAndUpdate(
-        { id },
-        { $set: data },
-        { new: true, upsert: false },
-      );
-      console.log("Updated details:", updatedDetails);
-      return res.status(200).json({
-        message: "Makeup artist details updated successfully.",
-        data: updatedDetails,
-      });
-    } else {
-      console.log(
-        "No existing details found. Creating new makeup artist details.",
-      );
-      const newMakeupArtistDetails = new MakeupArtistModel({
-        id,
-        ...data,
-      });
-      await newMakeupArtistDetails.save();
-      console.log("New details saved:", newMakeupArtistDetails);
-      return res.status(201).json({
-        message: "Makeup artist details saved successfully.",
-        data: newMakeupArtistDetails,
-      });
-    }
+        // Find and update the existing document. The `upsert: true` option
+        // will create a new document if one isn't found.
+        const updatedDetails = await MakeupArtistModel.findOneAndUpdate(
+          { vendor_id },
+          dataToSave,
+          { new: true, upsert: true }
+        );
+        
+        // This response works for both creation and update
+        const message = updatedDetails.isNew ? "Makeup artist details saved successfully." : "Makeup artist details updated successfully.";
+
+    return res.status(200).json({
+      message,
+      data: updatedDetails,
+    });
+
   } catch (error) {
-    console.error("Error saving/updating makeup artist details:", error);
     res.status(500).json({
       message: "Failed to save or update makeup artist details.",
       error: error.message,
     });
   }
 });
-
-// GET route to retrieve makeup artist details by user ID
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
-  console.log("Retrieving makeup artist details for id:", id);
-
-  try {
-    console.log("Finding makeup artist details for id:", id);
-    const makeupArtistDetails = await MakeupArtistModel.findOne({ id });
-
-    if (!makeupArtistDetails) {
-      console.log("No makeup artist details found for id:", id);
-      return res
-        .status(404)
-        .json({ message: "Makeup artist details not found." });
+  
+// GET route to retrieve makeup artist details by vendor ID
+// Route: /makeup-artist-details/:vendor_id
+router.get("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    try {
+      const makeupArtistDetails = await MakeupArtistModel.findOne({ vendor_id: vendor_id.trim() });
+  
+      if (!makeupArtistDetails) {
+        return res.status(404).json({ message: "Makeup artist details not found." });
+      }
+  
+      res.status(200).json(makeupArtistDetails);
+    } catch (error) {
+      console.error("Error retrieving makeup artist details:", error);
+      res.status(500).json({
+        message: "Failed to retrieve makeup artist details.",
+        error: error.message,
+      });
     }
-
-    console.log("Found makeup artist details:", makeupArtistDetails);
-    res.status(200).json(makeupArtistDetails);
-  } catch (error) {
-    console.error("Error retrieving makeup artist details:", error);
-    res.status(500).json({
-      message: "Failed to retrieve makeup artist details.",
-      error: error.message,
-    });
-  }
+});
+  
+// DELETE route to remove makeup artist details by vendor ID
+// Route: /makeup-artist-details/:vendor_id
+router.delete("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    if (!vendor_id || vendor_id.trim() === '') {
+      return res.status(400).json({ message: "Vendor ID is required for deletion." });
+    }
+  
+    try {
+      const deletedDetails = await MakeupArtistModel.findOneAndDelete({ vendor_id: vendor_id }); 
+  
+      if (!deletedDetails) {
+        return res.status(404).json({ message: "Makeup artist details not found for deletion." });
+      }
+  
+      res.status(200).json({ message: "Makeup artist details deleted successfully." });
+  
+    } catch (error) {
+      console.error("Error deleting makeup artist details:", error);
+      res.status(500).json({
+        message: "Failed to delete makeup artist details.",
+        error: error.message,
+      });
+    }
 });
 
-// DELETE route to remove decorator details by user ID
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params;
-  console.log("🗑️ Deleting decorator details for ID:", id);
-
-  if (!id) {
-    return res
-      .status(400)
-      .json({ message: "User ID is required for deletion." });
-  }
-
-  try {
-    // Use findOneAndDelete with a filter object
-    const deletedDetails = await MakeupArtistModel.findOneAndDelete({ id });
-
-    if (!deletedDetails) {
-      return res
-        .status(404)
-        .json({ message: "Make-Up details not found for deletion." });
-    }
-
-    console.log("✅ Deleted decorator details:", deletedDetails);
-    res.status(200).json({ message: "Make-Up details deleted successfully." });
-  } catch (error) {
-    console.error("❌ Error deleting Make-Up details:", error);
-    res.status(500).json({
-      message: "Failed to delete Make-Up details.",
-      error: error.message,
-    });
-  }
-});
-
-// Export the router
-export { router as makeupArtistRoutes };
+// Export the router so it can be used in other files
+export default router;

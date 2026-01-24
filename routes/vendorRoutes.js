@@ -1,76 +1,25 @@
-// routes/vendorRoutes.js
 import express from "express";
-import { Vendor } from "../models/users.js";
-import vendorNotification from "../models/vendorNotification.js";
+import {
+  getAllVendors,
+  getVendorById,
+  getVendorNotifications,
+  markAllNotificationsAsRead,
+  patchMarkNotificationsAsRead,
+  getVendorFlowType,
+  checkVendorHasServices,
+} from "../controllers/vendorController.js";
 
 const router = express.Router();
 
-// Get vendor details by vendor_id
-router.get("/:vendor_id", async (req, res) => {
-  const { vendor_id } = req.params;
+// --- Vendor Routes ---
+router.get("/all", getAllVendors);
+router.get("/:vendor_id", getVendorById);
+router.get("/:vendor_id/flow-type", getVendorFlowType); 
+router.get("/:vendor_id/has-services", checkVendorHasServices); 
 
-  try {
-    // Find vendor by custom 'id' field
-    const vendor = await Vendor.findOne({ id: vendor_id });
-
-    // If vendor not found, return 404
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
-
-    // Return the vendor's details
-    res.json(vendor);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// Get all notifications and count unread
-router.get("/:vendorId/vendorNotification", async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-
-    const notifications = await vendorNotification.find({ vendorId }).sort({ timestamp: -1 });
-    const unreadCount = await vendorNotification.countDocuments({ vendorId, read: false });
-
-    res.status(200).json({ 
-      message: "Notifications fetched", 
-      data: notifications,
-      unreadCount 
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch notifications", error: error.message });
-  }
-});
-
-router.put("/:vendorId/vendorNotification/mark-read", async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-
-    const result = await vendorNotification.updateMany(
-      { vendorId, read: false },
-      { $set: { read: true } }
-    );
-
-    res.status(200).json({ message: "Notifications marked as read", modifiedCount: result.modifiedCount });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to mark notifications as read", error: error.message });
-  }
-});
-
-// PATCH /api/vendors/:vendorId/vendorNotification/mark-as-read
-router.patch('/:vendorId/vendorNotification/mark-as-read', async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-    await vendorNotification.updateMany({ vendorId, read: false }, { $set: { read: true } });
-    res.json({ message: "Notifications marked as read" });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to mark notifications", error: err.toString() });
-  }
-});
-
-
-
+// --- Vendor Notification Routes ---
+router.get("/:vendor_id/vendorNotification", getVendorNotifications);
+router.put("/:vendor_id/vendorNotification/mark-read", markAllNotificationsAsRead);
+router.patch("/:vendor_id/vendorNotification/mark-as-read", patchMarkNotificationsAsRead);
 
 export default router;

@@ -1,9 +1,8 @@
 import { Caterer } from "../models/caterer.js";
-import { Decorator } from "../models/decoraters.js";
-import { Venue } from "../models/venue.js";
-import PropRental from "../models/props.js";
-import Photographer from "../models/photographers.js";
-import MakeupArtist from "../models/makeupArtists.js";
+import { Decorator }  from "../models/decorator.js";
+import VenueProvider from "../models/venueProvider.js";
+import PhotographerVideographer from "../models/photographerVideographer.js";
+import MakeupArtist from "../models/makeupArtist.js";
 
 // Schema of featuredVendors
 // const featuredVendors = {
@@ -16,12 +15,11 @@ import MakeupArtist from "../models/makeupArtists.js";
 async function getFeaturedVendors(req, res) {
   var featuredVendors = [];
 
-  const [caterer, decorator, venue, prop_rental, pav, makeupArtist] =
+  const [caterer, decorator, venue, pav, makeupArtist] =
     await Promise.all([
       getCaterer(),
       getDecorator(),
       getVenue(),
-      getPropRental(),
       getPav(),
       getMakeupArtist(),
     ]);
@@ -29,84 +27,77 @@ async function getFeaturedVendors(req, res) {
   // caterer
   if (caterer)
     featuredVendors.push({
-      id: caterer.id,
+      vendor_id: caterer.vendor_id,
+      service_id: caterer.service_id,
       category_name: "Caterer",
-      name: caterer.basicDetails.name || "Krishna Vendors",
+      name: caterer.business_details.business_registration_name || "Krishna Vendors",
       rating: caterer.rating || "4.5",
-      price: caterer.additionalDetails.priceStartingFrom || "4000",
-      category: ["Caterer"],
+      price: caterer.additional_details.prices_starts_from || "4000",
+      category: caterer.service_type || ["Caterer"],
       img:
-        caterer.additionalDetails.photos[0] ||
+        (caterer.additional_details.asset_images?.[0]?.original || caterer.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
   // decorator
   if (decorator)
     featuredVendors.push({
-      id: decorator.id,
+      vendor_id: decorator.vendor_id,
+      service_id: decorator.service_id,
       category_name: "Decorator",
-      name: decorator.basicDetails.name || "Krishna Vendors",
+      name: decorator.business_details.business_registration_name  || "Krishna Vendors",
       rating: decorator.rating || "4.5",
-      price: decorator.additionalDetails.priceStartingFrom || "4000",
-      category: ["Decorator"],
+      price: decorator.additional_details.prices_starts_from  || "4000",
+      category: decorator.service_type || ["Decorator"],
       img:
-        decorator.additionalDetails.photos[0] ||
+        (decorator.additional_details.asset_images?.[0]?.original || decorator.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
   // venue
   if (venue)
     featuredVendors.push({
-      id: venue.id,
+      vendor_id: venue.vendor_id,
+      service_id: venue.service_id,
       category_name: "Venue Provider",
-      name: venue.basicDetails.name || "Krishna Vendors",
+      name: venue.business_details.business_registration_name || "Krishna Vendors",
       rating: venue.rating || "4.5",
-      price: venue.additionalDetails.priceStartingFrom || "4000",
-      category: ["Venue"],
+      price: venue.additional_details.prices_starts_from || "4000",
+      category: venue.service_type || ["Venue"],
       img:
-        venue.additionalDetails.photos[0] ||
+        (venue.additional_details.asset_images?.[0]?.original || venue.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
-  // prop rentals
-  if (prop_rental)
-    featuredVendors.push({
-      id: prop_rental.id,
-      category_name: "Prop Rental",
-      name: prop_rental.basicDetails.managerName || "Krishna Vendors",
-      rating: prop_rental.rating || "4.5",
-      price: prop_rental.additionalDetails.priceStartingFrom || "4000",
-      category: ["Property Rental"],
-      img:
-        prop_rental.additionalDetails.photos[0] ||
-        "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
-    });
+  // prop rentals - removed (not implemented)
 
   // photography and videography
   if (pav)
     featuredVendors.push({
-      id: pav.id,
+      vendor_id: pav.vendor_id,
+      service_id: pav.service_id,
       category_name: "Photographers & Videographers",
-      name: pav.basicDetails.managerName || "Krishna Vendors",
+      name: pav.business_details.business_registration_name || "Krishna Vendors",
       rating: pav.rating || "4.5",
-      price: pav.additionalDetails.priceStartingFrom || "4000",
-      category: ["Photography", "Videography"],
+      price: pav.additional_details.prices_starts_from || "4000",
+      category: pav.service_type || ["Photography", "Videography"],
       img:
-        pav.additionalDetails.photos[0] ||
+        (pav.additional_details.asset_images?.[0]?.original || pav.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
   // makeup artist
   if (makeupArtist)
     featuredVendors.push({
-      id: makeupArtist.id,
+      vendor_id: makeupArtist.vendor_id,
+      service_id: makeupArtist.service_id,
       category_name: "Makeup Artist",
-      name: makeupArtist.basicDetails.name || "Krishna Vendors",
+      name: makeupArtist.business_details.business_registration_name || "Krishna Vendors",
       rating: "4.7",
-      price: makeupArtist.additionalDetails.priceStarts || "4000",
-      category: ["Makeup Artist"],
+      price: makeupArtist.additional_details.prices_starts_from || "4000",
+      category: makeupArtist.service_type || ["Makeup Artist"],
       img:
-        makeupArtist.additionalDetails.photos[0] ||
+        (makeupArtist.additional_details.asset_images?.[0]?.original || makeupArtist.additional_details.asset_images?.[0]?.preview) ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -133,25 +124,18 @@ async function getDecorator() {
 
 async function getVenue() {
   try {
-    const venue = await Venue.findOne({});
+    const venue = await VenueProvider.findOne({});
     return venue;
   } catch (e) {
     console.err(e);
   }
 }
 
-async function getPropRental() {
-  try {
-    const propRental = await PropRental.findOne({});
-    return propRental;
-  } catch (e) {
-    console.err(e);
-  }
-}
+// getPropRental function removed - prop rental not implemented
 
 async function getPav() {
   try {
-    const pav = await Photographer.findOne({});
+    const pav = await PhotographerVideographer.findOne({});
     return pav;
   } catch (e) {
     console.err(e);

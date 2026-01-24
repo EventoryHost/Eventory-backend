@@ -13,6 +13,7 @@ jobs:
     env:
       DEV_ENV: ${{ secrets.DEV_ENV }}
       PROD_ENV: ${{ secrets.PROD_ENV }}
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
     steps:
       - name: Checkout code
@@ -24,29 +25,57 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DEV_ENV,PROD_ENV
+          envs: DEV_ENV,PROD_ENV,FIREBASE_SERVICE_ACCOUNT
           script: |
+            set -e
+
             BRANCH=${{ github.ref_name }}
 
+            # Determine APP_DIR + which ENV to use
             if [ "$BRANCH" = "prod" ]; then
               APP_DIR="prod"
-              echo "$PROD_ENV" > ~/.env.temp
+              ENV_CONTENT="$PROD_ENV"
+              FIREBASE_SERVICE_ACCOUNT="$FIREBASE_SERVICE_ACCOUNT"
+              START_FILE="api/index.js"
+
             else
               APP_DIR="dev"
-              echo "$DEV_ENV" > ~/.env.temp
+              ENV_CONTENT="$DEV_ENV"
+              FIREBASE_SERVICE_ACCOUNT="$FIREBASE_SERVICE_ACCOUNT"
+              START_FILE="api/index.js"
             fi
 
-          
+            echo "Deploying branch: $BRANCH"
+            echo "Directory: $APP_DIR"
+            echo "Start file: $START_FILE"
+
             cd ~
-            rm -rf $APP_DIR
-            git clone -b $BRANCH https://github.com/EventoryHost/Eventory-backend.git $APP_DIR
-            cd $APP_DIR
 
-            
-            mv ~/.env.temp .env
-            npm install
+            # 1. Stop PM2 safely
+            pm2 stop "$BRANCH" || true
 
-          
-            pm2 delete $BRANCH || true
-            pm2 start api/index.js --name $BRANCH --namespace $BRANCH
+            # 2. Remove old folder
+            rm -rf "$APP_DIR"
+
+            # 3. Clone fresh code
+            git clone -b "$BRANCH" https://github.com/EventoryHost/Eventory-backend.git "$APP_DIR"
+
+            cd "$APP_DIR"
+
+            # 4. Write .env from GitHub Secret
+            printf "%s\n" "$ENV_CONTENT" > .env
+            printf "%s\n" "$FIREBASE_SERVICE_ACCOUNT" > firebase-service-account.json
+
+            # 5. Install dependencies
+            npm install --legacy-peer-deps
+
+            # 6. Start PM2
+            pm2 delete "$BRANCH" || true
+            pm2 start "$START_FILE" --name "$BRANCH" --namespace "$BRANCH"
+
+            # 7. Reload env properly
+            pm2 restart "$BRANCH" --update-env
+
             pm2 save
+
+            echo "Deployment of $BRANCH completed successfully."

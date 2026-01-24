@@ -1,103 +1,104 @@
-// backend/routes/reduxRoutes/venue-provider.js
 import express from "express";
+import  { ReduxVenueProviderModel }  from "../../models/reduxModels/venueProvider.js";
+
 const router = express.Router();
-import VenueModel from "../../models/reduxStores/venue-provider.js"; // Assuming the Venue schema/model is defined in this path
 
-// POST or PUT route to save or update venue details
+/** VENUE PROVIDER DETAILS ROUTES **/
+
+// POST or PUT route to save or update venue provider details
+// Route: /venue-provider-details/
 router.post("/", async (req, res) => {
-  const { id, venueData } = req.body;
+    // Use the top-level vendor_id as the canonical source
+    const { vendor_id, venueProviderData } = req.body; 
+  
+    if (!vendor_id) {
+      return res.status(400).json({ message: "Vendor ID is required." });
+    }
+  
+    if (!venueProviderData || Object.keys(venueProviderData).length === 0) {
+      return res.status(400).json({ message: "Venue details are required." });
+    }
 
-  // Validate id and venueData
-  if (!id) {
-    return res.status(400).json({ message: "User ID is required." });
-  }
+    try {
+        // Create a data object for the update/create operation.
+        // This ensures the vendor_id from the top-level body is used.
+        const dataToSave = { 
+            vendor_id, 
+            ...venueProviderData 
+        };
 
-  if (!venueData || Object.keys(venueData).length === 0) {
-    return res.status(400).json({ message: "Venue details are required." });
-  }
+        // Find and update the existing document, or create a new one if not found.
+        const updatedDetails = await ReduxVenueProviderModel.findOneAndUpdate(
+          { vendor_id },
+          dataToSave,
+          { new: true, upsert: true }
+        );
+        
+        // This response works for both creation and update.
+        const message = updatedDetails.isNew ? "Venue details saved successfully." : "Venue details updated successfully.";
 
-  try {
-    const existingDetails = await VenueModel.findOne({ id });
+        return res.status(200).json({
+          message,
+          data: updatedDetails,
+        });
 
-    if (existingDetails) {
-      const updatedDetails = await VenueModel.findOneAndUpdate(
-        { id },
-        { $set: venueData },
-        { new: true, upsert: false },
-      );
-      return res.status(200).json({
-        message: "Venue details updated successfully.",
-        data: updatedDetails,
+    } catch (error) {
+      console.error("Error saving/updating venue details:", error);
+      res.status(500).json({
+        message: "Failed to save or update venue details.",
+        error: error.message,
       });
-    } else {
-      const newVenueDetails = new VenueModel({ id, ...venueData });
-      await newVenueDetails.save();
-      return res.status(201).json({
-        message: "Venue details saved successfully.",
-        data: newVenueDetails,
+    }
+});
+  
+// GET route to retrieve venue details by vendor ID
+// Route: /venue-provider-details/:vendor_id
+router.get("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    try {
+      const venueDetails = await ReduxVenueProviderModel.findOne({ vendor_id: vendor_id.trim() });
+  
+      if (!venueDetails) {
+        return res.status(404).json({ message: "Venue details not found." });
+      }
+  
+      res.status(200).json(venueDetails);
+    } catch (error) {
+      console.error("Error retrieving venue details:", error);
+      res.status(500).json({
+        message: "Failed to retrieve venue details.",
+        error: error.message,
       });
     }
-  } catch (error) {
-    console.error("Error saving/updating venue details:", error);
-    res.status(500).json({
-      message: "Failed to save or update venue details.",
-      error: error.message,
-    });
-  }
 });
-
-// GET route to retrieve venue details by user ID
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const venueDetails = await VenueModel.findOne({ id });
-
-    if (!venueDetails) {
-      return res.status(404).json({ message: "Venue details not found." });
+  
+// DELETE route to remove venue details by vendor ID
+// Route: /venue-provider-details/:vendor_id
+router.delete("/:vendor_id", async (req, res) => {
+    const { vendor_id } = req.params;
+  
+    if (!vendor_id || vendor_id.trim() === '') {
+      return res.status(400).json({ message: "Vendor ID is required for deletion." });
     }
-
-    res.status(200).json(venueDetails);
-  } catch (error) {
-    console.error("Error retrieving venue details:", error);
-    res.status(500).json({
-      message: "Failed to retrieve venue details.",
-      error: error.message,
-    });
-  }
-});
-
-// DELETE route to remove decorator details by user ID
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params;
-  console.log("🗑️ Deleting decorator details for ID:", id);
-
-  if (!id) {
-    return res
-      .status(400)
-      .json({ message: "User ID is required for deletion." });
-  }
-
-  try {
-    // Use findOneAndDelete with a filter object
-    const deletedDetails = await VenueModel.findOneAndDelete({ id });
-
-    if (!deletedDetails) {
-      return res
-        .status(404)
-        .json({ message: "Venue details not found for deletion." });
+  
+    try {
+      const deletedDetails = await ReduxVenueProviderModel.findOneAndDelete({ vendor_id: vendor_id }); 
+  
+      if (!deletedDetails) {
+        return res.status(404).json({ message: "Venue details not found for deletion." });
+      }
+  
+      res.status(200).json({ message: "Venue details deleted successfully." });
+  
+    } catch (error) {
+      console.error("Error deleting venue details:", error);
+      res.status(500).json({
+        message: "Failed to delete venue details.",
+        error: error.message,
+      });
     }
-
-    console.log("✅ Deleted decorator details:", deletedDetails);
-    res.status(200).json({ message: "Venue details deleted successfully." });
-  } catch (error) {
-    console.error("❌ Error deleting Venue details:", error);
-    res.status(500).json({
-      message: "Failed to delete Venue details.",
-      error: error.message,
-    });
-  }
 });
 
-// Export the router
-export { router as venueRoutes };
+// Export the router so it can be used in other files
+export default router;

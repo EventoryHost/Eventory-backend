@@ -1,9 +1,11 @@
 import { set } from "mongoose";
-import { Decorator } from "../../models/decoraters.js";
-import { DecoratorModel } from "../../models/reduxStores/decorator.js";
-import { Vendor as User } from "../../models/users.js";
+import { Decorator } from "../../models/decorator.js";
+// import { DecoratorModel } from "../../models/reduxStores/decorator.js";
+import { Vendor } from "../../models/vendor.js";
 import parseRange from "../../utils/parseRange.js";
 import { sendEmailToSlack } from "../sesController.js";
+import generateUniqueId from "../../utils/generateId.js";
+import { ReduxDecoratorModel } from "../../models/reduxModels/decorator.js";
 
 const getFileUrls = (files, fieldName) => {
   // Handle cases where there might be a single file instead of an array of files
@@ -15,6 +17,49 @@ const getFileUrls = (files, fieldName) => {
   }
   return [];
 };
+
+// utils/normalizeMedia.js
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { }
+    }
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+  }
+  if (Array.isArray(input)) {
+    return input.map((it) => {
+      if (!it) return null;
+      if (typeof it === "string") return { original: it, preview: it };
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? { original, preview } : null;
+    }).filter(Boolean);
+  }
+  return [];
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
 
 const checkCompletion = (section) => {
   if (!section || typeof section !== "object") return false; // Validate input
@@ -32,200 +77,258 @@ const checkCompletion = (section) => {
   });
 };
 
-const updateSectionCompletion = async (id) => {
+const updateSectionCompletion = async (vendorId) => {
   try {
-    const decorator = await Decorator.findOne({ id });
+    const decorator = await Decorator.findOne({ vendor_id: vendorId });
 
     if (!decorator) {
       throw new Error("Decorator not found");
     }
 
-    decorator.basicDetails.completed = checkCompletion(
-      decorator.basicDetails || {},
+    // Match schema field names
+    decorator.basic_details.is_completed = checkCompletion(
+      decorator.basic_details || {}
     );
-    decorator.themesOffered.completed = checkCompletion(
-      decorator.themesOffered || {},
+
+    decorator.theme_details.is_completed = checkCompletion(
+      decorator.theme_details || {}
     );
-    decorator.themesElement.completed = checkCompletion(
-      decorator.themesElement || {},
+
+    decorator.additional_details.is_completed = checkCompletion(
+      decorator.additional_details || {}
     );
-    decorator.additionalDetails.completed = checkCompletion(
-      decorator.additionalDetails || {},
+
+    decorator.policies.is_completed = checkCompletion(decorator.policies || {});
+
+    decorator.business_details.is_completed = checkCompletion(
+      decorator.business_details || {}
     );
-    decorator.policies.completed = checkCompletion(decorator.policies || {});
 
     await decorator.save();
   } catch (error) {
-    console.error("Error in update section completion:", error);
+    console.error("Error in updateSectionCompletion:", error);
     throw error;
   }
+};
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  return label;
 };
 
 const createDecorator = async (req, res) => {
   try {
-    const alreadyExists = await Decorator.findOne({
-      name: req.body.name,
-      venId: req.body.venId,
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ message: "Decorator already exists" });
-    }
+    // Prevent duplicates per vendor
+    const exists = await Decorator.findOne({ vendor_id: req.body.vendor_id });
+    if (exists) return res.status(400).json({ message: "Decorator already exists" });
 
-    const insuranceFileUrl = req.body.insurance || [];
-    const privacyPolicyFileUrl = req.body.privacyPolicy || [];
+    const service_id = generateUniqueId("DECO");
 
-    const cancellationPolicyFileUrl = req.body.cancellationPolicy || "";
-    const termsAndConditionsFileUrl = req.body.termsAndConditions || "";
+    // Agreements from temp redux model
+    const temp = await ReduxDecoratorModel.findOne({ vendor_id: req.body.vendor_id });
+    const agreementUrl = temp?.agreement_url || " ";
+    const agreementSignedAt = temp?.agreement_signed_at || new Date();
 
-    const themePhotosUrl = req.body.themephotos || [];
-    const themeVideosUrl = req.body.themevideos || [];
+    // Normalize media: accept JSON strings, arrays of objects/strings, CSV
+    const theme_portfolio_images = normalizePhotos(req.body.theme_portfolio_images);
+    const theme_portfolio_videos = normalizeVideos(req.body.theme_portfolio_videos);
+    const asset_images = normalizePhotos(req.body.asset_images);
+    const asset_videos = normalizeVideos(req.body.asset_videos);
 
-    const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];
-    const eventTypes = {
-      types: req.body.typesOfEvents || [],
-      wedding: req.body.weddingEvents || [],
-      corporate: req.body.corporateEvents || [],
-      seasonal: req.body.seasonalEvents || [],
-      cultural: req.body.culturalEvents || [],
-    };
-
-    console.log("Service Areas received:", req.body.serviceAreas);
-
-    // Calculate profile completion
+    // -------------------------------
+    // Profile completion check
+    // -------------------------------
     const fieldsToCheck = [
-      req.body.name,
+      // IDs & Core
+      req.body.vendor_id,
+      req.body.service_id,
+      req.body.service_type,
+      req.body.service_areas,
+
+      // Business details
+      req.body.category,
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.pan,
+      req.body.verification_type,
+      req.body.team_size,
+      req.body.years_of_operation,
+      req.body.business_address,
+      req.body.landmark,
+      req.body.pincode,
+      req.body.operational_cities,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
+
+      // Bank details
+      req.body.account_holder_name,
+      req.body.account_type,
+      req.body.account_number,
+      req.body.ifsc_code,
+      req.body.bank_name,
+      req.body.branch_name,
+
+      // Decorator details
+      req.body.point_of_contact,
+      req.body.service_contact_number,
+      req.body.avg_setup_duration,
       req.body.description,
-      req.body.address,
-      req.body.latitude,
-      req.body.longitude,
-      req.body.eventSize, // Check if eventSize.ul exists
-      req.body.duration,
-      req.body.corporateEvents?.length > 0, // Check if at least one event type exists
-      req.body.culturalEvents?.length > 0, // Check if at least one event type exists
-      req.body.themesOffered?.length > 0, // Check if at least one theme is offered
-      req.body.themeElements?.length > 0, // Check if at least one theme element exists
-      req.body.colorSchemeAssistance,
-      req.body.venueAdaptability,
-      req.body.propSelection,
-      req.body.customizationsThemes,
-      req.body.clientTestimonials,
-      req.body.websiteurl,
-      req.body.intstagramurl,
-      req.body.advanceBookingPeriod,
-      req.body.priceStartingFrom,
-      req.body.themeProposels,
-      req.body.proposalRevisions,
-      cancellationPolicyFileUrl,
-      termsAndConditionsFileUrl,
-      themePhotosUrl.length > 0, // At least one photo
-      photosUrl.length > 0, // At least one additional photo
-      videosUrl.length > 0, // At least one additional video
+      req.body.event_types_decorated,
+      req.body.themes_offered,
+      req.body.is_prop_selection_available,
+      req.body.any_custom_design_process,
+      req.body.is_colour_scheme_assistance_provided,
+      req.body.is_theme_customization_allowed,
+      req.body.is_venue_adaptability,
+      req.body.theme_elements_available,
+      req.body.theme_portfolio_images,
+      req.body.theme_portfolio_videos,
+      req.body.asset_images,
+      req.body.asset_videos,
+      req.body.min_booking_period,
+      req.body.prices_starts_from,
+      req.body.ig_socials_link,
+      req.body.web_social_link,
+      req.body.is_theme_proposals_provided,
+      req.body.is_proposal_revision_possible,
+
+      // Location details
+      req.body.lat,
+      req.body.lon,
+      req.body.service_pincode,
+      req.body.google_map_link,
+
+      // Policies & agreements
+      req.body.cancellation_policy,
+      req.body.terms_and_conditions,
     ];
+
     const completedFields = fieldsToCheck.filter((field) => field).length;
-    const profileCompletion =
+    const profile_completion_score =
       Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-    const eventSize = parseRange(req.body.eventSize);
-    console.log("decorator:", req.body);
-    
-    // Fetch agreement data from temporary decorator collection
-    const tempDecoratorData = await DecoratorModel.findOne({ id: req.body.venId });
-    const agreementUrl = tempDecoratorData?.agreementUrl || null;
-    const agreementSignedAt = tempDecoratorData?.agreementSignedAt || null;
-    
-    if (agreementUrl) {
-      console.log("Found agreement data for decorator:", agreementUrl);
-    }
-    
+
+    // Create
     const newDecorator = new Decorator({
-      basicDetails: {
-        name: req.body.name,
+      vendor_id: req.body.vendor_id,
+      service_id,
+      service_type: req.body.service_type || "Decorator",
+      service_areas: req.body.service_areas || [],
+
+      basic_details: {
+        is_completed: false,
+        point_of_contact: req.body.point_of_contact,
+        service_contact_number: req.body.service_contact_number,
+        avg_setup_duration: req.body.avg_setup_duration,
         description: req.body.description,
-        eventSize,
-        serviceAreas: req.body.serviceAreas || [],
-        eventTypes: {
-          types: req.body.typesOfEvents || [],
-          wedding: req.body.weddingEvents || [],
-          corporate: req.body.corporateEvents || [],
-          seasonal: req.body.seasonalEvents || [],
-          cultural: req.body.culturalEvents || [],
-        },
-        duration: req.body.duration,
-        address: req.body.address,
-        latitude: req.body.latitude,
-        longitude: req.body.longitude,
-        profileCompletion,
-        location: {
-          lat: req.body.latitude, // Latitude
-          lng: req.body.longitude, // Longitude
-          googleMapsAddress: req.body.address, // Google Maps address
-          pincode: req.body.pincode, // Pincode
+        event_types_decorated: req.body.event_types_decorated || [],
+        service_location_decorator: {
+          service_address: req.body.address,
+          lat: req.body.lat,
+          lon: req.body.lon,
+          service_pincode: req.body.service_pincode,
+          google_map_link: req.body.google_map_link,
         },
       },
-      themesOffered: {
-        themesOffered: req.body.themesOffered,
-        customDesignProcess: req.body.customDesignProcess,
-        propSelection: req.body.propthemesOffered,
-        colorSchemeAssistance: req.body.colorschmes,
-        themeCustomization: req.body.customizationsThemes,
-        venueAdaptability: req.body.adobtThemes,
+
+      theme_details: {
+        is_completed: false,
+        themes_offered: req.body.themes_offered || [],
+        is_prop_selection_available: req.body.is_prop_selection_available,
+        any_custom_design_process: req.body.any_custom_design_process,
+        is_colour_scheme_assistance_provided: req.body.is_colour_scheme_assistance_provided,
+        is_theme_customization_allowed: req.body.is_theme_customization_allowed,
+        is_venue_adaptability: req.body.is_venue_adaptability,
+        theme_elements_available: req.body.theme_elements_available || [],
+        theme_portfolio_images,                 // [{original, preview}]
+        theme_portfolio_videos,                 // [string]
       },
-      themesElement: {
-        themeElements: req.body.themeElements,
-        themePhotos: Array.isArray(themePhotosUrl)
-          ? themePhotosUrl
-          : [themePhotosUrl],
-        themeVideos: Array.isArray(themeVideosUrl)
-          ? themeVideosUrl
-          : [themeVideosUrl],
+
+      additional_details: {
+        is_completed: false,
+        asset_images,                           // [{original, preview}]
+        asset_videos,                           // [string]
+        min_booking_period: req.body.min_booking_period,
+        max_booking_period: req.body.max_booking_period,
+        prices_starts_from: req.body.prices_starts_from,
+        ig_socials_link: req.body.ig_socials_link,
+        web_social_link: req.body.web_social_link,
+        is_theme_proposals_provided: req.body.is_theme_proposals_provided,
+        is_proposal_revision_possible: req.body.is_proposal_revision_possible,
       },
-      additionalDetails: {
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-        clientTestimonials: req.body.clientTestimonials,
-        awards: req.body.awards,
-        website: req.body.websiteurl,
-        instagram: req.body.intstagramurl,
-        advanceBookingPeriod: parseRange(req.body.advanceBookingPeriod),
-        priceStartingFrom: Number(req.body.priceStartingFrom), // Convert to number
-        themeProposels: req.body.themeProposels,
-        proposalRevisions: req.body.proposalRevisions,
-      },
+
       policies: {
-        cancellationPolicy: cancellationPolicyFileUrl,
-        termsAndConditions: termsAndConditionsFileUrl,
-        agreementUrl: agreementUrl,
-        agreementSignedAt: agreementSignedAt,
+        is_completed: false,
+        cancellation_policy: req.body.cancellation_policy,
+        terms_and_conditions: req.body.terms_and_conditions,
+        agreement_url: agreementUrl,
+        agreement_signed_at: agreementSignedAt,
       },
-      id: req.body.id,
-      venId: req.body.venId,
-      rating: 0, // Default rating
+
+      business_details: {
+        is_completed: false,
+        service_id,
+        service_type: req.body.service_type || "Decorator",
+        category: req.body.category,
+        business_registration_name: req.body.business_registration_name,
+        gst: req.body.gst,
+        pan: req.body.pan || null,
+        verification_type: req.body.verification_type,
+        team_size: req.body.team_size,
+        years_of_operation: req.body.years_of_operation,
+        business_address: req.body.business_address,
+        landmark: req.body.landmark,
+        pincode: req.body.pincode,
+        operational_cities: req.body.operational_cities,
+        annual_revenue: req.body.annual_revenue,
+        annual_bookings: req.body.annual_bookings,
+      },
+
+      bank_details: {
+        account_type: req.body.account_type,
+        service_id,
+        vendor_id: req.body.vendor_id,
+      },
+
+      profile_completion_score,
     });
 
-    const savedDecorator = await newDecorator.save();
+    const saved = await newDecorator.save();
 
-    const vendor = await User.findOne({ id: req.body.venId });
+    // Vendor linking (idempotent)
+    const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      await Decorator.findByIdAndDelete(savedDecorator.id);
+      await Decorator.findByIdAndDelete(saved._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.serviceIds.push({
-      serType: "decorator",
-      serId: savedDecorator.id,
-    });
+    const normalizedLabel = normalizeServiceName("Decorator");
+
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
+
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+    const idx = vendor.service_types.findIndex(
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+    );
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
+
     await vendor.save();
+    await updateSectionCompletion(saved.vendor_id);
 
-    // Update section completion and profile completion
-    await updateSectionCompletion(savedDecorator.id);
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
+    if (process.env.IS_DEV !== "true") {
+      await sendEmailToSlack({ name: saved.basic_details.point_of_contact, type: saved.service_type });
+    }
 
-      name: savedDecorator.basicDetails.name,
-      type: savedDecorator.type,
-    })
-    res.status(201).json(savedDecorator);
+    res.status(201).json(saved);
   } catch (error) {
-    console.log(error);
+    console.error("Error creating decorator:", error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -234,12 +337,20 @@ const getAllDecorators = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
-
     const skip = (page - 1) * itemsPerPage;
 
-    const decorators = await Decorator.find().skip(skip).limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totaldecorators = await Decorator.countDocuments();
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [decorators, totaldecorators] = await Promise.all([
+      Decorator.find(filter).skip(skip).limit(itemsPerPage),
+      Decorator.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       data: decorators,
@@ -252,4 +363,21 @@ const getAllDecorators = async (req, res) => {
   }
 };
 
-export default { createDecorator, getAllDecorators };
+
+const getDecoratorById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const decorator = await Decorator.findOne({ service_id: id });
+
+    if (!decorator) {
+      return res.status(404).json({ message: "Decorator not found" });
+    }
+
+    res.status(200).json(decorator);
+  } catch (error) {
+    console.error("Error fetching decorator:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export default { createDecorator, getAllDecorators, getDecoratorById };

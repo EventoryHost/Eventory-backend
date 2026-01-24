@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { generateAndStoreAgreement } from "../controllers/agreementController.js";
+import { generateAndStoreAgreement, addVendorAgreement } from "../controllers/agreementController.js";
 
 const router = Router();
 
-// POST endpoint to generate and store agreement PDF
 router.post("/generate/:serviceType/:vendorId", generateAndStoreAgreement);
+
+router.post("/add-vendor-agreement", addVendorAgreement);
 
 export default router;

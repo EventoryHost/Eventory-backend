@@ -1,7 +1,7 @@
 import axios from "axios";
 import dotenv from "dotenv";
 import { generateSignature } from "../utils/generateId.js";
-import { Vendor as User } from "../models/users.js";
+import { Vendor } from "../models/vendor.js";
 
 dotenv.config();
 
@@ -20,25 +20,37 @@ const verifyGSTIN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    let publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
+
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
 
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    var url
-    process.env.IS_DEV === "true" ?
-      url = `https://sandbox.cashfree.com/verification/gstin` :
-      url = `https://api.cashfree.com/verification/gstin`;
+    var url;
+    process.env.IS_DEV === "true"
+      ? (url = `https://sandbox.cashfree.com/verification/gstin`)
+      : (url = `https://api.cashfree.com/verification/gstin`);
 
-    const headers = {
-      "x-client-id": clientId,
-      "x-client-secret": clientSecret,
-      "X-Environment": "sandbox",
-      "X-Cf-Signature": signature,
-      "X-Timestamp": timestamp.toString(),
-      "Content-Type": "application/json",
-    };
+    var headers = {}
+    process.env.IS_DEV === "true" ?
+      headers = {
+        "x-client-id": clientId,
+        "x-client-secret": clientSecret,
+        "X-Cf-Signature": signature,
+        "X-Timestamp": timestamp.toString(),
+        "x-environment": "sandbox",
+        "Content-Type": "application/json",
+      } :
+      headers = {
+        "x-client-id": clientId,
+        "x-client-secret": clientSecret,
+        "X-Cf-Signature": signature,
+        "X-Timestamp": timestamp.toString(),
+        "Content-Type": "application/json",
+      };
 
     const response = await axios.post(url, { gstin: gstIn }, { headers });
 
@@ -50,7 +62,7 @@ const verifyGSTIN = async (req, res) => {
         status: "SUCCESS",
         legal_name: response.data.legal_name_of_business,
         message: "GSTIN verified successfully",
-        originalResponse: response.data
+        originalResponse: response.data,
       });
     } else if (response.data) {
       // If we have response data but not the expected field, return what we have
@@ -58,7 +70,7 @@ const verifyGSTIN = async (req, res) => {
         status: "SUCCESS",
         legal_name: response.data.trade_name_of_business || "Verified",
         message: "GSTIN verified successfully but name may be limited",
-        originalResponse: response.data
+        originalResponse: response.data,
       });
     }
   } catch (error) {
@@ -68,7 +80,7 @@ const verifyGSTIN = async (req, res) => {
       const { status } = error.response;
       console.error("GSTIN API error response:", {
         status,
-        data: error.response.data
+        data: error.response.data,
       });
 
       if (status === 429) {
@@ -96,10 +108,29 @@ const verifyGSTIN = async (req, res) => {
 
 const verifyPAN = async (req, res) => {
   const { panNo } = req.params;
-  const userId = req.query.userId; // Get userId from query params if provided
+  const vendor_id = req.query.vendor_id; // Get vendor_id from query params if provided
 
   if (!panNo) {
-    return res.status(400).json({ message: "Please provide a PAN card number" });
+    return res
+      .status(400)
+      .json({ message: "Please provide a PAN card number" });
+  }
+
+  // 🔥 Dummy Bypass Block
+  if (panNo.toUpperCase() === "DUMMYDUMMY") {
+    console.log("🟡 Dummy PAN detected → Bypassing Cashfree API");
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      name: "Dummy User",
+      registered_name: "Dummy User",
+      message: "PAN Card verified successfully (Dummy Mode)",
+      gstin_list: [],
+      originalResponse: {
+        dummy: true,
+        pan: "DUMMY",
+      },
+    });
   }
 
   // PAN card format validation - 5 letters followed by 4 numbers and then 1 letter
@@ -111,19 +142,24 @@ const verifyPAN = async (req, res) => {
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-    let publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
+
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
+
 
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = generateSignature(clientId, publicKey, timestamp);
 
-    const panUrl = process.env.IS_DEV === "true"
-      ? `https://sandbox.cashfree.com/verification/pan`
-      : `https://api.cashfree.com/verification/pan`;
+    const panUrl =
+      process.env.IS_DEV === "true"
+        ? `https://sandbox.cashfree.com/verification/pan`
+        : `https://api.cashfree.com/verification/pan`;
 
-    const panGstinUrl = process.env.IS_DEV === "true"
-      ? `https://sandbox.cashfree.com/verification/pan-gstin`
-      : `https://api.cashfree.com/verification/pan-gstin`;
+    const panGstinUrl =
+      process.env.IS_DEV === "true"
+        ? `https://sandbox.cashfree.com/verification/pan-gstin`
+        : `https://api.cashfree.com/verification/pan-gstin`;
 
     const headers = {
       "x-client-id": clientId,
@@ -149,7 +185,7 @@ const verifyPAN = async (req, res) => {
         panGstinUrl,
         {
           pan: panNo,
-          verification_id: verification_id
+          verification_id: verification_id,
         },
         { headers }
       );
@@ -159,35 +195,37 @@ const verifyPAN = async (req, res) => {
       if (gstinResponse.data && gstinResponse.data.gstin_list) {
         gstinList = gstinResponse.data.gstin_list;
 
-        // If userId is provided, store the first active GSTIN in the user's profile
-        if (userId && gstinList.length > 0) {
+        // If vendor_id is provided, store the first active GSTIN in the vendor's profile
+        if (vendor_id && gstinList.length > 0) {
           try {
-            // Find the user
-            const user = await User.findOne({ id: userId });
+            // Find the vendor
+            const vendor = await Vendor.findOne({ vendor_id: vendor_id });
 
-            if (user) {
+            if (vendor) {
               // Find the first active GSTIN
-              const activeGstin = gstinList.find(g => g.status === "ACTIVE");
+              const activeGstin = gstinList.find((g) => g.status === "ACTIVE");
 
               if (activeGstin) {
-                // Update the user's businessDetails
-                if (!user.businessDetails) {
-                  user.businessDetails = {};
+                // Update the vendor's businessDetails
+                if (!vendor.businessDetails) {
+                  vendor.businessDetails = {};
                 }
 
                 // Store both PAN and GSTIN
-                user.businessDetails.panNo = panNo;
-                user.businessDetails.gstin = activeGstin.gstin;
+                vendor.businessDetails.panNo = panNo;
+                vendor.businessDetails.gstin = activeGstin.gstin;
 
                 // Save the changes
-                await user.save();
-                console.log(`Updated user ${userId} with GSTIN ${activeGstin.gstin} from PAN verification`);
+                await vendor.save();
+                console.log(
+                  `Updated Vendor ${vendor_id} with GSTIN ${activeGstin.gstin} from PAN verification`
+                );
               }
             } else {
-              console.log(`User not found with ID: ${userId}`);
+              console.log(`Vendor not found with ID: ${vendor_id}`);
             }
-          } catch (userError) {
-            console.error("Error updating user with GSTIN:", userError);
+          } catch (vendorError) {
+            console.error("Error updating vendor with GSTIN:", vendorError);
             // Don't fail the API response if this part fails
           }
         }
@@ -199,7 +237,8 @@ const verifyPAN = async (req, res) => {
     }
 
     // Extract registered name
-    const registeredName = panResponse.data.name ||
+    const registeredName =
+      panResponse.data.name ||
       panResponse.data.pan_holder_name ||
       panResponse.data.registered_name ||
       "Verified";
@@ -211,7 +250,7 @@ const verifyPAN = async (req, res) => {
       registered_name: registeredName,
       message: "PAN Card verified successfully",
       gstin_list: gstinList, // Include the GSTIN list in the response
-      originalResponse: panResponse.data
+      originalResponse: panResponse.data,
     });
   } catch (error) {
     console.error("Error verifying PAN:", error);
@@ -220,7 +259,7 @@ const verifyPAN = async (req, res) => {
       const { status } = error.response;
       console.error("PAN API error response:", {
         status,
-        data: error.response.data
+        data: error.response.data,
       });
 
       if (status === 429) {
@@ -246,23 +285,47 @@ const verifyPAN = async (req, res) => {
   }
 };
 
-const verifyBankDetails = async (req, res) => {
-  // console.log(" /bank endpoint hit with data:", req.body);
+const DUMMY_ACCOUNT_NO = "0000000000";
+const DUMMY_IFSC = "ABCD0ABCDEF";
+
+export const verifyBankDetails = async (req, res) => {
   const { bank_account, ifsc, name, phone } = req.body;
 
   if (!name || !bank_account || !ifsc) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
+  const cleanedAcc = String(bank_account).trim().replace(/\s+/g, "");
+  const cleanedIfsc = String(ifsc).trim().toUpperCase();
+
+  // 🔹 Dummy bypass: skip Cashfree, return success immediately
+  if (cleanedAcc === DUMMY_ACCOUNT_NO && cleanedIfsc === DUMMY_IFSC) {
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Bank account verified successfully (dummy bypass)",
+      accountDetails: {
+        account_status: "VALID",
+        name_match_result: "EXACT",
+        name_at_bank: name || "DUMMY ACCOUNT",
+        match_score: 100,
+        bank_name: "Dummy Bank",
+        branch: "Dummy Branch",
+        utr: "DUMMYUTR0001",
+      },
+      originalResponse: {
+        dummy: true,
+      },
+    });
+  }
+
+  // 🔹 Existing Cashfree flow below this point
   try {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
 
-    const rawKey = process.env.CASHFREE_PUBLIC_KEY.replace(/\\n/g, "\n").trim();
-    const publicKey = `-----BEGIN PUBLIC KEY-----\n${rawKey}\n-----END PUBLIC KEY-----`;
+    const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
 
     const timestamp = Math.floor(Date.now() / 1000);
-
     const signature = generateSignature(clientId, publicKey, timestamp);
 
     const headers = {
@@ -270,18 +333,11 @@ const verifyBankDetails = async (req, res) => {
       "x-client-secret": clientSecret,
       "X-Cf-Signature": signature,
       "X-Timestamp": timestamp.toString(),
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     };
 
-    const payload = {
-      bank_account,
-      ifsc,
-      name,
-    };
-
-    if (phone) {
-      payload.phone = phone;
-    }
+    const payload = { bank_account, ifsc, name };
+    if (phone) payload.phone = phone;
 
     const url =
       process.env.IS_DEV === "true"
@@ -289,7 +345,6 @@ const verifyBankDetails = async (req, res) => {
         : "https://api.cashfree.com/verification/bank-account/sync";
 
     const response = await axios.post(url, payload, { headers });
-
     const data = response.data;
 
     if (data.account_status === "VALID") {
@@ -317,7 +372,10 @@ const verifyBankDetails = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(" Bank verification error:", error?.response?.data || error.message);
+    console.error(
+      " Bank verification error:",
+      error?.response?.data || error.message
+    );
     return res.status(500).json({
       message: "Bank verification failed",
       error: error?.response?.data || error.message,
@@ -325,4 +383,4 @@ const verifyBankDetails = async (req, res) => {
   }
 };
 
-export { verifyGSTIN, verifyPAN, verifyBankDetails };
+export { verifyGSTIN, verifyPAN };

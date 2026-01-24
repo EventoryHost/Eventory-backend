@@ -1,0 +1,428 @@
+import DjArtist from "../../models/djArtist.js";
+import { Vendor } from "../../models/vendor.js";
+import { sendEmailToSlack } from "../sesController.js";
+import generateUniqueId from "../../utils/generateId.js";
+import { DjArtistReduxModel } from "../../models/reduxModels/djArtist.js";
+
+// Helpers
+const getFileUrls = (files, fieldName) => {
+  const fileArray = files?.[fieldName];
+  if (!fileArray) return [];
+  return Array.isArray(fileArray) ? fileArray.map((f) => f.location) : [fileArray.location];
+};
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { }
+    }
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+  }
+  if (Array.isArray(input)) {
+    return input.flatMap((it) => {
+      if (!it) return [];
+      if (typeof it === "string") {
+        const s = it.trim();
+        if (s.startsWith("[") || s.startsWith("{")) {
+          try { return normalizePhotos(JSON.parse(s)); } catch { }
+        }
+        return [{ original: s, preview: s }];
+      }
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? [{ original, preview }] : [];
+    }).filter(Boolean);
+  }
+  return [];
+}
+
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
+
+
+
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["dj-artist", "dj artist", "djartist"].includes(s)) return "DJ-Artist";
+  return label;
+};
+
+const checkCompletion = (section) => {
+  if (!section || typeof section !== "object") return false;
+  return Object.keys(section).every((key) => {
+    const value = section[key];
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== undefined && value !== null && value !== "";
+  });
+};
+
+const updateSectionCompletion = async (vendor_id) => {
+  try {
+    const doc = await DjArtist.findOne({ vendor_id });
+    if (!doc) {
+      throw new Error("DJ Artist not found");
+    }
+
+    doc.basic_details.is_completed = checkCompletion(doc.basic_details || {});
+    doc.service_details.is_completed = checkCompletion(doc.service_details || {});
+    doc.additional_details.is_completed = checkCompletion(doc.additional_details || {});
+    doc.policies.is_completed = checkCompletion(doc.policies || {});
+    doc.business_details.is_completed = checkCompletion(doc.business_details || {});
+    doc.bank_details.is_completed = checkCompletion(doc.bank_details || {});
+
+    await doc.save();
+  } catch (err) {
+    console.error("Error updating section completion:", err);
+    throw err;
+  }
+};
+
+const createDjArtist = async (req, res) => {
+  try {
+    // Backward compatibility
+    if (!req.body.service_type && req.body.service_type_business) {
+      req.body.service_type = req.body.service_type_business;
+    }
+
+    const { vendor_id } = req.body;
+    if (!vendor_id) return res.status(400).json({ message: "vendor_id is required" });
+
+    // Prevent duplicates
+    const alreadyExists = await DjArtist.findOne({ vendor_id });
+    if (alreadyExists) return res.status(400).json({ message: "DJ Artist already exists" });
+
+    const service_id = generateUniqueId("DJS");
+
+    // Agreements from redux/temp
+    const temp = await DjArtistReduxModel.findOne({ vendor_id });
+    const agreementUrl = temp?.agreement_url || null;
+    const agreementSignedAt = temp?.agreement_signed_at || null;
+
+    // Helpers
+    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    // AFTER
+    const rawImagesInput =
+      req.body.asset_images ??
+      req.body["asset_images[]"] ??
+      req.body.photos ??
+      req.body["photos[]"];
+
+    const asset_images = normalizePhotos(rawImagesInput);
+    // Pick raw value without wrapping, preserving JSON string if present
+    const rawVideosInput =
+      req.body.asset_videos ??
+      req.body["asset_videos[]"] ??
+      req.body.videos ??
+      req.body["videos[]"];
+
+    const asset_videos = normalizeVideos(rawVideosInput);
+
+    // Service label
+    const serviceTypeLabel = req.body.service_type || "DJ-Artist";
+    const normalizedLabel = normalizeServiceName(serviceTypeLabel) || "DJ-Artist";
+
+    // Build document
+    const doc = new DjArtist({
+      vendor_id,
+      service_id,
+      service_type: normalizedLabel,
+      is_active: true,
+      profile_completion_score: 0,
+      service_areas: arr(req.body.service_areas),
+
+      bank_details: {
+        bank_name: req.body.bank_name,
+        account_type: req.body.account_type,
+        account_number: req.body.account_number,
+        ifsc: req.body.ifsc,
+        service_id,
+        vendor_id,
+      },
+
+      business_details: {
+        business_registration_name: req.body.business_registration_name || "",
+        gst: req.body.gst || "",
+        verification_type: req.body.verification_type || "",
+        pan: req.body.pan || "",
+        category: req.body.category ?? null,
+        team_size: req.body.team_size ?? 0,
+        years_of_operation: req.body.years_of_operation ?? 0,
+        business_address: req.body.business_address || "",
+        landmark: req.body.landmark || "",
+        pincode: req.body.pincode ?? 0,
+        operational_cities: arr(req.body.operational_cities),
+        annual_revenue: req.body.annual_revenue || "",
+        annual_bookings: req.body.annual_bookings ?? 0,
+        service_type: normalizedLabel,
+        service_id,
+      },
+
+      basic_details: {
+        point_of_contact: req.body.point_of_contact,
+        service_contact_number: req.body.service_contact_number,
+        description: req.body.description,
+        service_location_dj_artist: {
+          service_address: req.body.service_address,
+          lat: req.body.service_lat,
+          lon: req.body.service_lon,
+          service_pincode: req.body.service_pincode,
+          google_map_link: req.body.google_map_link,
+        },
+      },
+
+      service_details: {
+        event_types_dj: arr(req.body.event_types_dj),
+        music_genres: arr(req.body.music_genres),
+        regional_specializations: arr(req.body.regional_specializations),
+        services_offered: arr(req.body.services_offered),
+      },
+
+      additional_details: {
+        asset_images,               // from normalizePhotos(rawImagesInput)
+        asset_videos,               // from normalizeVideos(rawVideosInput)
+        ig_socials_link: req.body.ig_socials_link || "",
+        web_social_link: req.body.web_social_link || "",
+        prices_starts_from: Number(req.body.prices_starts_from ?? 0),
+      },
+
+
+      policies: {
+        terms_and_conditions: arr(req.body.terms_and_conditions),
+        cancellation_policy: arr(req.body.cancellation_policy),
+        agreement_url: agreementUrl || req.body.agreement_url || "",
+        agreement_signed_at: agreementSignedAt || req.body.agreement_signed_at || null,
+      },
+    });
+
+    // Profile completion (uses normalized media)
+    const fieldsToCheck = [
+      // Meta
+      vendor_id,
+      req.body.service_type,
+      arr(req.body.service_areas).length > 0,
+
+      // Business
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.verification_type,
+      req.body.pan,
+      req.body.category,
+      req.body.team_size,
+      req.body.years_of_operation,
+      req.body.business_address,
+      req.body.landmark,
+      req.body.pincode,
+      arr(req.body.operational_cities).length > 0,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
+
+      // Basic
+      req.body.point_of_contact,
+      req.body.service_contact_number,
+      req.body.description,
+      req.body.service_address,
+      req.body.service_lat,
+      req.body.service_lon,
+      req.body.service_pincode,
+      req.body.google_map_link,
+
+      // Service
+      arr(req.body.event_types_dj).length > 0,
+      arr(req.body.music_genres).length > 0,
+      arr(req.body.regional_specializations).length > 0,
+      arr(req.body.services_offered).length > 0,
+
+      // Additional
+      asset_images.length > 0,
+      asset_videos.length > 0,
+      req.body.prices_starts_from,
+      req.body.ig_socials_link,
+      req.body.web_social_link,
+
+      // Policies
+      arr(req.body.terms_and_conditions).length > 0,
+      arr(req.body.cancellation_policy).length > 0,
+    ];
+    const completedFields = fieldsToCheck.filter(Boolean).length;
+    doc.profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+    const saved = await doc.save();
+
+    // Vendor link (idempotent)
+    const vendor = await Vendor.findOne({ vendor_id });
+    if (!vendor) {
+      await DjArtist.findByIdAndDelete(saved._id);
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
+
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+    const idx = vendor.service_types.findIndex(
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+    );
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
+
+    await vendor.save();
+    await updateSectionCompletion(saved.vendor_id);
+
+    if (process.env.IS_DEV !== "true") {
+      try {
+        await sendEmailToSlack({
+          name: saved?.basic_details?.point_of_contact || "DJ-Artist",
+          type: saved?.service_type || "DJ-Artist",
+        });
+      } catch { }
+    }
+
+    res.status(201).json(saved);
+  } catch (err) {
+    console.error("Error creating DJ Artist:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// List with pagination
+// controller
+const getAllDjArtists = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 9));
+    const skip = (page - 1) * limit;
+
+    // accept exclude_id or exclude (array or CSV)
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
+
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [data, total] = await Promise.all([
+      DjArtist.find(filter).skip(skip).limit(limit),
+      DjArtist.countDocuments(filter),
+    ]);
+
+    res.json({
+      data,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+
+const getDjArtistById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const djArtist = await DjArtist.findOne({ service_id: id });
+    if (!djArtist) return res.status(404).json({ message: "DJ Artist not found" });
+    res.json(djArtist);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const updateDjArtist = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body || {};
+    // Handle file uploads (store under additional_details.* like other flows)
+    if (req.files) {
+      if (req.files.asset_images) {
+        const fileUrls = getFileUrls(req.files, 'asset_images');
+        updateData["additional_details.asset_images"] = normalizePhotos(fileUrls);
+      }
+      if (req.files.asset_videos) {
+        updateData["additional_details.asset_videos"] = getFileUrls(req.files, 'asset_videos');
+      }
+      // performance_samples is optional and not defined in schema; only set if needed later
+      // if (req.files.performance_samples) {
+      //   updateData["additional_details.performance_samples"] = getFileUrls(req.files, 'performance_samples');
+      // }
+    }
+
+    // Normalize common client payload shapes to additional_details.*
+    // Support either nested additional_details or flat photos/videos keys
+    if (updateData.additional_details && Array.isArray(updateData.additional_details.photos)) {
+      updateData["additional_details.asset_images"] = normalizePhotos(updateData.additional_details.photos);
+      delete updateData.additional_details.photos;
+    }
+    if (updateData.additional_details && Array.isArray(updateData.additional_details.videos)) {
+      updateData["additional_details.asset_videos"] = updateData.additional_details.videos;
+      delete updateData.additional_details.videos;
+    }
+    if (Array.isArray(updateData.photos)) {
+      updateData["additional_details.asset_images"] = normalizePhotos(updateData.photos);
+      delete updateData.photos;
+    }
+    if (updateData["additional_details.asset_images"]) {
+      updateData["additional_details.asset_images"] = normalizePhotos(updateData["additional_details.asset_images"]);
+    }
+    if (Array.isArray(updateData.videos)) {
+      updateData["additional_details.asset_videos"] = updateData.videos;
+      delete updateData.videos;
+    }
+
+    const updated = await DjArtist.findOneAndUpdate(
+      { service_id: id },
+      { $set: updateData },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ message: "DJ Artist not found" });
+    await updateSectionCompletion(updated.vendor_id);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+const deleteDjArtist = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await DjArtist.findOneAndDelete({ service_id: id });
+    if (!deleted) return res.status(404).json({ message: "DJ Artist not found" });
+    // Remove from vendor services
+    const vendor = await Vendor.findOne({ vendor_id: deleted.vendor_id });
+    if (vendor) {
+      vendor.services = vendor.services.filter(sid => sid !== id);
+      vendor.service_types = vendor.service_types.filter(st => st.service_id !== id);
+      await vendor.save();
+    }
+    res.json({ message: "DJ Artist deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+export {
+  createDjArtist,
+  getAllDjArtists,
+  getDjArtistById,
+  updateDjArtist,
+  deleteDjArtist,
+};

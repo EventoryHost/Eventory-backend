@@ -1,164 +1,13 @@
-// import { Venue } from "../../models/venue.js";
-
-// const getFileUrls = (files, fieldName) => {
-//   const fileArray = files[fieldName];
-//   if (fileArray) {
-//     return Array.isArray(fileArray)
-//       ? fileArray.map((file) => file.location)
-//       : [fileArray.location];
-//   }
-//   return [];
-// };
-
-// const calculateProfileCompletion = (venue) => {
-//   const totalFields = 26; // Total number of fields considered for profile completion
-//   let completedFields = 0;
-
-//   // Check and count completed fields
-//   const fields = [
-//     venue.basicDetails.managerName,
-//     venue.basicDetails.name,
-//     venue.basicDetails.capacity,
-//     venue.basicDetails.address,
-//     venue.basicDetails.operatingHours,
-//     venue.basicDetails.description,
-//     venue.featureDetails.venueTypes,
-//     venue.featureDetails.decorServices,
-//     venue.featureDetails.catererServices,
-//     venue.featureDetails.restrictionsPolicies,
-//     venue.featureDetails.speacialFeatures,
-//     venue.featureDetails.audioVisualEquipment,
-//     venue.featureDetails.accessibilityFeatures,
-//     venue.featureDetails.facilities,
-//     venue.additionalDetails.photos,
-//     venue.additionalDetails.videos,
-//     venue.additionalDetails.instagramURL,
-//     venue.additionalDetails.websiteURL,
-//     venue.additionalDetails.awards,
-//     venue.additionalDetails.clientTestimonials,
-//     venue.additionalDetails.advanceBookingPeriod,
-//     venue.additionalDetails.priceStartingFrom,
-//     venue.policies.termsConditions,
-//     venue.policies.cancellationPolicy,
-//     venue.policies.insurancePolicy,
-//   ];
-
-//   fields.forEach((field) => {
-//     if (field && field.length) completedFields += 1;
-//   });
-
-//   return Math.round((completedFields / totalFields) * 100);
-// };
-
-// const createVenue = async (req, res) => {
-//   try {
-//     const alreadyExists = await Venue.findOne({
-//       name: req.body.name,
-//       id: req.body.venId,
-//     });
-//     if (alreadyExists) {
-//       return res.status(400).json({ message: "Venue already exists" });
-//     }
-
-//     const termsAndConditionsFileUrl =
-//       getFileUrls(req.files, "termsConditions")[0] || req.body.termsConditions;
-//     const cancellationPolicyFileUrl =
-//       getFileUrls(req.files, "cancellationPolicy")[0] ||
-//       req.body.cancellationPolicy;
-
-//     const photosUrls = getFileUrls(req.files, "photos");
-//     const photosUrl = photosUrls.length ? photosUrls : req.body.photos || [];
-
-//     const videosUrls = getFileUrls(req.files, "videos");
-//     const videosUrl = videosUrls.length ? videosUrls : req.body.videos || [];
-
-//     const insurancePolicyUrl =
-//       getFileUrls(req.files, "insurancePolicy")[0] || req.body.insurancePolicy;
-
-//     const newVenue = new Venue({
-//       id: req.body.id,
-//       venId: req.body.venId,
-
-//       basicDetails: {
-//         managerName: req.body.managerName,
-//         name: req.body.name,
-//         capacity: req.body.capacity,
-//         address: req.body.address,
-//         operatingHours: req.body.operatingHours,
-//         description: req.body.venueDescription,
-//       },
-//       featureDetails: {
-//         venueTypes: req.body.venueTypes,
-//         decorServices: req.body.decorServices,
-//         catererServices: req.body.catererServices,
-//         restrictionsPolicies: req.body.restrictionsPolicies,
-//         speacialFeatures: req.body.speacialFeatures,
-//         audioVisualEquipment: req.body.audioVisualEquipment,
-//         accessibilityFeatures: req.body.accessibilityFeatures,
-//         facilities: req.body.facilities,
-//       },
-//       additionalDetails: {
-//         photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-//         videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-//         instagramURL: req.body.instagramURL,
-//         websiteURL: req.body.websiteURL,
-//         awards: req.body.awards,
-//         clientTestimonials: req.body.clientTestimonials,
-//         advanceBookingPeriod: req.body.advanceBookingPeriod,
-//         priceStartingFrom: req.body.priceStartingFrom,
-//       },
-
-//       policies: {
-//         termsConditions: termsAndConditionsFileUrl,
-//         cancellationPolicy: cancellationPolicyFileUrl,
-//         insurancePolicy: insurancePolicyUrl,
-//       },
-//     });
-
-//     // Calculate profile completion percentage
-//     const profileCompletion = calculateProfileCompletion(newVenue);
-//     newVenue.profileCompletion = profileCompletion;
-
-//     const savedVenue = await newVenue.save();
-//     const vendor = await User.findOne({ id: req.body.venId });
-//     if (!vendor) {
-//       await Venue.findByIdAndDelete(savedVenue.id);
-//       return res.status(404).json({ message: "Vendor not found" });
-//     }
-
-//     vendor.serviceIds.push({
-//       serType: "venue-provider",
-//       serId: savedVenue.id,
-//     });
-//     await vendor.save();
-
-//     res.status(201).json(savedVenue);
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
-// const getAllVenues = async (req, res) => {
-//   try {
-//     const venue = await Venue.find();
-//     res.status(200).json(venue);
-//   } catch (e) {
-//     res.status(400).json({ message: e.message });
-//   }
-// };
-
-// export default { createVenue, getAllVenues };
-
-import { Venue } from "../../models/venue.js";
-import VenueModel from "../../models/reduxStores/venue-provider.js";
-import { Vendor as User } from "../../models/users.js";
+import VenueProvider from "../../models/venueProvider.js";
+import { Vendor } from "../../models/vendor.js";
 import { Caterer } from "../../models/caterer.js";
-import { Decorator } from "../../models/decoraters.js";
-import Photographer from "../../models/photographers.js";
-import PropRental from "../../models/props.js";
+// import { Decorator } from "../../models/decoraters.js";
+// import Photographer from "../../models/photographers.js";
+// import PropRental from "../../models/props.js";
 import parseRange from "../../utils/parseRange.js";
-import { sendEmailToSlack } from "../sesController.js";
-
+import { sendEmailToSlack } from "../../controllers/sesController.js";
+import { ReduxVenueProviderModel } from "../../models/reduxModels/venueProvider.js";
+import generateUniqueId from "../../utils/generateId.js";
 
 const getFileUrls = (files, fieldName) => {
   const fileArray = files[fieldName];
@@ -170,46 +19,83 @@ const getFileUrls = (files, fieldName) => {
   return [];
 };
 
-const checkCompletion = (section) => {
-  if (!section) return false;
+// utils/normalizeMedia.js
+export function normalizePhotos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try { return normalizePhotos(JSON.parse(s)); } catch { }
+    }
+    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+  }
+  if (Array.isArray(input)) {
+    return input.map((it) => {
+      if (!it) return null;
+      if (typeof it === "string") return { original: it, preview: it };
+      const unwrap = (v) => {
+        if (typeof v === "string" && v.trim().startsWith("[")) {
+          try {
+            const arr = JSON.parse(v);
+            const first = Array.isArray(arr) ? arr[0] : arr;
+            return first?.original || first?.preview || "";
+          } catch { return v; }
+        }
+        return v;
+      };
+      const original = unwrap(it.original) || unwrap(it.url) || "";
+      const preview = unwrap(it.preview) || original;
+      return original ? { original, preview } : null;
+    }).filter(Boolean);
+  }
+  return [];
+}
 
-  const requiredFields = Object.keys(section).filter((key) => {
+export function normalizeVideos(input) {
+  if (!input) return [];
+  if (typeof input === "string") {
+    try { return normalizeVideos(JSON.parse(input)); } catch {
+      return input.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  return [];
+}
+
+const checkCompletion = (section) => {
+  if (!section || typeof section !== "object") return false; // Validate input
+
+  return Object.keys(section).every((key) => {
     const value = section[key];
 
-    // If the field is an array, check that it's not empty
+    // Check if the value is an array and not empty
     if (Array.isArray(value)) {
-      return value.length > 0; // Ensure the array is not empty
+      return value.length > 0;
     }
-    // If the field is an object, check its keys too (recursive check)
-    if (typeof value === "object" && value !== null) {
-      return checkCompletion(value); // Recurse for nested objects
-    }
-    // For other types, check that it's not null, undefined, or an empty string
+
+    // Check if the value is non-empty for other types
     return value !== undefined && value !== null && value !== "";
   });
-
-  // Return true if all required fields are filled
-  return requiredFields.length === Object.keys(section).length;
 };
 
 const updateSectionCompletion = async (venId) => {
   try {
-    const venue = await Venue.findOne({
-      id: venId,
+    const venue = await VenueProvider.findOne({
+      vendor_id: venId,
     });
 
     if (!venue) {
       throw new Error("Venue not found");
     }
 
-    venue.basicDetails.completed = checkCompletion(venue.basicDetails || {});
-    venue.featureDetails.completed = checkCompletion(
-      venue.featureDetails || {},
+    venue.basic_details.is_completed = checkCompletion(venue.basic_details || {});
+    venue.feature_details.is_completed = checkCompletion(
+      venue.feature_details || {}
     );
-    venue.additionalDetails.completed = checkCompletion(
-      venue.additionalDetails || {},
+    venue.additional_details.is_completed = checkCompletion(
+      venue.additional_details || {}
     );
-    venue.policies.completed = checkCompletion(venue.policies || {});
+    venue.policies.is_completed = checkCompletion(venue.policies || {});
 
     await venue.save();
   } catch (error) {
@@ -218,165 +104,220 @@ const updateSectionCompletion = async (venId) => {
   }
 };
 
+const normalizeServiceName = (label) => {
+  if (!label) return label;
+  const s = String(label).trim().toLowerCase();
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["caterer"].includes(s)) return "Caterer";
+  if (["decorator"].includes(s)) return "Decorator";
+  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  return label;
+};
+
 const createVenue = async (req, res) => {
   try {
-    // Check if the venue already exists
-    console.log(req.body);
-    // const alreadyExists = await Venue.findOne({
-    //   "basicDetails.name": req.body.name,
-    //   venId: req.body.venId,
-    // });
-    // if (alreadyExists) {
-    //   return res.status(400).json({ message: "Venue already exists" });
-    // }
-
-    // Extract file URLs from the request
-    const termsAndConditionsFileUrl = req.body.termsConditions || [];
-
-    const cancellationPolicyFileUrl = req.body.cancellationPolicy || [];
-    const insurancePolicyFileUrl = req.body.insurancePolicy || [];
-    const photosUrl = req.body.photos || [];
-    const videosUrl = req.body.videos || [];
-
-    console.log("Hit3");
-    // Create a new venue object
-    console.log(JSON.parse(req.body.operatingHours));
-    const operatingHours = JSON.parse(req.body.operatingHours);
-    console.log("Hit");
-    
-    // Fetch agreement data from temporary venue collection
-    const tempVenueData = await VenueModel.findOne({ id: req.body.venId });
-    const agreementUrl = tempVenueData?.agreementUrl || null;
-    const agreementSignedAt = tempVenueData?.agreementSignedAt || null;
-    
-    if (agreementUrl) {
-      console.log("Found agreement data for venue:", agreementUrl);
+    if (!req.body.service_type && req.body.service_type_business) {
+      req.body.service_type = req.body.service_type_business;
     }
-    
-    const newVenue = new Venue({
-      type: "venue",
-      venId: req.body.venId,
-      vendorType: "venue",
-      schedule: req.body.schedule || [], // Optional: Add events if provided
 
-      basicDetails: {
-        completed: false, // Will be updated based on completion
-        name: req.body.name,
-        managerName: req.body.managerName,
-        capacity: parseRange(req.body.capacity),
-        operatingHours,
-        // address: req.body.address,
+    const dup = await VenueProvider.findOne({
+      vendor_id: req.body.vendor_id,
+      point_of_contact: req.body.point_of_contact,
+    });
+    if (dup) return res.status(400).json({ message: "Venue already exists for this vendor" });
+
+    const service_id = generateUniqueId("VNP");
+    // Agreements from temp redux model
+    const tempVenueData = await ReduxVenueProviderModel.findOne({ vendor_id: req.body.vendor_id });
+    const agreementUrl = tempVenueData?.agreement_url || null;
+    const agreementSignedAt = tempVenueData?.agreement_signed_at || null;
+
+    // Normalize media from either top-level or nested additional_details
+    const rawImages = req.body.asset_images ?? req.body.additional_details?.asset_images;
+    const rawVideos = req.body.asset_videos ?? req.body.additional_details?.asset_videos;
+
+    const asset_images = normalizePhotos(rawImages);   // [{ original, preview }]
+    const asset_videos = normalizeVideos(rawVideos);   // [string]
+
+    const fieldsToCheck = [
+      req.body.business_name,
+      req.body.business_email,
+      req.body.business_contact_number,
+      req.body.business_address,
+      req.body.business_description,
+      req.body.pan_number,
+      req.body.category,
+      req.body.service_type,
+      req.body.business_registration_name,
+      req.body.gst,
+      req.body.verification_type,
+      req.body.team_size,
+      req.body.years_of_operation,
+      req.body.annual_revenue,
+      req.body.annual_bookings,
+      req.body.pincode,
+      req.body.bank_name,
+      req.body.account_type,
+      req.body.account_number,
+      req.body.ifsc,
+      req.body.service_id,
+      req.body.vendor_id,
+      req.body.point_of_contact,
+      req.body.service_contact_number,
+      req.body.description,
+      req.body.min_booking_capacity,
+      req.body.max_booking_capacity,
+      req.body.venue_name,
+      req.body.service_type_details?.length > 0,
+      req.body.event_types_venue?.length > 0,
+      req.body.lat,
+      req.body.lon,
+      req.body.service_opening_time,
+      req.body.service_closing_time,
+      req.body.service_pincode,
+      req.body.google_map_link,
+      req.body.in_house_catering,
+      req.body.in_house_decoration,
+      req.body.venue_types_available?.length > 0,
+      req.body.av_eqp_available_at_venue?.length > 0,
+      req.body.accessibility_features_of_venue?.length > 0,
+      req.body.restriction_policies_on_venue?.length > 0,
+      req.body.special_features_in_venue?.length > 0,
+      req.body.fascilities_at_venue?.length > 0,
+      req.body.asset_images?.length > 0,
+      req.body.asset_videos?.length > 0,
+      req.body.min_booking_period,
+      req.body.max_booking_period,
+      req.body.prices_starts_from,
+      req.body.ig_socials_link,
+      req.body.web_social_link,
+      req.body.cancellation_policy,
+      req.body.terms_and_conditions,
+    ];
+
+    const completedFields = fieldsToCheck.filter((field) => field).length;
+    const profile_completion_score =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+
+    const newVenue = new VenueProvider({
+      vendor_id: req.body.vendor_id,
+      service_type: req.body.service_type || "Venue-Provider",
+      service_areas: req.body.service_areas || [],
+      service_id,
+
+      business_details: {
+        business_name: req.body.business_name,
+        business_email: req.body.business_email,
+        business_contact_number: req.body.business_contact_number,
+        business_address: req.body.business_address,
+        business_description: req.body.business_description,
+        pan: req.body.pan,
+        category: req.body.category,
+        service_type: req.body.service_type || "Venue-Provider",
+        business_registration_name: req.body.business_registration_name,
+        gst: req.body.gst,
+        verification_type: req.body.verification_type,
+        team_size: req.body.team_size,
+        years_of_operation: req.body.years_of_operation,
+        annual_revenue: req.body.annual_revenue,
+        annual_bookings: req.body.annual_bookings,
+        landmark: req.body.landmark || "",
+        pincode: req.body.pincode,
+        service_id,
+        operational_cities: req.body.operational_cities || [],
+      },
+
+      bank_details: {
+        bank_name: req.body.bank_name,
+        account_type: req.body.account_type,
+        account_number: req.body.account_number,
+        ifsc: req.body.ifsc,
+        service_id,
+        vendor_id: req.body.vendor_id,
+      },
+
+      basic_details: {
+        point_of_contact: req.body.point_of_contact,
+        service_contact_number: req.body.service_contact_number,
         description: req.body.description,
-        serviceAreas: req.body.serviceAreas || [], // Add service areas array
-        location: {
-          lat: req.body.latitude,
-          lng: req.body.longitude,
-          googleMapsAddress: req.body.address,
-          pincode: req.body.pincode, // Pincode
+        min_booking_capacity: req.body.min_booking_capacity,
+        max_booking_capacity: req.body.max_booking_capacity,
+        venue_name: req.body.venue_name,
+        service_type_details: req.body.service_type_details || [],
+        event_types_venue: req.body.event_types_venue || [],
+        service_location_venue: {
+          service_address: req.body.address,
+          lat: req.body.lat,
+          lon: req.body.lon,
+          service_opening_time: req.body.service_opening_time,
+          service_closing_time: req.body.service_closing_time,
+          service_pincode: req.body.service_pincode,
+          google_map_link: req.body.google_map_link,
         },
-        profileCompletion: 0, // Initial placeholder
       },
 
-      featureDetails: {
-        completed: false, // Will be updated based on completion
-        catererServices: req.body.catererServices,
-        eventTypes: req.body.eventTypes,
-        restrictionsPolicies: req.body.restrictionsPolicies,
-        specialFeatures: req.body.specialFeatures,
-        decorServices: req.body.decorServices,
-        venueTypes: req.body.venueTypes,
-        audioVisualEquipment: req.body.audioVisualEquipment,
-        accessibilityFeatures: req.body.accessibilityFeatures,
-        facilities: req.body.facilities,
+      feature_details: {
+        in_house_catering: req.body.in_house_catering,
+        in_house_decoration: req.body.in_house_decoration,
+        venue_types_available: req.body.venue_types_available || [],
+        av_eqp_available_at_venue: req.body.av_eqp_available_at_venue || [],
+        accessibility_features_of_venue: req.body.accessibility_features_of_venue || [],
+        restriction_policies_on_venue: req.body.restriction_policies_on_venue || [],
+        special_features_in_venue: req.body.special_features_in_venue || [],
+        fascilities_at_venue: req.body.fascilities_at_venue || [],
       },
 
-      additionalDetails: {
-        completed: false, // Will be updated based on completion
-        photos: Array.isArray(photosUrl) ? photosUrl : [photosUrl],
-        videos: Array.isArray(videosUrl) ? videosUrl : [videosUrl],
-        awards: req.body.awards,
-        clientTestimonials: req.body.clientTestimonials,
-        instagramURL: req.body.instagramURL,
-        websiteURL: req.body.websiteURL,
-        advanceBookingPeriod: parseRange(req.body.advanceBookingPeriod),
-        priceStartingFrom: req.body.priceStartingFrom,
+      additional_details: {
+        asset_images,                                  // normalized [{original, preview}]
+        asset_videos,                                  // normalized [string]
+        min_booking_period: req.body.min_booking_period,
+        max_booking_period: req.body.max_booking_period,
+        prices_starts_from: req.body.prices_starts_from,
+        ig_socials_link: req.body.ig_socials_link,
+        web_social_link: req.body.web_social_link,
       },
 
       policies: {
-        completed: false, // Will be updated based on completion
-        termsAndConditions: termsAndConditionsFileUrl,
-        cancellationPolicy: cancellationPolicyFileUrl,
-        insurancePolicy: insurancePolicyFileUrl,
-        agreementUrl: agreementUrl,
-        agreementSignedAt: agreementSignedAt,
+        cancellation_policy: req.body.cancellation_policy,
+        terms_and_conditions: req.body.terms_and_conditions,
+        agreement_url: agreementUrl,
+        agreement_signed_at: agreementSignedAt,
       },
 
-      rating: 0, // Default rating
+      profile_completion_score,
     });
 
-    // Calculate profile completion
-    const fieldsToCheck = [
-      req.body.name,
-      req.body.managerName,
-      req.body.capacity,
-      req.body.latitude,
-      req.body.longitude,
-      req.body.address,
-      req.body.description,
-      req.body.serviceAreas?.length > 0, // Add service areas check
-      req.body.venueTypes?.length > 0,
-      req.body.decorServices,
-      req.body.catererServices,
-      req.body.restrictionsPolicies?.length > 0,
-      req.body.specialFeatures?.length > 0,
-      req.body.audioVisualEquipment?.length > 0,
-      req.body.accessibilityFeatures?.length > 0,
-      req.body.facilities?.length > 0,
-      photosUrl.length > 0,
-      videosUrl.length > 0,
-      req.body.instagramURL,
-      req.body.websiteURL,
-      req.body.awards,
-      req.body.clientTestimonials,
-      req.body.advanceBookingPeriod,
-      req.body.priceStartingFrom,
-      termsAndConditionsFileUrl,
-      cancellationPolicyFileUrl,
-    ];
-
-    console.log(req.body);
-
-    const completedFields = fieldsToCheck.filter((field) => field).length;
-    const profileCompletion =
-      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
-
-    newVenue.basicDetails.profileCompletion = profileCompletion;
-
-    // Save the new venue
     const savedVenue = await newVenue.save();
 
-    // Update section completion
-    await updateSectionCompletion(savedVenue.id);
-
-    // Link the venue to the vendor (user)
-    const vendor = await User.findOne({ id: req.body.venId });
+    // Vendor linking (unchanged)
+    const vendor = await Vendor.findOne({ vendor_id: req.body.vendor_id });
     if (!vendor) {
-      await Venue.findByIdAndDelete(savedVenue.id);
+      await VenueProvider.findByIdAndDelete(savedVenue._id);
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    vendor.serviceIds.push({
-      serType: "venue-provider",
-      serId: savedVenue.id,
-    });
+    const serviceTypeLabel = req.body.service_type || "Venue Provider";
+    const normalizedLabel = normalizeServiceName(serviceTypeLabel);
+
+    if (!Array.isArray(vendor.services)) vendor.services = [];
+    if (!vendor.services.includes(savedVenue.service_id)) vendor.services.push(savedVenue.service_id);
+
+    if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
+    const idx = vendor.service_types.findIndex(
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+    );
+    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: savedVenue.service_id };
+    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
+    await updateSectionCompletion(savedVenue.vendor_id);
 
-    process.env.IS_DEV !== "true" && sendEmailToSlack({
+    if (process.env.IS_DEV !== "true") {
+      await sendEmailToSlack({ name: savedVenue.basic_details.venue_name, type: savedVenue.service_type });
+    }
 
-      name: savedVenue.basicDetails.name,
-      type: savedVenue.type,
-    })
     res.status(201).json(savedVenue);
   } catch (error) {
     console.error(error);
@@ -388,16 +329,21 @@ export const getAllVenues = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const itemsPerPage = 9;
-
     const skip = (page - 1) * itemsPerPage;
 
-    const venues =
-      page == -1
-        ? await Venue.find()
-        : await Venue.find().skip(skip).limit(itemsPerPage);
+    const { exclude_id, exclude } = req.query;
+    let excludeIds = [];
+    if (Array.isArray(exclude)) excludeIds = exclude;
+    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const totalvenues = await Venue.countDocuments();
-    console.log("data is ", venues);
+    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+
+    const [venues, totalvenues] = await Promise.all([
+      page == -1 ? VenueProvider.find(filter) : VenueProvider.find(filter).skip(skip).limit(itemsPerPage),
+      VenueProvider.countDocuments(filter),
+    ]);
+
     res.status(200).json({
       data: venues,
       currentPage: page,
@@ -409,10 +355,11 @@ export const getAllVenues = async (req, res) => {
   }
 };
 
+
 export const getVenueImages = async (req, res) => {
   try {
     const { id } = req.query;
-    const venue = await Venue.findOne({ id: id }).lean();
+    const venue = await VenueProvider.findOne({ id: id }).lean();
 
     if (!venue) {
       return res.status(404).json({ message: "Venue not found" });
@@ -426,7 +373,7 @@ export const getVenueImages = async (req, res) => {
 export const getVenueVideos = async (req, res) => {
   try {
     const { id } = req.query;
-    const venue = await Venue.findOne({ venId: id }).lean();
+    const venue = await VenueProvider.findOne({ venId: id }).lean();
     if (!venue) {
       return res.status(404).json({ message: "Venue not found" });
     }
@@ -445,7 +392,7 @@ export const addReviews = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
     if (type === "venue") {
-      const venue = await Venue.findOne({ id: id });
+      const venue = await VenueProvider.findOne({ id: id });
       if (!venue) {
         return res.status(404).json({ message: "Venue not found" });
       }
@@ -513,10 +460,7 @@ export const addReviews = async (req, res) => {
       await photographer.save();
       res.status(200).json(photographer);
     } else if (type === "propRental") {
-      const prop = await PropRental.findOne({ id: id });
-      if (!prop) {
-        return res.status(404).json({ message: "Prop Rental not found" });
-      }
+      return res.status(400).json({ message: "Prop rental service is not available" });
       if (!prop.reviews) {
         prop.reviews = [];
       }
@@ -538,7 +482,7 @@ export const addReviews = async (req, res) => {
 export const getVenueReviews = async (req, res) => {
   try {
     const { id } = req.query;
-    const venue = await Venue.findOne({ id: id });
+    const venue = await VenueProvider.findOne({ id: id });
     if (!venue) {
       return res.status(404).json({ message: "Venue not found" });
     }
@@ -548,4 +492,29 @@ export const getVenueReviews = async (req, res) => {
   }
 };
 
-export default { createVenue, getAllVenues };
+export const getVenueById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Calculate completion before fetching
+    const { checkVenueProfileCompletion } = await import("../../utils/completionUtils/venueCompletionUtils.js");
+    try {
+      await checkVenueProfileCompletion(id);
+    } catch (completionError) {
+      console.warn("Error calculating venue completion:", completionError);
+      // Continue even if completion calculation fails
+    }
+
+    const venue = await VenueProvider.findOne({ service_id: id });
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    res.status(200).json(venue);
+  } catch (error) {
+    console.error("Error fetching venue:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export default { createVenue, getAllVenues, getVenueById };
