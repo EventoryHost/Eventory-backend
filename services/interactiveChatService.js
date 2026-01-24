@@ -115,24 +115,13 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 sender: "admin",
                 sender_id: "admin",
                 message_content: "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.",
-                message_type: "text",
-                action: "check_reviews"
-            });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", processingMsg);
-            
-            // Send "Check Reviews" button
-            const reviewBtnMsg = await Message.create({
-                 chat_id: chatId,
-                chat_type: "anon_customer-admin",
-                sender: "admin",
-                sender_id: "admin",
-                message_content: "Check Reviews",
                 message_type: "options",
+                action: "check_reviews",
                 options: [
                     { label: "Check Reviews", value: "CHECK_REVIEWS_ACTION" }
                 ]
             });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", reviewBtnMsg);
+            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", processingMsg);
             return;
         }
 
