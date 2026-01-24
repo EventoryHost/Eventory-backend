@@ -427,7 +427,6 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
-    console.log(vendorDoc)
 
     if (!hasBeneficiary) {
       const createBody = {
@@ -615,7 +614,7 @@ const verifyCustomerPayment = async (req, res) => {
         chat_id: "",
         message: customerMessage,
         notification_type: 'checkout_message',
-        checkout_url: "/customerbookingnew", // Link to customer bookings
+        checkout_url: "/customerbooking", // Link to customer bookings
         read: false,
       });
     } catch { }
@@ -788,11 +787,11 @@ const verifyCustomerPayment = async (req, res) => {
     };
     const { date, time } = formatDateTimeForDisplay(finalOrder.event_start);
     const venue = finalOrder.event_location;
-    var customerLink = `https://eventory.in/customerbookingnew/${event_id}`;
+    var customerLink = `https://eventory.in/customerbooking/${event_id}`;
     var vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
 
     if (process.env.IS_LOCAL === "true") {
-      customerLink = `http://localhost:3000/customerbookingnew/${event_id}`;
+      customerLink = `http://localhost:3000/customerbooking/${event_id}`;
       vendorLink = "http://localhost:3000/dashboard?q=Manage%20Bookings";
     }
 

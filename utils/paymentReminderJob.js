@@ -11,7 +11,7 @@ function getIstDayRangeUtc(daysAhead = 1) {
 
     const year = nowIst.getFullYear();
     const month = nowIst.getMonth();
-    const day = nowIst.getDate() + daysAhead; 
+    const day = nowIst.getDate() + daysAhead;
 
     const istStart = new Date(year, month, day, 0, 0, 0, 0);
     const istEnd = new Date(year, month, day + 1, 0, 0, 0, 0);
@@ -29,8 +29,8 @@ export async function runPaymentReminderJob() {
 
     const events = await Events.find({
         payment_status: "advance_paid",
-        payment_method_details: { $size: 1 },      
-        event_end: { $gte: fromUtc, $lt: toUtc }, 
+        payment_method_details: { $size: 1 },
+        event_end: { $gte: fromUtc, $lt: toUtc },
         final_amount: { $gt: 0 },
     }).lean();
 
@@ -48,7 +48,7 @@ export async function runPaymentReminderJob() {
         });
         if (alreadySent) continue;
 
-        const checkoutUrl = `/customerbookingnew/${ev.event_id}`;
+        const checkoutUrl = `/customerbooking/${ev.event_id}`;
 
         const eventDate = ev.event_start
             ? new Date(ev.event_start).toDateString()
