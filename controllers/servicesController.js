@@ -375,6 +375,11 @@ export const getAllServices = async (req, res) => {
     const searchQuery = search ? {
       $or: [
         { vendor_id: { $regex: search, $options: 'i' } },
+        { service_id: { $regex: search, $options: 'i' } },
+        { "business_details.business_registration_name": { $regex: search, $options: 'i' } },
+        { "basic_details.point_of_contact": { $regex: search, $options: 'i' } },
+        { "basic_details.venue_name": { $regex: search, $options: 'i' } },
+        { service_type: { $regex: search, $options: 'i' } },
         { vendor_name: { $regex: search, $options: 'i' } },
         { vendor_mobile: { $regex: search, $options: 'i' } },
         { email_address: { $regex: search, $options: 'i' } }
@@ -445,16 +450,16 @@ export const getAllServices = async (req, res) => {
       totalCount = results.reduce((sum, r) => sum + r.count, 0);
       
       let filteredServices = combinedServices;
-      if (search) {
-        const searchLower = search.toLowerCase();
-        filteredServices = combinedServices.filter(service => 
-          (service.vendor_id && service.vendor_id.toLowerCase().includes(searchLower)) ||
-          (service.vendor_name && service.vendor_name.toLowerCase().includes(searchLower)) ||
-          (service.vendor_mobile && service.vendor_mobile.includes(search)) ||
-          (service.email_address && service.email_address.toLowerCase().includes(searchLower))
-        );
-        totalCount = filteredServices.length;
-      }
+      // if (search) {
+
+
+
+
+
+
+
+
+
       
       filteredServices.sort((a, b) => {
         const aVal = a[sortBy] || '';
