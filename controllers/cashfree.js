@@ -427,7 +427,6 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
-    console.log(vendorDoc)
 
     if (!hasBeneficiary) {
       const createBody = {
@@ -616,7 +615,7 @@ const verifyCustomerPayment = async (req, res) => {
         chat_id: "",
         message: customerMessage,
         notification_type: 'checkout_message',
-        checkout_url: "/customerbookingnew", // Link to customer bookings
+        checkout_url: "/customerbooking", // Link to customer bookings
         read: false,
       });
     } catch { }
