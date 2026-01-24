@@ -97,6 +97,17 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.status = "PROCESSING";
             await enquiry.save();
 
+            // Send "Assigning Event Manager" message first
+            const assigningMsg = await Message.create({
+                chat_id: chatId,
+                chat_type: "anon_customer-admin",
+                sender: "admin",
+                sender_id: "admin",
+                message_content: "We're assigning an event manager to assist you with your query.",
+                message_type: "text"
+            });
+            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", assigningMsg);
+
             // Send "Processing" message
             const processingMsg = await Message.create({
                 chat_id: chatId,
@@ -104,24 +115,13 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 sender: "admin",
                 sender_id: "admin",
                 message_content: "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.",
-                message_type: "text",
-                action: "check_reviews"
-            });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", processingMsg);
-            
-            // Send "Check Reviews" button
-            const reviewBtnMsg = await Message.create({
-                 chat_id: chatId,
-                chat_type: "anon_customer-admin",
-                sender: "admin",
-                sender_id: "admin",
-                message_content: "Check Reviews",
                 message_type: "options",
+                action: "check_reviews",
                 options: [
                     { label: "Check Reviews", value: "CHECK_REVIEWS_ACTION" }
                 ]
             });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", reviewBtnMsg);
+            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", processingMsg);
             return;
         }
 
