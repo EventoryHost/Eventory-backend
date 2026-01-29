@@ -78,7 +78,6 @@ const anonCustomerOrderSchema = new mongoose.Schema({
   chat_id: {
     type: String,
     required: true,
-    index: true
   },
   
   anon_user_id: {

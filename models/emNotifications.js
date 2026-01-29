@@ -11,8 +11,6 @@ const emNotificationsSchema = new Schema({
   },
   order_id: {
     type: String,
-    required: true,
-    unique: true
   },
   event_id: {
     type: String,

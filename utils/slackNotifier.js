@@ -153,8 +153,11 @@ export async function sendSlackAnonChatMessage({
   metadata,
 }) {
   try {
-    if (process.env.IS_LOCAL === "true") {
-      console.log("Skipping Slack notification (IS_LOCAL=true)");
+    const isLocal = process.env.IS_LOCAL === "true";
+    const isDev = process.env.IS_DEV === "true";
+
+    if (isLocal && !isDev) {
+      console.log("Skipping Slack notification (IS_LOCAL=true and IS_DEV!=true)");
       return;
     }
     await slackClient.chat.postMessage({
