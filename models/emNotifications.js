@@ -38,6 +38,11 @@ const emNotificationsSchema = new Schema({
     required: true,
     enum: ['chat_message', 'checkout_message', "message_reminder"]
   },
+  timestamp: {
+    type: String,
+    default: () => new Date().toISOString(),
+    required: true
+  },
 }, {
   timestamps: true,
   collection: 'em_notifications'

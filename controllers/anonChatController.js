@@ -105,8 +105,9 @@ export const sendAnonymousMessage = async (req, res) => {
           const notifications = allEMs.map((em) => ({
             em_id: em.em_id,
             chat_id: chat.chat_id,
-            message: "New anonymous chat started",
+            message: `A new user started a chat (${anon_customer_id}), check the recent customer inquiry!`,
             notification_type: "chat_message",
+            timestamp: new Date().toISOString(),
             read: false,
           }));
           await EMNotifications.insertMany(notifications);

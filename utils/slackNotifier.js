@@ -7,6 +7,7 @@ const accessToken = process.env.SLACK_ACCESS_TOKEN;
 const channelId = process.env.SLACK_CHANNEL_ID;
 
 const slackClient = new WebClient(accessToken);
+
 export async function sendSlackMessage({
   id,
   customer,
