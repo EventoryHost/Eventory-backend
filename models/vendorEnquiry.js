@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { normalizePhoneNumber } from "../utils/phoneUtils.js";
+
 
 const Schema = mongoose.Schema;
 
@@ -28,6 +30,7 @@ const vendorEnquirySchema = new Schema({
   vendor_mobile: {
     type: String,
     required: true,
+    set: normalizePhoneNumber,
     validate: {
       validator: function (v) {
         return /^[6-9]\d{9}$/.test(v);
