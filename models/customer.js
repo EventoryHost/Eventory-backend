@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
 import { customerCouponUsageSchema } from "./customerCoupon.js";
+import { normalizePhoneNumber } from "../utils/phoneUtils.js";
+
 
 // Customer Schema
 const customerSchema = new mongoose.Schema({
@@ -16,6 +18,7 @@ const customerSchema = new mongoose.Schema({
   contact_number: {
     type: String,
     required: true,
+    set: normalizePhoneNumber,
     // validate: {
     //   validator: function(v) {
     //     return /^[6-9]\d{9}$/.test(v);

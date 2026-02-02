@@ -1,5 +1,7 @@
 import { Schema as _Schema, model } from "mongoose";
 import generateUniqueId from "../utils/generateId.js";
+import { normalizePhoneNumber } from "../utils/phoneUtils.js";
+
 
 const Schema = _Schema;
 
@@ -14,7 +16,8 @@ const vendorSchema = new Schema({
   },
   vendor_mobile: {
     type: String,
-    required: true
+    required: true,
+    set: normalizePhoneNumber
   },
   email_address: {
     type: String
