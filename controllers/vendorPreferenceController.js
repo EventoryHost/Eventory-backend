@@ -1,4 +1,6 @@
 import VendorPreference from "../models/vendorPreference.js";
+import Chat from "../models/chats.js";
+import EMNotifications from "../models/emNotifications.js";
 
 /**
  * Add or update vendor preference (like/reject)
@@ -27,6 +29,33 @@ export const setVendorPreference = async (req, res) => {
       { preference_type, updated_at: new Date() },
       { upsert: true, new: true }
     );
+
+    // Notify EM if there is an active chat
+    try {
+      const activeChat = await Chat.findOne({
+        anon_customer_id: customer_id,
+        chat_status: "ACTIVE",
+        chat_type: "anon_customer-admin"
+      });
+
+      if (activeChat && activeChat.em_id) {
+        const message = preference_type === 'liked' 
+          ? "Customer liked a vendor card" 
+          : "Customer rejected a vendor card";
+
+        await EMNotifications.create({
+          em_id: activeChat.em_id,
+          chat_id: activeChat.chat_id,
+          message: message,
+          notification_type: "chat_message",
+          timestamp: new Date().toISOString(),
+          read: false
+        });
+      }
+    } catch (notifyError) {
+      console.error("Error creating EM notification for preference:", notifyError);
+      // Don't fail the request if notification fails
+    }
 
     return res.status(200).json({
       success: true,

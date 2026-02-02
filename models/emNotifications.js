@@ -11,8 +11,6 @@ const emNotificationsSchema = new Schema({
   },
   order_id: {
     type: String,
-    required: true,
-    unique: true
   },
   event_id: {
     type: String,
@@ -39,6 +37,11 @@ const emNotificationsSchema = new Schema({
     type: String,
     required: true,
     enum: ['chat_message', 'checkout_message', "message_reminder"]
+  },
+  timestamp: {
+    type: String,
+    default: () => new Date().toISOString(),
+    required: true
   },
 }, {
   timestamps: true,
