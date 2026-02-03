@@ -4,6 +4,8 @@ import { sendSlackAnonChatMessage } from "../utils/slackNotifier.js";
 import generateUniqueId from "../utils/generateId.js";
 import AnonymousUser from "../models/anonymousUser.js";
 import { handleInteractiveMessage } from "../services/interactiveChatService.js";
+import EMNotifications from "../models/emNotifications.js";
+import EventManager from "../models/eventManager.js";
 
 export const sendAnonymousMessage = async (req, res) => {
   try {
@@ -95,6 +97,24 @@ export const sendAnonymousMessage = async (req, res) => {
         messageContent: message_content,
         metadata,
       });
+
+      // Notify all EMs about the new anonymous chat
+      try {
+        const allEMs = await EventManager.find({}, "em_id");
+        if (allEMs.length > 0) {
+          const notifications = allEMs.map((em) => ({
+            em_id: em.em_id,
+            chat_id: chat.chat_id,
+            message: `A new user started a chat (${anon_customer_id}), check the recent customer inquiry!`,
+            notification_type: "chat_message",
+            timestamp: new Date().toISOString(),
+            read: false,
+          }));
+          await EMNotifications.insertMany(notifications);
+        }
+      } catch (err) {
+        console.error("Failed to create EM notifications for new chat:", err);
+      }
     }
 
     // --- INTERACTIVE FLOW LOGIC ---

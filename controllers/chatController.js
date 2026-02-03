@@ -222,6 +222,43 @@ export const handleSocketConnection = (socket, io) => {
           parent_message_id: validParent,
         });
 
+        // Check if this is the first vendor_card from an EM in this chat
+        if (sender === "em" && final_message_type === "vendor_card") {
+          const existingVendorCard = await Message.findOne({
+            chat_id,
+            chat_type,
+            sender: "em",
+            message_type: "vendor_card",
+          });
+
+          if (!existingVendorCard) {
+            // Create and save intro message
+            const introMessage = new Message({
+              chat_id,
+              chat_type,
+              sender: "em",
+              sender_id,
+              message_content: "Here's a vendor recommendation for you",
+              message_type: "text",
+            });
+            const savedIntro = await introMessage.save();
+
+            // Emit intro message to room
+            const roomId = `${chat_id}-${chat_type}`;
+            io.to(roomId).emit("new_message", {
+              _id: savedIntro._id,
+              chat_id: savedIntro.chat_id,
+              chat_type: chat_type,
+              sender: savedIntro.sender,
+              sender_id: savedIntro.sender_id,
+              message_content: savedIntro.message_content,
+              message_type: savedIntro.message_type,
+              message_sent_at: savedIntro.message_sent_at,
+            });
+            console.log(`📤 Sent intro message for first vendor card in chat ${chat_id}`);
+          }
+        }
+
         const savedMessage = await message.save();
 
         // ------------------- UPDATE VENDOR ENQUIRY IF APPLICABLE -------------------
