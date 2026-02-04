@@ -7,9 +7,118 @@ import { handleInteractiveMessage } from "../services/interactiveChatService.js"
 import EMNotifications from "../models/emNotifications.js";
 import EventManager from "../models/eventManager.js";
 
+// Initialize an anonymous chat session (used for sharable links)
+export const initializeAnonymousChat = async (req, res) => {
+  try {
+    let { anon_customer_id, source } = req.body;
+
+    // Robust ID normalization
+    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
+
+    if (!anon_customer_id) {
+      return res.status(400).json({ error: "anon_customer_id is required" });
+    }
+
+    let chat = await Chat.findOne({
+      anon_customer_id,
+      chat_type: "anon_customer-admin",
+      chat_status: "ACTIVE",
+    });
+
+    let isNewChat = false;
+    if (!chat) {
+      isNewChat = true;
+      chat = await Chat.create({
+        chat_id: generateUniqueId("CHAT"),
+        anon_customer_id,
+        chat_type: "anon_customer-admin",
+        chat_status: "ACTIVE",
+        link_source: source || null,
+      });
+    }
+
+    // If source is provided and chat hasn't been auto-initialised yet
+    // Robust check for 'shared_link' (handle potential quotes from frontend)
+    const normalizedSource = source ? source.replace(/['"]/g, "") : null;
+    
+    console.log(`[DEBUG] init chat: anon_id=${anon_customer_id}, source=${source}, normalized=${normalizedSource}, is_auto_initialised=${chat.is_auto_initialised}`);
+
+    if (normalizedSource === "shared_link" && !chat.is_auto_initialised) {
+      console.log(`[DEBUG] Triggering automated greeting flow for chat_id=${chat.chat_id}`);
+      
+      // Mark as auto-initialised immediately to prevent duplicate flows
+      chat.is_auto_initialised = true;
+      await chat.save();
+
+      const io = req.io;
+
+      // Start the automated greeting flow
+      // 1. Send first message with a small delay (1.5s)
+      setTimeout(async () => {
+        try {
+          const greetingMsg = await Message.create({
+            chat_id: chat.chat_id,
+            chat_type: "anon_customer-admin",
+            sender: "admin",
+            sender_id: "admin",
+            message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
+            message_type: "text",
+          });
+
+          console.log(`[DEBUG] Sent first greeting message: ${greetingMsg._id}`);
+
+          if (io) {
+            io.to(`${chat.chat_id}-anon_customer-admin`).emit("new_message", greetingMsg.toObject());
+          }
+        } catch (err) {
+          console.error("Error sending first greeting message:", err);
+        }
+      }, 1500);
+
+      // 2. Delayed second message (5.5 seconds total - 1.5s + 4s)
+      setTimeout(async () => {
+        try {
+          const optionsMsg = await Message.create({
+            chat_id: chat.chat_id,
+            chat_type: "anon_customer-admin",
+            sender: "admin",
+            sender_id: "admin",
+            message_content: "Please select your event type",
+            message_type: "options",
+            options: [
+              { label: "Wedding", value: "Wedding" },
+              { label: "Birthday", value: "Birthday" },
+              { label: "Corporate", value: "Corporate" },
+              { label: "Anniversary", value: "Anniversary" },
+              { label: "Other", value: "Other" },
+            ],
+          });
+
+          console.log(`[DEBUG] Sent second options message: ${optionsMsg._id}`);
+
+          if (io) {
+            io.to(`${chat.chat_id}-anon_customer-admin`).emit("new_message", optionsMsg.toObject());
+          }
+        } catch (err) {
+          console.error("Error sending delayed options message:", err);
+        }
+      }, 5500);
+    }
+
+    res.status(200).json({
+      message: "Chat initialized",
+      chat_id: chat.chat_id,
+      is_new: isNewChat,
+    });
+  } catch (error) {
+    console.error("Error initializing anonymous chat:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const sendAnonymousMessage = async (req, res) => {
   try {
-    const {
+    let {
       anon_customer_id,
       message_content,
       message_type,
@@ -17,6 +126,9 @@ export const sendAnonymousMessage = async (req, res) => {
       metadata,
       chat_id,
     } = req.body;
+
+    // Robust ID normalization
+    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
 
     if (!anon_customer_id || !message_content) {
       return res
@@ -150,9 +262,12 @@ export const sendAnonymousMessage = async (req, res) => {
 // Get messages for an anonymous customer
 export const getAnonymousMessages = async (req, res) => {
   try {
-    const { anon_customer_id } = req.params;
+    let { anon_customer_id } = req.params;
     const { cursor } = req.query;
     const limit = 20;
+
+    // Robust ID normalization
+    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
 
     if (!anon_customer_id) {
       return res.status(400).json({ error: "anon_customer_id is required" });
@@ -219,7 +334,10 @@ export const getAnonymousMessages = async (req, res) => {
 // Get status of the current chat
 export const getAnonymousChatStatus = async (req, res) => {
   try {
-    const { anon_customer_id } = req.params;
+    let { anon_customer_id } = req.params;
+
+    // Robust ID normalization
+    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
 
     if (!anon_customer_id) {
       return res.status(400).json({ error: "anon_customer_id is required" });

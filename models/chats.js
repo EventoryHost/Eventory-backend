@@ -79,6 +79,14 @@ const chatSchema = new Schema({
       const istOffset = 5.5 * 60 * 60 * 1000;
       return new Date(now.getTime() + istOffset);
     }
+  },
+  link_source: {
+    type: String,
+    required: false
+  },
+  is_auto_initialised: {
+    type: Boolean,
+    default: false
   }
 }, {
   collection: 'chat2'
