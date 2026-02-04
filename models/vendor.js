@@ -17,7 +17,6 @@ const vendorSchema = new Schema({
   vendor_mobile: {
     type: String,
     required: true,
-    set: normalizePhoneNumber
   },
   email_address: {
     type: String
