@@ -24,7 +24,8 @@ export const initializeAnonymousUser = async (req, res) => {
       landing_page, 
       referrer,
       device_info,
-      anon_id // NEW: Accept anon_id
+      anon_id, // NEW: Accept anon_id
+      source // NEW: Accept source for sharable links
     } = req.body;
 
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
@@ -114,32 +115,22 @@ export const initializeAnonymousUser = async (req, res) => {
             chat_status: "ACTIVE"
         });
 
-        // Send default welcome message
-        await Message.create({
-            chat_id: chatId,
-            chat_type: "anon_customer-admin",
-            sender: "admin",
-            sender_id: "admin",
-            message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
-            message_type: "text"
-        });
-
-        // Send Event Type Options
-        await Message.create({
-            chat_id: chatId,
-            chat_type: "anon_customer-admin",
-            sender: "admin",
-            sender_id: "admin",
-            message_content: "Please select your event type",
-            message_type: "options",
-            options: [
-                { label: "Birthday Party", value: "Birthday Party" },
-                { label: "Anniversary", value: "Anniversary" },
-                { label: "Corporate Event", value: "Corporate Event" },
-                { label: "Society Party", value: "Society Party" },
-                { label: "Other", value: "Other" }
-            ]
-        });
+        // ONLY send default greeting if NOT a shared link (handled by anonChatController/init)
+        const rawSource = req.body.source || source;
+        const normalizedSource = rawSource ? rawSource.toString().replace(/['"]/g, "") : null;
+        
+        if (!fbclid && !utm_source && normalizedSource !== "shared_link") {
+            // Send default welcome message
+            await Message.create({
+                chat_id: chatId,
+                chat_type: "anon_customer-admin",
+                sender: "admin",
+                sender_id: "admin",
+                message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
+                message_type: "text"
+            });
+            // ... (rest suppressed as it was redundant anyway)
+        }
     }
 
     // Set HTTP-only cookie (refresh it)

@@ -3,12 +3,17 @@ import {
     sendAnonymousMessage, 
     getAnonymousMessages, 
     getAnonymousChatStatus,
-    getAllAnonymousChats
+    getAllAnonymousChats,
+    initializeAnonymousChat
 } from "../controllers/anonChatController.js";
 
 const router = express.Router();
 
 const anonChatRoutes = (io) => {
+    router.post("/init", (req, res) => {
+        req.io = io;
+        initializeAnonymousChat(req, res);
+    });
     router.post("/message", (req, res) => {
         req.io = io;
         sendAnonymousMessage(req, res);
