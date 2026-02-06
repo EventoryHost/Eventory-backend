@@ -38,20 +38,29 @@ export const initializeAnonymousChat = async (req, res) => {
     }
 
     // If source is provided and chat hasn't been auto-initialised yet
-    // Robust check for 'shared_link' (handle potential quotes from frontend)
-    const normalizedSource = source ? source.replace(/['"]/g, "") : null;
-    
-    console.log(`[DEBUG] init chat: anon_id=${anon_customer_id}, source=${source}, normalized=${normalizedSource}, is_auto_initialised=${chat.is_auto_initialised}`);
+    const normalizedSource = source ? source.toString().replace(/['"]/g, "") : null;
 
-    if (normalizedSource === "shared_link" && !chat.is_auto_initialised) {
+    // Automation Logic: Trigger greeting if it's a new chat OR a shared link that hasn't been initialised
+    const isSharedLink = normalizedSource === "shared_link";
+    
+    // Check if chat already has messages to enforce idempotency
+    const messageCount = await Message.countDocuments({ chat_id: chat.chat_id });
+    
+    console.log(`[DEBUG] init chat: anon_id=${anon_customer_id}, isNew=${isNewChat}, source=${source}, messageCount=${messageCount}, is_auto_initialised=${chat.is_auto_initialised}`);
+
+    // Trigger greeting flow if:
+    // 1. It's a brand new chat (isNewChat)
+    // 2. OR it's a shared link and we haven't sent the greeting yet
+    // AND there are no messages in the chat yet
+    if ((isNewChat || isSharedLink) && messageCount === 0 && !chat.is_auto_initialised) {
       console.log(`[DEBUG] Triggering automated greeting flow for chat_id=${chat.chat_id}`);
       
       // Mark as auto-initialised immediately to prevent duplicate flows
       chat.is_auto_initialised = true;
       await chat.save();
-
+  
       const io = req.io;
-
+  
       // Start the automated greeting flow
       // 1. Send first message with a small delay (1.5s)
       setTimeout(async () => {
@@ -64,9 +73,9 @@ export const initializeAnonymousChat = async (req, res) => {
             message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
             message_type: "text",
           });
-
+  
           console.log(`[DEBUG] Sent first greeting message: ${greetingMsg._id}`);
-
+  
           if (io) {
             io.to(`${chat.chat_id}-anon_customer-admin`).emit("new_message", greetingMsg.toObject());
           }
@@ -74,7 +83,7 @@ export const initializeAnonymousChat = async (req, res) => {
           console.error("Error sending first greeting message:", err);
         }
       }, 1500);
-
+  
       // 2. Delayed second message (5.5 seconds total - 1.5s + 4s)
       setTimeout(async () => {
         try {
@@ -93,9 +102,9 @@ export const initializeAnonymousChat = async (req, res) => {
               { label: "Other", value: "Other" },
             ],
           });
-
+  
           console.log(`[DEBUG] Sent second options message: ${optionsMsg._id}`);
-
+  
           if (io) {
             io.to(`${chat.chat_id}-anon_customer-admin`).emit("new_message", optionsMsg.toObject());
           }
@@ -103,6 +112,13 @@ export const initializeAnonymousChat = async (req, res) => {
           console.error("Error sending delayed options message:", err);
         }
       }, 5500);
+    } else if (messageCount > 0 || chat.is_auto_initialised) {
+      console.log(`[DEBUG] Skipping greeting flow. Already has messages or auto-initialised.`);
+      // Ensure flag is set if we have messages (sanity check)
+      if (!chat.is_auto_initialised) {
+         chat.is_auto_initialised = true;
+         await chat.save();
+      }
     }
 
     res.status(200).json({
@@ -392,7 +408,7 @@ export const getAllAnonymousChats = async (req, res) => {
     }
 
     const chats = await Chat.find(query)
-      .sort({ last_message_updated_at: -1 })
+      .sort({ chat_created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       .lean();
@@ -430,6 +446,48 @@ export const getAllAnonymousChats = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching all anonymous chats:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Get details for a specific anonymous chat by chat_id
+export const getAnonymousChatDetails = async (req, res) => {
+  try {
+    const { chat_id } = req.params;
+
+    if (!chat_id) {
+      return res.status(400).json({ error: "chat_id is required" });
+    }
+
+    const chat = await Chat.findOne({
+      chat_id,
+      chat_type: "anon_customer-admin",
+    }).lean();
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const lastMsg = await Message.findOne({ chat_id: chat.chat_id })
+      .sort({ createdAt: -1 })
+      .select("message_content createdAt")
+      .lean();
+
+    const data = {
+      chat_id: chat.chat_id,
+      anon_user_id: chat.anon_customer_id,
+      created_at: chat.chat_created_at || chat.createdAt,
+      status: chat.chat_status ? chat.chat_status.toLowerCase() : "active",
+      last_message: lastMsg ? lastMsg.message_content : "",
+      // metadata: chat.metadata || {}, // If metadata exists on chat model
+    };
+
+    res.status(200).json({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    console.error("Error fetching anonymous chat details:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
