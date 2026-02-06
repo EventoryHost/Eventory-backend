@@ -69,6 +69,51 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     );
 
     console.log("✅ Final order saved:", updatedOrder.order_id);
+    
+    // ------------------- SEND REAL-TIME NOTIFICATION -------------------
+    try {
+      const messageContent = `Final Order Generated: ${updatedOrder.order_id}. Please review and approve.`;
+      
+      // Use quotation_id from the updated order (guaranteed to exist)
+      const targetChatId = updatedOrder.quotation_id;
+      const targetEmId = updatedOrder.em_id || em_id || "system"; // Fallback to body or system
+
+      if (!targetChatId) {
+          console.error("❌ Cannot emit socket: quotation_id missing in updated order");
+      } else {
+        const savedMessage = await Message.create({
+            chat_id: targetChatId,
+            chat_type: "customer-admin", // Defaulting to customer-admin for now, logic below handles both
+            sender: "em",
+            sender_id: targetEmId,
+            message_content: messageContent,
+            message_type: "approval_request",
+            card_data: updatedOrder, // Pass order data so frontend can render the card
+        });
+        
+        // Emit to Customer
+        if (req.io) {
+            // Customer Room
+            const customerRoomId = `${targetChatId}-customer-admin`;
+            req.io.to(customerRoomId).emit("new_message", {
+            ...savedMessage.toObject(),
+            chat_type: "customer-admin" 
+            });
+            
+            // Vendor Room (if different chat_type needed, create another message or just emit)
+            // Usually approval request goes to both
+            const vendorRoomId = `${targetChatId}-vendor-admin`;
+            req.io.to(vendorRoomId).emit("new_message", {
+            ...savedMessage.toObject(),
+            chat_type: "vendor-admin"
+            });
+            
+            console.log(`📤 Emitted approval_request to ${customerRoomId} and ${vendorRoomId}`);
+        }
+      }
+    } catch (msgErr) {
+        console.error("Failed to send real-time order approval message:", msgErr);
+    }
 
     return res.status(200).json({
       message: skipClean

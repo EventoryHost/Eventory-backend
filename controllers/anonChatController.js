@@ -6,6 +6,7 @@ import AnonymousUser from "../models/anonymousUser.js";
 import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 import EMNotifications from "../models/emNotifications.js";
 import EventManager from "../models/eventManager.js";
+import CustomerEnquiry from "../models/customerEnquiry.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
@@ -112,6 +113,7 @@ export const initializeAnonymousChat = async (req, res) => {
     // Check if chat already has messages to enforce idempotency
     const messageCount = await Message.countDocuments({ chat_id: chat.chat_id });
     
+    console.log(`[FLOW 1] Chat initiated: chat_id=${chat.chat_id}, userId=${userId}, type=${chatType}, source=${source}`);
     console.log(`[DEBUG] init chat: userId=${userId}, type=${chatType}, isNew=${isNewChat}, source=${source}, messageCount=${messageCount}`);
 
     // Trigger greeting flow if:
@@ -141,6 +143,7 @@ export const initializeAnonymousChat = async (req, res) => {
             message_type: "text",
           });
   
+          console.log(`[FLOW 2] Greeting sent: chat_id=${chat.chat_id}`);
           console.log(`[DEBUG] Sent first greeting message: ${greetingMsg._id}`);
   
           if (io) {
@@ -151,7 +154,7 @@ export const initializeAnonymousChat = async (req, res) => {
         }
       }, 1500);
   
-      // 2. Delayed second message (5.5 seconds total - 1.5s + 4s)
+      // 2. Delayed second message (3.5 seconds total - 1.5s + 2s)
       setTimeout(async () => {
         try {
           const optionsMsg = await Message.create({
@@ -170,6 +173,7 @@ export const initializeAnonymousChat = async (req, res) => {
             ],
           });
   
+          console.log(`[FLOW 3] Event type options sent: chat_id=${chat.chat_id}`);
           console.log(`[DEBUG] Sent second options message: ${optionsMsg._id}`);
   
           if (io) {
@@ -178,7 +182,7 @@ export const initializeAnonymousChat = async (req, res) => {
         } catch (err) {
           console.error("Error sending delayed options message:", err);
         }
-      }, 5500);
+      }, 3500);
     } else if (messageCount > 0 || chat.is_auto_initialised) {
       // Ensure flag is set if we have messages (sanity check)
       if (!chat.is_auto_initialised) {
@@ -241,7 +245,7 @@ export const sendAnonymousMessage = async (req, res) => {
 
     // 1. Try to find chat by chat_id if provided
     if (chat_id) {
-      chat = await Chat.findOne({ chat_id, chat_type: chatType });
+       chat = await Chat.findOne({ chat_id: chat_id.trim(), chat_type: chatType });
     }
 
     // 2. If no chat_id or chat not found, try to find ACTIVE chat
@@ -282,8 +286,12 @@ export const sendAnonymousMessage = async (req, res) => {
     });
 
     if (req.io) {
-      const roomId = `${chat.chat_id}-${chatType}`;
-      req.io.to(roomId).emit("new_message", {
+      // DUAL-CAST: Emit to both potential rooms (anon and customer) to ensure
+      // frontend receives it regardless of which mode it thinks it is in.
+      const roomAnon = `${chat.chat_id}-anon_customer-admin`;
+      const roomCust = `${chat.chat_id}-customer-admin`;
+
+      const socketPayload = {
         _id: newMessage._id,
         chat_id: newMessage.chat_id,
         chat_type: newMessage.chat_type,
@@ -293,7 +301,12 @@ export const sendAnonymousMessage = async (req, res) => {
         message_type: newMessage.message_type,
         message_sent_at: newMessage.message_sent_at,
         attachment_url: newMessage.attachment_url,
-      });
+        // Include card_data if available (though not in create payload above, robust to add)
+        card_data: newMessage.card_data
+      };
+
+      req.io.to(roomAnon).emit("new_message", socketPayload);
+      req.io.to(roomCust).emit("new_message", socketPayload);
     }
 
     // Update chat timestamps
@@ -488,7 +501,7 @@ export const getAnonymousChatStatus = async (req, res) => {
     if (chat) {
       res
         .status(200)
-        .json({ status: "ACTIVE", chat_id: chat.chat_id, em_id: chat.em_id });
+        .json({ status: "ACTIVE", chat_id: chat.chat_id, em_id: chat.em_id, chat_type: chat.chat_type });
     } else {
       // Check if there was a finished chat
       let finishedQuery = {
@@ -507,6 +520,7 @@ export const getAnonymousChatStatus = async (req, res) => {
             status: "FINISHED",
             chat_id: finishedChat.chat_id,
             em_id: finishedChat.em_id,
+            chat_type: finishedChat.chat_type
           });
       } else {
         res.status(200).json({ status: "NONE" });
@@ -664,6 +678,17 @@ export const resetAnonymousChat = async (req, res) => {
 
     chat.chat_status = "FINISHED";
     await chat.save();
+
+    // Also close any OPEN or PROCESSING enquiries for this user to ensure fresh start
+    let enquiryQuery = { status: { $in: ["OPEN", "PROCESSING"] } };
+    if (chatType === "customer-admin") {
+        enquiryQuery.customer_id = userId;
+    } else {
+        enquiryQuery.anon_customer_id = userId;
+    }
+
+    await CustomerEnquiry.updateMany(enquiryQuery, { status: "CLOSED" });
+    console.log(`[RESET] Closed active enquiries for user: ${userId}`);
 
     res.status(200).json({ message: "Chat reset successfully", chat_id: chat.chat_id });
 

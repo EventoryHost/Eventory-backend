@@ -1,9 +1,12 @@
 import Message from "../models/message2.js";
 import CustomerEnquiry from "../models/customerEnquiry.js";
 import Chat from "../models/chats.js";
+import generateUniqueId from "../utils/generateId.js";
 
 export const handleInteractiveMessage = async (chatId, socketSenderId, messageContent, io) => {
     try {
+        console.log(`[DEBUG] handleInteractiveMessage entry: chatId=${chatId}, content="${messageContent}"`);
+        
         // Fetch Chat to get the correct anon_customer_id or customer_id
         const chat = await Chat.findOne({ chat_id: chatId });
         if (!chat) {
@@ -13,6 +16,17 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
         let userId = chat.customer_id || chat.anon_customer_id;
         let isCustomer = !!chat.customer_id;
+        let enquiry; // Declare once at top level
+
+        // Common Query for existing enquiries
+        let enquiryQuery = { 
+            status: { $in: ["OPEN", "PROCESSING"] } 
+        };
+        if (isCustomer) {
+            enquiryQuery.customer_id = userId;
+        } else {
+            enquiryQuery.anon_customer_id = userId;
+        }
 
 
         // 1. Check for Vendor Card Actions (Like/Dislike) or Order Confirmation
@@ -38,7 +52,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     },
                     action: "confirm_order"
                 });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", orderSummaryMsg);
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", orderSummaryMsg.toObject());
 
                 // Send Confirmation Options
                 const confirmMsg = await Message.create({
@@ -53,7 +67,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                         { label: "Cancel", value: "CANCEL_ORDER" }
                     ]
                 });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", confirmMsg);
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", confirmMsg.toObject());
             } else {
                 const ackMsg = await Message.create({
                     chat_id: chatId,
@@ -63,7 +77,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     message_content: "Got it. We'll look for other options.",
                     message_type: "text"
                 });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", ackMsg);
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", ackMsg.toObject());
             }
             return;
         }
@@ -78,112 +92,117 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 message_type: "login_prompt",
                 action: "login_redirect"
             });
-            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", loginMsg);
+            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", loginMsg.toObject());
             return;
         }
 
-        // 2. Check for Existing Enquiry (Status: OPEN or PROCESSING)
-        let enquiryQuery = { 
-            status: { $in: ["OPEN", "PROCESSING"] } 
-        };
+        // 2. Step-by-Step Interactive Flow Logic
+        const eventTypes = ["wedding", "birthday", "corporate", "anniversary", "other"];
+        const normalizedContent = messageContent?.trim().toLowerCase();
+        const isEventTypeSelection = eventTypes.includes(normalizedContent);
 
-        if (isCustomer) {
-            enquiryQuery.customer_id = userId;
-        } else {
-            enquiryQuery.anon_customer_id = userId;
+        console.log(`[DEBUG] Flow check: isEventTypeSelection=${isEventTypeSelection}, normalizedContent="${normalizedContent}"`);
+
+        // --- STEP 1: EVENT TYPE SELECTION ---
+        if (isEventTypeSelection) {
+            // Find existing OPEN or PROCESSING enquiry to update or create new
+            enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
+
+            if (enquiry) {
+                enquiry.event_type = messageContent;
+                enquiry.status = "OPEN"; // Reset to OPEN so next message is treated as Time
+                await enquiry.save();
+                console.log(`[FLOW 4] Event type selected (Update): "${messageContent}" for chat_id=${chatId}`);
+                console.log(`[FLOW] Updated existing enquiry ${enquiry.enquiry_id} with event type: ${messageContent}`);
+            } else {
+                enquiry = await CustomerEnquiry.create({
+                    enquiry_id: generateUniqueId("ENQ"),
+                    [isCustomer ? "customer_id" : "anon_customer_id"]: userId,
+                    event_type: messageContent,
+                    status: "OPEN"
+                });
+                console.log(`[FLOW 4] Event type selected (New): "${messageContent}" for chat_id=${chatId}`);
+                console.log(`[FLOW] Created new enquiry ${enquiry.enquiry_id} with event type: ${messageContent}`);
+            }
+
+            // Send "How Soon" Options
+            setTimeout(async () => {
+                const timeOptionsMsg = await Message.create({
+                    chat_id: chatId,
+                    chat_type: chat.chat_type,
+                    sender: "admin",
+                    sender_id: "admin",
+                    message_content: "How soon is your event?",
+                    message_type: "options",
+                    options: [
+                        { label: "Immediately", value: "Immediately" },
+                        { label: "After a month", value: "After a month" },
+                        { label: "Just exploring", value: "Just exploring" }
+                    ]
+                });
+
+                if (io) {
+                    io.to(`${chatId}-${chat.chat_type}`).emit("new_message", timeOptionsMsg.toObject());
+                    console.log(`[FLOW 5] Event time options sent: chat_id=${chatId}`);
+                    console.log(`[FLOW] Sent "How Soon" options to ${chatId}`);
+                }
+            }, 1000);
+
+            return;
         }
 
-        let enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
+        // --- STEP 2+: HANDLE EXISTING ENQUIRY ---
+        enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
 
         if (enquiry) {
             if (enquiry.status === "PROCESSING") {
-                // User is already in processing state, just ignore (it's a normal chat message)
-                // Do NOT trigger "How soon" or "Event Type" flow again.
+                console.log(`[DEBUG] Enquiry ${enquiry.enquiry_id} is already in PROCESSING status. Skipping interactive flow.`);
                 return;
             }
 
-            // Status is OPEN, so we expect Event Time
+            // If status is OPEN, we assume this message is the Timing selection
+            console.log(`[FLOW 6] Event time selected: "${messageContent}" for chat_id=${chatId}`);
+            console.log(`[FLOW] Step 2: Saving event time "${messageContent}" for enquiry ${enquiry.enquiry_id}`);
             enquiry.event_time = messageContent;
             enquiry.status = "PROCESSING";
             await enquiry.save();
 
-            // Send "Assigning Event Manager" message first
-            const assigningMsg = await Message.create({
-                chat_id: chatId,
-                chat_type: chat.chat_type,
-                sender: "admin",
-                sender_id: "admin",
-                message_content: "We're assigning an event manager to assist you with your query.",
-                message_type: "text"
-            });
-            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", assigningMsg);
+            // Send Follow-up messages
+            setTimeout(async () => {
+                // 1. Assigning EM message
+                const assigningMsg = await Message.create({
+                    chat_id: chatId,
+                    chat_type: chat.chat_type,
+                    sender: "admin",
+                    sender_id: "admin",
+                    message_content: "We're assigning an event manager to assist you with your query.",
+                    message_type: "text"
+                });
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", assigningMsg.toObject());
 
-            // Send "Processing" message
-            const processingMsg = await Message.create({
-                chat_id: chatId,
-                chat_type: chat.chat_type,
-                sender: "admin",
-                sender_id: "admin",
-                message_content: "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.",
-                message_type: "options",
-                action: "check_reviews",
-                options: [
-                    { label: "Check Reviews", value: "CHECK_REVIEWS_ACTION" }
-                ]
-            });
-            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", processingMsg);
+                // 2. Processing / Review prompt
+                setTimeout(async () => {
+                    const processingMsg = await Message.create({
+                        chat_id: chatId,
+                        chat_type: chat.chat_type,
+                        sender: "admin",
+                        sender_id: "admin",
+                        message_content: "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.",
+                        message_type: "options",
+                        action: "check_reviews",
+                        options: [
+                            { label: "Check Reviews", value: "CHECK_REVIEWS_ACTION" }
+                        ]
+                    });
+                    if (io) {
+                        io.to(`${chatId}-${chat.chat_type}`).emit("new_message", processingMsg.toObject());
+                        console.log(`[FLOW 7] Reviews and connecting message sent: chat_id=${chatId}`);
+                    }
+                }, 1500);
+
+            }, 800);
+
             return;
-        }
-
-        // 3. No Open/Processing Enquiry -> Treat Input as Event Type
-        // Handle "Other" case: Don't create enquiry yet, let them type.
-        if (messageContent === "Other") {
-            // Optional: Send a prompt "Please specify your event type"
-            // For now, we do nothing and wait for the next message which will be the manual entry.
-            return;
-        }
-
-        // Create Enquiry with this message as Event Type
-        const newEnquiryData = {
-            event_type: messageContent,
-            status: "OPEN"
-        };
-
-        if (isCustomer) {
-            newEnquiryData.customer_id = userId;
-        } else {
-            newEnquiryData.anon_customer_id = userId;
-        }
-
-        if (isCustomer) {
-            newEnquiryData.customer_id = userId;
-        } else {
-            newEnquiryData.anon_customer_id = userId;
-        }
-
-        enquiry = await CustomerEnquiry.create(newEnquiryData);
-
-        // Send "Event Time" Options
-
-        const msgData = {
-            chat_id: chatId,
-            chat_type: chat.chat_type,
-            sender: "admin",
-            sender_id: "admin",
-            message_content: "How soon is your event?",
-            message_type: "options",
-            options: [
-                { label: "Immediately", value: "Immediately" },
-                { label: "After a month", value: "After a month" },
-                { label: "Just exploring", value: "Just exploring" }
-            ]
-        };
-
-        const timeOptionsMsg = await Message.create(msgData);
-
-        // Emit Socket Event
-        if (io) {
-            io.to(`${chatId}-${chat.chat_type}`).emit("new_message", timeOptionsMsg);
         }
 
     } catch (error) {

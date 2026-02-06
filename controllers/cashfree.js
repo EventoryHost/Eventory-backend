@@ -322,8 +322,9 @@ const verifyCustomerPayment = async (req, res) => {
       try {
         const anonUser = await AnonymousUser.findOne({ anon_id: finalCustomerId });
         if (anonUser) {
+          console.log("[VerifyPayment] Found anonymous user record. converted_user_id:", anonUser.converted_user_id);
           if (anonUser.converted_user_id) {
-            console.log("[VerifyPayment] Resolved anonymous user:", anonUser.converted_user_id);
+            console.log("[VerifyPayment] Resolved to customer ID:", anonUser.converted_user_id);
             await Order.findOneAndUpdate(
               { order_id: internalOrderId },
               { $set: { customer_id: anonUser.converted_user_id } }
@@ -334,7 +335,11 @@ const verifyCustomerPayment = async (req, res) => {
               finalOrder.customer_id = finalCustomerId;
             }
             console.log("[VerifyPayment] Updated final order customer ID:", finalCustomerId);
+          } else {
+             console.log("[VerifyPayment] Anonymous user NOT YET converted. Proceeding with anon ID.");
           }
+        } else {
+          console.log("[VerifyPayment] AnonymousUser record NOT FOUND for ID:", finalCustomerId);
         }
       } catch (err) {
         console.error("[VerifyPayment] Error resolving anonymous user:", err);
@@ -648,7 +653,7 @@ const verifyCustomerPayment = async (req, res) => {
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
       event_id = generateUniqueId("EVTY");
-      console.log(`[VerifyPayment] Creating event ${event_id} with Customer ID: ${finalCustomerId}`);
+      console.log(`[VerifyPayment] Creating NEW event ${event_id} for Customer ID: ${finalCustomerId} | Order ID: ${internalOrderId}`);
       const preBooking = new Events({
         event_id: event_id,
         customer_id: finalCustomerId,
@@ -659,7 +664,7 @@ const verifyCustomerPayment = async (req, res) => {
 
         // Required event fields (valid defaults)
         event_type: finalOrder?.event_type || "Pending",
-        location_type: finalOrder?.location_type.toUpperCase(), // valid enum
+        location_type: (finalOrder?.location_type || "outdoor").toUpperCase(), // valid enum
         event_location: finalOrder?.event_location || "Pending location",
         event_start: now,
         event_end: oneHourLater, // strictly after start
@@ -709,9 +714,16 @@ const verifyCustomerPayment = async (req, res) => {
       });
 
       await preBooking.save();
+      console.log(`[VerifyPayment] Event ${event_id} successfully saved.`);
     } else {
+      console.log(`[VerifyPayment] Remaining payment detected. Finding existing event for quotation: ${quotation_id}`);
       const event = await Events.findOne({ quotation_id: quotation_id });
-      event_id = event.event_id;
+      if (event) {
+        event_id = event.event_id;
+        console.log(`[VerifyPayment] Found existing event: ${event_id}`);
+      } else {
+        console.error(`[VerifyPayment] ERROR: Event not found for remaining payment. Quotation: ${quotation_id}`);
+      }
     }
 
     const paymentMethod = payment.order_meta.payment_methods !== null
