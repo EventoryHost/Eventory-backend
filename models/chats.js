@@ -58,7 +58,12 @@ const chatSchema = new Schema({
   },
   chat_updated_at: {
     type: Date,
-    default: () => new Date()
+    default: () => {
+      // Convert to IST (UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(now.getTime() + istOffset);
+    }
   },
   link_source: {
     type: String,

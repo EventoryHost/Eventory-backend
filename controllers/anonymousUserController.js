@@ -105,6 +105,7 @@ export const initializeAnonymousUser = async (req, res) => {
             }
         });
         await user.save();
+
     }
 
     // Set HTTP-only cookie (refresh it)

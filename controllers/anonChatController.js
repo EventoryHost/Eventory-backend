@@ -459,7 +459,6 @@ export const getAnonymousMessages = async (req, res) => {
 export const getAnonymousChatStatus = async (req, res) => {
   try {
     let { anon_customer_id } = req.params;
-    
     // Auth Check for Logged in Status
     const decodedUser = verifyAuth(req);
     let userId = anon_customer_id;
