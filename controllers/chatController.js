@@ -306,9 +306,10 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // ------------------- INTERACTIVE FLOW (AUTO-REPLY) -------------------
-        if (chat_type === "anon_customer-admin" && sender === "anonymous_customer") {
-            // We need the anon_customer_id. 
-            // In socket send_message, we have sender_id which SHOULD be the anon_customer_id for anonymous users.
+        if ((chat_type === "anon_customer-admin" && sender === "anonymous_customer") || 
+            (chat_type === "customer-admin" && sender === "customer")) {
+            // We need the ID. 
+            // In socket send_message, we have sender_id which is the anon_customer_id or customer_id.
             await handleInteractiveMessage(chat_id, sender_id, message_content, io);
         }
       } catch (err) {

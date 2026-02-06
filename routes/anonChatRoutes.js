@@ -5,7 +5,8 @@ import {
     getAnonymousChatStatus,
     getAllAnonymousChats,
     initializeAnonymousChat,
-    getAnonymousChatDetails
+    getAnonymousChatDetails,
+    resetAnonymousChat
 } from "../controllers/anonChatController.js";
 
 const router = express.Router();
@@ -23,6 +24,7 @@ const anonChatRoutes = (io) => {
     router.get("/:anon_customer_id/status", getAnonymousChatStatus);
     router.get("/all", getAllAnonymousChats);
     router.get("/:chat_id/details", getAnonymousChatDetails);
+    router.post("/reset", resetAnonymousChat);
     
     return router;
 };

@@ -4,24 +4,27 @@ import Chat from "../models/chats.js";
 
 export const handleInteractiveMessage = async (chatId, socketSenderId, messageContent, io) => {
     try {
-        // Fetch Chat to get the correct anon_customer_id
+        // Fetch Chat to get the correct anon_customer_id or customer_id
         const chat = await Chat.findOne({ chat_id: chatId });
         if (!chat) {
             console.error(`Chat not found: ${chatId}`);
             return;
         }
-        const anonCustomerId = chat.anon_customer_id;
+
+        let userId = chat.customer_id || chat.anon_customer_id;
+        let isCustomer = !!chat.customer_id;
+
 
         // 1. Check for Vendor Card Actions (Like/Dislike) or Order Confirmation
         if (messageContent.startsWith("LIKE_VENDOR:") || messageContent.startsWith("DISLIKE_VENDOR:")) {
             const [action, vendorId] = messageContent.split(":");
-            console.log(`User ${anonCustomerId} performed ${action} on vendor ${vendorId}`);
+            console.log(`User ${userId} performed ${action} on vendor ${vendorId}`);
 
             if (action === "LIKE_VENDOR") {
                 // Send "Order Summary"
                 const orderSummaryMsg = await Message.create({
                     chat_id: chatId,
-                    chat_type: "anon_customer-admin",
+                    chat_type: chat.chat_type,
                     sender: "admin",
                     sender_id: "admin",
                     message_content: "Great choice! Here is the summary of your order.",
@@ -35,12 +38,12 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     },
                     action: "confirm_order"
                 });
-                if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", orderSummaryMsg);
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", orderSummaryMsg);
 
                 // Send Confirmation Options
                 const confirmMsg = await Message.create({
                     chat_id: chatId,
-                    chat_type: "anon_customer-admin",
+                    chat_type: chat.chat_type,
                     sender: "admin",
                     sender_id: "admin",
                     message_content: "Would you like to proceed with this order?",
@@ -50,17 +53,17 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                         { label: "Cancel", value: "CANCEL_ORDER" }
                     ]
                 });
-                if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", confirmMsg);
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", confirmMsg);
             } else {
                 const ackMsg = await Message.create({
                     chat_id: chatId,
-                    chat_type: "anon_customer-admin",
+                    chat_type: chat.chat_type,
                     sender: "admin",
                     sender_id: "admin",
                     message_content: "Got it. We'll look for other options.",
                     message_type: "text"
                 });
-                if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", ackMsg);
+                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", ackMsg);
             }
             return;
         }
@@ -68,22 +71,29 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         if (messageContent.startsWith("CONFIRM_ORDER:")) {
              const loginMsg = await Message.create({
                 chat_id: chatId,
-                chat_type: "anon_customer-admin",
+                chat_type: chat.chat_type,
                 sender: "admin",
                 sender_id: "admin",
                 message_content: "To save your order and proceed to checkout, please login or sign up.",
                 message_type: "login_prompt",
                 action: "login_redirect"
             });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", loginMsg);
+            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", loginMsg);
             return;
         }
 
         // 2. Check for Existing Enquiry (Status: OPEN or PROCESSING)
-        let enquiry = await CustomerEnquiry.findOne({ 
-            anon_customer_id: anonCustomerId, 
+        let enquiryQuery = { 
             status: { $in: ["OPEN", "PROCESSING"] } 
-        }).sort({ created_at: -1 });
+        };
+
+        if (isCustomer) {
+            enquiryQuery.customer_id = userId;
+        } else {
+            enquiryQuery.anon_customer_id = userId;
+        }
+
+        let enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
 
         if (enquiry) {
             if (enquiry.status === "PROCESSING") {
@@ -100,18 +110,18 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             // Send "Assigning Event Manager" message first
             const assigningMsg = await Message.create({
                 chat_id: chatId,
-                chat_type: "anon_customer-admin",
+                chat_type: chat.chat_type,
                 sender: "admin",
                 sender_id: "admin",
                 message_content: "We're assigning an event manager to assist you with your query.",
                 message_type: "text"
             });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", assigningMsg);
+            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", assigningMsg);
 
             // Send "Processing" message
             const processingMsg = await Message.create({
                 chat_id: chatId,
-                chat_type: "anon_customer-admin",
+                chat_type: chat.chat_type,
                 sender: "admin",
                 sender_id: "admin",
                 message_content: "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.",
@@ -121,7 +131,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     { label: "Check Reviews", value: "CHECK_REVIEWS_ACTION" }
                 ]
             });
-            if (io) io.to(`${chatId}-anon_customer-admin`).emit("new_message", processingMsg);
+            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", processingMsg);
             return;
         }
 
@@ -134,16 +144,30 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         }
 
         // Create Enquiry with this message as Event Type
-        enquiry = await CustomerEnquiry.create({
-            anon_customer_id: anonCustomerId,
+        const newEnquiryData = {
             event_type: messageContent,
             status: "OPEN"
-        });
+        };
+
+        if (isCustomer) {
+            newEnquiryData.customer_id = userId;
+        } else {
+            newEnquiryData.anon_customer_id = userId;
+        }
+
+        if (isCustomer) {
+            newEnquiryData.customer_id = userId;
+        } else {
+            newEnquiryData.anon_customer_id = userId;
+        }
+
+        enquiry = await CustomerEnquiry.create(newEnquiryData);
 
         // Send "Event Time" Options
-        const timeOptionsMsg = await Message.create({
+
+        const msgData = {
             chat_id: chatId,
-            chat_type: "anon_customer-admin",
+            chat_type: chat.chat_type,
             sender: "admin",
             sender_id: "admin",
             message_content: "How soon is your event?",
@@ -153,11 +177,13 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 { label: "After a month", value: "After a month" },
                 { label: "Just exploring", value: "Just exploring" }
             ]
-        });
+        };
+
+        const timeOptionsMsg = await Message.create(msgData);
 
         // Emit Socket Event
         if (io) {
-            io.to(`${chatId}-anon_customer-admin`).emit("new_message", timeOptionsMsg);
+            io.to(`${chatId}-${chat.chat_type}`).emit("new_message", timeOptionsMsg);
         }
 
     } catch (error) {
