@@ -11,7 +11,11 @@ const customerEnquirySchema = new mongoose.Schema({
   anon_customer_id: {
     type: String,
     ref: 'AnonymousUser',
-    required: true
+    required: false
+  },
+  customer_id: {
+    type: String,
+    required: false
   },
   event_type: {
     type: String

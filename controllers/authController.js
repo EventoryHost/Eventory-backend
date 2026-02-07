@@ -449,6 +449,19 @@ const verifyCustomerLoginOtp = async (req, res) => {
     }
 
     // --- CASE 2: Existing customer ---
+    // LINK ANONYMOUS USER IF EXISTS
+    if (anonId) {
+      try {
+        console.log(`[Auth] Linking existing customer ${user.customer_id} to anonId: ${anonId}`);
+        await AnonymousUser.findOneAndUpdate(
+          { anon_id: anonId },
+          { converted_user_id: user.customer_id }
+        );
+      } catch (err) {
+        console.error("Failed to link anonymous user to existing customer:", err);
+      }
+    }
+
     const payload = {
       id: user.customer_id,
       mobile: user.contact_number,

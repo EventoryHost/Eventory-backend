@@ -6,81 +6,160 @@ import AnonymousUser from "../models/anonymousUser.js";
 import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 import EMNotifications from "../models/emNotifications.js";
 import EventManager from "../models/eventManager.js";
+import CustomerEnquiry from "../models/customerEnquiry.js";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
-// Initialize an anonymous chat session (used for sharable links)
+dotenv.config();
+
+// Helper to verify JWT token
+const verifyAuth = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded;
+  } catch (err) {
+    console.error("JWT Verification failed:", err.message);
+    return null;
+  }
+};
+
+// Initialize an anonymous or customer chat session
 export const initializeAnonymousChat = async (req, res) => {
   try {
-    let { anon_customer_id, source } = req.body;
+    let { anon_customer_id, source, customer_id } = req.body;
+    let chatType = "anon_customer-admin";
+    let userId = anon_customer_id;
 
-    // Robust ID normalization
-    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
-
-    if (!anon_customer_id) {
-      return res.status(400).json({ error: "anon_customer_id is required" });
+    // Check for logged-in user
+    const decodedUser = verifyAuth(req);
+    if (decodedUser && customer_id) {
+        // Verify that the token belongs to the requested customer_id
+        // (Assuming decodedUser.id holds the customer_id)
+        if (decodedUser.id === customer_id) {
+            chatType = "customer-admin";
+            userId = customer_id;
+        } else {
+            return res.status(403).json({ error: "Unauthorized access to customer data" });
+        }
+    } else if (!anon_customer_id) {
+         return res.status(400).json({ error: "anon_customer_id or valid customer_id is required" });
     }
 
-    let chat = await Chat.findOne({
-      anon_customer_id,
-      chat_type: "anon_customer-admin",
-      chat_status: "ACTIVE",
-    });
+    // Robust ID normalization
+    if (userId) userId = userId.toString().replace(/['"]/g, "");
+
+    let query = {
+        chat_type: chatType,
+        chat_status: "ACTIVE"
+    };
+
+    if (chatType === "customer-admin") {
+        query.customer_id = userId;
+    } else {
+        query.anon_customer_id = userId;
+    }
+
+    let chat = await Chat.findOne(query);
+
+    // MIGRATION LOGIC: If logging in, check if we need to migrate an existing anon chat
+    if (!chat && chatType === "customer-admin" && anon_customer_id) {
+        // User logged in but has no customer chat yet.
+        // Check if they had an active anonymous chat
+        const anonChat = await Chat.findOne({
+            anon_customer_id: anon_customer_id.replace(/['"]/g, ""),
+            chat_type: "anon_customer-admin",
+            chat_status: "ACTIVE"
+        });
+
+        if (anonChat) {
+            console.log(`Migrating anon chat ${anonChat.chat_id} to customer ${userId}`);
+            anonChat.customer_id = userId;
+            anonChat.chat_type = "customer-admin";
+            // We keep the chat_id same, just update attributes
+            chat = await anonChat.save();
+        }
+    }
 
     let isNewChat = false;
     if (!chat) {
       isNewChat = true;
-      chat = await Chat.create({
+      const newChatData = {
         chat_id: generateUniqueId("CHAT"),
-        anon_customer_id,
-        chat_type: "anon_customer-admin",
+        chat_type: chatType,
         chat_status: "ACTIVE",
         link_source: source || null,
-      });
+      };
+
+      if (chatType === "customer-admin") {
+          newChatData.customer_id = userId;
+      } else {
+          newChatData.anon_customer_id = userId;
+      }
+
+      chat = await Chat.create(newChatData);
     }
 
     // If source is provided and chat hasn't been auto-initialised yet
-    // Robust check for 'shared_link' (handle potential quotes from frontend)
-    const normalizedSource = source ? source.replace(/['"]/g, "") : null;
-    
-    console.log(`[DEBUG] init chat: anon_id=${anon_customer_id}, source=${source}, normalized=${normalizedSource}, is_auto_initialised=${chat.is_auto_initialised}`);
+    const normalizedSource = source ? source.toString().replace(/['"]/g, "") : null;
 
-    if (normalizedSource === "shared_link" && !chat.is_auto_initialised) {
+    // Automation Logic: Trigger greeting if it's a new chat OR a shared link that hasn't been initialised
+    const isSharedLink = normalizedSource === "shared_link";
+    
+    // Check if chat already has messages to enforce idempotency
+    const messageCount = await Message.countDocuments({ chat_id: chat.chat_id });
+    
+    console.log(`[FLOW 1] Chat initiated: chat_id=${chat.chat_id}, userId=${userId}, type=${chatType}, source=${source}`);
+    console.log(`[DEBUG] init chat: userId=${userId}, type=${chatType}, isNew=${isNewChat}, source=${source}, messageCount=${messageCount}`);
+
+    // Trigger greeting flow if:
+    // 1. It's a brand new chat (isNewChat)
+    // 2. OR it's a shared link and we haven't sent the greeting yet
+    // AND there are no messages in the chat yet
+    // NOTE: For logged-in users migrating from anon, messageCount might be > 0, so we skip greeting.
+    if ((isNewChat || isSharedLink) && messageCount === 0 && !chat.is_auto_initialised) {
       console.log(`[DEBUG] Triggering automated greeting flow for chat_id=${chat.chat_id}`);
       
       // Mark as auto-initialised immediately to prevent duplicate flows
       chat.is_auto_initialised = true;
       await chat.save();
-
+  
       const io = req.io;
-
+  
       // Start the automated greeting flow
       // 1. Send first message with a small delay (1.5s)
       setTimeout(async () => {
         try {
           const greetingMsg = await Message.create({
             chat_id: chat.chat_id,
-            chat_type: "anon_customer-admin",
+            chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
             message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
             message_type: "text",
           });
-
+  
+          console.log(`[FLOW 2] Greeting sent: chat_id=${chat.chat_id}`);
           console.log(`[DEBUG] Sent first greeting message: ${greetingMsg._id}`);
-
+  
           if (io) {
-            io.to(`${chat.chat_id}-anon_customer-admin`).emit("new_message", greetingMsg.toObject());
+            io.to(`${chat.chat_id}-${chatType}`).emit("new_message", greetingMsg.toObject());
           }
         } catch (err) {
           console.error("Error sending first greeting message:", err);
         }
       }, 1500);
-
-      // 2. Delayed second message (5.5 seconds total - 1.5s + 4s)
+  
+      // 2. Delayed second message (3.5 seconds total - 1.5s + 2s)
       setTimeout(async () => {
         try {
           const optionsMsg = await Message.create({
             chat_id: chat.chat_id,
-            chat_type: "anon_customer-admin",
+            chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
             message_content: "Please select your event type",
@@ -93,25 +172,34 @@ export const initializeAnonymousChat = async (req, res) => {
               { label: "Other", value: "Other" },
             ],
           });
-
+  
+          console.log(`[FLOW 3] Event type options sent: chat_id=${chat.chat_id}`);
           console.log(`[DEBUG] Sent second options message: ${optionsMsg._id}`);
-
+  
           if (io) {
-            io.to(`${chat.chat_id}-anon_customer-admin`).emit("new_message", optionsMsg.toObject());
+            io.to(`${chat.chat_id}-${chatType}`).emit("new_message", optionsMsg.toObject());
           }
         } catch (err) {
           console.error("Error sending delayed options message:", err);
         }
-      }, 5500);
+      }, 3500);
+    } else if (messageCount > 0 || chat.is_auto_initialised) {
+      // Ensure flag is set if we have messages (sanity check)
+      if (!chat.is_auto_initialised) {
+         chat.is_auto_initialised = true;
+         await chat.save();
+      }
     }
 
     res.status(200).json({
       message: "Chat initialized",
       chat_id: chat.chat_id,
       is_new: isNewChat,
+      chat_type: chat.chat_type,
+      customer_id: chat.customer_id || null
     });
   } catch (error) {
-    console.error("Error initializing anonymous chat:", error);
+    console.error("Error initializing chat:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -120,6 +208,7 @@ export const sendAnonymousMessage = async (req, res) => {
   try {
     let {
       anon_customer_id,
+      customer_id,
       message_content,
       message_type,
       attachment_url,
@@ -127,59 +216,82 @@ export const sendAnonymousMessage = async (req, res) => {
       chat_id,
     } = req.body;
 
-    // Robust ID normalization
-    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
+    let sender = "anonymous_customer";
+    let sender_id = anon_customer_id;
+    let chatType = "anon_customer-admin";
 
-    if (!anon_customer_id || !message_content) {
+    // Auth Check
+    const decodedUser = verifyAuth(req);
+    if (decodedUser && customer_id) {
+        if (decodedUser.id === customer_id) {
+            sender = "customer";
+            sender_id = customer_id;
+            chatType = "customer-admin";
+        } else {
+             return res.status(403).json({ error: "Unauthorized sender" });
+        }
+    }
+
+    // Robust ID normalization
+    if (sender_id) sender_id = sender_id.toString().replace(/['"]/g, "");
+
+    if (!sender_id || !message_content) {
       return res
         .status(400)
-        .json({ error: "anon_customer_id and message_content are required" });
+        .json({ error: "sender_id (anon or customer) and message_content are required" });
     }
 
     let chat;
 
-    // 1. Try to find chat by chat_id if provided (Robustness fix)
+    // 1. Try to find chat by chat_id if provided
     if (chat_id) {
-      chat = await Chat.findOne({ chat_id, chat_type: "anon_customer-admin" });
+       chat = await Chat.findOne({ chat_id: chat_id.trim(), chat_type: chatType });
     }
 
-    // 2. If no chat_id or chat not found, try to find ACTIVE chat by anon_customer_id
+    // 2. If no chat_id or chat not found, try to find ACTIVE chat
     if (!chat) {
-      chat = await Chat.findOne({
-        anon_customer_id,
-        chat_type: "anon_customer-admin",
-        chat_status: "ACTIVE",
-      });
+      let query = {
+          chat_type: chatType,
+          chat_status: "ACTIVE"
+      };
+      if (sender === "customer") query.customer_id = sender_id;
+      else query.anon_customer_id = sender_id;
+
+      chat = await Chat.findOne(query);
     }
 
     let isNewChat = false;
 
     if (!chat) {
       isNewChat = true;
-      chat = await Chat.create({
+      let newChatData = {
         chat_id: generateUniqueId("CHAT"),
-        anon_customer_id,
-        chat_type: "anon_customer-admin",
+        chat_type: chatType,
         chat_status: "ACTIVE",
-        // We can store metadata if we add a field for it in Chat schema,
-        // or just rely on the first message/logs.
-        // For now, we just use it for Slack notification.
-      });
+      };
+      if (sender === "customer") newChatData.customer_id = sender_id;
+      else newChatData.anon_customer_id = sender_id;
+
+      chat = await Chat.create(newChatData);
     }
 
     const newMessage = await Message.create({
       chat_id: chat.chat_id,
-      chat_type: "anon_customer-admin",
-      sender: "anonymous_customer",
-      sender_id: anon_customer_id,
+      chat_type: chatType,
+      sender: sender,
+      sender_id: sender_id,
       message_content,
       message_type: message_type || "text",
       attachment_url: attachment_url || null,
     });
 
     if (req.io) {
-      const roomId = `${chat.chat_id}-anon_customer-admin`;
-      req.io.to(roomId).emit("new_message", {
+      // DUAL-CAST: Emit to both potential rooms (anon and customer) to ensure
+      // frontend receives it regardless of which mode it thinks it is in.
+      const roomAnon = `${chat.chat_id}-anon_customer-admin`;
+      const roomCust = `${chat.chat_id}-customer-admin`;
+
+      const socketPayload = {
         _id: newMessage._id,
         chat_id: newMessage.chat_id,
         chat_type: newMessage.chat_type,
@@ -189,14 +301,18 @@ export const sendAnonymousMessage = async (req, res) => {
         message_type: newMessage.message_type,
         message_sent_at: newMessage.message_sent_at,
         attachment_url: newMessage.attachment_url,
-      });
+        // Include card_data if available (though not in create payload above, robust to add)
+        card_data: newMessage.card_data
+      };
+
+      req.io.to(roomAnon).emit("new_message", socketPayload);
+      req.io.to(roomCust).emit("new_message", socketPayload);
     }
 
     // Update chat timestamps
     if (chat.updateLastMessage) {
       await chat.updateLastMessage();
     } else {
-      // Fallback if method not available (though it should be)
       chat.last_message_updated_at = new Date();
       chat.chat_updated_at = new Date();
       await chat.save();
@@ -205,19 +321,19 @@ export const sendAnonymousMessage = async (req, res) => {
     if (isNewChat) {
       sendSlackAnonChatMessage({
         chatId: chat.chat_id,
-        anonCustomerId: anon_customer_id,
+        anonCustomerId: sender_id, // Use generic ID field name in slack util if possible, but keeping for now
         messageContent: message_content,
         metadata,
       });
 
-      // Notify all EMs about the new anonymous chat
+      // Notify all EMs about the new chat
       try {
         const allEMs = await EventManager.find({}, "em_id");
         if (allEMs.length > 0) {
           const notifications = allEMs.map((em) => ({
             em_id: em.em_id,
             chat_id: chat.chat_id,
-            message: `A new user started a chat (${anon_customer_id}), check the recent customer inquiry!`,
+            message: `A new ${sender} started a chat (${sender_id}), check the recent inquiry!`,
             notification_type: "chat_message",
             timestamp: new Date().toISOString(),
             read: false,
@@ -230,23 +346,29 @@ export const sendAnonymousMessage = async (req, res) => {
     }
 
     // --- INTERACTIVE FLOW LOGIC ---
-    // Delegate to service
-    await handleInteractiveMessage(
-      chat.chat_id,
-      anon_customer_id,
-      message_content,
-      req.io,
-    );
-
-    // Update AnonymousUser activity (fire and forget or await)
-    await AnonymousUser.findOneAndUpdate(
-      { anon_id: anon_customer_id },
-      {
-        last_seen_at: new Date(),
-      },
-    ).catch((err) =>
-      console.error("Failed to update anon user activity:", err),
-    );
+    // Only applies if it's an anonymous customer, or if we want to support it for logged in users too.
+    // The previous implementation specifically checked for anon_customer-admin.
+    // We'll keep it as is, or maybe extend it if needed.
+    // --- INTERACTIVE FLOW LOGIC ---
+    // Now applies to both anonymous and logged-in customers.
+    if (chatType === "anon_customer-admin" || chatType === "customer-admin") {
+         await handleInteractiveMessage(
+            chat.chat_id,
+            sender_id,
+            message_content,
+            req.io,
+        );
+        
+        // Update AnonymousUser activity ONLY if it's an anon user
+        if (chatType === "anon_customer-admin") {
+            await AnonymousUser.findOneAndUpdate(
+                { anon_id: sender_id },
+                { last_seen_at: new Date() },
+            ).catch((err) =>
+                console.error("Failed to update anon user activity:", err),
+            );
+        }
+    } 
 
     res.status(201).json({
       message: "Message sent",
@@ -254,52 +376,67 @@ export const sendAnonymousMessage = async (req, res) => {
       chat_id: chat.chat_id,
     });
   } catch (error) {
-    console.error("Error sending anonymous message:", error);
+    console.error("Error sending message:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Get messages for an anonymous customer
+// Get messages for an anonymous or logged-in customer
 export const getAnonymousMessages = async (req, res) => {
   try {
+    // This param might contain customer_id if called accordingly,
+    // OR we might want to look at query params if the route structure allows.
+    // The route is /:anon_customer_id/messages.
     let { anon_customer_id } = req.params;
     const { cursor } = req.query;
     const limit = 20;
 
-    // Robust ID normalization
-    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
+    let chatType = "anon_customer-admin";
+    let userId = anon_customer_id;
 
-    if (!anon_customer_id) {
-      return res.status(400).json({ error: "anon_customer_id is required" });
+    // Auth Check
+    const decodedUser = verifyAuth(req);
+    if (decodedUser) {
+        // If authenticated, we assume the ID passed in param IS the customer_id
+        // OR we just use the ID from the token to be safe.
+        // Let's trust the token.
+        userId = decodedUser.id;
+        chatType = "customer-admin";
     }
 
-    // Find the most recent chat (ACTIVE or FINISHED)
-    // If multiple chats exist (e.g. old finished ones), we might want to return messages from the latest one
-    // or all of them?
-    // User said: "Same anon_customer_id should map to the same chat history"
-    // This implies we should show history across all chats or just the current one.
-    // Usually, for a floating chat, you want to see previous conversation.
-    // But if we create a NEW chat when old one is FINISHED, do we link them?
-    // The user said "Chat lifecycle: ACTIVE, FINISHED".
-    // If we create a NEW chat, it has a NEW chat_id.
-    // If we want to show ALL history, we should query by `anon_customer_id` and `chat_type`.
-    // However, `Message` schema has `chat_id`. It does NOT have `anon_customer_id`.
-    // So we need to find ALL chat_ids for this `anon_customer_id` and then fetch messages for those chat_ids.
+    // Robust ID normalization
+    if (userId) userId = userId.toString().replace(/['"]/g, "");
 
-    const chats = await Chat.find({
-      anon_customer_id,
-      chat_type: "anon_customer-admin",
-    }).select("chat_id");
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
 
-    const chatIds = chats.map((c) => c.chat_id);
+    // Find the ACTIVE chat for this user
+    // Find the ACTIVE chat for this user
+    let chatQuery = {
+        chat_type: chatType,
+        chat_status: "ACTIVE"
+    };
 
-    if (chatIds.length === 0) {
+    if (chatType === "customer-admin") {
+        chatQuery.customer_id = userId;
+    } else {
+        chatQuery.anon_customer_id = userId;
+    }
+
+    // Only get the current active chat. 
+    // If completed chats exist, we DO NOT show them to start fresh.
+    const chat = await Chat.findOne(chatQuery).select("chat_id");
+
+    if (!chat) {
       return res.status(200).json({ messages: [], hasMore: false });
     }
 
+    const chatIds = [chat.chat_id];
+
     let query = {
       chat_id: { $in: chatIds },
-      chat_type: "anon_customer-admin",
+      chat_type: { $in: ["anon_customer-admin", "customer-admin"] } // Fetch all history
     };
 
     if (cursor) {
@@ -310,7 +447,7 @@ export const getAnonymousMessages = async (req, res) => {
       .sort({ createdAt: -1 }) // Newest first
       .limit(limit + 1)
       .lean();
-
+    
     let hasMore = false;
     let nextCursor = null;
 
@@ -326,7 +463,7 @@ export const getAnonymousMessages = async (req, res) => {
       nextCursor,
     });
   } catch (error) {
-    console.error("Error fetching anonymous messages:", error);
+    console.error("Error fetching messages:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -335,31 +472,46 @@ export const getAnonymousMessages = async (req, res) => {
 export const getAnonymousChatStatus = async (req, res) => {
   try {
     let { anon_customer_id } = req.params;
-
-    // Robust ID normalization
-    if (anon_customer_id) anon_customer_id = anon_customer_id.replace(/['"]/g, "");
-
-    if (!anon_customer_id) {
-      return res.status(400).json({ error: "anon_customer_id is required" });
+    // Auth Check for Logged in Status
+    const decodedUser = verifyAuth(req);
+    let userId = anon_customer_id;
+    let chatType = "anon_customer-admin";
+    
+    if (decodedUser) {
+        userId = decodedUser.id;
+        chatType = "customer-admin";
     }
 
-    const chat = await Chat.findOne({
-      anon_customer_id,
-      chat_type: "anon_customer-admin",
-      chat_status: "ACTIVE",
-    });
+    // Robust ID normalization
+    if (userId) userId = userId.toString().replace(/['"]/g, "");
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+    
+    let query = {
+        chat_status: "ACTIVE",
+        chat_type: chatType
+    };
+    if (chatType === "customer-admin") query.customer_id = userId;
+    else query.anon_customer_id = userId;
+
+    const chat = await Chat.findOne(query);
 
     if (chat) {
       res
         .status(200)
-        .json({ status: "ACTIVE", chat_id: chat.chat_id, em_id: chat.em_id });
+        .json({ status: "ACTIVE", chat_id: chat.chat_id, em_id: chat.em_id, chat_type: chat.chat_type });
     } else {
       // Check if there was a finished chat
-      const finishedChat = await Chat.findOne({
-        anon_customer_id,
-        chat_type: "anon_customer-admin",
-        chat_status: "FINISHED",
-      }).sort({ updatedAt: -1 });
+      let finishedQuery = {
+            chat_status: "FINISHED",
+            chat_type: chatType
+      };
+      if (chatType === "customer-admin") finishedQuery.customer_id = userId;
+      else finishedQuery.anon_customer_id = userId;
+
+      const finishedChat = await Chat.findOne(finishedQuery).sort({ updatedAt: -1 });
 
       if (finishedChat) {
         res
@@ -368,6 +520,7 @@ export const getAnonymousChatStatus = async (req, res) => {
             status: "FINISHED",
             chat_id: finishedChat.chat_id,
             em_id: finishedChat.em_id,
+            chat_type: finishedChat.chat_type
           });
       } else {
         res.status(200).json({ status: "NONE" });
@@ -385,14 +538,17 @@ export const getAllAnonymousChats = async (req, res) => {
     const { page = 1, limit = 10, search } = req.query;
     const skip = (page - 1) * limit;
 
-    let query = { chat_type: "anon_customer-admin" };
+    let query = { chat_type: { $in: ["anon_customer-admin", "customer-admin"] } };
 
     if (search) {
-      query.anon_customer_id = { $regex: search, $options: "i" };
+      query.$or = [
+        { anon_customer_id: { $regex: search, $options: "i" } },
+        { customer_id: { $regex: search, $options: "i" } }
+      ];
     }
 
     const chats = await Chat.find(query)
-      .sort({ last_message_updated_at: -1 })
+      .sort({ chat_created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       .lean();
@@ -408,13 +564,14 @@ export const getAllAnonymousChats = async (req, res) => {
 
         return {
           chat_id: chat.chat_id,
-          anon_user_id: chat.anon_customer_id,
+          anon_user_id: chat.customer_id || chat.anon_customer_id,
           created_at: chat.chat_created_at || chat.createdAt,
           last_message: lastMsg ? lastMsg.message_content : "",
           last_message_time: lastMsg
             ? lastMsg.createdAt
             : chat.last_message_updated_at,
           status: chat.chat_status ? chat.chat_status.toLowerCase() : "active",
+          chat_type: chat.chat_type,
         };
       }),
     );
@@ -430,6 +587,113 @@ export const getAllAnonymousChats = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching all anonymous chats:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Get details for a specific anonymous chat by chat_id
+export const getAnonymousChatDetails = async (req, res) => {
+  try {
+    const { chat_id } = req.params;
+
+    if (!chat_id) {
+      return res.status(400).json({ error: "chat_id is required" });
+    }
+
+    const chat = await Chat.findOne({
+      chat_id,
+      chat_type: { $in: ["anon_customer-admin", "customer-admin"] },
+    }).lean();
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const lastMsg = await Message.findOne({ chat_id: chat.chat_id })
+      .sort({ createdAt: -1 })
+      .select("message_content createdAt")
+      .lean();
+
+    const data = {
+      chat_id: chat.chat_id,
+      anon_user_id: chat.customer_id || chat.anon_customer_id,
+      created_at: chat.chat_created_at || chat.createdAt,
+      status: chat.chat_status ? chat.chat_status.toLowerCase() : "active",
+      last_message: lastMsg ? lastMsg.message_content : "",
+      chat_type: chat.chat_type,
+      // metadata: chat.metadata || {}, // If metadata exists on chat model
+    };
+
+    res.status(200).json({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    console.error("Error fetching anonymous chat details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Reset (Finish) the current active chat session
+export const resetAnonymousChat = async (req, res) => {
+  try {
+    let { anon_customer_id, customer_id } = req.body;
+    let chatType = "anon_customer-admin";
+    let userId = anon_customer_id;
+
+    // Auth Check
+    const decodedUser = verifyAuth(req);
+    if (decodedUser && customer_id) {
+        if (decodedUser.id === customer_id) {
+            chatType = "customer-admin";
+            userId = customer_id;
+        } else {
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+    }
+
+    // Robust ID normalization
+    if (userId) userId = userId.toString().replace(/['"]/g, "");
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    let query = {
+        chat_type: chatType,
+        chat_status: "ACTIVE"
+    };
+
+    if (chatType === "customer-admin") {
+        query.customer_id = userId;
+    } else {
+        query.anon_customer_id = userId;
+    }
+
+    const chat = await Chat.findOne(query);
+
+    if (!chat) {
+        return res.status(404).json({ message: "No active chat found to reset" });
+    }
+
+    chat.chat_status = "FINISHED";
+    await chat.save();
+
+    // Also close any OPEN or PROCESSING enquiries for this user to ensure fresh start
+    let enquiryQuery = { status: { $in: ["OPEN", "PROCESSING"] } };
+    if (chatType === "customer-admin") {
+        enquiryQuery.customer_id = userId;
+    } else {
+        enquiryQuery.anon_customer_id = userId;
+    }
+
+    await CustomerEnquiry.updateMany(enquiryQuery, { status: "CLOSED" });
+    console.log(`[RESET] Closed active enquiries for user: ${userId}`);
+
+    res.status(200).json({ message: "Chat reset successfully", chat_id: chat.chat_id });
+
+  } catch (error) {
+    console.error("Error resetting chat:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

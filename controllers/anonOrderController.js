@@ -39,15 +39,30 @@ export const createOrUpdateAnonOrder = async (req, res) => {
       source_info
     } = req.body;
 
-    if (!chat_id || !anon_user_id) {
+    if (!chat_id) {
       return res.status(400).json({
         success: false,
-        message: "chat_id and anon_user_id are required"
+        message: "chat_id is required"
       });
     }
+    
+    // Ensure chat_id is trimmed to avoid lookup failures
+    const trimmedChatId = chat_id.trim();
+
+    // Fetch chat to get correct chat_type
+    console.log(`[ORDER] Fetching chat details for chat_id: '${trimmedChatId}'`);
+    const chat = await Chat.findOne({ chat_id: trimmedChatId });
+    
+    if (!chat) {
+         console.log(`[ORDER] WARNING: Chat with id '${chat_id}' NOT FOUND in DB during order creation/update.`);
+    } else {
+         console.log(`[ORDER] Chat found. Database chat_type: '${chat.chat_type}'`);
+    }
+
+    const chatType = chat ? chat.chat_type : "anon_customer-admin";
+    console.log(`[ORDER] Resolved chatType for Message creation: '${chatType}'`);
 
     let order;
-
     if (anon_order_id) {
       const existingOrder = await AnonCustomerOrder.findOne({ anon_order_id });
       if (!existingOrder) {
@@ -199,16 +214,19 @@ export const createOrUpdateAnonOrder = async (req, res) => {
 
         const systemMessage = await Message.create({
           chat_id,
-          chat_type: "anon_customer-admin",
+          chat_type: chatType,
           sender: "em",
           sender_id: em_id || "system",
           message_type: "system",
           message_content: updateMessage,
         });
 
+        console.log(`[ORDER] System message created: ${systemMessage._id}`);
+
         const servicesMap = new Map();
-        if (order.final_order_items && order.final_order_items.length > 0) {
+        if (order.final_order_items && Array.isArray(order.final_order_items)) {
           order.final_order_items.forEach((item) => {
+            if (!item) return;
             const serviceName = item.name_of_service?.split(" - ")[0] || item.name_of_service || "Service";
             if (!servicesMap.has(serviceName)) {
               servicesMap.set(serviceName, {
@@ -217,7 +235,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
               });
             }
             servicesMap.get(serviceName).items.push({
-              name: item.name_of_service,
+              name: item.name_of_service || "Unknown Item",
               description: item.description || "",
               quantity: item.quantity || 1,
               price: item.price || 0,
@@ -229,32 +247,39 @@ export const createOrUpdateAnonOrder = async (req, res) => {
           });
         }
 
-        const orderCardMessage = await Message.create({
-          chat_id,
-          chat_type: "anon_customer-admin",
-          sender: "em",
-          sender_id: em_id || "system",
-          message_type: "order_summary",
-          message_content: "Order Summary",
-          card_data: {
+        // Check if we should send a new order card or update an existing one? 
+        // For now, consistent with previous behavior, we send a new card on update to show latest state.
+        
+        const cardData = {
             anon_order_id: order.anon_order_id,
             order_status: order.order_status,
             manager_name: "Event Manager",
             created_at: order.updated_at || order.created_at,
-            event_type: order.event_type,
+            event_type: order.event_type || "",
             event_date: order.event_start,
-            event_time: order.event_time,
-            location: order.event_location,
+            event_time: order.event_time || "",
+            location: order.event_location || "",
             guests: `${order.guest_count || 0} guests`,
             services: Array.from(servicesMap.values()),
             payment_breakdown: order.paymentDetails?.customerPayable || {},
             advance_amount_requested: order.advance_amount_requested || 0,
             checkout_url: order.checkout_url || checkout_url || null,
-          },
+        };
+
+        const orderCardMessage = await Message.create({
+          chat_id,
+          chat_type: chatType,
+          sender: "em",
+          sender_id: em_id || "system",
+          message_type: "order_summary",
+          message_content: "Order Summary",
+          card_data: cardData,
         });
 
+        console.log(`[ORDER] Order card message created: ${orderCardMessage._id}`);
+
         await Chat.updateOne(
-          { chat_id, chat_type: "anon_customer-admin" },
+          { chat_id, chat_type: chatType },
           { 
             $set: { 
               last_message_updated_at: new Date(),
@@ -264,28 +289,41 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         );
 
         if (req.io) {
-          const roomId = `${chat_id}-anon_customer-admin`;
-            req.io.to(roomId).emit("new_message", {
-            _id: systemMessage._id,
-            chat_id: systemMessage.chat_id,
-            chat_type: systemMessage.chat_type,
-            sender: systemMessage.sender,
-            sender_id: systemMessage.sender_id,
-            message_content: systemMessage.message_content,
-            message_type: systemMessage.message_type,
-            message_sent_at: systemMessage.message_sent_at,
-          });
+          // Re-fetch chat logic to ensures we have the absolute latest state
+          // But 'Dual-Cast' is safer: emit to all potential rooms for this chat ID
+          const rooms = [
+              `${chat_id}-${chatType}`, // The database's current type
+              `${chat_id}-anon_customer-admin`, // Where the legacy/initial frontend might be
+              `${chat_id}-customer-admin`   // Where the upgraded/known frontend might be
+          ];
+          // Deduplicate rooms
+          const uniqueRooms = [...new Set(rooms)];
           
-          req.io.to(roomId).emit("new_message", {
-            _id: orderCardMessage._id,
-            chat_id: orderCardMessage.chat_id,
-            chat_type: orderCardMessage.chat_type,
-            sender: orderCardMessage.sender,
-            sender_id: orderCardMessage.sender_id,
-            message_content: orderCardMessage.message_content,
-            message_type: orderCardMessage.message_type,
-            card_data: orderCardMessage.card_data,
-            message_sent_at: orderCardMessage.message_sent_at,
+          console.log(`[ORDER] Emitting socket events to rooms: ${uniqueRooms.join(', ')}`);
+
+          uniqueRooms.forEach(roomId => {
+              req.io.to(roomId).emit("new_message", {
+                _id: systemMessage._id,
+                chat_id: systemMessage.chat_id,
+                chat_type: systemMessage.chat_type,
+                sender: systemMessage.sender,
+                sender_id: systemMessage.sender_id,
+                message_content: systemMessage.message_content,
+                message_type: systemMessage.message_type,
+                message_sent_at: systemMessage.message_sent_at,
+              });
+              
+              req.io.to(roomId).emit("new_message", {
+                _id: orderCardMessage._id,
+                chat_id: orderCardMessage.chat_id,
+                chat_type: orderCardMessage.chat_type,
+                sender: orderCardMessage.sender,
+                sender_id: orderCardMessage.sender_id,
+                message_content: orderCardMessage.message_content,
+                message_type: orderCardMessage.message_type,
+                card_data: orderCardMessage.card_data,
+                message_sent_at: orderCardMessage.message_sent_at,
+              });
           });
         }
       } catch (msgError) {
@@ -353,16 +391,19 @@ export const createOrUpdateAnonOrder = async (req, res) => {
       try {
         const systemMessage = await Message.create({
           chat_id,
-          chat_type: "anon_customer-admin",
+          chat_type: chatType,
           sender: "em",
           sender_id: em_id || "system",
           message_type: "system",
           message_content: `📋 Order draft created! Order ID: ${order.anon_order_id}`,
         });
 
+        console.log(`[ORDER] System message created (New Order): ${systemMessage._id}`);
+
         const servicesMap = new Map();
-        if (order.final_order_items && order.final_order_items.length > 0) {
+        if (order.final_order_items && Array.isArray(order.final_order_items)) {
           order.final_order_items.forEach((item) => {
+             if (!item) return;
             const serviceName = item.name_of_service?.split(" - ")[0] || item.name_of_service || "Service";
             if (!servicesMap.has(serviceName)) {
               servicesMap.set(serviceName, {
@@ -371,7 +412,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
               });
             }
             servicesMap.get(serviceName).items.push({
-              name: item.name_of_service,
+              name: item.name_of_service || "Unknown Item",
               description: item.description || "",
               quantity: item.quantity || 1,
               price: item.price || 0,
@@ -383,31 +424,35 @@ export const createOrUpdateAnonOrder = async (req, res) => {
           });
         }
 
-        const orderCardMessage = await Message.create({
-          chat_id,
-          chat_type: "anon_customer-admin",
-          sender: "em",
-          sender_id: em_id || "system",
-          message_type: "order_summary",
-          message_content: "Order Summary",
-          card_data: {
+        const cardData = {
             anon_order_id: order.anon_order_id,
             order_status: order.order_status,
             manager_name: "Event Manager",
             created_at: order.created_at,
-            event_type: order.event_type,
+            event_type: order.event_type || "",
             event_date: order.event_start,
-            event_time: order.event_time,
-            location: order.event_location,
+            event_time: order.event_time || "",
+            location: order.event_location || "",
             guests: `${order.guest_count || 0} guests`,
             services: Array.from(servicesMap.values()),
             payment_breakdown: order.paymentDetails?.customerPayable || {},
             advance_amount_requested: order.advance_amount_requested || 0,
-          },
+        };
+
+        const orderCardMessage = await Message.create({
+          chat_id,
+          chat_type: chatType,
+          sender: "em",
+          sender_id: em_id || "system",
+          message_type: "order_summary",
+          message_content: "Order Summary",
+          card_data: cardData,
         });
 
+        console.log(`[ORDER] Order card message created (New Order): ${orderCardMessage._id}`);
+
         await Chat.updateOne(
-          { chat_id, chat_type: "anon_customer-admin" },
+          { chat_id, chat_type: chatType },
           { 
             $set: { 
               last_message_updated_at: new Date(),
@@ -417,28 +462,38 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         );
 
         if (req.io) {
-          const roomId = `${chat_id}-anon_customer-admin`;
-            req.io.to(roomId).emit("new_message", {
-            _id: systemMessage._id,
-            chat_id: systemMessage.chat_id,
-            chat_type: systemMessage.chat_type,
-            sender: systemMessage.sender,
-            sender_id: systemMessage.sender_id,
-            message_content: systemMessage.message_content,
-            message_type: systemMessage.message_type,
-            message_sent_at: systemMessage.message_sent_at,
-          });
+          console.log(`[ORDER] Emitting socket events for chat ${chat_id}`);
           
-          req.io.to(roomId).emit("new_message", {
-            _id: orderCardMessage._id,
-            chat_id: orderCardMessage.chat_id,
-            chat_type: orderCardMessage.chat_type,
-            sender: orderCardMessage.sender,
-            sender_id: orderCardMessage.sender_id,
-            message_content: orderCardMessage.message_content,
-            message_type: orderCardMessage.message_type,
-            card_data: orderCardMessage.card_data,
-            message_sent_at: orderCardMessage.message_sent_at,
+          const rooms = [
+              `${chat_id}-${chatType}`, 
+              `${chat_id}-anon_customer-admin`, 
+              `${chat_id}-customer-admin`
+          ];
+          const uniqueRooms = [...new Set(rooms)];
+          
+          uniqueRooms.forEach(roomId => {
+              req.io.to(roomId).emit("new_message", {
+                _id: systemMessage._id,
+                chat_id: systemMessage.chat_id,
+                chat_type: systemMessage.chat_type,
+                sender: systemMessage.sender,
+                sender_id: systemMessage.sender_id,
+                message_content: systemMessage.message_content,
+                message_type: systemMessage.message_type,
+                message_sent_at: systemMessage.message_sent_at,
+              });
+              
+              req.io.to(roomId).emit("new_message", {
+                _id: orderCardMessage._id,
+                chat_id: orderCardMessage.chat_id,
+                chat_type: orderCardMessage.chat_type,
+                sender: orderCardMessage.sender,
+                sender_id: orderCardMessage.sender_id,
+                message_content: orderCardMessage.message_content,
+                message_type: orderCardMessage.message_type,
+                card_data: orderCardMessage.card_data,
+                message_sent_at: orderCardMessage.message_sent_at,
+              });
           });
         }
       } catch (msgError) {

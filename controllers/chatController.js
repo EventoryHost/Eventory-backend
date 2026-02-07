@@ -306,10 +306,13 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // ------------------- INTERACTIVE FLOW (AUTO-REPLY) -------------------
-        if (chat_type === "anon_customer-admin" && sender === "anonymous_customer") {
-            // We need the anon_customer_id. 
-            // In socket send_message, we have sender_id which SHOULD be the anon_customer_id for anonymous users.
-            await handleInteractiveMessage(chat_id, sender_id, message_content, io);
+        console.log(`[DEBUG] Interactive check: chat_type=${chat_type}, sender=${sender}, content="${message_content}"`);
+        if ((chat_type === "anon_customer-admin" && sender === "anonymous_customer") || 
+            (chat_type === "customer-admin" && sender === "customer")) {
+            // We need the ID. 
+            // In socket send_message, we have sender_id which is the anon_customer_id or customer_id.
+            console.log(`[FLOW 4 PRE] Triggering handleInteractiveMessage for chat_id=${chat_id}`);
+            await handleInteractiveMessage(chat_id, sender_id, message_content?.trim(), io);
         }
       } catch (err) {
         console.error("send_message error:", err);
@@ -508,9 +511,15 @@ export const getMessagesByChatId = async (req, res) => {
   const limit = 15;
 
   try {
+    // Prevent caching to ensure fresh messages
+    res.set('Cache-Control', 'no-store');
+
     if (!chatType) {
       return res.status(400).json({ error: "chatType is required" });
     }
+    
+    // Trim chatId to ensure lookup works
+    const trimmedChatId = chatId.trim();
 
     // Validate chatType
     if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
@@ -518,13 +527,13 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // Verify the chat exists with this chatType
-    const chatExists = await Chat.findOne({ chat_id: chatId, chat_type: chatType });
+    const chatExists = await Chat.findOne({ chat_id: trimmedChatId, chat_type: chatType });
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    // ✅ match new field name and include chat_type
-    let query = { chat_id: chatId, chat_type: chatType };
+    // ✅ match new field name
+    let query = { chat_id: trimmedChatId };
 
     // ✅ for pagination
     if (cursor) {
