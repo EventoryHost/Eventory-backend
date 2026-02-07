@@ -152,6 +152,14 @@ const getBankDetails = async (req, res) => {
       });
     }
 
+    if (djArtist?.bank_details && Object.keys(djArtist.bank_details).length > 0) {
+      bankDetails.push({
+        service_type: "DjArtist",
+        service_id: djArtist.service_id,
+        bank_details: djArtist.bank_details,
+      });
+    }
+
     // ✅ If no bank details found
     if (bankDetails.length === 0) {
       return res.status(404).json({ message: "No bank details found for this vendor" });
