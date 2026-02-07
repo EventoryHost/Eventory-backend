@@ -35,6 +35,7 @@ export const getService = async (req, res) => {
         vendorData = await MakeupArtist.findOne({ vendor_id: vendor_id });
         break;
       case "dj_artist":
+      case "dj":
         vendorData = await DjArtist.findOne({ vendor_id: vendor_id });
         break;
 
@@ -75,6 +76,8 @@ export const getVendorLimit = async (req, res) => {
       prop_rental: propRental,
       photographer_videographer: Photographer,
       makeupartist: MakeupArtist,
+      dj_artist: DjArtist,
+      dj: DjArtist,
     };
 
     model = vendorModels[vendor_type.toLowerCase()];
