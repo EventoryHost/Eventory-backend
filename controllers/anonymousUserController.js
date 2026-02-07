@@ -106,31 +106,6 @@ export const initializeAnonymousUser = async (req, res) => {
         });
         await user.save();
 
-        // Create ACTIVE chat session immediately for NEW users
-        const chatId = generateUniqueId("CHAT");
-        await Chat.create({
-            chat_id: chatId,
-            anon_customer_id: user.anon_id,
-            chat_type: "anon_customer-admin",
-            chat_status: "ACTIVE"
-        });
-
-        // ONLY send default greeting if NOT a shared link (handled by anonChatController/init)
-        const rawSource = req.body.source || source;
-        const normalizedSource = rawSource ? rawSource.toString().replace(/['"]/g, "") : null;
-        
-        if (!fbclid && !utm_source && normalizedSource !== "shared_link") {
-            // Send default welcome message
-            await Message.create({
-                chat_id: chatId,
-                chat_type: "anon_customer-admin",
-                sender: "admin",
-                sender_id: "admin",
-                message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
-                message_type: "text"
-            });
-            // ... (rest suppressed as it was redundant anyway)
-        }
     }
 
     // Set HTTP-only cookie (refresh it)
