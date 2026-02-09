@@ -46,8 +46,7 @@ export const initializeAnonymousUser = async (req, res) => {
           ...user.acquisition, // Keep existing fields if not overwritten? Or overwrite all? 
                                // Requirement says "update the user's record with the new tracking data"
                                // We'll overwrite the specific fields provided, but maybe keep 'first_seen' stuff effectively by not touching it.
-                               // Actually, let's just update the acquisition object with new values.
-          source: fbclid ? 'meta' : (utm_source || user.acquisition.source), // Update source if new one present
+          source: source || (fbclid ? 'meta' : (utm_source || user.acquisition.source)), // Update source if new one present
           fbclid: fbclid || user.acquisition.fbclid,
           utm_source: utm_source || user.acquisition.utm_source,
           utm_medium: utm_medium || user.acquisition.utm_medium,
@@ -83,7 +82,7 @@ export const initializeAnonymousUser = async (req, res) => {
             first_seen_at: new Date(),
             last_seen_at: new Date(),
             acquisition: {
-                source: fbclid ? 'meta' : (utm_source || 'direct'),
+                source: source || (fbclid ? 'meta' : (utm_source || 'direct')),
                 fbclid,
                 utm_source,
                 utm_medium,

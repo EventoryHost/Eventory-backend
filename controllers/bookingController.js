@@ -8,6 +8,7 @@ import generateUniqueId from "../utils/generateId.js";
 import { Calendar } from "../models/calendar.js";
 import { sendSlackBookingMessage } from "../utils/slackNotifier.js";
 import Quotations from "../models/quotations.js";
+import Order from "../models/orders.js";
 
 const toUpperEnum = (v) => (typeof v === "string" ? v.trim().toUpperCase() : v);
 const toISODate = (v) => (v ? new Date(v) : null);
@@ -221,6 +222,32 @@ export const createBooking = async (req, res) => {
       await Quotations.findOneAndUpdate(
         { quotation_id },
         { $set: { quote_status: 'In_Booking' } }
+      );
+    }
+
+    // Sync with Final Order (FinalOrder)
+    if (em_id && service_id) {
+      const orderUpdatePayload = {
+        paymentDetails: {
+          paymentStatus: payStatusNorm === "fully_paid" ? "Fully Paid" : "Partially Paid",
+          customerPayable: {
+            total: asNumber(paymentDetails?.customerPayable?.total, 0),
+            baseAmount: asNumber(paymentDetails?.customerPayable?.baseAmount, 0),
+            convenienceFee: asNumber(paymentDetails?.customerPayable?.convenienceFee, 0),
+            taxOnConvenience: asNumber(paymentDetails?.customerPayable?.taxOnConvenience, 0),
+          },
+          vendorReceivable: {
+            total: asNumber(paymentDetails?.vendorReceivable?.total, 0),
+            baseAmount: asNumber(paymentDetails?.vendorReceivable?.baseAmount, 0),
+            commission: asNumber(paymentDetails?.vendorReceivable?.commission, 0),
+            taxOnCommission: asNumber(paymentDetails?.vendorReceivable?.taxOnCommission, 0),
+          },
+        },
+      };
+
+      await Order.findOneAndUpdate(
+        { em_id, service_id, quotation_id },
+        { $set: orderUpdatePayload }
       );
     }
 
