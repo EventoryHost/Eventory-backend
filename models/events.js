@@ -108,9 +108,9 @@ const eventsSchema = new mongoose.Schema({
     type: Date,
     validate: {
       validator: function (v) {
-        return v instanceof Date && !isNaN(v) && v > this.event_start;
+        return v instanceof Date && !isNaN(v) && v >= this.event_start;
       },
-      message: 'Event end date must be after event start date'
+      message: 'Event end date must be on or after event start date'
     }
   },
   event_created_at: {
