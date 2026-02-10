@@ -20,6 +20,7 @@ const nonEmptyArray = (a) => (Array.isArray(a) ? a.filter(Boolean) : []);
 
 export const createBooking = async (req, res) => {
   try {
+    console.log("[BOOKING_DEBUG] createBooking triggered with body:", JSON.stringify(req.body));
     // Extract raw body
     const body = req.body || {};
 
@@ -102,8 +103,9 @@ export const createBooking = async (req, res) => {
     if (!(eventStartDate instanceof Date) || isNaN(eventStartDate)) {
       return res.status(400).json({ message: "event_start must be a valid date" });
     }
-    if (eventEndDate && !(eventEndDate instanceof Date) || (eventEndDate && eventEndDate <= eventStartDate)) {
-      return res.status(400).json({ message: "event_end must be after event_start" });
+    if (eventEndDate && !(eventEndDate instanceof Date) || (eventEndDate && eventEndDate < eventStartDate)) {
+      console.log(`[BOOKING_DEBUG] Validation failed: eventEndDate(${eventEndDate}) < eventStartDate(${eventStartDate})`);
+      return res.status(400).json({ message: "event_end must be after or equal to event_start" });
     }
 
     const finalAmountNum = asNumber(final_amount);
@@ -251,19 +253,20 @@ export const createBooking = async (req, res) => {
       );
     }
 
-    if(process.env.IS_DEV === 'true') return;
-    sendSlackBookingMessage({
-      bookingid: saved.event_id || saved._id,
-      customer: saved.customer_name,
-      vendorId: saved.vendor_id, 
-      serviceName: saved.service_id,
-      guest: saved.final_guest_count || 0,
-      startDate: new Date(saved.event_start).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-    });
+    if (process.env.IS_DEV !== 'true') {
+      sendSlackBookingMessage({
+        bookingid: saved.event_id || saved._id,
+        customer: saved.customer_name,
+        vendorId: saved.vendor_id,
+        serviceName: saved.service_id,
+        guest: saved.final_guest_count || 0,
+        startDate: new Date(saved.event_start).toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+      });
+    }
 
     return res.status(201).json({
       message: "Event created successfully",
@@ -394,8 +397,8 @@ export const addOfflineEvent = async (req, res) => {
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return res.status(400).json({ message: "Invalid start or end datetime" });
     }
-    if (endDate <= startDate) {
-      return res.status(400).json({ message: "end must be after start" });
+    if (endDate < startDate) {
+      return res.status(400).json({ message: "end must be after or equal to start" });
     }
 
     const colorOptions = {
@@ -528,23 +531,23 @@ export const getBookingById = async (req, res) => {
     const sid = booking.service_id || "";
     let serviceModel = null;
     if (sid.startsWith("CAT")) {
-      const { Caterer } = await import("../models/caterer.js");
-      serviceModel = Caterer;
+      const mod = await import("../models/caterer.js");
+      serviceModel = mod.default || mod.Caterer;
     } else if (sid.startsWith("DECO")) {
-      const { Decorator } = await import("../models/decorator.js");
-      serviceModel = Decorator;
+      const mod = await import("../models/decorator.js");
+      serviceModel = mod.default || mod.Decorator;
     } else if (sid.startsWith("VNP")) {
-      const { default: VenueProvider } = await import("../models/venueProvider.js");
-      serviceModel = VenueProvider;
+      const mod = await import("../models/venueProvider.js");
+      serviceModel = mod.default || mod.VenueProvider;
     } else if (sid.startsWith("PAV")) {
-      const { default: PhotographerVideographer } = await import("../models/photographerVideographer.js");
-      serviceModel = PhotographerVideographer;
+      const mod = await import("../models/photographerVideographer.js");
+      serviceModel = mod.default || mod.PhotographerVideographer;
     } else if (sid.startsWith("MKA")) {
-      const { default: MakeupArtist } = await import("../models/makeupArtist.js");
-      serviceModel = MakeupArtist;
+      const mod = await import("../models/makeupArtist.js");
+      serviceModel = mod.default || mod.MakeupArtist;
     } else if (sid.startsWith("DJS")) {
-      const { default: DjArtist } = await import("../models/djArtist.js");
-      serviceModel = DjArtist;
+      const mod = await import("../models/djArtist.js");
+      serviceModel = mod.default || mod.DjArtist;
     } else if (sid.startsWith("PRO")) {
       serviceModel = null; // Prop rental not implemented
     } else {

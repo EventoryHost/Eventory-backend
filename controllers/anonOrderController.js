@@ -39,6 +39,9 @@ export const createOrUpdateAnonOrder = async (req, res) => {
       source_info
     } = req.body;
 
+    console.log(`[ORDER_DEBUG] Request for anon_order_id: ${anon_order_id}, chat_id: ${chat_id}`);
+    console.log(`[ORDER_DEBUG] incoming advance_amount_requested: ${advance_amount_requested} (type: ${typeof advance_amount_requested})`);
+
     if (!chat_id) {
       return res.status(400).json({
         success: false,
@@ -72,6 +75,8 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         });
       }
 
+      console.log(`[ORDER_DEBUG] existingOrder.advance_amount_requested: ${existingOrder.advance_amount_requested}`);
+
 
       let paymentDetailsToUse = paymentDetails !== undefined ? paymentDetails : existingOrder.paymentDetails;
       let finalAmountToStore = final_amount !== undefined ? final_amount : existingOrder.final_amount;
@@ -92,12 +97,25 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         try {
           const prefix = (service_id || existingOrder.service_id || "").toUpperCase();
           let serviceModel = null;
-          if (prefix.startsWith("CAT")) serviceModel = (await import('../models/caterer.js')).default;
-          else if (prefix.startsWith("DECO")) serviceModel = (await import('../models/decorator.js')).Decorator;
-          else if (prefix.startsWith("VNP")) serviceModel = (await import('../models/venueProvider.js')).default;
-          else if (prefix.startsWith("PAV")) serviceModel = (await import('../models/photographerVideographer.js')).default;
-          else if (prefix.startsWith("MKA")) serviceModel = (await import('../models/makeupArtist.js')).default;
-          else if (prefix.startsWith("DJS")) serviceModel = (await import('../models/djArtist.js')).default;
+          if (prefix.startsWith("CAT")) {
+            const mod = await import('../models/caterer.js');
+            serviceModel = mod.default || mod.Caterer;
+          } else if (prefix.startsWith("DECO")) {
+            const mod = await import('../models/decorator.js');
+            serviceModel = mod.default || mod.Decorator;
+          } else if (prefix.startsWith("VNP")) {
+            const mod = await import('../models/venueProvider.js');
+            serviceModel = mod.default || mod.VenueProvider;
+          } else if (prefix.startsWith("PAV")) {
+            const mod = await import('../models/photographerVideographer.js');
+            serviceModel = mod.default || mod.PhotographerVideographer;
+          } else if (prefix.startsWith("MKA")) {
+            const mod = await import('../models/makeupArtist.js');
+            serviceModel = mod.default || mod.MakeupArtist;
+          } else if (prefix.startsWith("DJS")) {
+            const mod = await import('../models/djArtist.js');
+            serviceModel = mod.default || mod.DjArtist;
+          }
           if (serviceModel) {
             const serviceDoc = await serviceModel.findOne({ service_id: service_id || existingOrder.service_id });
             if (serviceDoc && serviceDoc.basic_details) {
@@ -105,7 +123,8 @@ export const createOrUpdateAnonOrder = async (req, res) => {
               vendor_manager_contact_number = serviceDoc.basic_details.service_contact_number || "";
             }
           }
-          const Vendor = (await import('../models/vendor.js')).default;
+          const vendorMod = await import('../models/vendor.js');
+          const Vendor = vendorMod.default || vendorMod.Vendor;
           const vendorDoc = await Vendor.findOne({ vendor_id: vendorId });
           if (vendorDoc && vendorDoc.email_address) {
             vendor_manager_contact_email = vendorDoc.email_address;
@@ -117,33 +136,34 @@ export const createOrUpdateAnonOrder = async (req, res) => {
           console.error("Failed to fetch service/vendor details for final order mapping:", err);
         }
         const newOrder = await Orders.create({
-          em_id: em_id || existingOrder.em_id || 'EM_SYSTEM',
-          service_id: service_id || existingOrder.service_id || 'SERVICE_UNKNOWN',
-          vendor_id: vendorId || existingOrder.vendor_id || 'VENDOR_UNKNOWN',
+          em_id: em_id !== undefined ? em_id : (existingOrder.em_id || 'EM_SYSTEM'),
+          service_id: service_id !== undefined ? service_id : (existingOrder.service_id || 'SERVICE_UNKNOWN'),
+          vendor_id: vendorId !== undefined ? vendorId : (existingOrder.vendor_id || 'VENDOR_UNKNOWN'),
           quotation_id: anonOrderId || existingOrder.anon_order_id || 'QUO_UNKNOWN',
           vendor_manager_name: vendor_manager_name || 'Not Assigned',
-          customer_name: customer_name || existingOrder.customer_name || 'Anonymous Customer',
-          customer_id: anonUserId || existingOrder.anon_user_id || 'CUSTOMER_UNKNOWN',
-          event_start: event_start || existingOrder.event_start || new Date(),
-          event_end: event_end || existingOrder.event_end || new Date(Date.now() + 2 * 60 * 60 * 1000),
-          event_type: event_type || existingOrder.event_type || 'General Event',
-          final_guest_count: guest_count || existingOrder.guest_count || 0,
-          location_type: location_type || existingOrder.location_type || 'outdoor',
-          event_location: event_location || existingOrder.event_location || 'Location Not Provided',
-          final_amount: finalAmountToStore || 0,
-          advance_amount_requested: advance_amount_requested || existingOrder.advance_amount_requested || 0,
+          customer_name: customer_name !== undefined ? customer_name : (existingOrder.customer_name || 'Anonymous Customer'),
+          customer_id: anonUserId !== undefined ? anonUserId : (existingOrder.anon_user_id || 'CUSTOMER_UNKNOWN'),
+          event_start: event_start !== undefined ? event_start : (existingOrder.event_start || new Date()),
+          event_end: event_end !== undefined ? event_end : (existingOrder.event_end || new Date(Date.now() + 2 * 60 * 60 * 1000)),
+          event_type: event_type !== undefined ? event_type : (existingOrder.event_type || 'General Event'),
+          final_guest_count: guest_count !== undefined ? guest_count : (existingOrder.guest_count || 0),
+          location_type: location_type !== undefined ? location_type : (existingOrder.location_type || 'outdoor'),
+          event_location: event_location !== undefined ? event_location : (existingOrder.event_location || 'Location Not Provided'),
+          final_amount: finalAmountToStore !== undefined ? finalAmountToStore : 0,
+          advance_amount_requested: advance_amount_requested !== undefined ? advance_amount_requested : (existingOrder.advance_amount_requested || 0),
           vendor_approval: true,
           customer_approval: true,
-          original_ask_by_customer: customer_requirements || existingOrder.customer_requirements || '',
+          original_ask_by_customer: customer_requirements !== undefined ? customer_requirements : (existingOrder.customer_requirements || ''),
           order_status: 'approved',
           vendor_manager_contact_number: vendor_manager_contact_number || '0000000000',
           vendor_manager_contact_email: vendor_manager_contact_email || 'no-reply@eventory.com',
-          customer_contact_number: customer_contact_number || existingOrder.customer_contact_number || '',
-          customer_contact_email: customer_contact_email || existingOrder.customer_contact_email || 'no-reply@eventory.com',
-          final_order_items: final_order_items || existingOrder.final_order_items || [],
+          customer_contact_number: customer_contact_number !== undefined ? customer_contact_number : (existingOrder.customer_contact_number || ''),
+          customer_contact_email: customer_contact_email !== undefined ? customer_contact_email : (existingOrder.customer_contact_email || 'no-reply@eventory.com'),
+          final_order_items: final_order_items !== undefined ? final_order_items : (existingOrder.final_order_items || []),
           paymentDetails: paymentDetailsToUse || {},
-          specificTerms: specificTerms || existingOrder.specificTerms || [],
+          specificTerms: specificTerms !== undefined ? specificTerms : (existingOrder.specificTerms || []),
         });
+        console.log(`[ORDER_DEBUG] Orders.create payload advance_amount_requested: ${newOrder.advance_amount_requested}`);
         newOrder.final_checkout_url = `/checkout?amount=${finalAmountToStore}&vendor_id=${vendorId}&user_id=${anonUserId}&orderId=${newOrder.order_id}`;
         await newOrder.save();
         updatedFields.converted_to_order_id = newOrder.order_id;
@@ -185,6 +205,8 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         checkout_url,
         updated_at: new Date()
       };
+
+      console.log(`[ORDER_DEBUG] final advance_amount_requested to save (AnonCustomerOrder): ${updatedFields.advance_amount_requested}`);
 
       order = await AnonCustomerOrder.findOneAndUpdate(
         { anon_order_id },

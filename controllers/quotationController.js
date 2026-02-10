@@ -158,19 +158,20 @@ const createQuotation = async (req, res, io) => {
       
     });
 
-    if(process.env.IS_DEV === 'true') return;
-    sendSlackMessage({
-      id: savedQuotation.quotation_id,
-      customer: savedQuotation.customer_name,
-      service: savedQuotation.service_id,
-      vendorId: savedQuotation.vendor_id,
-      guests: savedQuotation.guest_count,
-      date: new Date(savedQuotation.event_start).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-    });
+    if (process.env.IS_DEV !== 'true') {
+      sendSlackMessage({
+        id: savedQuotation.quotation_id,
+        customer: savedQuotation.customer_name,
+        service: savedQuotation.service_id,
+        vendorId: savedQuotation.vendor_id,
+        guests: savedQuotation.guest_count,
+        date: new Date(savedQuotation.event_start).toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+      });
+    }
 
   } catch (error) {
     res.status(500).json({

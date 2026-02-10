@@ -267,17 +267,33 @@ function buildPayoutsHeaders() {
 const N = (v) => Number(v ?? 0)
 
 // Helper function to get the service model by service_id
-const getServiceModelById = (service_id) => {
+const getServiceModelById = async (service_id) => {
   if (!service_id || typeof service_id !== "string") return null;
 
-  if (service_id.startsWith("CAT")) return Caterer;
-  if (service_id.startsWith("DECO")) return Decorator;
-  if (service_id.startsWith("PAV")) return Photographer;
-  if (service_id.startsWith("VNP")) return VenueProvider;
-  if (service_id.startsWith("MKA")) return MakeupArtist;
-  if (service_id.startsWith("DJS")) return DjArtist;
+  let serviceModel = null;
+  const sid = service_id; // Use a shorter alias for clarity
 
-  return null;
+  if (sid.startsWith("CAT")) {
+    const mod = await import("../models/caterer.js");
+    serviceModel = mod.default || mod.Caterer;
+  } else if (sid.startsWith("DECO")) {
+    const mod = await import("../models/decorator.js");
+    serviceModel = mod.default || mod.Decorator;
+  } else if (sid.startsWith("VNP")) {
+    const mod = await import("../models/venueProvider.js");
+    serviceModel = mod.default || mod.VenueProvider;
+  } else if (sid.startsWith("PAV")) {
+    const mod = await import("../models/photographerVideographer.js");
+    serviceModel = mod.default || mod.PhotographerVideographer;
+  } else if (sid.startsWith("MKA")) {
+    const mod = await import("../models/makeupArtist.js");
+    serviceModel = mod.default || mod.MakeupArtist;
+  } else if (sid.startsWith("DJS")) {
+    const mod = await import("../models/djArtist.js");
+    serviceModel = mod.default || mod.DjArtist;
+  }
+
+  return serviceModel;
 };
 
 const verifyCustomerPayment = async (req, res) => {
@@ -304,9 +320,12 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     // Fetch the final order to get required IDs
-    const finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
+    var finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
     if (!finalOrder) {
-      return res.status(404).json({ error: "Final order not found for internal_order_id" });
+      finalOrder = await Order.findOne({ quotation_id: internal_order_id }).lean();
+      if (!finalOrder) {
+        return res.status(404).json({ error: "Final order not found for internal_order_id" });
+      }
     }
 
     const quotation_id = finalOrder.quotation_id;
@@ -326,17 +345,16 @@ const verifyCustomerPayment = async (req, res) => {
           if (anonUser.converted_user_id) {
             console.log("[VerifyPayment] Resolved to customer ID:", anonUser.converted_user_id);
             await Order.findOneAndUpdate(
-              { order_id: internalOrderId },
+              { order_id: finalOrder.order_id },
               { $set: { customer_id: anonUser.converted_user_id } }
             );
             finalCustomerId = anonUser.converted_user_id;
-            // Also update the local finalOrder object to ensure consistency
             if (finalOrder) {
               finalOrder.customer_id = finalCustomerId;
             }
             console.log("[VerifyPayment] Updated final order customer ID:", finalCustomerId);
           } else {
-             console.log("[VerifyPayment] Anonymous user NOT YET converted. Proceeding with anon ID.");
+            console.log("[VerifyPayment] Anonymous user NOT YET converted. Proceeding with anon ID.");
           }
         } else {
           console.log("[VerifyPayment] AnonymousUser record NOT FOUND for ID:", finalCustomerId);
@@ -384,7 +402,7 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
 
-    const ServiceModel = getServiceModelById(service_id);
+    const ServiceModel = await getServiceModelById(service_id);
     if (!ServiceModel) {
       return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
     }
