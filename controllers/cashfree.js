@@ -320,9 +320,12 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     // Fetch the final order to get required IDs
-    const finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
+    var finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
     if (!finalOrder) {
-      return res.status(404).json({ error: "Final order not found for internal_order_id" });
+      finalOrder = await Order.findOne({ quotation_id: internal_order_id }).lean();
+      if (!finalOrder) {
+        return res.status(404).json({ error: "Final order not found for internal_order_id" });
+      }
     }
 
     const quotation_id = finalOrder.quotation_id;
@@ -342,17 +345,16 @@ const verifyCustomerPayment = async (req, res) => {
           if (anonUser.converted_user_id) {
             console.log("[VerifyPayment] Resolved to customer ID:", anonUser.converted_user_id);
             await Order.findOneAndUpdate(
-              { order_id: internalOrderId },
+              { order_id: finalOrder.order_id },
               { $set: { customer_id: anonUser.converted_user_id } }
             );
             finalCustomerId = anonUser.converted_user_id;
-            // Also update the local finalOrder object to ensure consistency
             if (finalOrder) {
               finalOrder.customer_id = finalCustomerId;
             }
             console.log("[VerifyPayment] Updated final order customer ID:", finalCustomerId);
           } else {
-             console.log("[VerifyPayment] Anonymous user NOT YET converted. Proceeding with anon ID.");
+            console.log("[VerifyPayment] Anonymous user NOT YET converted. Proceeding with anon ID.");
           }
         } else {
           console.log("[VerifyPayment] AnonymousUser record NOT FOUND for ID:", finalCustomerId);
