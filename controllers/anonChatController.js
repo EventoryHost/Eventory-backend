@@ -35,15 +35,19 @@ export const initializeAnonymousChat = async (req, res) => {
     let chatType = "anon_customer-admin";
     let userId = anon_customer_id;
 
+    console.log("DEBUG [init]: Start", { anon_customer_id, customer_id, source });
+    
     // Check for logged-in user
     const decodedUser = verifyAuth(req);
+    console.log("DEBUG [init]: Decoded User", decodedUser);
+
     if (decodedUser && customer_id) {
-        // Verify that the token belongs to the requested customer_id
-        // (Assuming decodedUser.id holds the customer_id)
         if (decodedUser.id === customer_id) {
             chatType = "customer-admin";
             userId = customer_id;
+            console.log("DEBUG [init]: Switching to customer-admin due to matching customer_id");
         } else {
+            console.warn("DEBUG [init]: Unauthorized customer_id mismatch");
             return res.status(403).json({ error: "Unauthorized access to customer data" });
         }
     } else if (!anon_customer_id) {
@@ -52,19 +56,23 @@ export const initializeAnonymousChat = async (req, res) => {
 
     // Robust ID normalization
     if (userId) userId = userId.toString().replace(/['"]/g, "");
+    console.log("DEBUG [init]: Resolved userId", userId, "ChatType", chatType);
 
     let query = {
-        chat_type: chatType,
         chat_status: "ACTIVE"
     };
 
     if (chatType === "customer-admin") {
+        query.chat_type = chatType;
         query.customer_id = userId;
     } else {
+        // Relaxed query: Find ANY active chat with this anon_id, even if migrated
         query.anon_customer_id = userId;
     }
+    console.log("DEBUG [init]: Query", query);
 
     let chat = await Chat.findOne(query);
+    console.log("DEBUG [init]: Found Chat:", chat ? chat.chat_id : "NULL");
 
     // MIGRATION LOGIC: If logging in, check if we need to migrate an existing anon chat
     if (!chat && chatType === "customer-admin" && anon_customer_id) {
@@ -245,19 +253,29 @@ export const sendAnonymousMessage = async (req, res) => {
 
     // 1. Try to find chat by chat_id if provided
     if (chat_id) {
-       chat = await Chat.findOne({ chat_id: chat_id.trim(), chat_type: chatType });
+       // Relaxed: Find by chat_id regardless of type
+       chat = await Chat.findOne({ chat_id: chat_id.trim() });
     }
 
     // 2. If no chat_id or chat not found, try to find ACTIVE chat
     if (!chat) {
       let query = {
-          chat_type: chatType,
           chat_status: "ACTIVE"
       };
-      if (sender === "customer") query.customer_id = sender_id;
-      else query.anon_customer_id = sender_id;
+      if (sender === "customer") {
+          query.chat_type = chatType;
+          query.customer_id = sender_id;
+      } else {
+          // Relaxed for anonymous: Find ANY chat for this anon_id
+          query.anon_customer_id = sender_id;
+      }
 
       chat = await Chat.findOne(query);
+    }
+
+    // Use the actual chat type if found (e.g. if migrated to customer-admin)
+    if (chat) {
+        chatType = chat.chat_type;
     }
 
     let isNewChat = false;
@@ -396,7 +414,8 @@ export const getAnonymousMessages = async (req, res) => {
 
     // Auth Check
     const decodedUser = verifyAuth(req);
-    if (decodedUser) {
+    // Only switch to customer-admin if it's NOT an explicit anonymous request
+    if (decodedUser && (!anon_customer_id || !anon_customer_id.startsWith("ANON"))) {
         // If authenticated, we assume the ID passed in param IS the customer_id
         // OR we just use the ID from the token to be safe.
         // Let's trust the token.
@@ -414,19 +433,21 @@ export const getAnonymousMessages = async (req, res) => {
     // Find the ACTIVE chat for this user
     // Find the ACTIVE chat for this user
     let chatQuery = {
-        chat_type: chatType,
         chat_status: "ACTIVE"
     };
 
     if (chatType === "customer-admin") {
+        chatQuery.chat_type = chatType;
         chatQuery.customer_id = userId;
     } else {
+        // Relaxed for anonymous: Find ANY request for this anon_id
         chatQuery.anon_customer_id = userId;
     }
 
     // Only get the current active chat. 
     // If completed chats exist, we DO NOT show them to start fresh.
     const chat = await Chat.findOne(chatQuery).select("chat_id");
+    console.log("DEBUG [getMessages]: Found Chat for query:", chatQuery, chat ? chat.chat_id : "NULL");
 
     if (!chat) {
       return res.status(200).json({ messages: [], hasMore: false });
@@ -442,12 +463,15 @@ export const getAnonymousMessages = async (req, res) => {
     if (cursor) {
       query._id = { $lt: cursor }; // Using $lt for descending sort (newest first)
     }
+    console.log("DEBUG [getMessages]: Message Query:", query);
 
     const messages = await Message.find(query)
       .sort({ createdAt: -1 }) // Newest first
       .limit(limit + 1)
       .lean();
     
+    console.log("DEBUG [getMessages]: Messages found count:", messages.length);
+
     let hasMore = false;
     let nextCursor = null;
 
@@ -477,7 +501,8 @@ export const getAnonymousChatStatus = async (req, res) => {
     let userId = anon_customer_id;
     let chatType = "anon_customer-admin";
     
-    if (decodedUser) {
+    // Only switch to customer-admin if it's NOT an explicit anonymous request
+    if (decodedUser && (!anon_customer_id || !anon_customer_id.startsWith("ANON"))) {
         userId = decodedUser.id;
         chatType = "customer-admin";
     }
@@ -490,11 +515,15 @@ export const getAnonymousChatStatus = async (req, res) => {
     }
     
     let query = {
-        chat_status: "ACTIVE",
-        chat_type: chatType
+        chat_status: "ACTIVE"
     };
-    if (chatType === "customer-admin") query.customer_id = userId;
-    else query.anon_customer_id = userId;
+    if (chatType === "customer-admin") {
+        query.chat_type = chatType;
+        query.customer_id = userId;
+    } else {
+        // Relaxed for anonymous: Find ANY active chat
+        query.anon_customer_id = userId;
+    }
 
     const chat = await Chat.findOne(query);
 

@@ -68,7 +68,7 @@ export async function sendSlackMessage({
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `🔗 *View in Dashboard:* <https://admin.eventory.in>`,
+            text: `🔗 *View in Dashboard:* <https://business.eventory.in/>`,
           },
         },
       ],
@@ -137,7 +137,7 @@ export async function sendSlackBookingMessage({
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `🔗 *View in Admin Dashboard:* <https://admin.eventory.in>`,
+            text: `🔗 *View in Admin Dashboard:* <https://business.eventory.in/>`,
           },
         },
       ],
@@ -200,7 +200,7 @@ export async function sendSlackAnonChatMessage({
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `🔗 *Open Admin Inbox:* <https://admin.eventory.in/inbox>`,
+            text: `🔗 *Open Admin Inbox:* <https://business.eventory.in/inbox>`,
           },
         },
       ],
