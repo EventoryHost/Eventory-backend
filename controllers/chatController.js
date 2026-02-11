@@ -527,13 +527,29 @@ export const getMessagesByChatId = async (req, res) => {
     }
 
     // Verify the chat exists with this chatType
-    const chatExists = await Chat.findOne({ chat_id: trimmedChatId, chat_type: chatType });
+    const chatSearchQuery = { chat_id: trimmedChatId };
+    if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      chatSearchQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      chatSearchQuery.chat_type = chatType;
+    }
+
+    const chatExists = await Chat.findOne(chatSearchQuery);
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
     // ✅ match new field name
     let query = { chat_id: trimmedChatId };
+
+    if (chatType === "vendor-admin") {
+      query.chat_type = "vendor-admin";
+    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      // Show both to maintain history across login/anonymous states
+      query.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      query.chat_type = chatType;
+    }
 
     // ✅ for pagination
     if (cursor) {
@@ -593,21 +609,37 @@ export const searchMessages = async (req, res) => {
     return res.status(400).json({ error: "chatType is required" });
   }
 
-  if (!["vendor-admin", "customer-admin", "vendor-enquiry"].includes(chatType)) {
+  if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
     return res.status(400).json({ error: "Invalid chatType" });
   }
 
   try {
-    const chatExists = await Chat.findOne({ chat_id, chat_type: chatType });
+    const chatSearchQuery = { chat_id };
+    if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      chatSearchQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      chatSearchQuery.chat_type = chatType;
+    }
+
+    const chatExists = await Chat.findOne(chatSearchQuery);
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const messages = await Message.find({
+    const messageQuery = {
       chat_id,
-      chat_type: chatType,
       message_content: { $regex: q, $options: "i" },
-    }).sort({ createdAt: -1 });
+    };
+
+    if (chatType === "vendor-admin") {
+      messageQuery.chat_type = "vendor-admin";
+    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      messageQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      messageQuery.chat_type = chatType;
+    }
+
+    const messages = await Message.find(messageQuery).sort({ createdAt: -1 });
 
     res.status(200).json({ messages });
   } catch (err) {
@@ -628,34 +660,59 @@ export const getMessageContext = async (req, res) => {
     return res.status(400).json({ error: "chatType is required" });
   }
 
-  if (!["vendor-admin", "customer-admin", "vendor-enquiry"].includes(chatType)) {
+  if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
     return res.status(400).json({ error: "Invalid chatType" });
   }
 
   try {
-    const chatExists = await Chat.findOne({ chat_id: chatId, chat_type: chatType });
+    const chatSearchQuery = { chat_id: chatId };
+    if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      chatSearchQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      chatSearchQuery.chat_type = chatType;
+    }
+
+    const chatExists = await Chat.findOne(chatSearchQuery);
     if (!chatExists) {
       return res.status(404).json({ error: "Chat not found" });
     }
 
-    const currentMessage = await Message.findOne({ _id: qId, chat_id: chatId, chat_type: chatType });
+    const messageQuery = { _id: qId, chat_id: chatId };
+    if (chatType === "vendor-admin") {
+      messageQuery.chat_type = "vendor-admin";
+    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      messageQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      messageQuery.chat_type = chatType;
+    }
+
+    const currentMessage = await Message.findOne(messageQuery);
     if (!currentMessage) {
       return res
         .status(404)
         .json({ error: "Message not found in the given chat" });
     }
 
-    const olderMessages = await Message.find({
+    const contextQuery = {
       chat_id: chatId,
-      chat_type: chatType,
+    };
+    if (chatType === "vendor-admin") {
+      contextQuery.chat_type = "vendor-admin";
+    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+      contextQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else {
+      contextQuery.chat_type = chatType;
+    }
+
+    const olderMessages = await Message.find({
+      ...contextQuery,
       _id: { $lt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: -1 })
       .limit(20);
 
     const newerMessages = await Message.find({
-      chat_id: chatId,
-      chat_type: chatType,
+      ...contextQuery,
       _id: { $gt: new mongoose.Types.ObjectId(qId) },
     })
       .sort({ _id: 1 })
