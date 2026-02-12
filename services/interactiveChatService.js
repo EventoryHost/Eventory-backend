@@ -104,16 +104,16 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         console.log(`[DEBUG] Flow check: isEventTypeSelection=${isEventTypeSelection}, normalizedContent="${normalizedContent}"`);
 
         // --- STEP 1: EVENT TYPE SELECTION ---
-        if (isEventTypeSelection) {
-            // Find existing OPEN or PROCESSING enquiry to update or create new
-            enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
+        // Flow condition: Either it's a known event type, OR we don't have an active enquiry yet
+        // If we don't have an enquiry, this first message MUST be the event type (specified as 'Other' or custom)
+        enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
 
+        if (!enquiry || isEventTypeSelection) {
             if (enquiry) {
                 enquiry.event_type = messageContent;
                 enquiry.status = "OPEN"; // Reset to OPEN so next message is treated as Time
                 await enquiry.save();
                 console.log(`[FLOW 4] Event type selected (Update): "${messageContent}" for chat_id=${chatId}`);
-                console.log(`[FLOW] Updated existing enquiry ${enquiry.enquiry_id} with event type: ${messageContent}`);
             } else {
                 enquiry = await CustomerEnquiry.create({
                     enquiry_id: generateUniqueId("ENQ"),
@@ -122,7 +122,6 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     status: "OPEN"
                 });
                 console.log(`[FLOW 4] Event type selected (New): "${messageContent}" for chat_id=${chatId}`);
-                console.log(`[FLOW] Created new enquiry ${enquiry.enquiry_id} with event type: ${messageContent}`);
             }
 
             // Send "How Soon" Options
@@ -144,7 +143,6 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 if (io) {
                     io.to(`${chatId}-${chat.chat_type}`).emit("new_message", timeOptionsMsg.toObject());
                     console.log(`[FLOW 5] Event time options sent: chat_id=${chatId}`);
-                    console.log(`[FLOW] Sent "How Soon" options to ${chatId}`);
                 }
             }, 1000);
 
@@ -152,7 +150,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         }
 
         // --- STEP 2+: HANDLE EXISTING ENQUIRY ---
-        enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
+        // (Enquiry already exists and it's not a re-selection of event type)
 
         if (enquiry) {
             if (enquiry.status === "PROCESSING") {
