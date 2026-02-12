@@ -403,7 +403,7 @@ export const addCustomerInvoice = async (req, res) => {
   }
 
   try {
-    customer.invoices.push(invoiceUrl); 
+    customer.invoices.push(invoiceUrl);
     await customer.save();
     return res.status(200).json({
       message: "Invoice added successfully",
