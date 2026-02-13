@@ -297,18 +297,18 @@ const getServiceModelById = async (service_id) => {
 };
 
 const verifyCustomerPayment = async (req, res) => {
-  const {
-    order_id,
-    internal_order_id,
-    order_amount,
-    payment_type,
-    couponCode,
-    couponDiscount,
-    service_id,
-    serviceData,
-  } = req.body;
-
   try {
+    const {
+      order_id,
+      internal_order_id,
+      order_amount,
+      payment_type,
+      couponCode,
+      couponDiscount,
+      service_id,
+      serviceData,
+      customer_id,
+    } = req.body;
     const response = await cashfree.PGFetchOrder(order_id);
     if (!response.data || response.data.length === 0) {
       return res.status(400).json({ error: "Payment not found" });
@@ -320,21 +320,24 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     // Fetch the final order to get required IDs
+    console.log(`[VerifyPayment] Searching for internal_order_id: ${internal_order_id}`);
     var finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
     if (!finalOrder) {
+      console.log(`[VerifyPayment] Order not found by order_id, trying quotation_id: ${internal_order_id}`);
       finalOrder = await Order.findOne({ quotation_id: internal_order_id }).lean();
       if (!finalOrder) {
-        return res.status(404).json({ error: "Final order not found for internal_order_id" });
+        console.error(`[VerifyPayment] 404: Final order not found for internal_order_id: ${internal_order_id}`);
+        return res.status(404).json({ error: "Final order not found for internal_order_id", internal_order_id });
       }
     }
+    console.log(`[VerifyPayment] Found Order: ${finalOrder.order_id}, customer_id: ${finalOrder.customer_id}`);
 
     const quotation_id = finalOrder.quotation_id;
     const internalOrderId = finalOrder.order_id;
     const vendor_id = finalOrder.vendor_id;
     const em_id = finalOrder.em_id;
 
-    let finalCustomerId = finalOrder.customer_id;
-
+    let finalCustomerId = customer_id || finalOrder.customer_id;
 
     if (finalCustomerId && finalCustomerId.startsWith("ANON")) {
       console.log("[VerifyPayment] Resolving anonymous user:", finalCustomerId);
@@ -361,6 +364,16 @@ const verifyCustomerPayment = async (req, res) => {
         }
       } catch (err) {
         console.error("[VerifyPayment] Error resolving anonymous user:", err);
+      }
+    } else if (customer_id && customer_id !== finalOrder.customer_id) {
+      console.log(`[VerifyPayment] Authenticated user mismatch. Updating order ${finalOrder.order_id} to customer_id ${customer_id}`);
+      await Order.findOneAndUpdate(
+        { order_id: finalOrder.order_id },
+        { $set: { customer_id: customer_id } }
+      );
+      finalCustomerId = customer_id;
+      if (finalOrder) {
+        finalOrder.customer_id = finalCustomerId;
       }
     }
 
@@ -391,14 +404,23 @@ const verifyCustomerPayment = async (req, res) => {
       if (payoutAmount < 0) payoutAmount = 0;
     }
 
+    console.log(`[VerifyPayment] Payment Type: ${payment_type}, Payout Amount Calculated: ${payoutAmount}, Receivable was: ${receivableFromOrder}, Already Paid was: ${alreadyPaid}`);
+
+    if (payoutAmount === null || payoutAmount === undefined || isNaN(payoutAmount)) {
+        console.error(`[VerifyPayment] 400: Invalid payoutAmount: ${payoutAmount}`);
+        return res.status(400).json({ error: `Invalid payout amount calculated: ${payoutAmount}` });
+    }
+
     const vendorDoc = await Vendor.findOne({ vendor_id });
     if (!vendorDoc) {
-      return res.status(404).json({ error: "Vendor not found" });
+      console.error(`[VerifyPayment] 404: Vendor not found for ID: ${vendor_id}. Search query: { vendor_id: "${vendor_id}" }`);
+      return res.status(404).json({ error: `Vendor not found for ID: ${vendor_id}` });
     }
 
     const customerDoc = await Customer.findOne({ customer_id: finalCustomerId });
     if (!customerDoc) {
-      return res.status(404).json({ error: "Customer not found" });
+      console.warn(`[VerifyPayment] Customer record not found for ID: ${finalCustomerId}. Falling back to Order details.`);
+      // We don't return 404 anymore; we proceed with fallback logic.
     }
 
 
@@ -409,6 +431,7 @@ const verifyCustomerPayment = async (req, res) => {
 
     const serviceDoc = await ServiceModel.findOne({ service_id });
     if (!serviceDoc) {
+      console.error(`[VerifyPayment] 404: Service not found for ID: ${service_id}. Search query: { service_id: "${service_id}" }`);
       return res.status(404).json({ error: `No service found for service_id: ${service_id}` });
     }
 
@@ -421,7 +444,9 @@ const verifyCustomerPayment = async (req, res) => {
 
     // name?? 
     const vendorName = serviceDoc.business_details.business_registration_name;
-    const customerName = customerDoc.customer_name;
+    const customerName = customerDoc?.customer_name || finalOrder.customer_name || "Guest Customer";
+    const customerEmail = customerDoc?.email_address || finalOrder.customer_contact_email || "noreply@eventory.in";
+    const customerPhone = customerDoc?.mobile_number || finalOrder.customer_contact_number || "0000000000";
 
     const primaryBank = serviceDoc.bank_details;
     let beneficiary_id = primaryBank.beneficiary_id;
@@ -635,7 +660,7 @@ const verifyCustomerPayment = async (req, res) => {
       await customerNotification.create({
         customer_id: finalCustomerId,
         order_id: internalOrderId,
-        chat_id: "",
+        chat_id: quotation_id || "",
         message: customerMessage,
         notification_type: 'checkout_message',
         checkout_url: "/customerbooking", // Link to customer bookings
@@ -692,13 +717,12 @@ const verifyCustomerPayment = async (req, res) => {
         event_status: "booked", // valid enum
 
         vendor_manager_name: "Not Assigned",
-        customer_name: customerDoc?.customer_name || "Pending Customer",
-
-        // Contacts (optional but keep sane)
+        customer_name: customerName,
+        // Contacts
         vendor_manager_contact_number: isValidINMobile(serviceDoc?.basic_details?.service_contact_number) ? serviceDoc?.basic_details?.service_contact_number : "",
         vendor_manager_contact_email: vendorDoc?.email || "",
-        customer_contact_number: isValidINMobile(customerDoc?.contact_number) ? customerDoc?.contact_number : "",
-        customer_contact_email: customerDoc?.email_address || "",
+        customer_contact_number: customerPhone,
+        customer_contact_email: customerEmail,
 
         // Payment status for advance flow
         already_paid_amount: payment_type === "advance" ? Number(order_amount) : 0,
@@ -829,12 +853,12 @@ const verifyCustomerPayment = async (req, res) => {
 
 
     const customerPayload = {
-      id: customerDoc.customer_id,
-      name: customerDoc.customer_name,
-      email: customerDoc.email_address,
-      mobile: customerDoc.contact_number,
-      address: customerDoc.customer_address || finalOrder?.location || "",
-      pincode: customerDoc.pincode || "",
+      id: finalCustomerId,
+      name: customerName,
+      email: customerEmail,
+      mobile: customerPhone,
+      address: customerDoc?.customer_address || finalOrder?.event_location || finalOrder?.location || "",
+      pincode: customerDoc?.pincode || "",
     };
 
     const vendorPayload = {
@@ -900,7 +924,12 @@ const verifyCustomerPayment = async (req, res) => {
     console.log("Invoice generated successfully");
     return res.status(200).json({ message: "Customer payment verified", payment, event_id });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error("❌ verifyCustomerPayment UNEXPECTED ERROR:", error?.response?.data || error.message);
+    if (error.response) {
+        console.error("Error Status:", error.response.status);
+        console.error("Error Data:", JSON.stringify(error.response.data, null, 2));
+    }
+    return res.status(500).json({ error: error.message, details: error?.response?.data });
   }
 };
 

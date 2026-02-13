@@ -10,8 +10,6 @@ import CustomerEnquiry from "../models/customerEnquiry.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
-dotenv.config();
-
 // Helper to verify JWT token
 const verifyAuth = (req) => {
   const authHeader = req.headers.authorization;
@@ -129,12 +127,50 @@ export const initializeAnonymousChat = async (req, res) => {
     // 2. OR it's a shared link and we haven't sent the greeting yet
     // AND there are no messages in the chat yet
     // NOTE: For logged-in users migrating from anon, messageCount might be > 0, so we skip greeting.
-    if ((isNewChat || isSharedLink) && messageCount === 0 && !chat.is_auto_initialised) {
+    // Trigger greeting flow if chat hasn't been auto-initialised yet
+    // We remove other checks to ensure this runs for any first-time initialization
+    if (!chat.is_auto_initialised) {
       console.log(`[DEBUG] Triggering automated greeting flow for chat_id=${chat.chat_id}`);
       
       // Mark as auto-initialised immediately to prevent duplicate flows
       chat.is_auto_initialised = true;
       await chat.save();
+  
+      // Trigger admin notification immediately (Main Flow)
+      try {
+        const greetingText = "Hey there! Thanks for choosing Eventory.";
+
+        // Slack Notification
+        try {
+            await sendSlackAnonChatMessage({
+                chatId: chat.chat_id,
+                anonCustomerId: userId,
+                messageContent: greetingText,
+                metadata: { type: "auto_greeting" }
+            });
+        } catch (slackErr) {
+            console.error("Slack notification failed:", slackErr);
+        }
+        
+        const allEMs = await EventManager.find({});
+        
+        if (allEMs.length > 0) {
+          const notifications = allEMs.map((em) => ({
+            em_id: em.em_id,
+            chat_id: chat.chat_id,
+            message: `New Chat Started [${userId}]: ${greetingText}...`,
+            notification_type: "chat_message",
+            timestamp: new Date().toISOString(),
+            read: false,
+            updated_at: new Date().toISOString()
+          }));
+          
+          await EMNotifications.insertMany(notifications);
+          console.log(`[NOTIFY] Admin notifications sent to ${allEMs.length} EMs.`);
+        }
+      } catch (notifErr) {
+        console.error("Failed to send admin notification for new chat:", notifErr);
+      }
   
       const io = req.io;
   
@@ -336,7 +372,18 @@ export const sendAnonymousMessage = async (req, res) => {
       await chat.save();
     }
 
-    if (isNewChat) {
+    // Check for previous user messages to determine if we should notify
+    // (Notify if it's a new chat OR if this is the first message from the user)
+    const previousUserMsg = await Message.findOne({
+      chat_id: chat.chat_id,
+      sender: { $in: ["customer", "anonymous_customer"] },
+      _id: { $ne: newMessage._id } // Exclude the message we just created
+    }).select("_id").lean();
+
+    const shouldNotify = isNewChat || !previousUserMsg;
+
+    if (shouldNotify) {
+      console.log(`[NOTIFY] Triggering admin notification for chat ${chat.chat_id} (New: ${isNewChat}, FirstUserMsg: ${!previousUserMsg})`);
       sendSlackAnonChatMessage({
         chatId: chat.chat_id,
         anonCustomerId: sender_id, // Use generic ID field name in slack util if possible, but keeping for now
@@ -351,7 +398,7 @@ export const sendAnonymousMessage = async (req, res) => {
           const notifications = allEMs.map((em) => ({
             em_id: em.em_id,
             chat_id: chat.chat_id,
-            message: `A new ${sender} started a chat (${sender_id}), check the recent inquiry!`,
+            message: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`,
             notification_type: "chat_message",
             timestamp: new Date().toISOString(),
             read: false,

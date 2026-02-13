@@ -2,6 +2,8 @@ import Message from "../models/message2.js";
 import CustomerEnquiry from "../models/customerEnquiry.js";
 import Chat from "../models/chats.js";
 import generateUniqueId from "../utils/generateId.js";
+import AnonCustomerOrder from "../models/anonCustomerOrder.js";
+import CustomerNotification from "../models/customerNotifications.js";
 
 export const handleInteractiveMessage = async (chatId, socketSenderId, messageContent, io) => {
     try {
@@ -54,6 +56,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 });
                 if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", orderSummaryMsg.toObject());
 
+                // Trigger customer notification
+                await triggerCustomerNotification(userId, chatId, "Great choice! Here is the summary of your order.", io);
+
                 // Send Confirmation Options
                 const confirmMsg = await Message.create({
                     chat_id: chatId,
@@ -68,6 +73,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     ]
                 });
                 if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", confirmMsg.toObject());
+                
+                // Trigger customer notification
+                await triggerCustomerNotification(userId, chatId, "Would you like to proceed with this order?", io);
             } else {
                 const ackMsg = await Message.create({
                     chat_id: chatId,
@@ -78,11 +86,28 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     message_type: "text"
                 });
                 if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", ackMsg.toObject());
+
+                // Trigger customer notification
+                await triggerCustomerNotification(userId, chatId, "Got it. We'll look for other options.", io);
             }
             return;
         }
 
         if (messageContent.startsWith("CONFIRM_ORDER:")) {
+            // Update order status to approved
+            try {
+                const order = await AnonCustomerOrder.findOneAndUpdate(
+                    { chat_id: chatId, order_status: { $ne: 'converted' } },
+                    { $set: { order_status: 'approved' } },
+                    { new: true, sort: { created_at: -1 } }
+                );
+                if (order) {
+                    console.log(`[ORDER] Order ${order.anon_order_id} marked as approved via chat confirmation.`);
+                }
+            } catch (err) {
+                console.error("[ERROR] Failed to update order status on confirmation:", err);
+            }
+
              const loginMsg = await Message.create({
                 chat_id: chatId,
                 chat_type: chat.chat_type,
@@ -93,6 +118,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 action: "login_redirect"
             });
             if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", loginMsg.toObject());
+
+            // Trigger customer notification
+            await triggerCustomerNotification(userId, chatId, "To save your order and proceed to checkout, please login or sign up.", io);
             return;
         }
 
@@ -142,6 +170,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
                 if (io) {
                     io.to(`${chatId}-${chat.chat_type}`).emit("new_message", timeOptionsMsg.toObject());
+                    
+                    // Trigger customer notification
+                    await triggerCustomerNotification(userId, chatId, "How soon is your event?", io);
                     console.log(`[FLOW 5] Event time options sent: chat_id=${chatId}`);
                 }
             }, 1000);
@@ -178,6 +209,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 });
                 if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", assigningMsg.toObject());
 
+                // Trigger customer notification
+                await triggerCustomerNotification(userId, chatId, "We're assigning an event manager to assist you with your query.", io);
+
                 // 2. Processing / Review prompt
                 setTimeout(async () => {
                     const processingMsg = await Message.create({
@@ -194,6 +228,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     });
                     if (io) {
                         io.to(`${chatId}-${chat.chat_type}`).emit("new_message", processingMsg.toObject());
+                        
+                        // Trigger customer notification
+                        await triggerCustomerNotification(userId, chatId, "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.", io);
                         console.log(`[FLOW 7] Reviews and connecting message sent: chat_id=${chatId}`);
                     }
                 }, 1500);
@@ -205,5 +242,31 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
     } catch (error) {
         console.error("Error in handleInteractiveMessage:", error);
+    }
+};
+
+// Helper to trigger customer notification
+const triggerCustomerNotification = async (customerId, chatId, messageContent, io) => {
+    try {
+        const notification = new CustomerNotification({
+            customer_id: customerId,
+            chat_id: chatId,
+            notification_type: 'chat_message',
+            message: `New message from Eventory: ${messageContent.length > 50 ? messageContent.substring(0, 47) + '...' : messageContent}`,
+            read: false,
+        });
+        await notification.save();
+
+        if (io) {
+            const customerRoom = `notifications-${customerId}`;
+            io.to(customerRoom).emit("new_notification", {
+                type: 'chat_message',
+                chat_id: chatId,
+                message: notification.message,
+                timestamp: notification.createdAt,
+            });
+        }
+    } catch (err) {
+        console.error("Failed to trigger automated customer notification:", err);
     }
 };
