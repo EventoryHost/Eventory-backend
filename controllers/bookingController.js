@@ -9,6 +9,8 @@ import { Calendar } from "../models/calendar.js";
 import { sendSlackBookingMessage } from "../utils/slackNotifier.js";
 import Quotations from "../models/quotations.js";
 import Order from "../models/orders.js";
+import AnonCustomerOrder from "../models/anonCustomerOrder.js";
+import Message from "../models/message2.js";
 
 const toUpperEnum = (v) => (typeof v === "string" ? v.trim().toUpperCase() : v);
 const toISODate = (v) => (v ? new Date(v) : null);
@@ -251,6 +253,89 @@ export const createBooking = async (req, res) => {
         { em_id, service_id, quotation_id },
         { $set: orderUpdatePayload }
       );
+    }
+
+    // Handle anonymous order conversion if applicable
+    let effectiveQuotationId = quotation_id || body.quotationId;
+    
+    // Fallback: If quotation_id is missing, try to find it via Order if event_id is an Order ID (ODR...)
+    if (!effectiveQuotationId && event_id && event_id.startsWith("ODR")) {
+      console.log(`[BOOKING] quotation_id missing. Attempting lookup via Order ID: ${event_id}`);
+      try {
+        const sourceOrder = await Order.findOne({ order_id: event_id });
+        if (sourceOrder && sourceOrder.quotation_id) {
+            effectiveQuotationId = sourceOrder.quotation_id;
+            console.log(`[BOOKING] Resolved quotation_id from Order: ${effectiveQuotationId}`);
+        }
+      } catch (err) {
+        console.error("[BOOKING] Failed to lookup Order:", err);
+      }
+    }
+
+    console.log(`[BOOKING] Checking for anonymous order conversion. Effective Quotation ID: '${effectiveQuotationId}'`);
+    
+    if (effectiveQuotationId && effectiveQuotationId.startsWith("ANON_ODR_")) {
+      console.log(`[BOOKING] Match found for ANON_ODR_. Converting...`);
+      
+      const anonOrder = await AnonCustomerOrder.findOneAndUpdate(
+        { anon_order_id: effectiveQuotationId },
+        {
+          $set: {
+            order_status: "converted",
+            converted_to_order_id: saved.event_id || saved._id,
+            converted_at: new Date(),
+          },
+        },
+        { new: true }
+      );
+      
+      if (!anonOrder) {
+        console.error(`[BOOKING] ❌ FATAL: AnonCustomerOrder NOT FOUND for ID: ${quotation_id}`);
+      } else {
+        console.log(`[BOOKING] ✅ AnonCustomerOrder marked as converted.`);
+      }
+
+      if (anonOrder) {
+        // Update the chat message card_data to reflect "converted" status
+        // Update both order_summary and approval_request types
+        // Broaden query to match anon_order_id OR quotation_id in card_data
+        const updateResult = await Message.updateMany(
+          {
+            $or: [
+              { "card_data.anon_order_id": effectiveQuotationId },
+              { "card_data.quotation_id": effectiveQuotationId }
+            ],
+            message_type: { $in: ["order_summary", "approval_request"] },
+          },
+          { $set: { "card_data.order_status": "converted" } }
+        );
+
+        console.log(`[BOOKING] Updated ${updateResult.modifiedCount} chat messages to converted status for ${effectiveQuotationId}`);
+
+        // Emit socket event for real-time update
+        if (req.io && anonOrder.chat_id) {
+          const chat = await Chat.findOne({ chat_id: anonOrder.chat_id });
+          const chatType = chat ? chat.chat_type : "anon_customer-admin";
+          
+          const rooms = [
+            `${anonOrder.chat_id}-${chatType}`,
+            `${anonOrder.chat_id}-anon_customer-admin`,
+            `${anonOrder.chat_id}-customer-admin`
+          ];
+          const uniqueRooms = [...new Set(rooms)];
+          
+          uniqueRooms.forEach(roomId => {
+            req.io.to(roomId).emit("order_status_updated", {
+              anon_order_id: effectiveQuotationId,
+              new_status: "converted",
+              event_id: saved.event_id || saved._id
+            });
+          });
+          console.log(`[BOOKING] Emitted order_status_updated for ${effectiveQuotationId} to rooms: ${uniqueRooms.join(', ')}`);
+        }
+      } else {
+        console.warn(`[BOOKING] AnonCustomerOrder not found for conversion: ${effectiveQuotationId}`);
+      }
     }
 
     if (process.env.IS_DEV !== 'true') {

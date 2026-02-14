@@ -50,8 +50,7 @@ export const authenticateEMAdmin = async (req, res) => {
         contact_name: user.contact_name,
         role: "rmadmin",
       },
-      JWT_SECRET,
-      { expiresIn: "7d" } // 7-day expiry
+      JWT_SECRET
     );
 
     // 4️⃣ Return token + user info
@@ -132,8 +131,7 @@ export const authenticateSalesAdmin = async (req, res) => {
         contact_name: user.contact_name,
         role: "sales_admin",
       },
-      JWT_SECRET,
-      { expiresIn: "7d" }
+      JWT_SECRET
     );
 
     // 4️⃣ Return token + user info

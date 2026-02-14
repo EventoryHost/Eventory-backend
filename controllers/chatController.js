@@ -24,6 +24,13 @@ export const handleSocketConnection = (socket, io) => {
       console.log("🔍 Chat lookup:", chat);
 
       if (!chat) {
+        // Special case: allow joining notification rooms for unread marker support
+        if (chat_id.startsWith("notifications-")) {
+            socket.join(chat_id);
+            socket.emit("joined", `Joined notification room ${chat_id}`);
+            console.log(`🔔 Socket ${socket.id} joined notification room ${chat_id}`);
+            return;
+        }
         socket.emit("error", "Chat room does not exist");
         return;
       }
@@ -299,6 +306,37 @@ export const handleSocketConnection = (socket, io) => {
         console.log(
           `📤 ${savedMessage.sender} sent ${savedMessage.message_type} message in chat ${savedMessage.chat_id} (${chat_type})`
         );
+
+        // ------------------- CUSTOMER NOTIFICATION -------------------
+        if ((sender === "em" || sender === "admin") && 
+            (chat_type === "customer-admin" || chat_type === "anon_customer-admin")) {
+          const customerId = chat.customer_id || chat.anon_customer_id;
+          if (customerId) {
+            try {
+              const notification = new customerNotification({
+                customer_id: customerId,
+                chat_id: chat_id,
+                notification_type: 'chat_message',
+                message: `New message from Eventory: ${message_content.length > 50 ? message_content.substring(0, 47) + '...' : message_content}`,
+                read: false,
+              });
+              await notification.save();
+
+              // Emit notification to customer room
+              const customerRoom = `notifications-${customerId}`;
+              io.to(customerRoom).emit("new_notification", {
+                type: 'chat_message',
+                chat_id: chat_id,
+                message: notification.message,
+                timestamp: notification.createdAt,
+              });
+              
+              console.log(`🔔 Notification sent to customer ${customerId}`);
+            } catch (notifErr) {
+              console.error("Failed to create customer notification:", notifErr);
+            }
+          }
+        }
 
         // ------------------- ACK TO SENDER -------------------
         if (typeof callback === "function") {
