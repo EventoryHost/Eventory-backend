@@ -377,8 +377,7 @@ const verifyLoginOtp = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.vendor_id, mobile: user.vendor_mobile },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      process.env.JWT_SECRET
     ); // Return the user object, which contains the service_types array
 
     res.status(200).json({ message: "Login successful", token, user });
@@ -437,9 +436,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
         name: customer.customer_name,
       };
 
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: "24h",
-      });
+      const token = jwt.sign(payload, process.env.JWT_SECRET);
 
       return res.status(200).json({
         message: "Login Success",
@@ -468,9 +465,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
       name: user.customer_name,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "24h",
-    });
+    const token = jwt.sign(payload, process.env.JWT_SECRET);
 
     return res.status(200).json({
       message: "Login Success",
@@ -537,8 +532,7 @@ const googleCallback = async (req, res) => {
     // Create session token
     const sessionToken = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      process.env.JWT_SECRET
     );
 
     res.redirect(
