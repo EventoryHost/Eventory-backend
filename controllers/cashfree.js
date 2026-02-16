@@ -407,8 +407,8 @@ const verifyCustomerPayment = async (req, res) => {
     console.log(`[VerifyPayment] Payment Type: ${payment_type}, Payout Amount Calculated: ${payoutAmount}, Receivable was: ${receivableFromOrder}, Already Paid was: ${alreadyPaid}`);
 
     if (payoutAmount === null || payoutAmount === undefined || isNaN(payoutAmount)) {
-        console.error(`[VerifyPayment] 400: Invalid payoutAmount: ${payoutAmount}`);
-        return res.status(400).json({ error: `Invalid payout amount calculated: ${payoutAmount}` });
+      console.error(`[VerifyPayment] 400: Invalid payoutAmount: ${payoutAmount}`);
+      return res.status(400).json({ error: `Invalid payout amount calculated: ${payoutAmount}` });
     }
 
     const vendorDoc = await Vendor.findOne({ vendor_id });
@@ -450,7 +450,6 @@ const verifyCustomerPayment = async (req, res) => {
 
     const primaryBank = serviceDoc.bank_details;
     let beneficiary_id = primaryBank.beneficiary_id;
-
     if (!beneficiary_id) {
       beneficiary_id = generateUniqueId("BENE");
       primaryBank.beneficiary_id = beneficiary_id;
@@ -465,38 +464,42 @@ const verifyCustomerPayment = async (req, res) => {
 
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
-    try {
-      await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
-      hasBeneficiary = true;
-    } catch (e) {
-      const status = e?.response?.status;
-      if (status !== 404) {
-        return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
-      }
-    }
 
-
-    if (!hasBeneficiary) {
-      const createBody = {
-        beneficiary_id: beneficiary_id,
-        beneficiary_name: vendorName,
-        beneficiary_instrument_details: {
-          bank_account_number: primaryBank.account_number,
-          bank_ifsc: primaryBank.ifsc,
-        },
-        beneficiary_contact_details: {
-          beneficiary_email: vendorDoc.email || "noreply@example.com",
-          beneficiary_phone: (vendorDoc.vendor_mobile || "").replace(/\D/g, "").slice(-10),
-          beneficiary_country_code: "+91",
-        },
-      };
+    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
       try {
-        await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+        await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
+        hasBeneficiary = true;
       } catch (e) {
-        return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+        const status = e?.response?.status;
+        if (status !== 404) {
+          return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
+        }
       }
     }
 
+
+    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+      if (!hasBeneficiary) {
+        const createBody = {
+          beneficiary_id: beneficiary_id,
+          beneficiary_name: vendorName,
+          beneficiary_instrument_details: {
+            bank_account_number: primaryBank.account_number,
+            bank_ifsc: primaryBank.ifsc,
+          },
+          beneficiary_contact_details: {
+            beneficiary_email: vendorDoc.email || "noreply@example.com",
+            beneficiary_phone: (vendorDoc.vendor_mobile || "").replace(/\D/g, "").slice(-10),
+            beneficiary_country_code: "+91",
+          },
+        };
+        try {
+          await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+        } catch (e) {
+          return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+        }
+      }
+    }
     const transfer_id = generateUniqueId("TRN");
 
     await Transaction.create({
@@ -537,26 +540,28 @@ const verifyCustomerPayment = async (req, res) => {
     };
 
     let transferResp;
-    try {
-      transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-    } catch (e) {
-      await Transaction.findOneAndUpdate(
-        { transfer_id: transfer_id },
-        {
-          $set: {
-            status: "FAILED_INIT",
-            cf_transfer_id: null,
-            transfer_amount: payoutAmount,
-            transfer_mode: "IMPS",
-            added_on: undefined,
-            updated_on: new Date(),
-          },
-        },
-        { new: true }
-      );
-      return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
-    }
 
+    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+      try {
+        transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+      } catch (e) {
+        await Transaction.findOneAndUpdate(
+          { transfer_id: transfer_id },
+          {
+            $set: {
+              status: "FAILED_INIT",
+              cf_transfer_id: null,
+              transfer_amount: payoutAmount,
+              transfer_mode: "IMPS",
+              added_on: undefined,
+              updated_on: new Date(),
+            },
+          },
+          { new: true }
+        );
+        return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+      }
+    }
     const transferData = transferResp?.data || {};
     await Transaction.findOneAndUpdate(
       { transfer_id },
@@ -926,8 +931,8 @@ const verifyCustomerPayment = async (req, res) => {
   } catch (error) {
     console.error("❌ verifyCustomerPayment UNEXPECTED ERROR:", error?.response?.data || error.message);
     if (error.response) {
-        console.error("Error Status:", error.response.status);
-        console.error("Error Data:", JSON.stringify(error.response.data, null, 2));
+      console.error("Error Status:", error.response.status);
+      console.error("Error Data:", JSON.stringify(error.response.data, null, 2));
     }
     return res.status(500).json({ error: error.message, details: error?.response?.data });
   }
