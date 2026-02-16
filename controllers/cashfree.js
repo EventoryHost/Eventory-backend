@@ -465,14 +465,14 @@ const verifyCustomerPayment = async (req, res) => {
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
 
+    // Non-blocking Beneficiary Handling
     if (finalOrder?.vendor_id !== "VEN05012026111140552") {
       try {
         await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
         hasBeneficiary = true;
       } catch (e) {
-        const status = e?.response?.status;
-        if (status !== 404) {
-          return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
+        if (e?.response?.status !== 404) {
+          console.error("[VerifyPayment] Error fetching beneficiary:", e?.response?.data || e.message);
         }
       }
     }
@@ -495,13 +495,17 @@ const verifyCustomerPayment = async (req, res) => {
         };
         try {
           await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+          hasBeneficiary = true;
         } catch (e) {
-          return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+          console.error("[VerifyPayment] Error creating beneficiary:", e?.response?.data || e.message);
+          // If beneficiary fails, hasBeneficiary remains false, and transfer will likely fail or be skipped.
         }
       }
     }
+
     const transfer_id = generateUniqueId("TRN");
 
+    // Create Initial Transaction Record (Pre-transfer)
     await Transaction.create({
       quotation_id,
       internalOrderId,
@@ -532,73 +536,53 @@ const verifyCustomerPayment = async (req, res) => {
       },
     });
 
-    const transferBody = {
-      transfer_id: transfer_id,
-      transfer_amount: payoutAmount,
-      beneficiary_details: { beneficiary_id: beneficiary_id },
-      transfer_mode: "imps",
-    };
-
-    let transferResp;
-
+    // Payout Transfer Logic (Non-blocking for the customer)
     if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+      const transferBody = {
+        transfer_id: transfer_id,
+        transfer_amount: payoutAmount,
+        beneficiary_details: { beneficiary_id: beneficiary_id },
+        transfer_mode: "imps",
+      };
+
       try {
-        transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+        const transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+        const transferData = transferResp?.data || {};
+
+        // Update transaction with actual transfer record details from Cashfree
+        await Transaction.findOneAndUpdate(
+          { transfer_id },
+          {
+            $set: {
+              cf_transfer_id: transferData.cf_transfer_id || null,
+              status: transferData.status || "RECEIVED", // Cashfree usually returns RECEIVED or SUCCESS
+              transfer_amount: transferData.transfer_amount ?? payoutAmount,
+              transfer_mode: transferData.transfer_mode || "IMPS",
+              transfer_utr: transferData.transfer_utr || null,
+              added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+              updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+            },
+          },
+          { new: true }
+        );
       } catch (e) {
+        console.error("[VerifyPayment] Payout transfer initiation failed:", e?.response?.data || e.message);
+        // Update transaction to FAILED_INIT so admin can retry later
         await Transaction.findOneAndUpdate(
           { transfer_id: transfer_id },
           {
             $set: {
               status: "FAILED_INIT",
-              cf_transfer_id: null,
-              transfer_amount: payoutAmount,
-              transfer_mode: "IMPS",
-              added_on: undefined,
               updated_on: new Date(),
             },
           },
           { new: true }
         );
-        return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+        // Important: We do NOT return an error to the user here. 
+        // The customer's payment (verified at the top of this function) was successful.
       }
     }
-    const transferData = transferResp?.data || {};
-    await Transaction.findOneAndUpdate(
-      { transfer_id },
-      {
-        $set: {
-          vendor_id,
-          customer_id: finalCustomerId,
-          service_id,
-          pgOrderId: order_id,
-          pgStatus: payment.order_status,
-          beneficiary_id,
-          cf_transfer_id: transferData.cf_transfer_id || null,
-          status: transferData.status || null,
-          transfer_amount: transferData.transfer_amount ?? payoutAmount,
-          transfer_mode: transferData.transfer_mode || "IMPS",
-          transfer_utr: transferData.transfer_utr || null,
-          added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-          updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-          payment_type,
-          paymentDetails: {
-            customerPayable: {
-              total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-              baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-              convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-              taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-            },
-            vendorReceivable: {
-              total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-              baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-              commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-              taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-            },
-          },
-        },
-      },
-      { new: true }
-    );
+
 
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
