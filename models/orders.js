@@ -102,7 +102,7 @@ const ordersSchema = new Schema({
   },
   quotation_id: {
     type: String,
-    required: true
+    // required: true -- Made optional for Custom Orders
     // QUOyyyymmddhhmmss, which quotation got converted to order
   },
   vendor_manager_name: {
@@ -212,14 +212,15 @@ const ordersSchema = new Schema({
   },
   vendor_manager_contact_number: {
     type: String,
-    required: true
+    // required: true -- Made optional for Custom Orders
     // Phone number of vendor (ONLY VISIBLE TO EM)
   },
   vendor_manager_contact_email: {
     type: String,
-    required: true,
+    // required: true -- Made optional for Custom Orders
     validate: {
       validator: function (v) {
+        if (!v) return true; // Allow null/empty
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
       message: 'Invalid email format'
