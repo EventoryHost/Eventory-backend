@@ -29,6 +29,8 @@ import { sendInvoiceToWhatsApp } from "./waController.js";
 import axios from "axios";
 import { Customer } from "../models/customer.js";
 import { Events } from "../models/events.js";
+import Message from "../models/message2.js";
+import Chat from "../models/chats.js";
 
 const isValidINMobile = (s) => typeof s === "string" && /^[6-9]\d{9}$/.test(s);
 
@@ -45,6 +47,71 @@ const createOrder = async (req, res) => {
   currency = currency || "INR";
 
   try {
+    const { vendor_id, service_id, chat_id, order_id: internal_order_id } = req.body;
+
+    // BLOcking: Check for vendor bank details before order creation
+    if (service_id) {
+      const prefix = service_id.substring(0, 4).toUpperCase();
+      let serviceModel = null;
+      if (prefix.startsWith("CAT")) serviceModel = Caterer;
+      else if (prefix.startsWith("DECO")) serviceModel = Decorator;
+      else if (prefix.startsWith("VNP")) serviceModel = VenueProvider;
+      else if (prefix.startsWith("PAV")) serviceModel = Photographer;
+      else if (prefix.startsWith("MKA")) serviceModel = MakeupArtist;
+      else if (prefix.startsWith("DJS")) serviceModel = DjArtist;
+
+      if (serviceModel) {
+        const serviceDoc = await serviceModel.findOne({ service_id });
+        const bankDetailsValid = !!(serviceDoc?.bank_details && serviceDoc.bank_details.account_number);
+        if (!bankDetailsValid) {
+          console.warn(`[createOrder] 🛑 Blocking order creation. Bank details missing for service: ${service_id}`);
+          
+          // Notify EM
+          try {
+            let em_id = "ADMIN"; // Fallback
+            let final_chat_id = chat_id;
+            let final_order_id = internal_order_id;
+
+            // Try to find the order to get em_id and chat_id (quotation_id)
+            if (internal_order_id) {
+              const orderDoc = await Order.findOne({ order_id: internal_order_id });
+              if (orderDoc) {
+                em_id = orderDoc.em_id || em_id;
+                final_chat_id = final_chat_id || orderDoc.quotation_id;
+              }
+            } else if (chat_id) {
+              const chatDocArray = await adminNotification.find({ chat_id }).limit(1); // Not the best, but using models we have
+              // Better: search quotations or orders
+              const orderDoc = await Order.findOne({ quotation_id: chat_id });
+              if (orderDoc) {
+                em_id = orderDoc.em_id || em_id;
+                final_order_id = final_order_id || orderDoc.order_id;
+              }
+            }
+
+            if (em_id && final_chat_id) {
+              await adminNotification.create({
+                em_id: em_id,
+                chat_id: final_chat_id,
+                order_id: final_order_id,
+                message: `⚠️ Payment Blocked: Vendor (${vendor_id}) is missing bank details for Service (${service_id}). Please add them immediately to allow customer payment.`,
+                notification_type: 'checkout_message',
+                timestamp: new Date().toISOString()
+              });
+              console.log(`[createOrder] EM Notification created for EM: ${em_id}`);
+            }
+          } catch (notiErr) {
+            console.error("❌ [createOrder] Error creating EM notification:", notiErr);
+          }
+
+          return res.status(400).json({
+            error: "Vendor bank details missing. Payment cannot be processed.",
+            code: "MISSING_BANK_DETAILS"
+          });
+        }
+      }
+    }
+
     const request = {
       order_id: generatePaymentId(),
       order_amount: amount,
@@ -308,6 +375,7 @@ const verifyCustomerPayment = async (req, res) => {
       service_id,
       serviceData,
       customer_id,
+      chat_id,
     } = req.body;
     const response = await cashfree.PGFetchOrder(order_id);
     if (!response.data || response.data.length === 0) {
@@ -316,7 +384,52 @@ const verifyCustomerPayment = async (req, res) => {
 
     const payment = response.data;
     if (payment.order_status !== "PAID") {
-      return res.status(400).json({ error: "Payment not successful" });
+      console.warn(`[VerifyPayment] Payment status for ${order_id} is ${payment.order_status}. Notifying chat.`);
+      
+      try {
+        if (req.io) {
+          const finalOrder = await Order.findOne({ order_id: internal_order_id });
+          const order_quotation_id = finalOrder ? finalOrder.quotation_id : (internal_order_id);
+          const chat = await Chat.findOne({
+            $or: [{ chat_id: chat_id }, { chat_id: order_quotation_id }, { quotation_id: order_quotation_id }],
+          });
+          const finalChatId = chat_id || chat?.chat_id || order_quotation_id;
+          const chatType = chat ? chat.chat_type : (customer_id?.startsWith("ANON") ? "anon_customer-admin" : "customer-admin");
+
+          const failMsg = {
+            chat_id: finalChatId,
+            chat_type: chatType,
+            sender: "admin",
+            sender_id: "SYSTEM",
+            message_type: "system",
+            message_content: `❌ Payment of ₹${order_amount} failed for Order ID: ${internal_order_id}. Status: ${payment.order_status}`,
+            message_sent_at: new Date(),
+            card_data: {
+              type: "payment_failure",
+              status: payment.order_status,
+              order_id: internal_order_id,
+            },
+          };
+          const savedMsg = await Message.create(failMsg);
+
+          // "Dual-Cast" Strategy
+          const rooms = [
+            `${finalChatId}-${chatType}`,
+            `${finalChatId}-customer-admin`,
+            `${finalChatId}-anon_customer-admin`,
+          ];
+          const uniqueRooms = [...new Set(rooms)];
+
+          console.log(`[VerifyPayment] Emitting FAILURE to rooms: ${uniqueRooms.join(', ')}`);
+          uniqueRooms.forEach(roomId => {
+            req.io.to(roomId).emit("new_message", savedMsg);
+          });
+        }
+      } catch (err) {
+        console.error("❌ Failed to send failure notification to chat:", err.message);
+      }
+
+      return res.status(400).json({ error: "Payment not successful", status: payment.order_status });
     }
 
     // Fetch the final order to get required IDs
@@ -326,8 +439,13 @@ const verifyCustomerPayment = async (req, res) => {
       console.log(`[VerifyPayment] Order not found by order_id, trying quotation_id: ${internal_order_id}`);
       finalOrder = await Order.findOne({ quotation_id: internal_order_id }).lean();
       if (!finalOrder) {
-        console.error(`[VerifyPayment] 404: Final order not found for internal_order_id: ${internal_order_id}`);
-        return res.status(404).json({ error: "Final order not found for internal_order_id", internal_order_id });
+        console.error(`[VerifyPayment] ⚠️ Final order not found for internal_order_id: ${internal_order_id}. BUT payment is PAID. Returning SUCCESS to frontend for recovery.`);
+        return res.status(200).json({ 
+          message: "Payment verified, but internal order sync pending", 
+          payment_status: payment.order_status,
+          order_id: internal_order_id,
+          no_order_record: true 
+        });
       }
     }
     console.log(`[VerifyPayment] Found Order: ${finalOrder.order_id}, customer_id: ${finalOrder.customer_id}`);
@@ -377,6 +495,58 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
+    // Success Socket Emission
+    if (req.io) {
+      try {
+        const chat = await Chat.findOne({
+          $or: [{ chat_id: chat_id }, { chat_id: quotation_id }, { quotation_id: quotation_id }],
+        });
+        const finalChatId = chat_id || chat?.chat_id || quotation_id;
+        const chatType = chat ? chat.chat_type : (finalCustomerId?.startsWith("ANON") ? "anon_customer-admin" : "customer-admin");
+
+        const successMsg = {
+          chat_id: finalChatId,
+          chat_type: chatType,
+          sender: "admin",
+          sender_id: "SYSTEM",
+          message_type: "system",
+          message_content: `✅ Payment of ₹${order_amount} received successfully for Order ID: ${internalOrderId}. Status: PAID`,
+          message_sent_at: new Date(),
+          card_data: {
+            type: "payment_success",
+            status: "PAID",
+            order_id: internalOrderId,
+            amount: order_amount,
+          },
+        };
+
+        const savedMsg = await Message.create(successMsg);
+
+        await Chat.updateOne(
+          { chat_id: finalChatId },
+          { $set: { last_message_updated_at: new Date(), chat_updated_at: new Date() } }
+        );
+
+        const rooms = [
+          `${finalChatId}-${chatType}`,
+          `${finalChatId}-customer-admin`,
+          `${finalChatId}-anon_customer-admin`,
+        ];
+        const uniqueRooms = [...new Set(rooms)];
+
+        console.log(`[VerifyPayment] Emitting SUCCESS to rooms: ${uniqueRooms.join(', ')}`);
+        uniqueRooms.forEach(roomId => {
+          req.io.to(roomId).emit("new_message", savedMsg);
+          req.io.to(roomId).emit("order_status_updated", {
+            anon_order_id: quotation_id || internalOrderId,
+            new_status: payment_type === "advance" ? "Partially Paid" : "Fully Paid",
+          });
+        });
+      } catch (ioErr) {
+        console.error("❌ [VerifyPayment] Error emitting success notification:", ioErr);
+      }
+    }
+
     const receivableFromOrder =
       Number(
         finalOrder?.paymentDetails?.vendorReceivable?.total != null
@@ -413,8 +583,8 @@ const verifyCustomerPayment = async (req, res) => {
 
     const vendorDoc = await Vendor.findOne({ vendor_id });
     if (!vendorDoc) {
-      console.error(`[VerifyPayment] 404: Vendor not found for ID: ${vendor_id}. Search query: { vendor_id: "${vendor_id}" }`);
-      return res.status(404).json({ error: `Vendor not found for ID: ${vendor_id}` });
+      console.error(`[VerifyPayment] ⚠️ Vendor not found for ID: ${vendor_id}. Search query: { vendor_id: "${vendor_id}" }. BUT payment is PAID. Proceeding.`);
+      // return res.status(404).json({ error: `Vendor not found for ID: ${vendor_id}` });
     }
 
     const customerDoc = await Customer.findOne({ customer_id: finalCustomerId });
@@ -426,30 +596,31 @@ const verifyCustomerPayment = async (req, res) => {
 
     const ServiceModel = await getServiceModelById(service_id);
     if (!ServiceModel) {
-      return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
+      console.error(`[VerifyPayment] ⚠️ Invalid service_id prefix in ${service_id}. BUT payment is PAID. Proceeding.`);
+      // return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
     }
 
-    const serviceDoc = await ServiceModel.findOne({ service_id });
+    const serviceDoc = ServiceModel ? await ServiceModel.findOne({ service_id }) : null;
     if (!serviceDoc) {
-      console.error(`[VerifyPayment] 404: Service not found for ID: ${service_id}. Search query: { service_id: "${service_id}" }`);
-      return res.status(404).json({ error: `No service found for service_id: ${service_id}` });
+      console.error(`[VerifyPayment] ⚠️ Service/Model not found for ID: ${service_id}. BUT payment is PAID. Proceeding.`);
     }
 
-    if (!serviceDoc.bank_details || Object.keys(serviceDoc.bank_details).length === 0) {
-      return res.status(400).json({ error: "Bank details missing for this service" });
+    let bankDetailsValid = !!(serviceDoc?.bank_details && Object.keys(serviceDoc.bank_details).length > 0);
+    if (!bankDetailsValid) {
+      console.warn(`⚠️ [VerifyPayment] Bank details missing or invalid for service ${service_id}. Payout will be skipped.`);
     }
 
-    // canonical service snapshot we will put into SQS
-    const serviceSnapshot = serviceData || serviceDoc.toObject();
+    // canonical service snapshot
+    const serviceSnapshot = serviceData || (serviceDoc ? serviceDoc.toObject() : {});
 
     // name?? 
-    const vendorName = serviceDoc.business_details.business_registration_name;
+    const vendorName = serviceDoc?.business_details?.business_registration_name || "Vendor";
     const customerName = customerDoc?.customer_name || finalOrder.customer_name || "Guest Customer";
     const customerEmail = customerDoc?.email_address || finalOrder.customer_contact_email || "noreply@eventory.in";
     const customerPhone = customerDoc?.mobile_number || finalOrder.customer_contact_number || "0000000000";
 
-    const primaryBank = serviceDoc.bank_details;
-    let beneficiary_id = primaryBank.beneficiary_id;
+    const primaryBank = serviceDoc?.bank_details || {};
+    let beneficiary_id = primaryBank?.beneficiary_id;
 
     if (!beneficiary_id) {
       beneficiary_id = generateUniqueId("BENE");
@@ -469,9 +640,8 @@ const verifyCustomerPayment = async (req, res) => {
       await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
       hasBeneficiary = true;
     } catch (e) {
-      const status = e?.response?.status;
-      if (status !== 404) {
-        return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
+      if (e?.response?.status !== 404) {
+        console.error("❌ Failed to fetch beneficiary:", e?.response?.data || e.message);
       }
     }
 
@@ -493,11 +663,18 @@ const verifyCustomerPayment = async (req, res) => {
       try {
         await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
       } catch (e) {
-        return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+        console.error("❌ Failed to create beneficiary:", e?.response?.data || e.message);
+        // return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
       }
     }
 
-    const transfer_id = generateUniqueId("TRN");
+    if (!bankDetailsValid) {
+      console.log(`[VerifyPayment] Skipping payout initiation due to missing bank details.`);
+      // Proceed to update order and create event without transaction record or with a pending one?
+      // Better create a transaction record with "FAILED_BANK_DETAILS" status
+    }
+
+    const transfer_id = bankDetailsValid ? generateUniqueId("TRN") : generateUniqueId("TRN_ERR");
 
     await Transaction.create({
       quotation_id,
@@ -529,17 +706,21 @@ const verifyCustomerPayment = async (req, res) => {
       },
     });
 
-    const transferBody = {
-      transfer_id: transfer_id,
-      transfer_amount: payoutAmount,
-      beneficiary_details: { beneficiary_id: beneficiary_id },
-      transfer_mode: "imps",
-    };
+    if (bankDetailsValid) {
+      const transferBody = {
+        transfer_id: transfer_id,
+        transfer_amount: payoutAmount,
+        beneficiary_details: { beneficiary_id: beneficiary_id },
+        transfer_mode: "imps",
+      };
 
+      console.log(`[VerifyPayment] Initiating payout transfer for transfer_id: ${transfer_id}`);
     let transferResp;
     try {
       transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+      console.log(`[VerifyPayment] Payout transfer initiated successfully for ${transfer_id}`);
     } catch (e) {
+      console.error(`❌ [VerifyPayment] Payout transfer initiation FAILED for ${transfer_id}:`, e?.response?.data || e.message);
       await Transaction.findOneAndUpdate(
         { transfer_id: transfer_id },
         {
@@ -554,46 +735,68 @@ const verifyCustomerPayment = async (req, res) => {
         },
         { new: true }
       );
-      return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+      // 🔥 CRITICAL FIX: Do NOT return error here. The customer HAS PAID. 
+      // We just failed to payout to the vendor, which we can handle manually or via retry.
+      console.warn(`⚠️ [VerifyPayment] Proceeding despite payout failure so customer is not redirected to FAILED page.`);
+      // return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message }); 
     }
 
-    const transferData = transferResp?.data || {};
-    await Transaction.findOneAndUpdate(
-      { transfer_id },
-      {
-        $set: {
-          vendor_id,
-          customer_id: finalCustomerId,
-          service_id,
-          pgOrderId: order_id,
-          pgStatus: payment.order_status,
-          beneficiary_id,
-          cf_transfer_id: transferData.cf_transfer_id || null,
-          status: transferData.status || null,
-          transfer_amount: transferData.transfer_amount ?? payoutAmount,
-          transfer_mode: transferData.transfer_mode || "IMPS",
-          transfer_utr: transferData.transfer_utr || null,
-          added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-          updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-          payment_type,
-          paymentDetails: {
-            customerPayable: {
-              total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-              baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-              convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-              taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-            },
-            vendorReceivable: {
-              total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-              baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-              commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-              taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+      const transferData = transferResp?.data || {};
+      console.log(`[VerifyPayment] Updating transaction ${transfer_id} with CF response status: ${transferData.status || 'UNKNOWN'}`);
+      await Transaction.findOneAndUpdate(
+        { transfer_id },
+        {
+          $set: {
+            vendor_id,
+            customer_id: finalCustomerId,
+            service_id,
+            pgOrderId: order_id,
+            pgStatus: payment.order_status,
+            beneficiary_id,
+            cf_transfer_id: transferData.cf_transfer_id || null,
+            status: transferData.status || (transferResp ? "PENDING" : "FAILED_INIT"), // Support fallback if transferResp was caught
+            transfer_amount: transferData.transfer_amount ?? payoutAmount,
+            transfer_mode: transferData.transfer_mode || "IMPS",
+            transfer_utr: transferData.transfer_utr || null,
+            added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+            updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+            payment_type,
+            paymentDetails: {
+              customerPayable: {
+                total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+                baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+                convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+                taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+              },
+              vendorReceivable: {
+                total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+                baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+                commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+                taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+              },
             },
           },
         },
-      },
-      { new: true }
-    );
+        { new: true }
+      );
+    } else {
+      // Record transaction with bank detail error
+      await Transaction.create({
+        quotation_id,
+        internalOrderId,
+        vendor_id,
+        customer_id: finalCustomerId,
+        service_id,
+        pgOrderId: order_id,
+        pgStatus: payment.order_status || null,
+        transfer_id,
+        status: "FAILED_BANK_DETAILS",
+        transfer_amount: payoutAmount,
+        transfer_mode: "IMPS",
+        beneficiary_id: null,
+        payment_type,
+      });
+    }
 
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
@@ -636,6 +839,46 @@ const verifyCustomerPayment = async (req, res) => {
     const customerMessage = `${paymentMode} of ₹${order_amount} done successfully to ${vendorName} for Order ID: ${internalOrderId}`;
     const vendorMessage = `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
     const adminMessage = `${paymentMode} of ₹${order_amount} is done by ${customerName} to ${vendorName} for Order ID: ${internalOrderId}`;
+
+    // Send real-time chat message to Customer
+    try {
+      if (req.io) {
+        console.log(`📡 Emitting payment success message to chat room ${quotation_id}`);
+        
+        // Find chat type to determine sender/chat_type
+        const chat = await Chat.findOne({ chat_id: quotation_id });
+        const chatType = chat?.chat_type || (finalCustomerId.startsWith("ANON") ? "anon_customer-admin" : "customer_admin");
+
+        const msgPayload = {
+          chat_id: quotation_id,
+          chat_type: chatType,
+          sender: "admin", // System/Admin message
+          sender_id: "SYSTEM",
+          message_type: "system",
+          message_content: customerMessage,
+          message_sent_at: new Date(),
+          card_data: {
+            type: "payment_success",
+            amount: order_amount,
+            order_id: internalOrderId,
+            vendor_name: vendorName,
+            payment_type: payment_type
+          }
+        };
+
+        const savedMsg = await Message.create(msgPayload);
+        req.io.to(quotation_id).emit("new_message", savedMsg);
+        
+        // Also emit to vendor room if active
+        if (vendor_id) {
+          req.io.to(vendor_id).emit("new_message", savedMsg);
+        }
+      } else {
+        console.warn("⚠️ req.io is missing, cannot emit payment success message");
+      }
+    } catch (msgErr) {
+      console.error("❌ Failed to send real-time payment notification to chat:", msgErr.message);
+    }
 
 
     //notification models are changed
