@@ -29,8 +29,15 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     let finalCustomerId = incomingData.customer_id;
 
     // 🆕 HANDLE NEW CUSTOMER CREATION IF NO CUSTOMER ID
-    if (!finalCustomerId && customer_contact_number) {
-      console.log("🆕 No customer_id, checking if customer exists with number:", customer_contact_number);
+    // 🆕 HANDLE CUSTOMER LOOKUP
+    // Only look up if customer_id is explicitly missing/null OR it looks like a temporary ID
+    const isTempId = finalCustomerId && (finalCustomerId.startsWith("NEW_") || finalCustomerId === "gen_user_id");
+
+    if ((!finalCustomerId || isTempId) && customer_contact_number) {
+      console.log("🆕 Checking for existing customer by number:", customer_contact_number);
+
+      // Normalize number if needed (basic strip for now, assuming standard format)
+      // const normalizedNumber = normalizePhoneNumber(customer_contact_number); 
 
       let existingCustomer = await Customer.findOne({ contact_number: customer_contact_number });
 
@@ -42,6 +49,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         const newCustomer = await Customer.create({
           customer_name: customer_name || "Guest User",
           contact_number: customer_contact_number,
+          customer_contact_email: incomingData.customer_contact_email,
           // Add any other required defaults
         });
         finalCustomerId = newCustomer.customer_id;
@@ -97,11 +105,20 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (em_id) updateFields.em_id = em_id;
 
     // UPSERT THE ORDER
-    const updatedOrder = await Order.findOneAndUpdate(
-      { order_id },
-      { $set: updateFields },
-      { new: true, upsert: true }
-    );
+    // UPSERT OR CREATE ORDER
+    let updatedOrder;
+    if (order_id) {
+      console.log("🔄 Updating existing order:", order_id);
+      updatedOrder = await Order.findOneAndUpdate(
+        { order_id },
+        { $set: updateFields },
+        { new: true, upsert: true } // Upsert is fine if order_id is valid but not found (rare)
+      );
+    } else {
+      console.log("✨ Creating FRESH order (no order_id provided)");
+      // Create new order instance to trigger default order_id generation
+      updatedOrder = await Order.create(updateFields);
+    }
 
     console.log("✅ Final order saved:", updatedOrder.order_id);
 
