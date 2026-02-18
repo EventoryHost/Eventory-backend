@@ -6,6 +6,7 @@ import adminNotification from "../models/emNotifications.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
 import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
+import { Customer } from "../models/customer.js";
 
 export const createOrUpdateFinalOrder = async (req, res) => {
   console.log("\n📩 FINAL ORDER API HIT");
@@ -19,9 +20,47 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       quotation_id,
       em_id,
       paymentDetails,
+      customer_contact_number,
+      customer_name,
       specificTerms,
       ...incomingData
     } = req.body;
+
+    let finalCustomerId = incomingData.customer_id;
+
+    // 🆕 HANDLE NEW CUSTOMER CREATION IF NO CUSTOMER ID
+    // 🆕 HANDLE CUSTOMER LOOKUP
+    // Only look up if customer_id is explicitly missing/null OR it looks like a temporary ID
+    const isTempId = finalCustomerId && (finalCustomerId.startsWith("NEW_") || finalCustomerId === "gen_user_id");
+
+    if ((!finalCustomerId || isTempId) && customer_contact_number) {
+      console.log("🆕 Checking for existing customer by number:", customer_contact_number);
+
+      // Normalize number if needed (basic strip for now, assuming standard format)
+      // const normalizedNumber = normalizePhoneNumber(customer_contact_number); 
+
+      let existingCustomer = await Customer.findOne({ contact_number: customer_contact_number });
+
+      if (existingCustomer) {
+        console.log("✅ Found existing customer:", existingCustomer.customer_id);
+        finalCustomerId = existingCustomer.customer_id;
+      } else {
+        console.log("✨ Creating NEW customer for order");
+        const newCustomer = await Customer.create({
+          customer_name: customer_name || "Guest User",
+          contact_number: customer_contact_number,
+          customer_contact_email: incomingData.customer_contact_email,
+          // Add any other required defaults
+        });
+        finalCustomerId = newCustomer.customer_id;
+        console.log("✅ Created new customer:", finalCustomerId);
+      }
+    }
+
+    if (!finalCustomerId) {
+      console.warn("⚠️ Proceeding without customer_id (migrated legacy behavior or error)");
+    }
+
 
     // if (!quotation_id) {
     //   console.log("❌ quotation_id missing");
@@ -29,7 +68,11 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     // }
 
     // Initialize update fields
-    const updateFields = {};
+    const updateFields = {
+      customer_id: finalCustomerId,
+      customer_name: customer_name,
+      customer_contact_number: customer_contact_number,
+    };
 
     // DELETE OLD APPROVAL MESSAGES FOR NEW NEGOTIATION
     if (!skipClean) {
@@ -62,11 +105,20 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (em_id) updateFields.em_id = em_id;
 
     // UPSERT THE ORDER
-    const updatedOrder = await Order.findOneAndUpdate(
-      { order_id },
-      { $set: updateFields },
-      { new: true, upsert: true }
-    );
+    // UPSERT OR CREATE ORDER
+    let updatedOrder;
+    if (order_id) {
+      console.log("🔄 Updating existing order:", order_id);
+      updatedOrder = await Order.findOneAndUpdate(
+        { order_id },
+        { $set: updateFields },
+        { new: true, upsert: true } // Upsert is fine if order_id is valid but not found (rare)
+      );
+    } else {
+      console.log("✨ Creating FRESH order (no order_id provided)");
+      // Create new order instance to trigger default order_id generation
+      updatedOrder = await Order.create(updateFields);
+    }
 
     console.log("✅ Final order saved:", updatedOrder.order_id);
     console.log("🔍 updatedOrder details:", {
@@ -79,7 +131,8 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     // ------------------- SEND REAL-TIME NOTIFICATION -------------------
     try {
       const messageContent = `Final Order Generated: ${updatedOrder.order_id}. Please review and approve.`;
-      
+
+
       // Use quotation_id from the updated order (guaranteed to exist)
       const targetChatId = updatedOrder.quotation_id;
       const targetEmId = updatedOrder.em_id || em_id || "system"; // Fallback to body or system
@@ -87,40 +140,40 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       console.log(`📡 Preparing to send chat message to ${targetChatId}`);
 
       if (!targetChatId) {
-          console.error("❌ Cannot emit socket: quotation_id missing in updated order");
+        console.warn("⚠️ No quotation_id, skipping chat/socket notifications");
       } else {
         const savedMessage = await Message.create({
-            chat_id: targetChatId,
-            chat_type: "customer-admin", // Defaulting to customer-admin for now, logic below handles both
-            sender: "em",
-            sender_id: targetEmId,
-            message_content: messageContent,
-            message_type: "approval_request",
-            card_data: updatedOrder, // Pass order data so frontend can render the card
+          chat_id: targetChatId,
+          chat_type: "customer-admin", // Defaulting to customer-admin for now, logic below handles both
+          sender: "em",
+          sender_id: targetEmId,
+          message_content: messageContent,
+          message_type: "approval_request",
+          card_data: updatedOrder, // Pass order data so frontend can render the card
         });
         
         console.log(`✅ Message created in DB: ${savedMessage._id}`);
 
         // Emit to Customer
         if (req.io) {
-            // Customer Room
-            const customerRoomId = `${targetChatId}-customer-admin`;
-            req.io.to(customerRoomId).emit("new_message", {
+          // Customer Room
+          const customerRoomId = `${targetChatId}-customer-admin`;
+          req.io.to(customerRoomId).emit("new_message", {
             ...savedMessage.toObject(),
-            chat_type: "customer-admin" 
-            });
-            
-            // Vendor Room (if different chat_type needed, create another message or just emit)
-            // Usually approval request goes to both
-            const vendorRoomId = `${targetChatId}-vendor-admin`;
-            req.io.to(vendorRoomId).emit("new_message", {
+            chat_type: "customer-admin"
+          });
+
+          // Vendor Room (if different chat_type needed, create another message or just emit)
+          // Usually approval request goes to both
+          const vendorRoomId = `${targetChatId}-vendor-admin`;
+          req.io.to(vendorRoomId).emit("new_message", {
             ...savedMessage.toObject(),
             chat_type: "vendor-admin"
-            });
-            
-            console.log(`📤 Emitted approval_request to ${customerRoomId} and ${vendorRoomId}`);
+          });
+          
+          console.log(`📤 Emitted approval_request to ${customerRoomId} and ${vendorRoomId}`);
         } else {
-            console.warn("⚠️ req.io is missing! Socket emission skipped.");
+          console.warn("⚠️ req.io is missing! Socket emission skipped.");
         }
 
         // Create persistent notification for Customer
@@ -156,7 +209,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         }
       }
     } catch (msgErr) {
-        console.error("Failed to send real-time order approval message:", msgErr);
+      console.error("Failed to send real-time order approval message:", msgErr);
     }
 
     return res.status(200).json({
@@ -309,13 +362,13 @@ export const approveFinalOrder = async (req, res) => {
       // Send message to customer chat only for payment/checkout
       try {
         const systemMessageContent = `✅ Final Order has been approved by both parties. Please proceed to payment.\n\nCheckout Link: ${checkout_url}`;
-        
+
         // Send to customer-admin chat only
         const customerAdminChat = await Chat.findOne({
           chat_id: order.quotation_id,
           chat_type: "customer-admin",
         });
-        
+
         if (customerAdminChat) {
           const savedMessage = await Message.create({
             chat_id: order.quotation_id,
@@ -325,22 +378,22 @@ export const approveFinalOrder = async (req, res) => {
             message_type: "system",
             message_content: systemMessageContent,
           });
-          
+
           // Update chat timestamp so message appears
           if (typeof customerAdminChat.updateLastMessage === "function") {
             await customerAdminChat.updateLastMessage();
           } else {
             await Chat.updateOne(
               { chat_id: order.quotation_id, chat_type: "customer-admin" },
-              { 
-                $set: { 
+              {
+                $set: {
                   last_message_updated_at: new Date(),
                   chat_updated_at: new Date()
-                } 
+                }
               }
             );
           }
-          
+
           // Emit message via Socket.IO
           if (req.io) {
             const roomId = `${order.quotation_id}-customer-admin`;
@@ -356,7 +409,7 @@ export const approveFinalOrder = async (req, res) => {
             });
             console.log(`📤 Emitted payment message to room: ${roomId}`);
           }
-          
+
           console.log("✅ Chat message sent to customer-admin chat for payment");
         }
       } catch (messageError) {
@@ -604,9 +657,9 @@ export const getOrdersByCustomer = async (req, res) => {
 export const getOrderById = async (req, res) => {
   try {
     const { order_id } = req.params;
-      const order = await Order.findOne({ order_id });
-      if (!order) return res.status(404).json({ message: "Order not found" });
-    
+    const order = await Order.findOne({ order_id });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
     res
       .status(200)
       .json({ message: "Booking retrieved successfully", data: [order] });
