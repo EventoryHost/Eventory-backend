@@ -65,7 +65,7 @@ const createOrder = async (req, res) => {
         const bankDetailsValid = !!(serviceDoc?.bank_details && serviceDoc.bank_details.account_number);
         if (!bankDetailsValid) {
           console.warn(`[createOrder] 🛑 Blocking order creation. Bank details missing for service: ${service_id}`);
-          
+
           // Notify EM
           try {
             let em_id = "ADMIN"; // Fallback
@@ -385,7 +385,7 @@ const verifyCustomerPayment = async (req, res) => {
     const payment = response.data;
     if (payment.order_status !== "PAID") {
       console.warn(`[VerifyPayment] Payment status for ${order_id} is ${payment.order_status}. Notifying chat.`);
-      
+
       try {
         if (req.io) {
           const finalOrder = await Order.findOne({ order_id: internal_order_id });
@@ -440,11 +440,11 @@ const verifyCustomerPayment = async (req, res) => {
       finalOrder = await Order.findOne({ quotation_id: internal_order_id }).lean();
       if (!finalOrder) {
         console.error(`[VerifyPayment] ⚠️ Final order not found for internal_order_id: ${internal_order_id}. BUT payment is PAID. Returning SUCCESS to frontend for recovery.`);
-        return res.status(200).json({ 
-          message: "Payment verified, but internal order sync pending", 
+        return res.status(200).json({
+          message: "Payment verified, but internal order sync pending",
           payment_status: payment.order_status,
           order_id: internal_order_id,
-          no_order_record: true 
+          no_order_record: true
         });
       }
     }
@@ -636,7 +636,7 @@ const verifyCustomerPayment = async (req, res) => {
 
     const getBeneUrl = `${payoutsBase}/beneficiary`;
     let hasBeneficiary = false;
-    
+
     // Vendor special case check
     if (finalOrder?.vendor_id !== "VEN05012026111140552") {
       try {
@@ -739,66 +739,67 @@ const verifyCustomerPayment = async (req, res) => {
         transfer_mode: "imps",
       };
 
-    let transferResp;
+      let transferResp;
 
-    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
-      try {
-        transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-      } catch (e) {
-        await Transaction.findOneAndUpdate(
-          { transfer_id: transfer_id },
-          {
-            $set: {
-              status: "FAILED_INIT",
-              cf_transfer_id: null,
-              transfer_amount: payoutAmount,
-              transfer_mode: "IMPS",
-              added_on: undefined,
-              updated_on: new Date(),
+      if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+        try {
+          transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+        } catch (e) {
+          await Transaction.findOneAndUpdate(
+            { transfer_id: transfer_id },
+            {
+              $set: {
+                status: "FAILED_INIT",
+                cf_transfer_id: null,
+                transfer_amount: payoutAmount,
+                transfer_mode: "IMPS",
+                added_on: undefined,
+                updated_on: new Date(),
+              },
             },
-          },
-          { new: true }
-        );
-        return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+            { new: true }
+          );
+          return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+        }
       }
-    }
-    const transferData = transferResp?.data || {};
-    await Transaction.findOneAndUpdate(
-      { transfer_id },
-      {
-        $set: {
-          vendor_id,
-          customer_id: finalCustomerId,
-          service_id,
-          pgOrderId: order_id,
-          pgStatus: payment.order_status,
-          beneficiary_id,
-          cf_transfer_id: transferData.cf_transfer_id || null,
-          status: transferData.status || null,
-          transfer_amount: transferData.transfer_amount ?? payoutAmount,
-          transfer_mode: transferData.transfer_mode || "IMPS",
-          transfer_utr: transferData.transfer_utr || null,
-          added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-          updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-          payment_type,
-          paymentDetails: {
-            customerPayable: {
-              total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-              baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-              convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-              taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-            },
-            vendorReceivable: {
-              total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-              baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-              commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-              taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+      const transferData = transferResp?.data || {};
+      await Transaction.findOneAndUpdate(
+        { transfer_id },
+        {
+          $set: {
+            vendor_id,
+            customer_id: finalCustomerId,
+            service_id,
+            pgOrderId: order_id,
+            pgStatus: payment.order_status,
+            beneficiary_id,
+            cf_transfer_id: transferData.cf_transfer_id || null,
+            status: transferData.status || null,
+            transfer_amount: transferData.transfer_amount ?? payoutAmount,
+            transfer_mode: transferData.transfer_mode || "IMPS",
+            transfer_utr: transferData.transfer_utr || null,
+            added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+            updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+            payment_type,
+            paymentDetails: {
+              customerPayable: {
+                total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+                baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+                convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+                taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+              },
+              vendorReceivable: {
+                total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+                baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+                commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+                taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+              },
             },
           },
         },
-      },
-      { new: true }
-    );
+        { new: true }
+      );
+    }
 
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
@@ -846,7 +847,7 @@ const verifyCustomerPayment = async (req, res) => {
     try {
       if (req.io) {
         console.log(`📡 Emitting payment success message to chat room ${quotation_id}`);
-        
+
         // Find chat type to determine sender/chat_type
         const chat = await Chat.findOne({ chat_id: quotation_id });
         const chatType = chat?.chat_type || (finalCustomerId.startsWith("ANON") ? "anon_customer-admin" : "customer_admin");
@@ -870,7 +871,7 @@ const verifyCustomerPayment = async (req, res) => {
 
         const savedMsg = await Message.create(msgPayload);
         req.io.to(quotation_id).emit("new_message", savedMsg);
-        
+
         // Also emit to vendor room if active
         if (vendor_id) {
           req.io.to(vendor_id).emit("new_message", savedMsg);
