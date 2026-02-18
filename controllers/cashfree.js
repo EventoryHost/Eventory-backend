@@ -643,9 +643,9 @@ const verifyCustomerPayment = async (req, res) => {
         await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
         hasBeneficiary = true;
       } catch (e) {
-        if (e?.response?.status !== 404) {
-          console.error("❌ Failed to fetch beneficiary:", e?.response?.data || e.message);
-          // If it's not a 404, we might have a connectivity issue or invalid credentials
+        const status = e?.response?.status;
+        if (status !== 404) {
+          return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
         }
       }
 
@@ -676,7 +676,30 @@ const verifyCustomerPayment = async (req, res) => {
       console.log(`[VerifyPayment] Skipping payout initiation due to missing bank details.`);
     }
 
-    const transfer_id = bankDetailsValid ? generateUniqueId("TRN") : generateUniqueId("TRN_ERR");
+
+    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+      if (!hasBeneficiary) {
+        const createBody = {
+          beneficiary_id: beneficiary_id,
+          beneficiary_name: vendorName,
+          beneficiary_instrument_details: {
+            bank_account_number: primaryBank.account_number,
+            bank_ifsc: primaryBank.ifsc,
+          },
+          beneficiary_contact_details: {
+            beneficiary_email: vendorDoc.email || "noreply@example.com",
+            beneficiary_phone: (vendorDoc.vendor_mobile || "").replace(/\D/g, "").slice(-10),
+            beneficiary_country_code: "+91",
+          },
+        };
+        try {
+          await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+        } catch (e) {
+          return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+        }
+      }
+    }
+    const transfer_id = generateUniqueId("TRN");
 
     await Transaction.create({
       quotation_id,
@@ -716,91 +739,66 @@ const verifyCustomerPayment = async (req, res) => {
         transfer_mode: "imps",
       };
 
-      console.log(`[VerifyPayment] Initiating payout transfer for transfer_id: ${transfer_id}`);
-      let transferResp;
-      
-      if (finalOrder?.vendor_id !== "VEN05012026111140552") {
-        try {
-          transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-          console.log(`[VerifyPayment] Payout transfer initiated successfully for ${transfer_id}`);
-        } catch (e) {
-          console.error(`❌ [VerifyPayment] Payout transfer initiation FAILED for ${transfer_id}:`, e?.response?.data || e.message);
-          await Transaction.findOneAndUpdate(
-            { transfer_id: transfer_id },
-            {
-              $set: {
-                status: "FAILED_INIT",
-                cf_transfer_id: null,
-                transfer_amount: payoutAmount,
-                transfer_mode: "IMPS",
-                added_on: undefined,
-                updated_on: new Date(),
-              },
-            },
-            { new: true }
-          );
-          // 🔥 CRITICAL FIX: Do NOT return error here. The customer HAS PAID. 
-          // We just failed to payout to the vendor, which we can handle manually or via retry.
-          console.warn(`⚠️ [VerifyPayment] Proceeding despite payout failure so customer is not redirected to FAILED page.`);
-        }
-      }
+    let transferResp;
 
-      const transferData = transferResp?.data || {};
-      console.log(`[VerifyPayment] Updating transaction ${transfer_id} with CF response status: ${transferData.status || 'UNKNOWN'}`);
-      await Transaction.findOneAndUpdate(
-        { transfer_id },
-        {
-          $set: {
-            vendor_id,
-            customer_id: finalCustomerId,
-            service_id,
-            pgOrderId: order_id,
-            pgStatus: payment.order_status,
-            beneficiary_id,
-            cf_transfer_id: transferData.cf_transfer_id || null,
-            status: transferData.status || (transferResp ? "PENDING" : "FAILED_INIT"),
-            transfer_amount: transferData.transfer_amount ?? payoutAmount,
-            transfer_mode: transferData.transfer_mode || "IMPS",
-            transfer_utr: transferData.transfer_utr || null,
-            added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-            updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-            payment_type,
-            paymentDetails: {
-              customerPayable: {
-                total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-                baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-                convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-                taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-              },
-              vendorReceivable: {
-                total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-                baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-                commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-                taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-              },
+    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+      try {
+        transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+      } catch (e) {
+        await Transaction.findOneAndUpdate(
+          { transfer_id: transfer_id },
+          {
+            $set: {
+              status: "FAILED_INIT",
+              cf_transfer_id: null,
+              transfer_amount: payoutAmount,
+              transfer_mode: "IMPS",
+              added_on: undefined,
+              updated_on: new Date(),
+            },
+          },
+          { new: true }
+        );
+        return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+      }
+    }
+    const transferData = transferResp?.data || {};
+    await Transaction.findOneAndUpdate(
+      { transfer_id },
+      {
+        $set: {
+          vendor_id,
+          customer_id: finalCustomerId,
+          service_id,
+          pgOrderId: order_id,
+          pgStatus: payment.order_status,
+          beneficiary_id,
+          cf_transfer_id: transferData.cf_transfer_id || null,
+          status: transferData.status || null,
+          transfer_amount: transferData.transfer_amount ?? payoutAmount,
+          transfer_mode: transferData.transfer_mode || "IMPS",
+          transfer_utr: transferData.transfer_utr || null,
+          added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+          updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+          payment_type,
+          paymentDetails: {
+            customerPayable: {
+              total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+              baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+              convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+              taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+            },
+            vendorReceivable: {
+              total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+              baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+              commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+              taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
             },
           },
         },
-        { new: true }
-      );
-    } else {
-      // Record transaction with bank detail error
-      await Transaction.create({
-        quotation_id,
-        internalOrderId,
-        vendor_id,
-        customer_id: finalCustomerId,
-        service_id,
-        pgOrderId: order_id,
-        pgStatus: payment.order_status || null,
-        transfer_id,
-        status: "FAILED_BANK_DETAILS",
-        transfer_amount: payoutAmount,
-        transfer_mode: "IMPS",
-        beneficiary_id: null,
-        payment_type,
-      });
-    }
+      },
+      { new: true }
+    );
 
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
