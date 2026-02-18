@@ -68,23 +68,27 @@ const createQuotation = async (req, res, io) => {
 
     const savedQuotation = await newQuotation.save();
 
-    const existingCustomerAdminChat = await Chat.findOne({
-      chat_id: savedQuotation.quotation_id,
-      chat_type: "customer-admin",
-    });
-
-    if (!existingCustomerAdminChat) {
-      await Chat.create({
-        chat_id: savedQuotation.quotation_id, // Same ID for linkage
-        service_id: savedQuotation.service_id,
-        customer_id: savedQuotation.customer_id,
-        vendor_id: savedQuotation.vendor_id,
-        chat_type: "customer-admin",
-        chat_status: "ACTIVE",
+    // Create both customer-admin and vendor-admin chats immediately
+    const chatTypes = ["customer-admin", "vendor-admin"];
+    
+    for (const chatType of chatTypes) {
+      const existingChat = await Chat.findOne({
+        chat_id: savedQuotation.quotation_id,
+        chat_type: chatType,
       });
-    }
-    else {
-      console.log("Customer-admin chat already exists:", savedQuotation.id);
+
+      if (!existingChat) {
+        await Chat.create({
+          chat_id: savedQuotation.quotation_id,
+          service_id: savedQuotation.service_id,
+          customer_id: savedQuotation.customer_id,
+          vendor_id: savedQuotation.vendor_id,
+          chat_type: chatType,
+          chat_status: "ACTIVE",
+          em_id: "admin-rm", // Default admin identifier
+        });
+        console.log(`${chatType} chat created for quotation:`, savedQuotation.quotation_id);
+      }
     }
 
     // 🧠 Create notification for vendor
@@ -97,23 +101,6 @@ const createQuotation = async (req, res, io) => {
     });
 
     await newNotification.save();
-
-    // ✅ Create Chat immediately between Admin & Customer (Vendor can join later)
-    const existingChat = await Chat.findOne({
-      customer_id,
-      vendor_id,
-      service_id,
-    });
-
-    if (!existingChat) {
-      await Chat.create({
-        chat_id: savedQuotation.quotation_id, // Same ID for linkage
-        customer_id,
-        vendor_id,
-        service_id,
-        em_id: "admin-rm", // or your admin identifier
-      });
-    }
 
     if (io) {
       io.to(`vendor-${savedQuotation.vendor_id}`).emit(
