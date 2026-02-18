@@ -52,7 +52,7 @@ export default function MainRoutes(io) {
 
 // // Attach all routes here
 router.use("/products", productRoutes);
-router.use("/payment", cashfreeRoutes);
+router.use("/payment", cashfreeRoutes(io));
 router.use("/auth", authRoutes);
 router.use("/query", queryRoutes);
 router.use("/email", emailRoutes);

@@ -121,7 +121,13 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     }
 
     console.log("✅ Final order saved:", updatedOrder.order_id);
-
+    console.log("🔍 updatedOrder details:", {
+      order_id: updatedOrder.order_id,
+      customer_id: updatedOrder.customer_id,
+      quotation_id: updatedOrder.quotation_id,
+      em_id: updatedOrder.em_id
+    });
+    
     // ------------------- SEND REAL-TIME NOTIFICATION -------------------
     try {
       const messageContent = `Final Order Generated: ${updatedOrder.order_id}. Please review and approve.`;
@@ -130,6 +136,8 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       // Use quotation_id from the updated order (guaranteed to exist)
       const targetChatId = updatedOrder.quotation_id;
       const targetEmId = updatedOrder.em_id || em_id || "system"; // Fallback to body or system
+
+      console.log(`📡 Preparing to send chat message to ${targetChatId}`);
 
       if (!targetChatId) {
         console.warn("⚠️ No quotation_id, skipping chat/socket notifications");
@@ -143,6 +151,8 @@ export const createOrUpdateFinalOrder = async (req, res) => {
           message_type: "approval_request",
           card_data: updatedOrder, // Pass order data so frontend can render the card
         });
+        
+        console.log(`✅ Message created in DB: ${savedMessage._id}`);
 
         // Emit to Customer
         if (req.io) {
@@ -160,8 +170,42 @@ export const createOrUpdateFinalOrder = async (req, res) => {
             ...savedMessage.toObject(),
             chat_type: "vendor-admin"
           });
-
+          
           console.log(`📤 Emitted approval_request to ${customerRoomId} and ${vendorRoomId}`);
+        } else {
+          console.warn("⚠️ req.io is missing! Socket emission skipped.");
+        }
+
+        // Create persistent notification for Customer
+        try {
+          if (!updatedOrder.customer_id) {
+            console.error("❌ Failed to create notification: customer_id is missing in updatedOrder");
+          } else {
+            console.log(`📝 Attempting to create persistent notification for customer ${updatedOrder.customer_id} and order ${updatedOrder.order_id}`);
+            const notif = await customerNotification.findOneAndUpdate(
+              {
+                customer_id: updatedOrder.customer_id,
+                order_id: updatedOrder.order_id,
+                notification_type: "message_reminder",
+              },
+              {
+                $set: {
+                  message: `New order created: ${updatedOrder.order_id}. Please check in chat.`,
+                  chat_id: targetChatId,
+                  quotation_id: updatedOrder.quotation_id,
+                  read: false,
+                  updated_at: new Date().toISOString()
+                },
+              },
+              { new: true, upsert: true }
+            );
+            console.log(`✅ Persistent notification created/updated:`, notif._id);
+          }
+        } catch (notifErr) {
+          console.error("❌ Failed to create persistent customer notification:", notifErr.message);
+          if (notifErr.code === 11000) {
+            console.error("⚠️ Duplicate key error - likely due to unique index on order_id");
+          }
         }
       }
     } catch (msgErr) {

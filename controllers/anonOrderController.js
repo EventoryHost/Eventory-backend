@@ -1,6 +1,7 @@
 import AnonCustomerOrder from "../models/anonCustomerOrder.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
+import CustomerNotification from "../models/customerNotifications.js";
 
 /**
  * Create OR Update anonymous customer order
@@ -348,6 +349,36 @@ export const createOrUpdateAnonOrder = async (req, res) => {
               });
           });
         }
+
+        // Create persistent notification for Customer
+        try {
+          if (!order.anon_user_id) {
+            console.error("❌ Failed to create notification: anon_user_id is missing in anon order");
+          } else {
+            console.log(`📝 Attempting to create persistent notification for customer ${order.anon_user_id} and order ${order.anon_order_id}`);
+            const notif = await CustomerNotification.findOneAndUpdate(
+              {
+                customer_id: order.anon_user_id,
+                order_id: order.anon_order_id,
+                notification_type: "message_reminder",
+              },
+              {
+                $set: {
+                  message: `New order created: ${order.anon_order_id}. Please check in chat.`,
+                  chat_id: chat_id,
+                  quotation_id: chat_id, // chat_id is often the quotation_id for anon orders
+                  read: false,
+                  updated_at: new Date().toISOString()
+                },
+              },
+              { new: true, upsert: true }
+            );
+            console.log(`✅ Persistent notification created/updated for anon order:`, notif._id);
+          }
+        } catch (notifErr) {
+          console.error("❌ Failed to create persistent customer notification for anon order:", notifErr.message);
+        }
+
       } catch (msgError) {
         console.error("Failed to send update notification:", msgError);
       }
@@ -518,6 +549,36 @@ export const createOrUpdateAnonOrder = async (req, res) => {
               });
           });
         }
+
+        // Create persistent notification for Customer
+        try {
+          if (!order.anon_user_id) {
+            console.error("❌ Failed to create notification: anon_user_id is missing in new anon order");
+          } else {
+            console.log(`📝 Attempting to create persistent notification for customer ${order.anon_user_id} and order ${order.anon_order_id}`);
+            const notif = await CustomerNotification.findOneAndUpdate(
+              {
+                customer_id: order.anon_user_id,
+                order_id: order.anon_order_id,
+                notification_type: "message_reminder",
+              },
+              {
+                $set: {
+                  message: `New order created: ${order.anon_order_id}. Please check in chat.`,
+                  chat_id: chat_id,
+                  quotation_id: chat_id,
+                  read: false,
+                  updated_at: new Date().toISOString()
+                },
+              },
+              { new: true, upsert: true }
+            );
+            console.log(`✅ Persistent notification created/updated for NEW anon order:`, notif._id);
+          }
+        } catch (notifErr) {
+          console.error("❌ Failed to create persistent customer notification for new anon order:", notifErr.message);
+        }
+
       } catch (msgError) {
         console.error("Failed to send chat notification:", msgError);
       }
