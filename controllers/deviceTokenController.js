@@ -1,29 +1,40 @@
 import { DeviceToken } from "../models/deviceToken.js";
 import { Vendor } from "../models/vendor.js";
+import EventManager from "../models/eventManager.js";
 
 // Store device token for a vendor
 const storeDeviceToken = async (req, res) => {
   try {
-    const { vendorId, deviceToken, deviceType, deviceId } = req.body;
+    const { vendorId, emId, deviceToken, deviceType, deviceId } = req.body;
 
     // Validate required fields
-    if (!vendorId || !deviceToken) {
+    if ((!vendorId && !emId) || !deviceToken) {
       return res.status(400).json({
-        message: "vendorId and deviceToken are required"
+        message: "vendorId or emId and deviceToken are required"
       });
     }
 
-    // Check if vendor exists
-    const vendor = await Vendor.findOne({ vendor_id: vendorId });
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+    let ownerField = "vendorId";
+    let ownerDoc = null;
+
+    if (vendorId) {
+      ownerDoc = await Vendor.findOne({ vendor_id: vendorId });
+      if (!ownerDoc) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    } else {
+      ownerField = "emId";
+      ownerDoc = await EventManager.findOne({ em_id: emId });
+      if (!ownerDoc) {
+        return res.status(404).json({ message: "Event Manager not found" });
+      }
     }
 
     // Use upsert to either update existing token or create new one
     const result = await DeviceToken.findOneAndUpdate(
-      { vendorId: vendor._id, deviceToken }, // Find by vendor and token
+      { [ownerField]: ownerDoc._id, deviceToken }, // Find by owner and token
       {
-        vendorId: vendor._id,
+        [ownerField]: ownerDoc._id,
         deviceToken,
         deviceType: deviceType || "android",
         deviceId
@@ -46,7 +57,7 @@ const storeDeviceToken = async (req, res) => {
     // Handle duplicate key error
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Device token already exists for this vendor"
+        message: "Device token already exists for this user"
       });
     }
 
@@ -94,21 +105,31 @@ const removeDeviceToken = async (req, res) => {
 // Get all device tokens for a vendor
 const getDeviceTokens = async (req, res) => {
   try {
-    const { vendorId } = req.params;
+    const { vendorId, emId } = req.params;
 
-    if (!vendorId) {
+    if (!vendorId && !emId) {
       return res.status(400).json({
-        message: "vendorId is required"
+        message: "vendorId or emId is required"
       });
     }
 
-    // Check if vendor exists
-    const vendor = await Vendor.findOne({ vendor_id: vendorId });
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+    let ownerField = "vendorId";
+    let ownerDoc = null;
+
+    if (vendorId) {
+      ownerDoc = await Vendor.findOne({ vendor_id: vendorId });
+      if (!ownerDoc) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    } else {
+      ownerField = "emId";
+      ownerDoc = await EventManager.findOne({ em_id: emId });
+      if (!ownerDoc) {
+        return res.status(404).json({ message: "Event Manager not found" });
+      }
     }
 
-    const deviceTokens = await DeviceToken.find({ vendorId: vendor._id })
+    const deviceTokens = await DeviceToken.find({ [ownerField]: ownerDoc._id })
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -125,21 +146,31 @@ const getDeviceTokens = async (req, res) => {
 // Remove all device tokens for a vendor (useful for account deletion or logout from all devices)
 const removeAllDeviceTokens = async (req, res) => {
   try {
-    const { vendorId } = req.body;
+    const { vendorId, emId } = req.body;
 
-    if (!vendorId) {
+    if (!vendorId && !emId) {
       return res.status(400).json({
-        message: "vendorId is required"
+        message: "vendorId or emId is required"
       });
     }
 
-    // Check if vendor exists
-    const vendor = await Vendor.findOne({ vendor_id: vendorId });
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+    let ownerField = "vendorId";
+    let ownerDoc = null;
+
+    if (vendorId) {
+      ownerDoc = await Vendor.findOne({ vendor_id: vendorId });
+      if (!ownerDoc) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    } else {
+      ownerField = "emId";
+      ownerDoc = await EventManager.findOne({ em_id: emId });
+      if (!ownerDoc) {
+        return res.status(404).json({ message: "Event Manager not found" });
+      }
     }
 
-    const result = await DeviceToken.deleteMany({ vendorId: vendor._id });
+    const result = await DeviceToken.deleteMany({ [ownerField]: ownerDoc._id });
 
     res.status(200).json({
       message: `${result.deletedCount} device tokens removed successfully`
