@@ -1,6 +1,7 @@
 import VendorPreference from "../models/vendorPreference.js";
 import Chat from "../models/chats.js";
 import EMNotifications from "../models/emNotifications.js";
+import { sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
 
 /**
  * Add or update vendor preference (like/reject)
@@ -39,8 +40,8 @@ export const setVendorPreference = async (req, res) => {
       });
 
       if (activeChat && activeChat.em_id) {
-        const message = preference_type === 'liked' 
-          ? "Customer liked a vendor card" 
+        const message = preference_type === 'liked'
+          ? "Customer liked a vendor card"
           : "Customer rejected a vendor card";
 
         await EMNotifications.create({
@@ -50,6 +51,26 @@ export const setVendorPreference = async (req, res) => {
           notification_type: "chat_message",
           timestamp: new Date().toISOString(),
           read: false
+        });
+
+        //Trigger for fcm notification for em
+        sendFCMNotificationToEm({
+          emId: activeChat.em_id,
+          priority: "high",
+          notification: {
+            title: "Vendor Preference Updated",
+            body: message
+          },
+          data: {
+            type: "vendor_preference_updated",
+            chat_id: activeChat.chat_id,
+            em_id: activeChat.em_id,
+            message: message
+          }
+        }).then(result => {
+          console.log(`FCM notifications sent to em ${activeChat.em_id} for vendor preference update`, result);
+        }).catch(error => {
+          console.error("Failed to send FCM notification for payment:", error);
         });
       }
     } catch (notifyError) {
