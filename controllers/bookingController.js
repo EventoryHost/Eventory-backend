@@ -232,6 +232,7 @@ export const createBooking = async (req, res) => {
     // Sync with Final Order (FinalOrder)
     if (em_id && service_id) {
       const orderUpdatePayload = {
+        event_id: saved.event_id || saved._id, // Link Order to Event
         paymentDetails: {
           paymentStatus: payStatusNorm === "fully_paid" ? "Fully Paid" : "Partially Paid",
           customerPayable: {
@@ -257,15 +258,15 @@ export const createBooking = async (req, res) => {
 
     // Handle anonymous order conversion if applicable
     let effectiveQuotationId = quotation_id || body.quotationId;
-    
+
     // Fallback: If quotation_id is missing, try to find it via Order if event_id is an Order ID (ODR...)
     if (!effectiveQuotationId && event_id && event_id.startsWith("ODR")) {
       console.log(`[BOOKING] quotation_id missing. Attempting lookup via Order ID: ${event_id}`);
       try {
         const sourceOrder = await Order.findOne({ order_id: event_id });
         if (sourceOrder && sourceOrder.quotation_id) {
-            effectiveQuotationId = sourceOrder.quotation_id;
-            console.log(`[BOOKING] Resolved quotation_id from Order: ${effectiveQuotationId}`);
+          effectiveQuotationId = sourceOrder.quotation_id;
+          console.log(`[BOOKING] Resolved quotation_id from Order: ${effectiveQuotationId}`);
         }
       } catch (err) {
         console.error("[BOOKING] Failed to lookup Order:", err);
@@ -273,10 +274,10 @@ export const createBooking = async (req, res) => {
     }
 
     console.log(`[BOOKING] Checking for anonymous order conversion. Effective Quotation ID: '${effectiveQuotationId}'`);
-    
+
     if (effectiveQuotationId && effectiveQuotationId.startsWith("ANON_ODR_")) {
       console.log(`[BOOKING] Match found for ANON_ODR_. Converting...`);
-      
+
       const anonOrder = await AnonCustomerOrder.findOneAndUpdate(
         { anon_order_id: effectiveQuotationId },
         {
@@ -288,7 +289,7 @@ export const createBooking = async (req, res) => {
         },
         { new: true }
       );
-      
+
       if (!anonOrder) {
         console.error(`[BOOKING] ❌ FATAL: AnonCustomerOrder NOT FOUND for ID: ${quotation_id}`);
       } else {
@@ -316,14 +317,14 @@ export const createBooking = async (req, res) => {
         if (req.io && anonOrder.chat_id) {
           const chat = await Chat.findOne({ chat_id: anonOrder.chat_id });
           const chatType = chat ? chat.chat_type : "anon_customer-admin";
-          
+
           const rooms = [
             `${anonOrder.chat_id}-${chatType}`,
             `${anonOrder.chat_id}-anon_customer-admin`,
             `${anonOrder.chat_id}-customer-admin`
           ];
           const uniqueRooms = [...new Set(rooms)];
-          
+
           uniqueRooms.forEach(roomId => {
             req.io.to(roomId).emit("order_status_updated", {
               anon_order_id: effectiveQuotationId,
@@ -832,7 +833,7 @@ export const cancelBooking = async (req, res) => {
 
     // Try to find in Events collection (new model)
     let event = await Events.findOne({ event_id });
-    
+
     // If not found, try old Booking model
     if (!event) {
       const { Booking } = await import("../models/booking.js");
@@ -857,11 +858,11 @@ export const cancelBooking = async (req, res) => {
     // Update event status to cancelled
     const updatedEvent = await Events.findOneAndUpdate(
       { event_id },
-      { 
-        $set: { 
+      {
+        $set: {
           event_status: "cancelled",
           event_updated_at: new Date()
-        } 
+        }
       },
       { new: true }
     );
@@ -871,11 +872,11 @@ export const cancelBooking = async (req, res) => {
       const Orders = (await import("../models/orders.js")).default;
       await Orders.findOneAndUpdate(
         { quotation_id: event.quotation_id },
-        { 
-          $set: { 
+        {
+          $set: {
             order_status: "cancelled",
             order_updated_at: new Date()
-          } 
+          }
         }
       );
     }
