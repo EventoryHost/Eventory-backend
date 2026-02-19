@@ -32,9 +32,9 @@ const storeDeviceToken = async (req, res) => {
 
     // Use upsert to either update existing token or create new one
     const result = await DeviceToken.findOneAndUpdate(
-      { [ownerField]: ownerDoc._id, deviceToken }, // Find by owner and token
+      { [ownerField]: ownerField === "emId" ? emId : ownerDoc._id, deviceToken }, // Find by owner and token
       {
-        [ownerField]: ownerDoc._id,
+        [ownerField]: ownerField === "emId" ? emId : ownerDoc._id,
         deviceToken,
         deviceType: deviceType || "android",
         deviceId
@@ -129,7 +129,9 @@ const getDeviceTokens = async (req, res) => {
       }
     }
 
-    const deviceTokens = await DeviceToken.find({ [ownerField]: ownerDoc._id })
+    const deviceTokens = await DeviceToken.find({
+      [ownerField]: ownerField === "emId" ? emId : ownerDoc._id
+    })
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -170,7 +172,9 @@ const removeAllDeviceTokens = async (req, res) => {
       }
     }
 
-    const result = await DeviceToken.deleteMany({ [ownerField]: ownerDoc._id });
+    const result = await DeviceToken.deleteMany({
+      [ownerField]: ownerField === "emId" ? emId : ownerDoc._id
+    });
 
     res.status(200).json({
       message: `${result.deletedCount} device tokens removed successfully`

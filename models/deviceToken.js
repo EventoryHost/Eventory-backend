@@ -6,8 +6,7 @@ const deviceTokenSchema = new mongoose.Schema({
     ref: "Vendor",
   },
   emId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "EventManager",
+    type: String,
   },
   deviceToken: {
     // Unique check is handled by the index below

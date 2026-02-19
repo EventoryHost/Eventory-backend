@@ -361,7 +361,7 @@ async function sendFCMNotificationToEm(options) {
     }
 
     // Get device tokens
-    const deviceTokens = await DeviceToken.find({ emId: eventManager._id });
+    const deviceTokens = await DeviceToken.find({ emId });
     if (deviceTokens.length === 0) {
       return {
         success: true,
@@ -427,7 +427,7 @@ async function sendFCMNotificationToEm(options) {
     let removedCount = 0;
     if (invalidTokens.length > 0) {
       const r = await DeviceToken.deleteMany({
-        emId: eventManager._id,
+        emId,
         deviceToken: { $in: invalidTokens }
       });
       removedCount = r.deletedCount;
@@ -450,6 +450,8 @@ async function sendFCMNotificationToEm(options) {
     };
   }
 }
+
+
 
 export {
   sendFCMNotification,
