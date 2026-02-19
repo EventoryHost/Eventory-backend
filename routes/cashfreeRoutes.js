@@ -1,24 +1,24 @@
 import { Router } from "express";
-const cashfreeRoutes = Router();
 import cashfreeController from "../controllers/cashfree.js";
 
-cashfreeRoutes.post("/create-order", cashfreeController.createOrder);
+const cashfreeRoutes = (io) => {
+  const router = Router();
 
-cashfreeRoutes.post("/verify-payment", cashfreeController.verifyPayment);
+  // Middleware to attach io to req
+  router.use((req, res, next) => {
+    req.io = io;
+    next();
+  });
 
-cashfreeRoutes.post(
-  "/generate-invoice",
-  cashfreeController.sendInvoice,
-);
+  router.post("/create-order", cashfreeController.createOrder);
+  router.post("/verify-payment", cashfreeController.verifyPayment);
+  router.post("/generate-invoice", cashfreeController.sendInvoice);
+  router.get("/payment-session/:order_id", cashfreeController.getPaymentSession);
+  router.post("/webhook", cashfreeController.handleWebhook);
+  router.post("/verify-customer-payment", cashfreeController.verifyCustomerPayment);
+  router.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
 
-cashfreeRoutes.get("/payment-session/:order_id", cashfreeController.getPaymentSession);
-
-cashfreeRoutes.post("/webhook", cashfreeController.handleWebhook);
-
-cashfreeRoutes.post("/verify-customer-payment", cashfreeController.verifyCustomerPayment);
-
-cashfreeRoutes.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
-
-// cashfreeRoutes.post("/payment-invoice", cashfreeController.savePaymentInvoice);
+  return router;
+};
 
 export default cashfreeRoutes;

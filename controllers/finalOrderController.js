@@ -131,6 +131,8 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       const targetChatId = updatedOrder.quotation_id;
       const targetEmId = updatedOrder.em_id || em_id || "system"; // Fallback to body or system
 
+      console.log(`📡 Preparing to send chat message to ${targetChatId}`);
+
       if (!targetChatId) {
         console.warn("⚠️ No quotation_id, skipping chat/socket notifications");
       } else {
