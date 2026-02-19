@@ -85,6 +85,10 @@ const ordersSchema = new Schema({
     unique: true,
     default: () => generateUniqueId("ODR")
   },
+  event_id: {
+    type: String,
+    // ID of the Event/Booking created from this order
+  },
   em_id: {
     type: String,
     required: true
