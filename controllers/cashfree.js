@@ -7,7 +7,7 @@ import Order from "../models/orders.js";
 import { Transaction } from "../models/transactions.js";
 import Quotation from "../models/quotations.js";
 import { sendEmailInvoice } from "./sesController.js";
-import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
+import { sendFCMNotificationToVendor,sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
 import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
@@ -913,6 +913,28 @@ const verifyCustomerPayment = async (req, res) => {
         read: false,
       });
     } catch { }
+
+    //Trigger for fcm notification for em
+    sendFCMNotificationToEm({
+      emId: em_id,
+      priority: "high",
+      notification: {
+        title: "Payment Received",
+        body: adminMessage
+      },
+      data: {
+        type: "payment",
+        order_id: internalOrderId,
+        quotation_id: quotation_id,
+        chat_id: quotation_id,
+        em_id: em_id,
+        message: adminMessage
+      }
+    }).then(result => {
+      console.log(`FCM notifications sent to em ${em_id} for payment ${order_id}`, result);
+    }).catch(error => {
+      console.error("Failed to send FCM notification for payment:", error);
+    });
 
     //Trigger for fcm notification for vendor app
     sendFCMNotificationToVendor({
