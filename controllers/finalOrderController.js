@@ -309,7 +309,7 @@ export const approveFinalOrder = async (req, res) => {
           body: message
         },
         data: {
-          type: "final_order_approved",
+          type: "final_order_em",
           order_id: order.order_id,
           chat_id: order.quotation_id,
           quotation_id: order.quotation_id,
@@ -469,7 +469,7 @@ export const approveFinalOrder = async (req, res) => {
           body: message
         },
         data: {
-          type: "final_order_rejected",
+          type: "final_order_em",
           order_id: order.order_id,
           chat_id: order.quotation_id,
         }
@@ -563,7 +563,7 @@ export const approveFinalOrder = async (req, res) => {
         body: message
       },
       data: {
-        type: "final_order_partial_approval",
+        type: "final_order_em",
         order_id: order.order_id,
         chat_id: order.quotation_id,
       }

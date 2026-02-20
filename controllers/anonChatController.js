@@ -179,9 +179,10 @@ export const initializeAnonymousChat = async (req, res) => {
                   body: `New Chat Started [${userId}]: ${greetingText}...`
                 },
                 data: {
-                  type: "chat_message",
+                  type: "anon_chat_message_em",
                   chat_id: chat.chat_id,
                   em_id: em.em_id,
+                  anon_customer_id: userId,
                   message: `New Chat Started [${userId}]: ${greetingText}...`
                 }
               })
@@ -452,9 +453,10 @@ export const sendAnonymousMessage = async (req, res) => {
                   body: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`
                 },
                 data: {
-                  type: "chat_message",
+                  type: "anon_chat_message_em",
                   chat_id: chat.chat_id,
                   em_id: em.em_id,
+                  anon_customer_id: sender_id,
                   message: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`
                 }
               })
