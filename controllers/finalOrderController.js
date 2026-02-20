@@ -5,6 +5,7 @@ import vendorNotification from "../models/vendorNotifications.js";
 import adminNotification from "../models/emNotifications.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
+import { sendFCMNotificationToVendor,sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
 import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 import { Customer } from "../models/customer.js";
 
@@ -296,6 +297,26 @@ export const approveFinalOrder = async (req, res) => {
         message,
       });
 
+      //Trigger for fcm for em for final order
+      sendFCMNotificationToEm({
+        emId: order.em_id,
+        priority: "high",
+        notification: {
+          title: "Final Order Approved",
+          body: message
+        },
+        data: {
+          type: "final_order_em",
+          order_id: order.order_id,
+          chat_id: order.quotation_id,
+          quotation_id: order.quotation_id,
+        }
+      }).then(result => {
+        console.log(`FCM notifications sent to em ${order.em_id} for final order approval ${order.order_id}`, result);
+      }).catch(error => {
+        console.error("Failed to send FCM notification for final order approval:", error);
+      });
+
       //Trigger for fcm for vendor app for final order
       sendFCMNotificationToVendor({
         vendorId: order.vendor_id,
@@ -436,6 +457,25 @@ export const approveFinalOrder = async (req, res) => {
         message,
       });
 
+      //Trigger for fcm for em in app for final order
+      sendFCMNotificationToEm({
+        emId: order.em_id,
+        priority: "high",
+        notification: {
+          title: "Final Order Rejected",
+          body: message
+        },
+        data: {
+          type: "final_order_em",
+          order_id: order.order_id,
+          chat_id: order.quotation_id,
+        }
+      }).then(result => {
+        console.log(`FCM notifications sent to em ${order.em_id} for final order rejection ${order.order_id}`, result);
+      }).catch(error => {
+        console.error("Failed to send FCM notification for final order rejection:", error);
+      });
+
       //Trigger for fcm for vendor app for final order
       sendFCMNotificationToVendor({
         vendorId: order.vendor_id,
@@ -510,6 +550,25 @@ export const approveFinalOrder = async (req, res) => {
       },
       { new: true, upsert: true }
     );
+
+    //Trigger for fcm for em in app for final order
+    sendFCMNotificationToEm({
+      emId: order.em_id,
+      priority: "high",
+      notification: {
+        title: "Final Order Updated",
+        body: message
+      },
+      data: {
+        type: "final_order_em",
+        order_id: order.order_id,
+        chat_id: order.quotation_id,
+      }
+    }).then(result => {
+      console.log(`FCM notifications sent to em ${order.em_id} for partial order approval ${order.order_id}`, result);
+    }).catch(error => {
+      console.error("Failed to send FCM notification for partial order approval:", error);
+    });
 
     //Trigger for fcm for vendor app for final order
     sendFCMNotificationToVendor({

@@ -4,6 +4,10 @@ import Message2 from "../models/message2.js";
 import EMNotifications from "../models/emNotifications.js";
 import CustomerNotification from "../models/customerNotifications.js";
 import VendorNotifications from "../models/vendorNotifications.js";
+import {
+    sendFCMNotificationToEm,
+    sendFCMNotificationToVendor
+} from "../utils/firebaseNotificationUtils.js";
 
 var SCHEDULE_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
@@ -91,6 +95,7 @@ const createChatNotifications = async () => {
             // CREATE NOTIFICATION IF NOT EXISTS
             // ------------------------------------------------------
 
+            const fcmTasks = [];
             for (const recipient of recipients) {
 
                 const query = {
@@ -115,40 +120,69 @@ const createChatNotifications = async () => {
 
                 if (unreadCount === 0) continue;
 
+                const notificationMessage = `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chats.`;
+
                 await recipient.model.create({
                     [recipient.recipientKey]: recipient.id,
                     chat_id: chat.chat_id,
                     service_id: chat.service_id,
                     notification_type: 'message_reminder',
-                    message: `${unreadCount} new message${unreadCount > 1 ? "s" : ""} in chats.`,
+                    message: notificationMessage,
                     order_id: chat.order_id
                 });
 
                 //Fcm Trigger for Vendor Notificaation
                 if (recipient.type === 'vendor') {
-                    sendFCMNotificationToVendor({
-                        vendorId: recipient.id,
-                        notification: {
-                            title: "New Chat Messages",
-                            body: notificationMessage // e.g., "3 new messages in chats."
-                        },
-                        data: {
-                            type: "message_reminder",
-                            chat_id: chat.chat_id,
-                            vendor_id: vendorId,
-                            message: notificationMessage
-                        }
-                    }).then(result => {
-                        console.log(`FCM notifications sent to vendor ${recipient.id} for chat ${chat.chat_id}`, result);
-                    }).catch(error => {
-                        console.error("Failed to send FCM notification for new messages:", error);
-                    });
+                    fcmTasks.push(
+                        sendFCMNotificationToVendor({
+                            vendorId: recipient.id,
+                            notification: {
+                                title: "New Chat Messages",
+                                body: notificationMessage // e.g., "3 new messages in chats."
+                            },
+                            data: {
+                                type: "message_reminder",
+                                chat_id: chat.chat_id,
+                                vendor_id: recipient.id,
+                                message: notificationMessage
+                            }
+                        })
+                    );
+                }
+
+                //Fcm Trigger for EM Notificaation
+                if (recipient.type === 'em') {
+                    fcmTasks.push(
+                        sendFCMNotificationToEm({
+                            emId: recipient.id,
+                            priority: "high",
+                            notification: {
+                                title: "New Chat Messages",
+                                body: notificationMessage
+                            },
+                            data: {
+                                type: "message_reminder",
+                                chat_id: chat.chat_id,
+                                em_id: recipient.id,
+                                message: notificationMessage
+                            }
+                        })
+                    );
                 }
 
 
                 console.log(
                     `[Created] ✅✅✅ Notification → ${recipient.type} (${recipient.id}) for chat ${chat.chat_id}`
                 );
+            }
+
+            if (fcmTasks.length > 0) {
+                const results = await Promise.allSettled(fcmTasks);
+                results.forEach((result) => {
+                    if (result.status === "rejected") {
+                        console.error("Failed to send FCM notification:", result.reason);
+                    }
+                });
             }
         }
 
