@@ -238,9 +238,10 @@ const ordersSchema = new Schema({
   },
   customer_contact_email: {
     type: String,
-    required: true,
+    // required: true -- Made optional
     validate: {
       validator: function (v) {
+        if (!v) return true; // Allow null/empty
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
       message: 'Invalid email format'
