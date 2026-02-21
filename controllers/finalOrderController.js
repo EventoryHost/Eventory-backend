@@ -6,7 +6,6 @@ import adminNotification from "../models/emNotifications.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
 import { sendFCMNotificationToVendor,sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
-import { sendFCMNotificationToVendor } from "../utils/firebaseNotificationUtils.js";
 import { Customer } from "../models/customer.js";
 
 export const createOrUpdateFinalOrder = async (req, res) => {
