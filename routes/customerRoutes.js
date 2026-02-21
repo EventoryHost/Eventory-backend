@@ -27,7 +27,8 @@ import {
   // addCustomerInvoice,
   getActiveBooking,
   markNotificationAsRead,
-  addCustomerInvoice
+  addCustomerInvoice,
+  updateCustomerBusinessDetails
 } from "../controllers/customerController.js";
 
 const router = express.Router();
@@ -49,6 +50,15 @@ router.get("/get-customer/:mobile", getCustomer);
  *     tags: [Customer]
  */
 router.patch("/update-customer/:id", updateCustomer);
+
+/**
+ * @swagger
+ * /api/customer/update-business-details:
+ *   patch:
+ *     summary: Update customer business (GST) details
+ *     tags: [Customer]
+ */
+router.patch("/update-business-details", updateCustomerBusinessDetails);
 
 /**
  * @swagger
