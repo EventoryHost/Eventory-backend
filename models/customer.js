@@ -39,6 +39,20 @@ const customerSchema = new mongoose.Schema({
   customer_address: {
     type: String,
   },
+  is_business: {
+    type: Boolean,
+    default: false,
+  },
+  gst_number: {
+    type: String,
+    validate: {
+      validator: function (v) {
+        if (!this.is_business || !v) return true;
+        return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v);
+      },
+      message: props => `${props.value} is not a valid GST number!`
+    }
+  },
   pincode: {
     type: String, // Changed from Number to String to match ERD
     validate: {

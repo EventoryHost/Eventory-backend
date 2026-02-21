@@ -387,7 +387,7 @@ const verifyLoginOtp = async (req, res) => {
   }
 };
 const verifyCustomerLoginOtp = async (req, res) => {
-  const { mobile, code, session, name, anonId } = req.body;
+  const { mobile, code, session, name, anonId, is_business, gst_number } = req.body;
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -414,6 +414,9 @@ const verifyCustomerLoginOtp = async (req, res) => {
         customer_name: name,
         contact_number: `+91${mobile}`,
       });
+
+      if (is_business !== undefined) customer.is_business = is_business === true || is_business === 'true';
+      if (gst_number) customer.gst_number = gst_number.toUpperCase();
 
       await customer.save();
 
@@ -446,6 +449,21 @@ const verifyCustomerLoginOtp = async (req, res) => {
     }
 
     // --- CASE 2: Existing customer ---
+    // Update GST info if provided during login
+    let detailsUpdated = false;
+    if (is_business !== undefined && user.is_business !== (is_business === true || is_business === 'true')) {
+      user.is_business = is_business === true || is_business === 'true';
+      detailsUpdated = true;
+    }
+    if (gst_number && user.gst_number !== gst_number.toUpperCase()) {
+      user.gst_number = gst_number.toUpperCase();
+      detailsUpdated = true;
+    }
+    
+    if (detailsUpdated) {
+      await user.save();
+    }
+
     // LINK ANONYMOUS USER IF EXISTS
     if (anonId) {
       try {
