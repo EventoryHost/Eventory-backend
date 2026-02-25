@@ -13,7 +13,7 @@ const sqs = new SQSClient({
   },
 });
 
-const queueUrl = process.env.IS_DEV ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue" :
+const queueUrl = process.env.IS_DEV === "true" ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue" :
   "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
 console.log("Starting SQS polling service for invoicing and agreements...");
