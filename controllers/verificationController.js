@@ -14,7 +14,7 @@ const verifyGSTIN = async (req, res) => {
 
   const gstinPattern =
     /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/;
-  if (!process.env.IS_DEV && !gstinPattern.test(gstIn)) {
+  if (process.env.IS_DEV !== "true" && !gstinPattern.test(gstIn)) {
     return res.status(400).json({ message: "Invalid GSTIN format" });
   }
   try {
@@ -135,7 +135,7 @@ const verifyPAN = async (req, res) => {
 
   // PAN card format validation - 5 letters followed by 4 numbers and then 1 letter
   const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-  if (!process.env.IS_DEV && !panPattern.test(panNo)) {
+  if (process.env.IS_DEV !== "true" && !panPattern.test(panNo)) {
     return res.status(400).json({ message: "Invalid PAN card format" });
   }
 

@@ -11,7 +11,7 @@ const sqs = new SQSClient({
   },
 });
 
-const queueUrl = process.env.IS_DEV ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue":
+const queueUrl = process.env.IS_DEV === "true" ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue" :
   "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
 const generateAndStoreAgreement = async (req, res) => {
@@ -39,7 +39,7 @@ const generateAndStoreAgreement = async (req, res) => {
     }
 
     const sqsMessage = {
-      type: 2, 
+      type: 2,
       serviceType,
       vendorId,
       agreementData,
@@ -94,7 +94,7 @@ const addVendorAgreement = async (req, res) => {
       "../models/reduxModels/djArtist.js"
     );
     const DJArtist = (await import("../models/djArtist.js")).default;
-    const { ReduxMakeupArtistModel  } = await import("../models/reduxModels/makeupArtist.js");
+    const { ReduxMakeupArtistModel } = await import("../models/reduxModels/makeupArtist.js");
     const { ReduxPhotographerVideographerModel } = await import(
       "../models/reduxModels/photographerVideographer.js"
     );

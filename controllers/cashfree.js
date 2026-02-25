@@ -174,8 +174,9 @@ export const verifyPayment = async (req, res) => {
 
     await sqs.send(
       new SendMessageCommand({
-        QueueUrl:
-          "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+        QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
+          ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+          : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
         MessageBody: JSON.stringify(sqsMessage),
       }),
     );
@@ -212,8 +213,9 @@ async function sendInvoice(req, res) {
 
     await sqs.send(
       new SendMessageCommand({
-        QueueUrl:
-          "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+        QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
+          ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+          : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
         MessageBody: JSON.stringify(sqsMessage),
       }),
     );
@@ -1162,8 +1164,9 @@ const verifyCustomerPayment = async (req, res) => {
     };
 
     await sqs.send(new SendMessageCommand({
-      QueueUrl: process.env.INVOICE_QUEUE_URL
-        || "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue",
+      QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
+        ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+        : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
       MessageBody: JSON.stringify(sqsMessage),
     }));
 
