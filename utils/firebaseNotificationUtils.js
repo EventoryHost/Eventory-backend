@@ -1,6 +1,7 @@
 import initializeFirebase from '../config/firebaseConfig.js';
 import { DeviceToken } from '../models/deviceToken.js';
 import { Vendor } from '../models/vendor.js';
+import EventManager from '../models/eventManager.js';
 
 /**
  * Send FCM notification using Firebase Admin SDK
@@ -326,10 +327,136 @@ async function sendFCMNotificationToVendor(options) {
   }
 }
 
+/**
+ * Send FCM notification to all devices of an event manager and clean up invalid tokens
+ * @param {Object} options - Options for sending notification
+ * @param {string} options.emId - The em_id string identifier
+ * @param {Object} options.notification - Notification payload (title, body, image)
+ * @param {Object} options.data - Custom data payload
+ * @param {Object} options.android - Android-specific options
+ * @param {Object} options.apns - APNs (iOS) specific options
+ * @param {Object} options.fcmOptions - FCM SDK features options
+ * @returns {Promise<Object>} Response object with success/failure details
+ */
+async function sendFCMNotificationToEm(options) {
+  try {
+    const {
+      emId,
+      notification,
+      data,
+      android,
+      apns,
+      fcmOptions,
+      priority = "normal"
+    } = options;
+
+    if (!emId) {
+      throw new Error('emId is required');
+    }
+
+    // Find event manager
+    const eventManager = await EventManager.findOne({ em_id: emId });
+    if (!eventManager) {
+      return { success: false, error: 'Event Manager not found' };
+    }
+
+    // Get device tokens
+    const deviceTokens = await DeviceToken.find({ emId });
+    if (deviceTokens.length === 0) {
+      return {
+        success: true,
+        message: 'No device tokens found for this event manager',
+        sentCount: 0
+      };
+    }
+
+    const tokens = deviceTokens.map(t => t.deviceToken);
+
+    // 🔥 APPLY PRIORITY IF GIVEN
+    let androidPayload = android || {};
+    let apnsPayload = apns || {};
+
+    if (priority === "high") {
+      androidPayload = {
+        priority: "high",
+        notification: {
+          channelId: "high_importance_channel",
+          priority: "max",
+          defaultSound: true,
+          ...(android?.notification || {})
+        },
+        ...android
+      };
+
+      apnsPayload = {
+        headers: {
+          "apns-priority": "10",
+          ...(apns?.headers || {})
+        },
+        ...apns
+      };
+    }
+
+    // Send to all tokens
+    const sendResult = await sendFCMNotifications({
+      tokens,
+      notification,
+      data,
+      android: androidPayload,
+      apns: apnsPayload,
+      fcmOptions
+    });
+
+    if (!sendResult.success) return sendResult;
+
+    // Clean invalid tokens
+    const invalidTokens = [];
+
+    sendResult.responses.forEach((res, idx) => {
+      if (!res.success) {
+        const err = res.error?.code;
+        if (
+          err === "messaging/invalid-registration-token" ||
+          err === "messaging/registration-token-not-registered"
+        ) {
+          invalidTokens.push(tokens[idx]);
+        }
+      }
+    });
+
+    let removedCount = 0;
+    if (invalidTokens.length > 0) {
+      const r = await DeviceToken.deleteMany({
+        emId,
+        deviceToken: { $in: invalidTokens }
+      });
+      removedCount = r.deletedCount;
+    }
+
+    return {
+      success: true,
+      message: "Notifications sent successfully",
+      sentCount: sendResult.successCount,
+      failedCount: sendResult.failureCount,
+      invalidTokensRemoved: removedCount
+    };
+
+  } catch (error) {
+    console.error("Error sending FCM notification to em:", error);
+    return {
+      success: false,
+      error: error.message,
+      details: error
+    };
+  }
+}
+
+
 
 export {
   sendFCMNotification,
   sendFCMNotifications,
   sendFCMNotificationToTopic,
-  sendFCMNotificationToVendor
+  sendFCMNotificationToVendor,
+  sendFCMNotificationToEm
 };

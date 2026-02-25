@@ -302,6 +302,41 @@ export const updateCustomer = async (req, res) => {
   }
 };
 
+export const updateCustomerBusinessDetails = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "Unauthorized" });
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const mobile = decoded.mobile;
+
+    if (!mobile) return res.status(403).json({ message: "Invalid token" });
+
+    const { is_business, gst_number } = req.body;
+
+    const customer = await Customer.findOne({ contact_number: mobile });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    if (is_business !== undefined) {
+      customer.is_business = is_business === true || is_business === 'true';
+    }
+    
+    // Always store uppercase GST
+    if (gst_number !== undefined) {
+      customer.gst_number = gst_number ? gst_number.toUpperCase() : '';
+    }
+
+    await customer.save();
+
+    res.status(200).json({ message: "Business details updated", customer });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 // controller
 export const getCustomerById = async (req, res) => {
   try {
