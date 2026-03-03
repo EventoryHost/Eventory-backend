@@ -56,6 +56,32 @@ const lastApprovalSchema = new Schema({
   }
 }, { _id: false });
 
+// Payment Breakdowns Schema (embedded in Orders)
+const paymentBreakdownsSchema = new Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ["Unpaid", "Paid", "Failed"],
+    default: "Unpaid"
+  },
+  custom_items: [{
+    name_of_service: String,
+    price: Number,
+    description: String
+  }]
+}, { _id: false });
+
 // Payment Details Schema (embedded in Orders)
 const paymentDetailsSchema = new Schema({
   paymentStatus: {
@@ -251,6 +277,10 @@ const ordersSchema = new Schema({
   final_order_items: [orderCartSchema], // Array of cart items
   paymentDetails: {
     type: paymentDetailsSchema
+  },
+  paymentBreakdowns: {
+    type: [paymentBreakdownsSchema],
+    default: []
   },
   specificTerms: {
     type: [String],

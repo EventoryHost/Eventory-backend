@@ -7,7 +7,7 @@ import Order from "../models/orders.js";
 import { Transaction } from "../models/transactions.js";
 import Quotation from "../models/quotations.js";
 import { sendEmailInvoice } from "./sesController.js";
-import { sendFCMNotificationToVendor,sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
+import { sendFCMNotificationToVendor, sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
 import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
@@ -120,6 +120,9 @@ const createOrder = async (req, res) => {
         customer_id: customer_details.id,
         customer_phone: customer_details.phone,
       },
+      order_tags: {
+        internal_order_id: internal_order_id || "MISSING",
+      },
     };
 
     const response = await cashfree.PGCreateOrder(request);
@@ -165,6 +168,27 @@ export const verifyPayment = async (req, res) => {
     };
 
     const vendor = await Vendor.findOne({ vendor_id: ven_id });
+
+    try {
+      const pg_transfer_id = generateUniqueId("TRN_PG");
+      await Transaction.create({
+        quotation_id: "VENDOR_ONBOARDING",
+        internalOrderId: order_id,
+        vendor_id: ven_id,
+        customer_id: ven_id,
+        service_id: serviceData?.service_id || "ONBOARDING",
+        pgOrderId: order_id,
+        pgStatus: payment.order_status,
+        transfer_id: pg_transfer_id,
+        status: "SUCCESS",
+        transfer_amount: payment.order_amount,
+        transfer_mode: "PG_IN",
+        payment_type: "vendor_onboarding",
+      });
+      console.log(`[VerifyVendorPayment] ✅ Successfully recorded PG_IN transaction for ${order_id}`);
+    } catch (txnErr) {
+      console.error(`[VerifyVendorPayment] ❌ Failed to record PG_IN transaction:`, txnErr);
+    }
 
     const sqsMessage = {
       type: "vendorOnboarded",
@@ -366,6 +390,7 @@ const getServiceModelById = async (service_id) => {
 };
 
 const verifyCustomerPayment = async (req, res) => {
+  console.log("DEBUG: verifyCustomerPayment CALLED [Version: ID_FIX_V1]");
   try {
     const {
       order_id,
@@ -435,17 +460,26 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     // Fetch the final order to get required IDs
-    console.log(`[VerifyPayment] Searching for internal_order_id: ${internal_order_id}`);
-    var finalOrder = await Order.findOne({ order_id: internal_order_id }).lean();
+    let effective_internal_order_id = internal_order_id;
+    if (!effective_internal_order_id || effective_internal_order_id === order_id) {
+      if (payment.order_tags && payment.order_tags.internal_order_id && payment.order_tags.internal_order_id !== "MISSING") {
+        effective_internal_order_id = payment.order_tags.internal_order_id;
+        console.log(`[VerifyPayment] Recovered internal_order_id from order_tags: ${effective_internal_order_id}`);
+      }
+    }
+
+    console.log(`[VerifyPayment] Searching for internal_order_id: ${effective_internal_order_id}`);
+    var finalOrder = await Order.findOne({ order_id: effective_internal_order_id }).lean();
     if (!finalOrder) {
-      console.log(`[VerifyPayment] Order not found by order_id, trying quotation_id: ${internal_order_id}`);
-      finalOrder = await Order.findOne({ quotation_id: internal_order_id }).lean();
+      console.log(`[VerifyPayment] Order not found by order_id, trying quotation_id: ${effective_internal_order_id}`);
+      finalOrder = await Order.findOne({ quotation_id: effective_internal_order_id }).lean();
       if (!finalOrder) {
-        console.error(`[VerifyPayment] ⚠️ Final order not found for internal_order_id: ${internal_order_id}. BUT payment is PAID. Returning SUCCESS to frontend for recovery.`);
+        console.error(`[VerifyPayment] ⚠️ Final order not found for internal_order_id: ${effective_internal_order_id}. BUT payment is PAID. Returning SUCCESS to frontend for recovery.`);
         return res.status(200).json({
           message: "Payment verified, but internal order sync pending",
           payment_status: payment.order_status,
-          order_id: internal_order_id,
+          order_id: effective_internal_order_id,
+          cf_order_id: order_id, // Add this for frontend lookup resilience
           no_order_record: true
         });
       }
@@ -453,7 +487,7 @@ const verifyCustomerPayment = async (req, res) => {
     console.log(`[VerifyPayment] Found Order: ${finalOrder.order_id}, customer_id: ${finalOrder.customer_id}`);
 
     const quotation_id = finalOrder.quotation_id;
-    const internalOrderId = finalOrder.order_id;
+    const internalOrderId = finalOrder.order_id || effective_internal_order_id;
     const vendor_id = finalOrder.vendor_id;
     const em_id = finalOrder.em_id;
 
@@ -495,6 +529,42 @@ const verifyCustomerPayment = async (req, res) => {
       if (finalOrder) {
         finalOrder.customer_id = finalCustomerId;
       }
+    }
+
+    // NEW: Record the PG Payment Transaction
+    try {
+      const pg_transfer_id = generateUniqueId("TRN_PG");
+      await Transaction.create({
+        quotation_id: quotation_id,
+        internalOrderId: internalOrderId,
+        vendor_id: vendor_id,
+        customer_id: finalCustomerId,
+        service_id: service_id,
+        pgOrderId: order_id,
+        pgStatus: payment.order_status,
+        transfer_id: pg_transfer_id,
+        status: "SUCCESS",
+        transfer_amount: order_amount,
+        transfer_mode: "PG_IN",
+        payment_type: payment_type,
+        paymentDetails: {
+          customerPayable: {
+            total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+            baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+            convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+            taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+          },
+          vendorReceivable: {
+            total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+            baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+            commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+            taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+          },
+        },
+      });
+      console.log(`[VerifyPayment] ✅ Successfully recorded PG_IN transaction for ${order_id}`);
+    } catch (txnErr) {
+      console.error(`[VerifyPayment] ❌ Failed to record PG_IN transaction:`, txnErr);
     }
 
     // Success Socket Emission
@@ -567,13 +637,23 @@ const verifyCustomerPayment = async (req, res) => {
     const alreadyPaid = previousTxn?.transfer_amount ?? 0;
 
     let payoutAmount;
-    if (payment_type === "advance") {
-      payoutAmount = order_amount;
-    } else if (payment_type === "full") {
+
+    // NEW: Dynamic Category Payout Logic
+    // Token / Advance / Final Pay / Last Pay will be passed as `payment_type`.
+    // We cap ANY payout to strictly what is mathematically owed up to that point.
+    // Ensure we do not pay the vendor more than `receivableFromOrder - alreadyPaid`.
+    const maxAllowedPayout = Math.max(0, (receivableFromOrder ?? 0) - alreadyPaid);
+
+    if (payment_type === "full") {
       payoutAmount = receivableFromOrder;
-    } else if (payment_type === "remaining") {
-      payoutAmount = Number(((receivableFromOrder ?? 0) - alreadyPaid).toFixed(2));
-      if (payoutAmount < 0) payoutAmount = 0;
+    } else if (payment_type === "remaining" || payment_type === "Last Pay" || payment_type === "Final Pay") {
+      payoutAmount = Number(maxAllowedPayout.toFixed(2));
+    } else {
+      // For anything else ("Advance", "Advance 1", "Token"), we payout the passed amount
+      // but cap it against the final allowable vendor receivable so we don't accidentally
+      // pay out Eventory's commission during heavy advance phases.
+      payoutAmount = Math.min(order_amount, maxAllowedPayout);
+      payoutAmount = Number(payoutAmount.toFixed(2));
     }
 
     console.log(`[VerifyPayment] Payment Type: ${payment_type}, Payout Amount Calculated: ${payoutAmount}, Receivable was: ${receivableFromOrder}, Already Paid was: ${alreadyPaid}`);
@@ -834,16 +914,15 @@ const verifyCustomerPayment = async (req, res) => {
       { new: true }
     );
 
-    const paymentTypeMap = {
-      advance: "Advance Payment",
-      remaining: "Remaining Payment",
-      full: "Full Payment",
-    };
-    const paymentMode = paymentTypeMap[payment_type] || "Payment";
+    // Try to sanitize known names for chat logs, else default back
+    let paymentModeLog = payment_type;
+    if (payment_type === "full") paymentModeLog = "Full Payment";
+    if (payment_type === "remaining") paymentModeLog = "Remaining Payment";
+    if (payment_type === "advance") paymentModeLog = "Advance Payment";
 
-    const customerMessage = `${paymentMode} of ₹${order_amount} done successfully to ${vendorName} for Order ID: ${internalOrderId}`;
-    const vendorMessage = `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
-    const adminMessage = `${paymentMode} of ₹${order_amount} is done by ${customerName} to ${vendorName} for Order ID: ${internalOrderId}`;
+    const customerMessage = `${paymentModeLog} of ₹${order_amount} done successfully to ${vendorName} for Order ID: ${internalOrderId}`;
+    const vendorMessage = `${paymentModeLog} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
+    const adminMessage = `${paymentModeLog} of ₹${order_amount} is done by ${customerName} to ${vendorName} for Order ID: ${internalOrderId}`;
 
     // Send real-time chat message to Customer
     try {
@@ -944,7 +1023,7 @@ const verifyCustomerPayment = async (req, res) => {
       priority: "high",
       notification: {
         title: "Payment Received",
-        body: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
+        body: `${paymentModeLog} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
       },
       data: {
         type: "payment",
@@ -953,7 +1032,7 @@ const verifyCustomerPayment = async (req, res) => {
         chat_id: quotation_id,
         service_id: service_id,
         vendor_id: vendor_id,
-        message: `${paymentMode} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
+        message: `${paymentModeLog} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`
       }
     }).then(result => {
       console.log(`FCM notifications sent to vendor ${vendor_id} for payment ${order_id}`, result);
@@ -961,12 +1040,58 @@ const verifyCustomerPayment = async (req, res) => {
       console.error("Failed to send FCM notification for payment:", error);
     });
 
+    // ── Check if an event already exists for this quotation ──
     let event_id;
-    if (payment_type !== "remaining") {
+    const existingEvent = await Events.findOne({ quotation_id: quotation_id });
+
+    if (existingEvent) {
+      // ── UPDATE existing event (subsequent payment) ──
+      event_id = existingEvent.event_id;
+      console.log(`[VerifyPayment] Existing event found: ${event_id}. Updating payment amounts...`);
+
+      const currentPaid = Number(existingEvent.already_paid_amount || 0);
+      const newTotalPaid = Number((currentPaid + Number(order_amount)).toFixed(2));
+      const isAdvanceMilestone = payment_type === "advance" || payment_type === "Token" || payment_type?.startsWith("Advance");
+      const newAdvancePaid = isAdvanceMilestone
+        ? Number(((existingEvent.advance_amount_paid || 0) + Number(order_amount)).toFixed(2))
+        : existingEvent.advance_amount_paid;
+
+      const updateData = {
+        $set: {
+          already_paid_amount: newTotalPaid,
+          advance_amount_paid: newAdvancePaid,
+          payment_status: newTotalPaid >= (existingEvent.final_amount || 0) ? "fully_paid" : "advance_paid",
+        },
+        $push: {
+          payment_method_details: {
+            channel: payment.order_meta.payment_methods || "Online",
+            cf_payment_id: payment.cf_order_id || order_id,
+            payment_amount: Number(order_amount),
+            payment_completion_time: new Date(),
+            payment_status: "SUCCESS",
+            payment_group: payment_type,
+          }
+        }
+      };
+
+      // Mark the specific breakdown as Paid in the array
+      if (payment_type && payment_type !== "remaining" && payment_type !== "full") {
+        updateData.$set["payment_breakdowns.$[elem].status"] = "Paid";
+      }
+
+      const updateOptions = {
+        arrayFilters: [{ "elem.name": payment_type }],
+        new: true
+      };
+
+      await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
+      console.log(`[VerifyPayment] Event ${event_id} updated. New total paid: ${newTotalPaid}`);
+    } else {
+      // ── CREATE new event (first payment for this quotation) ──
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
       event_id = generateUniqueId("EVTY");
-      console.log(`[VerifyPayment] Creating NEW event ${event_id} for Customer ID: ${finalCustomerId} | Order ID: ${internalOrderId}`);
+      console.log(`[VerifyPayment] No existing event found. Creating NEW event ${event_id} for Customer ID: ${finalCustomerId} | Order ID: ${internalOrderId}`);
       const preBooking = new Events({
         event_id: event_id,
         customer_id: finalCustomerId,
@@ -977,65 +1102,53 @@ const verifyCustomerPayment = async (req, res) => {
 
         // Required event fields (valid defaults)
         event_type: finalOrder?.event_type || "Pending",
-        location_type: (finalOrder?.location_type || "outdoor").toUpperCase(), // valid enum
+        location_type: (finalOrder?.location_type || "outdoor").toUpperCase(),
         event_location: finalOrder?.event_location || "Pending location",
         event_start: now,
-        event_end: oneHourLater, // strictly after start
+        event_end: oneHourLater,
 
         final_guest_count: Math.max(1, Number(finalOrder?.final_guest_count || 1)),
         final_amount: Math.max(0, Number(finalOrder?.final_amount || 0)),
-        event_status: "booked", // valid enum
+        event_status: "booked",
 
         vendor_manager_name: "Not Assigned",
         customer_name: customerName,
-        // Contacts
         vendor_manager_contact_number: isValidINMobile(serviceDoc?.basic_details?.service_contact_number) ? serviceDoc?.basic_details?.service_contact_number : "",
         vendor_manager_contact_email: vendorDoc?.email || "",
         customer_contact_number: customerPhone,
         customer_contact_email: customerEmail,
 
-        // Payment status for advance flow
-        already_paid_amount: payment_type === "advance" ? Number(order_amount) : 0,
-        advance_amount_paid: payment_type === "advance" ? Number(order_amount) : 0,
-        payment_status: "advance_paid",
+        already_paid_amount: Number(order_amount),
+        advance_amount_paid: (payment_type === "advance" || payment_type === "Token" || payment_type?.startsWith("Advance")) ? Number(order_amount) : 0,
+        payment_status: payment_type === "full" ? "fully_paid" : "advance_paid",
         payment_method: "online",
 
-        // Totals blocks empty for now; real values set later by createBooking
         payment_details: {
           customerPayable: {
-            total: 0,
-            baseAmount: 0,
-            convenienceFee: 0,
-            taxOnConvenience: 0,
-            convenienceFeeBefore: 0,
-            taxOnConvenienceBefore: 0,
-            couponCode: null,
-            discountAmount: 0
+            total: N(finalOrder?.paymentDetails?.customerPayable?.total),
+            baseAmount: N(finalOrder?.paymentDetails?.customerPayable?.baseAmount),
+            convenienceFee: N(finalOrder?.paymentDetails?.customerPayable?.convenienceFee),
+            taxOnConvenience: N(finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience),
+            convenienceFeeBefore: N(finalOrder?.paymentDetails?.customerPayable?.convenienceFeeBefore),
+            taxOnConvenienceBefore: N(finalOrder?.paymentDetails?.customerPayable?.taxOnConvenienceBefore),
+            couponCode: finalOrder?.paymentDetails?.customerPayable?.couponCode ?? null,
+            discountAmount: N(finalOrder?.paymentDetails?.customerPayable?.discountAmount),
           },
           vendorReceivable: {
-            total: 0,
-            baseAmount: 0,
-            commission: 0,
-            taxOnCommission: 0
-          }
+            total: N(finalOrder?.paymentDetails?.vendorReceivable?.total),
+            baseAmount: N(finalOrder?.paymentDetails?.vendorReceivable?.baseAmount),
+            commission: N(finalOrder?.paymentDetails?.vendorReceivable?.commission),
+            taxOnCommission: N(finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission),
+          },
         },
 
-        // Minimal items; you can also leave an empty array
         final_order_items: [],
         payment_method_details: [],
+        payment_breakdowns: finalOrder?.paymentBreakdowns || [],
       });
 
       await preBooking.save();
-      console.log(`[VerifyPayment] Event ${event_id} successfully saved.`);
-    } else {
-      console.log(`[VerifyPayment] Remaining payment detected. Finding existing event for quotation: ${quotation_id}`);
-      const event = await Events.findOne({ quotation_id: quotation_id });
-      if (event) {
-        event_id = event.event_id;
-        console.log(`[VerifyPayment] Found existing event: ${event_id}`);
-      } else {
-        console.error(`[VerifyPayment] ERROR: Event not found for remaining payment. Quotation: ${quotation_id}`);
-      }
+      console.log(`[VerifyPayment] Event ${event_id} successfully created.`);
     }
 
     const paymentMethod = payment.order_meta.payment_methods !== null
@@ -1193,7 +1306,14 @@ const verifyCustomerPayment = async (req, res) => {
     }));
 
     console.log("Invoice generated successfully");
-    return res.status(200).json({ message: "Customer payment verified", payment, event_id });
+    const updatedEvent = await Events.findOne({ event_id });
+    return res.status(200).json({
+      message: "Customer payment verified",
+      payment,
+      event_id,
+      cf_order_id: order_id,
+      updated_event: updatedEvent
+    });
   } catch (error) {
     console.error("❌ verifyCustomerPayment UNEXPECTED ERROR:", error?.response?.data || error.message);
     if (error.response) {

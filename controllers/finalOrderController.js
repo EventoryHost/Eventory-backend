@@ -5,7 +5,7 @@ import vendorNotification from "../models/vendorNotifications.js";
 import adminNotification from "../models/emNotifications.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
-import { sendFCMNotificationToVendor,sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
+import { sendFCMNotificationToVendor, sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
 import { Customer } from "../models/customer.js";
 
 export const createOrUpdateFinalOrder = async (req, res) => {
@@ -23,6 +23,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       customer_contact_number,
       customer_name,
       specificTerms,
+      paymentBreakdowns,
       ...incomingData
     } = req.body;
 
@@ -101,6 +102,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
 
     updateFields.quotation_id = quotation_id;
     if (paymentDetails) updateFields.paymentDetails = paymentDetails;
+    if (paymentBreakdowns) updateFields.paymentBreakdowns = paymentBreakdowns;
     if (specificTerms) updateFields.specificTerms = specificTerms;
     if (em_id) updateFields.em_id = em_id;
 
@@ -121,6 +123,68 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     }
 
     console.log("✅ Final order saved:", updatedOrder.order_id);
+
+    // ── SYNC ORDER EDITS TO LINKED EVENT ──
+    if (order_id && updatedOrder.event_id) {
+      try {
+        const eventSyncFields = {};
+        if (updateFields.final_order_items) eventSyncFields.final_order_items = updateFields.final_order_items;
+        if (updateFields.final_amount != null) eventSyncFields.final_amount = updateFields.final_amount;
+        if (updateFields.paymentDetails) eventSyncFields.payment_details = updateFields.paymentDetails;
+        if (updateFields.specificTerms) eventSyncFields.specific_terms = updateFields.specificTerms;
+        if (updateFields.event_type) eventSyncFields.event_type = updateFields.event_type;
+        if (updateFields.event_start) eventSyncFields.event_start = updateFields.event_start;
+        if (updateFields.event_end) eventSyncFields.event_end = updateFields.event_end;
+        if (updateFields.event_location) eventSyncFields.event_location = updateFields.event_location;
+        if (updateFields.location_type) eventSyncFields.location_type = updateFields.location_type;
+        if (updateFields.final_guest_count != null) eventSyncFields.final_guest_count = updateFields.final_guest_count;
+        if (updateFields.customer_name) eventSyncFields.customer_name = updateFields.customer_name;
+        if (updateFields.customer_contact_number) eventSyncFields.customer_contact_number = updateFields.customer_contact_number;
+        if (updateFields.customer_contact_email) eventSyncFields.customer_contact_email = updateFields.customer_contact_email;
+
+        // ── MERGE payment_breakdowns: preserve "Paid" statuses from event ──
+        if (updateFields.paymentBreakdowns) {
+          const existingEvent = await Events.findOne({ event_id: updatedOrder.event_id }).lean();
+          const existingBreakdowns = existingEvent?.payment_breakdowns || [];
+
+          // Build a map of existing paid statuses by breakdown name
+          const paidStatusMap = {};
+          for (const eb of existingBreakdowns) {
+            if (eb.status === "Paid") {
+              paidStatusMap[eb.name] = true;
+            }
+          }
+
+
+
+          // Merge: keep paid status for existing breakdowns, new ones stay as-is
+          const mergedBreakdowns = updateFields.paymentBreakdowns.map(b => ({
+            ...b,
+            status: paidStatusMap[b.name] ? "Paid" : (b.status || "Unpaid"),
+          }));
+
+          eventSyncFields.payment_breakdowns = mergedBreakdowns;
+        }
+
+
+        if (Object.keys(eventSyncFields).length > 0) {
+          const syncResult = await Events.findOneAndUpdate(
+            { event_id: updatedOrder.event_id },
+            { $set: eventSyncFields },
+            { new: true }
+          );
+          if (syncResult) {
+            console.log(`[OrderSync] Event ${updatedOrder.event_id} synced with order changes.`);
+          } else {
+            console.warn(`[OrderSync] Event ${updatedOrder.event_id} not found, skipping sync.`);
+          }
+        }
+      } catch (syncErr) {
+        console.error("[OrderSync] Failed to sync order to event:", syncErr.message);
+      }
+    }
+
+
 
     // ------------------- SEND REAL-TIME NOTIFICATION -------------------
     try {
@@ -605,12 +669,15 @@ export const approveFinalOrder = async (req, res) => {
 export const updateFinalOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
-    const { paymentDetails, specificTerms, ...updateData } = req.body;
+    const { paymentDetails, specificTerms, paymentBreakdowns, ...updateData } = req.body;
 
     // Handle paymentDetails and specificTerms separately to ensure proper schema validation
     const updateFields = { ...updateData };
     if (paymentDetails) {
       updateFields.paymentDetails = paymentDetails;
+    }
+    if (paymentBreakdowns) {
+      updateFields.paymentBreakdowns = paymentBreakdowns;
     }
     if (specificTerms) {
       updateFields.specificTerms = specificTerms;

@@ -42,6 +42,32 @@ const cartItemSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+// Payment Breakdowns Schema (embedded in Events)
+const paymentBreakdownsSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ["Unpaid", "Paid", "Failed"],
+    default: "Unpaid"
+  },
+  custom_items: [{
+    name_of_service: String,
+    price: Number,
+    description: String
+  }]
+}, { _id: false });
+
 // Events Schema
 const eventsSchema = new mongoose.Schema({
   event_id: {
@@ -241,6 +267,10 @@ const eventsSchema = new mongoose.Schema({
       commission: { type: Number, default: 0 },
       taxOnCommission: { type: Number, default: 0 }
     }
+  },
+  payment_breakdowns: {
+    type: [paymentBreakdownsSchema],
+    default: []
   },
   payment_method_details: [
     {
