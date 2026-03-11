@@ -886,13 +886,9 @@ const verifyCustomerPayment = async (req, res) => {
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
       paymentStatus:
-        payment_type === "full"
+        (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last"))
           ? "Fully Paid"
-          : payment_type === "advance"
-            ? "Partially Paid"
-            : payment_type === "remaining"
-              ? "Fully Paid"
-              : "Unknown",
+          : "Partially Paid",
       customerPayable: {
         total: finalOrder?.paymentDetails?.customerPayable?.total ?? order_amount,
         baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? order_amount,
@@ -914,11 +910,33 @@ const verifyCustomerPayment = async (req, res) => {
       { new: true }
     );
 
+    // Update the matching paymentBreakdown status to "Paid"
+    if (payment_type && payment_type !== "full") {
+      await Order.findOneAndUpdate(
+        {
+          order_id: internalOrderId,
+          "paymentBreakdowns.name": payment_type,
+          "paymentBreakdowns.status": "Unpaid",
+        },
+        {
+          $set: { "paymentBreakdowns.$.status": "Paid" },
+        }
+      );
+      console.log(`[VerifyPayment] Marked breakdown "${payment_type}" as Paid for order ${internalOrderId}`);
+    } else if (payment_type === "full") {
+      // Full payment: mark ALL breakdowns as Paid
+      await Order.updateOne(
+        { order_id: internalOrderId },
+        { $set: { "paymentBreakdowns.$[].status": "Paid" } }
+      );
+      console.log(`[VerifyPayment] Marked all breakdowns as Paid (full payment) for order ${internalOrderId}`);
+    }
+
     // Try to sanitize known names for chat logs, else default back
     let paymentModeLog = payment_type;
     if (payment_type === "full") paymentModeLog = "Full Payment";
-    if (payment_type === "remaining") paymentModeLog = "Remaining Payment";
-    if (payment_type === "advance") paymentModeLog = "Advance Payment";
+    else if (payment_type === "remaining") paymentModeLog = "Remaining Payment";
+    else paymentModeLog = `${payment_type} Payment`;  // e.g. "Token Payment", "Advance 1 Payment"
 
     const customerMessage = `${paymentModeLog} of ₹${order_amount} done successfully to ${vendorName} for Order ID: ${internalOrderId}`;
     const vendorMessage = `${paymentModeLog} of ₹${order_amount} received successfully from ${customerName} for Order ID: ${internalOrderId}`;
@@ -1051,15 +1069,10 @@ const verifyCustomerPayment = async (req, res) => {
 
       const currentPaid = Number(existingEvent.already_paid_amount || 0);
       const newTotalPaid = Number((currentPaid + Number(order_amount)).toFixed(2));
-      const isAdvanceMilestone = payment_type === "advance" || payment_type === "Token" || payment_type?.startsWith("Advance");
-      const newAdvancePaid = isAdvanceMilestone
-        ? Number(((existingEvent.advance_amount_paid || 0) + Number(order_amount)).toFixed(2))
-        : existingEvent.advance_amount_paid;
 
       const updateData = {
         $set: {
           already_paid_amount: newTotalPaid,
-          advance_amount_paid: newAdvancePaid,
           payment_status: newTotalPaid >= (existingEvent.final_amount || 0) ? "fully_paid" : "advance_paid",
         },
         $push: {
@@ -1119,8 +1132,7 @@ const verifyCustomerPayment = async (req, res) => {
         customer_contact_email: customerEmail,
 
         already_paid_amount: Number(order_amount),
-        advance_amount_paid: (payment_type === "advance" || payment_type === "Token" || payment_type?.startsWith("Advance")) ? Number(order_amount) : 0,
-        payment_status: payment_type === "full" ? "fully_paid" : "advance_paid",
+        payment_status: (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last")) ? "fully_paid" : "advance_paid",
         payment_method: "online",
 
         payment_details: {
@@ -1144,7 +1156,13 @@ const verifyCustomerPayment = async (req, res) => {
 
         final_order_items: [],
         payment_method_details: [],
-        payment_breakdowns: finalOrder?.paymentBreakdowns || [],
+        payment_breakdowns: (finalOrder?.paymentBreakdowns || []).map(b => {
+          const isMatching = payment_type === "full" || payment_type === "remaining" || (b.name && b.name === payment_type);
+          if (isMatching) {
+            return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
+          }
+          return b;
+        }),
       });
 
       await preBooking.save();
@@ -1163,7 +1181,7 @@ const verifyCustomerPayment = async (req, res) => {
     const discountAbs =
       typeof couponDiscount === "number"
         ? Number(couponDiscount)
-        : Number(finalOrder?.paymentDetails?.discount || 0);
+        : Number(finalOrder?.paymentDetails?.customerPayable?.discountAmount || finalOrder?.paymentDetails?.discount || 0);
 
     const cp = finalOrder?.paymentDetails?.customerPayable || {};
     const vr = finalOrder?.paymentDetails?.vendorReceivable || {};
@@ -1264,7 +1282,15 @@ const verifyCustomerPayment = async (req, res) => {
       finalAmount,
       amount: String(Number(totalCustomerPayable.toFixed(2))), // pre-discount total
       discount: String(Number(discountForInvoice.toFixed(2))),  // absolute coupon discount
-      advanceAmount: String(Number((payment_type === "advance" ? order_amount : 0).toFixed(2))),
+      advanceAmount: "0",
+      alreadyPaidAmount: (() => {
+        // After this payment, what is the total already paid?
+        if (existingEvent) {
+          const prev = Number(existingEvent.already_paid_amount || 0);
+          return String(Number((prev + Number(order_amount)).toFixed(2)));
+        }
+        return String(Number(order_amount));
+      })(),
       convinienceFee: String(Number((convenienceFee + taxOnConvenience).toFixed(2))),
       commissionFee: String(Number(commissionFee.toFixed(2))),
       couponCode: couponCodeParam,

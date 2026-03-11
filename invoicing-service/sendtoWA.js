@@ -74,7 +74,7 @@ export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor")
   }
 }
 
-export async function sendVendorEventBookingMessage(invoice_link, vendor_mobile, date) {
+export async function sendVendorEventBookingMessage(invoice_link, filename, vendor_mobile, date) {
 
   const WHATSAPP_API_URL = `https://graph.facebook.com/v23.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
@@ -100,7 +100,7 @@ export async function sendVendorEventBookingMessage(invoice_link, vendor_mobile,
             {
               type: "header",
               parameters: [
-                { type: "document", document: { link: invoice_link, filename: "booking.pdf" } },
+                { type: "document", document: { link: invoice_link, filename: filename } },
               ],
             },
             {

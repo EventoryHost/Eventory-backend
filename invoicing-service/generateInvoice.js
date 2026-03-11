@@ -385,6 +385,8 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     await axios.post(`${process.env.URL}/api/invoices`, {
       invoice_url: invoiceUrl,
       type: "registration",
+      invoice_for: "vendor",
+      payment_label: "registration",
       vendor_id: customer.vendor_id || customer.id,
       service_id:
         (serviceData && serviceData._id) ||
@@ -459,55 +461,98 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         ? "Eventory-Coupon-Code"
         : paymentDetails.method || "Online";
     const paymentType = paymentDetails.paymentType || null;
+
+    // Generate a filename-friendly payment label from paymentType
+    const paymentLabel = (() => {
+      if (!paymentType) return "payment";
+      const t = paymentType.toLowerCase().replace(/\s+/g, "");
+      if (t === "token") return "token";
+      if (t === "full") return "fullpay";
+      if (t === "remaining") return "remaining";
+      if (t === "finalpay") return "finalpay";
+      if (t === "lastpay") return "lastpay";
+      if (t.startsWith("advance")) return t; // "advance1", "advance2", etc.
+      return t; // fallback: use normalized string
+    })();
     const paidAmountNum = (() => {
       const explicit = Number(paymentDetails.paidAmount || 0);
-      if (paymentType === "advance") return explicit;
-      if (paymentType === "full") return finalAmount;
-      if (paymentType === "remaining") return explicit;
+      const ptLower = (paymentType || "").toLowerCase();
+      if (ptLower === "full") return finalAmount;
+      // For any partial payment (Token, Advance, Advance 1, remaining, etc.) use the explicit paidAmount
       return explicit || finalAmount;
     })();
 
     const invoiceDate = new Date().toLocaleDateString("en-GB", {
       timeZone: "Asia/Kolkata",
     });
-
-    // NEW: service data from SQS
+    // Service data from SQS
     const serviceData = paymentDetails.serviceData || {};
 
-    // Prefer service pincode, then customer pincode
-    const isDelhiPincode = String(
-      serviceData?.business_details?.pincode
-      || serviceData?.basic_details?.service_location_make_up?.service_pincode
-      || customer?.pincode
-      || customer?.pinCode
-      || ""
-    ).startsWith("1");
+    // Prefer GST-based Delhi detection (matching admin logic)
+    const customerGst = customer.gstin || customer.gst || "";
+    const vendorGst =
+      serviceData?.business_details?.gst
+      || vendor.businessDetails?.gstin
+      || "";
 
     let runningSerial = 1;
     let tableRows = "";
+    let tableHeader = "";
+    let colspan = "7";
+
+    // --- CUSTOMER INVOICE ---
+    const hasCustomerGst = !!customerGst;
+    const isDelhiCustomer = !hasCustomerGst || String(customerGst).startsWith("07");
+
+    if (isDelhiCustomer) {
+      tableHeader = `
+            <th>S.No.</th>
+            <th>Item Details</th>
+            <th>Net Amount</th>
+            <th>CGST %</th>
+            <th>CGST</th>
+            <th>SGST %</th>
+            <th>SGST</th>
+            <th>Total Amount</th>
+      `;
+      colspan = "7";
+    } else {
+      tableHeader = `
+            <th>S.No.</th>
+            <th>Item Details</th>
+            <th>Net Amount</th>
+            <th>IGST %</th>
+            <th>IGST</th>
+            <th>Total Amount</th>
+      `;
+      colspan = "5";
+    }
+
+    let totalNetAmount = 0;
+    let totalTaxAmount = 0;
+    let totalGrossAmount = 0;
 
     items.forEach((item) => {
       const gross = Number(item.amount) || 0;
       const net = gross / 1.18;
       const tax = gross - net;
 
-      if (!isDelhiPincode) {
+      totalNetAmount += net;
+      totalTaxAmount += tax;
+      totalGrossAmount += gross;
+
+      if (isDelhiCustomer) {
         const half = tax / 2;
         tableRows += `
           <tr>
-            <td style="text-align:center;" rowspan="2">${runningSerial}</td>
-            <td rowspan="2">${item.name || "Item"}</td>
-            <td rowspan="2" style="text-align:center;">${item.type || "-"}</td>
-            <td rowspan="2" style="text-align:center;">Rs ${net.toFixed(2)}</td>
+            <td style="text-align:center;">${runningSerial}</td>
+            <td>${item.name || "Item"}</td>
+            <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
             <td style="text-align:center;">9%</td>
-            <td style="text-align:center;">CGST</td>
             <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
-            <td rowspan="2" style="text-align:center;">Rs ${gross.toFixed(2)}</td>
-          </tr>
-          <tr>
             <td style="text-align:center;">9%</td>
-            <td style="text-align:center;">SGST</td>
             <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
+            <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
           </tr>
         `;
       } else {
@@ -515,10 +560,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
           <tr>
             <td style="text-align:center;">${runningSerial}</td>
             <td>${item.name || "Item"}</td>
-            <td style="text-align:center;">${item.type || "-"}</td>
             <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
             <td style="text-align:center;">18%</td>
-            <td style="text-align:center;">IGST</td>
             <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
             <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
           </tr>
@@ -527,36 +570,74 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       runningSerial++;
     });
 
+    // Subtotal row for customer invoices
+    if (isDelhiCustomer) {
+      tableRows += `
+          <tr style="background:#f8f9fa;">
+            <td></td>
+            <td style="text-align:right; font-weight:bold;">Subtotal:</td>
+            <td style="text-align:center; font-weight:bold;">Rs ${totalNetAmount.toFixed(2)}</td>
+            <td></td>
+            <td style="text-align:center; font-weight:bold;">Rs ${(totalTaxAmount / 2).toFixed(2)}</td>
+            <td></td>
+            <td style="text-align:center; font-weight:bold;">Rs ${(totalTaxAmount / 2).toFixed(2)}</td>
+            <td style="text-align:center; font-weight:bold;">Rs ${totalGrossAmount.toFixed(2)}</td>
+          </tr>
+      `;
+    } else {
+      tableRows += `
+          <tr style="background:#f8f9fa;">
+            <td></td>
+            <td style="text-align:right; font-weight:bold;">Subtotal:</td>
+            <td style="text-align:center; font-weight:bold;">Rs ${totalNetAmount.toFixed(2)}</td>
+            <td></td>
+            <td style="text-align:center; font-weight:bold;">Rs ${totalTaxAmount.toFixed(2)}</td>
+            <td style="text-align:center; font-weight:bold;">Rs ${totalGrossAmount.toFixed(2)}</td>
+          </tr>
+      `;
+    }
+
 
 
     const discountTotalsRow =
       discountAmount > 0
         ? `
       <tr class="total-row">
-        <td colspan="7" style="text-align:right;font-weight:bold;">Discount${couponCode ? ` (${couponCode})` : ""}:</td>
-        <td style="font-weight:bold;color:#16A34A">- Rs ${discountAmount.toFixed(2)}</td>
+        <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Discount${couponCode ? ` (${couponCode})` : ""}:</td>
+        <td style="font-weight:bold;color:#16A34A; text-align:center;">- Rs ${discountAmount.toFixed(2)}</td>
       </tr>`
         : "";
 
-    const totalRow = `
-      <tr class="total-row">
-        <td colspan="7" style="text-align:right;font-weight:bold;border-top: 2px solid #000">Convenience Fee:</td>
-        <td style="font-weight:bold;border-top: 2px solid #000">Rs ${convinienceFee.toFixed(2)}</td>
-      </tr>
-      ${discountTotalsRow}
-      <tr class="total-row">
-        <td colspan="7" style="text-align:right;font-weight:bold;">Total to be paid:</td>
-        <td style="font-weight:bold;">Rs ${finalAmount.toFixed(2)}</td>
-      </tr>
-      <tr class="total-row">
-        <td colspan="7" style="text-align:right;font-weight:bold;">Paid:</td>
-        <td style="font-weight:bold;">Rs ${paidAmountNum.toFixed(2)}</td>
-      </tr>
+    const alreadyPaidTotal = Number(paymentDetails.alreadyPaidAmount || paidAmountNum);
+    const balanceDue = Math.max(0, finalAmount - alreadyPaidTotal);
+    const balanceRow = balanceDue > 0
+      ? `
+       <tr class="total-row">
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Balance Due:</td>
+         <td style="font-weight:bold; text-align:center;">Rs ${balanceDue.toFixed(2)}</td>
+       </tr>`
+      : "";
+
+    let totalRow = `
+       <tr class="total-row">
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Convenience Fee:</td>
+         <td style="font-weight:bold;border-top: 2px solid #000; text-align:center;">Rs ${convinienceFee.toFixed(2)}</td>
+       </tr>
+       ${discountTotalsRow}
+       <tr class="total-row">
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Total to be paid:</td>
+         <td style="font-weight:bold; text-align:center;">Rs ${finalAmount.toFixed(2)}</td>
+       </tr>
+       <tr class="total-row">
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Paid (${(paymentType || 'Full').replace(/([a-z])(\d)/g, '$1 $2').toUpperCase()}):</td>
+         <td style="font-weight:bold; text-align:center;">Rs ${paidAmountNum.toFixed(2)}</td>
+       </tr>
+       ${balanceRow}
     `;
 
     const amountInWordsRow = `
       <tr class="amount-words-row">
-        <td colspan="8" style="text-align:left;font-style:italic;padding-top:10px;">
+        <td colspan="${Number(colspan) + 1}" style="text-align:left;font-style:italic;padding-top:10px;">
           <strong>Amount Paid:</strong> ${formatAmountInWords(paidAmountNum)}
         </td>
       </tr>
@@ -566,6 +647,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       <p><strong>${capitalizeWords(customer.name || "")}</strong></p>
       <p>${customer.address || ""}</p>
       <p>${customer.pincode || customer.pinCode || ""}</p>
+      ${customerGst ? `<p>GST: ${customerGst}</p>` : ""}
     `;
 
     // NEW: prefer service business_details, fallback to vendor.businessDetails
@@ -584,9 +666,6 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const vendorPan =
       serviceData?.business_details?.pan
       || vendor.businessDetails?.panNo;
-    const vendorGst =
-      serviceData?.business_details?.gst
-      || vendor.businessDetails?.gstin;
 
     const vendorDetails = `
       <p><strong>${capitalizeWords(vendorBusinessName)}</strong></p>
@@ -596,13 +675,42 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       <p>${vendorGst ? `GST: ${vendorGst}` : ""}</p>
     `;
 
-    const advanceDetails =
-      Number(paymentDetails.advanceAmount || 0) > 0
-        ? `<p><strong>Advance:</strong> Rs ${Number(paymentDetails.advanceAmount).toFixed(2)}</p>`
-        : "";
+    const advanceDetails = "";
     let id = `
       <p><strong>Customer ID:</strong></p>
       <p>${customer.id}</p>
+    `;
+
+    const signatureRow = `
+      <tr class="signature-row">
+        <td colspan="${Number(colspan) - 2}" style="padding-top: 30px; border-right: none;">
+          <!-- Empty left space -->
+        </td>
+        <td colspan="3" style="padding-top: 30px; text-align: right; border-left: none; padding-right: 20px;">
+          <p style="margin: 0; margin-bottom: 15px;"><strong>For EVENTORY TECH SOLUTIONS PVT LIMITED:</strong></p>
+          <img src="https://d5b8uhuzdzhj3.cloudfront.net/assets/vendor_onboarding/sign.png" alt="Signature"
+            style="width: 120px; height: 40px; display: block; margin-bottom: 10px; margin-left: auto;" />
+          <p style="margin: 0; font-size: 12px;"><strong>Authorized Signatory</strong></p>
+        </td>
+      </tr>
+    `;
+
+    const vendorBlock = `
+      <div class="billed-to">
+        <h3><strong>Issued to:</strong></h3>
+        <div class="customer-info">
+          ${vendorDetails}
+        </div>
+      </div>
+    `;
+
+    const customerBlock = `
+      <div class="billed-to">
+        <h3><strong>Issued to:</strong></h3>
+        <div class="customer-info">
+          ${userDetails}
+        </div>
+      </div>
     `;
 
     html = html
@@ -612,12 +720,13 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       .replace("{{invoiceDate}}", invoiceDate)
       .replace("{{amount}}", `Rs ${paidAmountNum.toFixed(2)}`)
       .replace("{{userId}}", id)
-      .replace("{{userDetails}}", userDetails)
-      .replace("{{vendorDetails}}", vendorDetails)
-      .replace("{{advanceDetails}}", advanceDetails)
+      .replace("{{vendorBlock}}", "")
+      .replace("{{customerBlock}}", customerBlock)
+      .replace("{{tableHeader}}", tableHeader)
       .replace("{{tableRows}}", tableRows)
       .replace("{{totalRow}}", totalRow)
-      .replace("{{amountInWordsRow}}", amountInWordsRow);
+      .replace("{{amountInWordsRow}}", amountInWordsRow)
+      .replace("{{signatureRow}}", signatureRow);
 
     browser = await chromium.launch({
       headless: true,
@@ -633,17 +742,14 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     const custInvoiceUrl = await uploadToS3(
       pdfBuffer,
-      `invoices/bookings/${paymentDetails.event_id}/customers/${customer.id}/customer-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
+      `bookings/${paymentDetails.event_id}/customers/${customer.id}/customer-${paymentLabel}.pdf`
     );
 
 
     // Decide invoice type for this payment
-    const invoiceType =
-      paymentType === "advance"
-        ? "advance_booking"
-        : paymentType === "remaining"
-          ? "payment"
-          : "booking";
+    const ptLower = (paymentType || "").toLowerCase();
+    const isFullOrFinal = ptLower === "full" || ptLower === "remaining" || ptLower.includes("final") || ptLower.includes("last");
+    const invoiceType = isFullOrFinal ? "booking" : "advance_booking";
 
     const customerId = customer.id; // from customerPayload
     const vendorId = vendor.id;     // from vendorPayload
@@ -658,61 +764,53 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     await axios.post(`${process.env.URL}/api/invoices`, {
       invoice_url: custInvoiceUrl,
       type: invoiceType,          // 'advance_booking' | 'booking' | 'payment'
+      invoice_for: 'customer',
+      payment_label: paymentLabel,
       vendor_id: vendorId,
       service_id: serviceId,
       customer_id: customerId,
       event_id: eventId,
     });
 
-    if (customer.mobile) {
-      await sendCustomerEventBookingMessage(
-        custInvoiceUrl,
-        customer.mobile,
-        paymentDetails.date
-      );
-    }
+    // if (customer.mobile) {
+    //   await sendCustomerEventBookingMessage(
+    //     custInvoiceUrl,
+    //     customer.mobile,
+    //     paymentDetails.date
+    //   );
+    // }
 
     // ---------- VENDOR INVOICE PDF ----------
     tableRows = "";
     runningSerial = 1;
+
+    const hasVendorGst = !!vendorGst;
+
+    // Always show full columns with GST breakdown for vendor invoices
+    colspan = "5";
+    tableHeader = `
+          <th>S.No.</th>
+          <th>Item Details</th>
+          <th>Net Amount</th>
+          <th>GST %</th>
+          <th>GST</th>
+          <th>Total Amount</th>
+    `;
+
     items.forEach((item) => {
       const gross = Number(item.amount) || 0;
       const net = gross / 1.18;
       const tax = gross - net;
-
-      if (!isDelhiPincode) {
-        const half = tax / 2;
-        tableRows += `
-        <tr>
-          <td style="text-align:center;" rowspan="2">${runningSerial}</td>
-          <td rowspan="2">${item.name || "Item"}</td>
-          <td rowspan="2" style="text-align:center;">${item.type || "-"}</td>
-          <td rowspan="2" style="text-align:center;">Rs ${net.toFixed(2)}</td>
-          <td style="text-align:center;">9%</td>
-          <td style="text-align:center;">CGST</td>
-          <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
-          <td rowspan="2" style="text-align:center;">Rs ${gross.toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td style="text-align:center;">9%</td>
-          <td style="text-align:center;">SGST</td>
-          <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
-        </tr>
-      `;
-      } else {
-        tableRows += `
+      tableRows += `
         <tr>
           <td style="text-align:center;">${runningSerial}</td>
           <td>${item.name || "Item"}</td>
-          <td style="text-align:center;">${item.type || "-"}</td>
           <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
           <td style="text-align:center;">18%</td>
-          <td style="text-align:center;">IGST</td>
           <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
           <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
         </tr>
       `;
-      }
       runningSerial++;
     });
 
@@ -721,27 +819,38 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       <p>${vendor.id}</p>
     `;
 
-    const vendorReceivedNum = paidAmountNum;
-    const vendorTotalReceivableNum = paymentDetails.vendorReceivable.total;
+    const vendorTotalReceivableNum = Number(paymentDetails?.vendorReceivable?.total || 0);
+    const alreadyPaidTotalVal = Number(paymentDetails?.alreadyPaidAmount || paidAmountNum || 0);
+    const vendorReceivedNum = Math.min(alreadyPaidTotalVal, vendorTotalReceivableNum);
+
+    const balanceReceivable = Math.max(0, vendorTotalReceivableNum - vendorReceivedNum);
+    const balanceRowVendor = balanceReceivable > 0
+      ? `
+          <tr class="total-row">
+            <td colspan="${colspan}" style="text-align:right;font-weight:bold;">To be received:</td>
+            <td style="font-weight:bold; text-align:center;">Rs ${balanceReceivable.toFixed(2)}</td>
+          </tr>`
+      : "";
 
     const vendorTotalRow = `
     <tr class="total-row">
-      <td colspan="7" style="text-align:right;font-weight:bold;border-top: 2px solid #000">Vendor Commission:</td>
-      <td style="font-weight:bold;border-top: 2px solid #000">Rs ${commissionFee.toFixed(2)}</td>
+      <td colspan="${colspan}" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Vendor Commission:</td>
+      <td style="font-weight:bold;border-top: 2px solid #000; text-align:center;">- Rs ${commissionFee.toFixed(2)}</td>
     </tr>
     <tr class="total-row">
-      <td colspan="7" style="text-align:right;font-weight:bold;">Total Receivable:</td>
-      <td style="font-weight:bold;">Rs ${vendorTotalReceivableNum.toFixed(2)}</td>
+      <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Total Receivable:</td>
+      <td style="font-weight:bold; text-align:center;">Rs ${vendorTotalReceivableNum.toFixed(2)}</td>
     </tr>
     <tr class="total-row">
-      <td colspan="7" style="text-align:right;font-weight:bold;">Received:</td>
-      <td style="font-weight:bold;">Rs ${vendorReceivedNum.toFixed(2)}</td>
+      <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Received:</td>
+      <td style="font-weight:bold; text-align:center;">Rs ${vendorReceivedNum.toFixed(2)}</td>
     </tr>
+    ${balanceRowVendor}
   `;
 
     const vendorAmountInWordsRow = `
     <tr class="amount-words-row">
-      <td colspan="8" style="text-align:left;font-style:italic;padding-top:10px;">
+      <td colspan="${Number(colspan) + 1}" style="text-align:left;font-style:italic;padding-top:10px;">
         <strong>Amount Received:</strong> ${formatAmountInWords(vendorReceivedNum)}
       </td>
     </tr>
@@ -755,11 +864,13 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       .replace("{{invoiceDate}}", invoiceDate)
       .replace("{{amount}}", `Rs ${vendorReceivedNum.toFixed(2)}`)
       .replace("{{userId}}", id)
-      .replace("{{userDetails}}", userDetails)
-      .replace("{{vendorDetails}}", vendorDetails)
+      .replace("{{vendorBlock}}", vendorBlock)
+      .replace("{{customerBlock}}", "")
+      .replace("{{tableHeader}}", tableHeader)
       .replace("{{tableRows}}", tableRows)
       .replace("{{totalRow}}", vendorTotalRow)
-      .replace("{{amountInWordsRow}}", vendorAmountInWordsRow);
+      .replace("{{amountInWordsRow}}", vendorAmountInWordsRow)
+      .replace("{{signatureRow}}", signatureRow);
 
     browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
     page = await browser.newPage();
@@ -772,7 +883,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     const venInvoiceUrl = await uploadToS3(
       pdfBuffer,
-      `invoices/bookings/${paymentDetails.event_id}/vendors/${vendor.id}/vendor-booking-invoice-${paymentDetails.invoiceNumber}.pdf`
+      `bookings/${paymentDetails.event_id}/vendors/${vendor.id}/vendor-${paymentLabel}.pdf`
     );
 
 
@@ -788,19 +899,22 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     await axios.post(`${process.env.URL}/api/invoices`, {
       invoice_url: venInvoiceUrl,
       type: vendorInvoiceType,    // 'advance_booking' | 'booking' | 'payment'
+      invoice_for: 'vendor',
+      payment_label: paymentLabel,
       vendor_id: vendorId,
       service_id: serviceId,
       customer_id: customerId,
       event_id: eventId,
     });
 
-    if (vendor.mobile) {
-      await sendVendorEventBookingMessage(
-        venInvoiceUrl,
-        vendor.mobile,
-        paymentDetails.date,
-      );
-    }
+    // if (vendor.mobile) {
+    //   await sendVendorEventBookingMessage(
+    //     venInvoiceUrl,
+    //     `vendor-${invoiceNumber}.pdf`,
+    //     vendor.mobile,
+    //     paymentDetails.date,
+    //   );
+    // }
   } catch (err) {
     try {
       if (page && !page.isClosed()) await page.close();

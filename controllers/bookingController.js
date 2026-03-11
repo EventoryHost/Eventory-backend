@@ -57,7 +57,6 @@ export const createBooking = async (req, res) => {
       customer_contact_email,
 
       already_paid_amount,
-      advance_amount_paid,
 
       payment_status,              // advance_paid|fully_paid|refunded (any case)
       payment_method,
@@ -112,13 +111,9 @@ export const createBooking = async (req, res) => {
 
     const finalAmountNum = asNumber(final_amount);
     const alreadyPaid = asNumber(already_paid_amount, 0);
-    const advancePaid = asNumber(advance_amount_paid, 0);
 
     if (alreadyPaid > finalAmountNum) {
       return res.status(400).json({ message: "already_paid_amount cannot exceed final_amount" });
-    }
-    if (advancePaid > finalAmountNum) {
-      return res.status(400).json({ message: "advance_amount_paid cannot exceed final_amount" });
     }
 
     // Map paymentDetails to schema payment_details
