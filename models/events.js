@@ -235,12 +235,6 @@ const eventsSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  advance_amount_paid: {
-    type: Number,
-    required: true,
-    default: 0,
-    min: 0
-  },
   payment_status: {
     type: String,
     required: true,
@@ -373,10 +367,6 @@ eventsSchema.pre('save', function (next) {
   // Basic validation only
   if (this.already_paid_amount > this.final_amount) {
     return next(new Error('Already paid amount cannot exceed final amount'));
-  }
-
-  if (this.advance_amount_paid > this.final_amount) {
-    return next(new Error('Advance amount cannot exceed final amount'));
   }
 
   next();

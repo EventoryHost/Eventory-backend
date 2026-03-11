@@ -30,18 +30,8 @@
 
     <hr style="border: 1px solid #7731d8; margin: 20px 0" />
     <section class="billing-info-booking">
-      <div class="billed-to">
-        <h3><strong>Vendor Details:</strong></h3>
-        <div class="customer-info">
-          {{vendorDetails}}
-        </div>
-      </div>  
-      <div class="billed-to">
-        <h3><strong>Issued to:</strong></h3>
-        <div class="customer-info">
-          {{userDetails}}
-        </div>
-      </div>
+      {{vendorBlock}}
+      {{customerBlock}}
 
       <div class="payment-details">
         <div class="payment-info">
@@ -72,31 +62,14 @@
       <table>
         <thead>
           <tr>
-            <th>S.No.</th>
-            <th>Item Details</th>
-            <th>Type</th>
-            <th>Net Amount</th>
-            <th>Tax Rate</th>
-            <th>Tax Type</th>
-            <th>Tax Amount</th>
-            <th>Total Amount</th>
+            {{tableHeader}}
           </tr>
         </thead>
         <tbody>
           {{tableRows}}
           {{totalRow}}
           {{amountInWordsRow}}
-          <tr class="signature-row">
-            <td colspan="5" style="padding-top: 30px; border-right: none;">
-              <!-- Empty left space -->
-            </td>
-            <td colspan="3" style="padding-top: 30px; text-align: right; border-left: none; padding-right: 20px;">
-              <p style="margin: 0; margin-bottom: 15px;"><strong>For EVENTORY TECH SOLUTIONS PVT LIMITED:</strong></p>
-              <img src="https://d5b8uhuzdzhj3.cloudfront.net/assets/vendor_onboarding/sign.png" alt="Signature"
-                style="width: 120px; height: 40px; display: block; margin-bottom: 10px; margin-left: auto;" />
-              <p style="margin: 0; font-size: 12px;"><strong>Authorized Signatory</strong></p>
-            </td>
-          </tr>
+          {{signatureRow}}
         </tbody>
       </table>
     </section>

@@ -42,6 +42,14 @@ const invoicesSchema = new mongoose.Schema({
     required: true,
     enum: ['registration', 'advance_booking', 'booking', 'payment']
   },
+  invoice_for: {
+    type: String,
+    required: true,
+    enum: ['customer', 'vendor']
+  },
+  payment_label: {
+    type: String // e.g. "token", "advance1", "finalpay", "lastpay"
+  },
   vendor_id: {
     type: String,
     required: true

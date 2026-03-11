@@ -1,30 +1,18 @@
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-const s3 = new S3Client({
-  region: "ap-south-1", 
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  }
-});
-
 const getInvoiceCount = async () => {
   try {
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Prefix: "invoices/vendors/",
-    };
+    const url = process.env.URL || (process.env.IS_DEV === "true" ? "http://localhost:5000" : "https://eventory.in");
+    const response = await axios.get(`${url}/api/invoices?limit=1`);
 
-    const command = new ListObjectsV2Command(params);
-    const response = await s3.send(command);
-    
-    
-    return response.Contents ? response.Contents.length : 0;
+    if (response.data && response.data.pagination) {
+      return response.data.pagination.total_records || 0;
+    }
+    return 0;
   } catch (error) {
-    console.error("Error getting invoice count from S3:", error);
+    console.error("Error getting invoice count from API:", error?.response?.data || error.message);
     return 0;
   }
 };
