@@ -6,7 +6,7 @@ import { Events } from "../models/events.js";
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const { invoice_url, type, vendor_id, service_id, customer_id, event_id } =
+    const { invoice_url, type, invoice_for, payment_label, vendor_id, service_id, customer_id, event_id } =
       req.body;
 
     // Validate required fields
@@ -30,6 +30,14 @@ export const createInvoice = async (req, res) => {
         success: false,
         message:
           "Invalid type. Must be one of: registration, advance_booking, booking, payment",
+      });
+    }
+
+    // Validate invoice_for
+    if (invoice_for && !['customer', 'vendor'].includes(invoice_for)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid invoice_for. Must be 'customer' or 'vendor'",
       });
     }
 
@@ -92,6 +100,8 @@ export const createInvoice = async (req, res) => {
     const invoice = new Invoices({
       invoice_url,
       type,
+      invoice_for: invoice_for || (type === "registration" ? "vendor" : "customer"),
+      payment_label: payment_label || null,
       vendor_id,
       service_id,
       customer_id: type === "registration" ? null : customer_id,

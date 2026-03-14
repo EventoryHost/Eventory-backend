@@ -42,6 +42,32 @@ const cartItemSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+// Payment Breakdowns Schema (embedded in Events)
+const paymentBreakdownsSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ["Unpaid", "Paid", "Failed"],
+    default: "Unpaid"
+  },
+  custom_items: [{
+    name_of_service: String,
+    price: Number,
+    description: String
+  }]
+}, { _id: false });
+
 // Events Schema
 const eventsSchema = new mongoose.Schema({
   event_id: {
@@ -209,12 +235,6 @@ const eventsSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  advance_amount_paid: {
-    type: Number,
-    required: true,
-    default: 0,
-    min: 0
-  },
   payment_status: {
     type: String,
     required: true,
@@ -241,6 +261,10 @@ const eventsSchema = new mongoose.Schema({
       commission: { type: Number, default: 0 },
       taxOnCommission: { type: Number, default: 0 }
     }
+  },
+  payment_breakdowns: {
+    type: [paymentBreakdownsSchema],
+    default: []
   },
   payment_method_details: [
     {
@@ -343,10 +367,6 @@ eventsSchema.pre('save', function (next) {
   // Basic validation only
   if (this.already_paid_amount > this.final_amount) {
     return next(new Error('Already paid amount cannot exceed final amount'));
-  }
-
-  if (this.advance_amount_paid > this.final_amount) {
-    return next(new Error('Advance amount cannot exceed final amount'));
   }
 
   next();

@@ -10,7 +10,7 @@ import CustomerNotification from "../models/customerNotifications.js";
 export const createOrUpdateAnonOrder = async (req, res) => {
   try {
     const {
-      anon_order_id, 
+      anon_order_id,
       chat_id,
       anon_user_id,
       em_id,
@@ -31,6 +31,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
       final_order_items,
       final_amount,
       advance_amount_requested,
+      paymentBreakdowns,
       paymentDetails,
       specificTerms,
       order_status,
@@ -49,18 +50,18 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         message: "chat_id is required"
       });
     }
-    
+
     // Ensure chat_id is trimmed to avoid lookup failures
     const trimmedChatId = chat_id.trim();
 
     // Fetch chat to get correct chat_type
     console.log(`[ORDER] Fetching chat details for chat_id: '${trimmedChatId}'`);
     const chat = await Chat.findOne({ chat_id: trimmedChatId });
-    
+
     if (!chat) {
-         console.log(`[ORDER] WARNING: Chat with id '${chat_id}' NOT FOUND in DB during order creation/update.`);
+      console.log(`[ORDER] WARNING: Chat with id '${chat_id}' NOT FOUND in DB during order creation/update.`);
     } else {
-         console.log(`[ORDER] Chat found. Database chat_type: '${chat.chat_type}'`);
+      console.log(`[ORDER] Chat found. Database chat_type: '${chat.chat_type}'`);
     }
 
     const chatType = chat ? chat.chat_type : "anon_customer-admin";
@@ -152,6 +153,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
           event_location: event_location !== undefined ? event_location : (existingOrder.event_location || 'Location Not Provided'),
           final_amount: finalAmountToStore !== undefined ? finalAmountToStore : 0,
           advance_amount_requested: advance_amount_requested !== undefined ? advance_amount_requested : (existingOrder.advance_amount_requested || 0),
+          paymentBreakdowns: paymentBreakdowns !== undefined ? paymentBreakdowns : (existingOrder.paymentBreakdowns || []),
           vendor_approval: true,
           customer_approval: true,
           original_ask_by_customer: customer_requirements !== undefined ? customer_requirements : (existingOrder.customer_requirements || ''),
@@ -197,6 +199,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         final_order_items: final_order_items !== undefined ? final_order_items : existingOrder.final_order_items,
         final_amount: finalAmountToStore,
         advance_amount_requested: advance_amount_requested !== undefined ? advance_amount_requested : existingOrder.advance_amount_requested,
+        paymentBreakdowns: paymentBreakdowns !== undefined ? paymentBreakdowns : existingOrder.paymentBreakdowns,
         paymentDetails: paymentDetailsToUse,
         specificTerms: specificTerms !== undefined ? specificTerms : existingOrder.specificTerms,
         order_status: order_status !== undefined ? order_status : existingOrder.order_status,
@@ -224,7 +227,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
 
       try {
         let updateMessage = `Order updated! Order ID: ${order.anon_order_id}`;
-        
+
         if (order_status === 'sent_to_customer') {
           updateMessage = 'Your order quotation has been sent! Please review the details.';
         } else if (order_status === 'approved') {
@@ -272,21 +275,22 @@ export const createOrUpdateAnonOrder = async (req, res) => {
 
         // Check if we should send a new order card or update an existing one? 
         // For now, consistent with previous behavior, we send a new card on update to show latest state.
-        
+
         const cardData = {
-            anon_order_id: order.anon_order_id,
-            order_status: order.order_status,
-            manager_name: "Event Manager",
-            created_at: order.updated_at || order.created_at,
-            event_type: order.event_type || "",
-            event_date: order.event_start,
-            event_time: order.event_time || "",
-            location: order.event_location || "",
-            guests: `${order.guest_count || 0} guests`,
-            services: Array.from(servicesMap.values()),
-            payment_breakdown: order.paymentDetails?.customerPayable || {},
-            advance_amount_requested: order.advance_amount_requested || 0,
-            checkout_url: order.checkout_url || checkout_url || null,
+          anon_order_id: order.anon_order_id,
+          order_status: order.order_status,
+          manager_name: "Event Manager",
+          created_at: order.updated_at || order.created_at,
+          event_type: order.event_type || "",
+          event_date: order.event_start,
+          event_time: order.event_time || "",
+          location: order.event_location || "",
+          guests: `${order.guest_count || 0} guests`,
+          services: Array.from(servicesMap.values()),
+          payment_breakdown: order.paymentDetails?.customerPayable || {},
+          paymentBreakdowns: order.paymentBreakdowns || [],
+          advance_amount_requested: order.advance_amount_requested || 0,
+          checkout_url: order.checkout_url || checkout_url || null,
         };
 
         const orderCardMessage = await Message.create({
@@ -303,11 +307,11 @@ export const createOrUpdateAnonOrder = async (req, res) => {
 
         await Chat.updateOne(
           { chat_id, chat_type: chatType },
-          { 
-            $set: { 
+          {
+            $set: {
               last_message_updated_at: new Date(),
               chat_updated_at: new Date()
-            } 
+            }
           }
         );
 
@@ -315,38 +319,38 @@ export const createOrUpdateAnonOrder = async (req, res) => {
           // Re-fetch chat logic to ensures we have the absolute latest state
           // But 'Dual-Cast' is safer: emit to all potential rooms for this chat ID
           const rooms = [
-              `${chat_id}-${chatType}`, // The database's current type
-              `${chat_id}-anon_customer-admin`, // Where the legacy/initial frontend might be
-              `${chat_id}-customer-admin`   // Where the upgraded/known frontend might be
+            `${chat_id}-${chatType}`, // The database's current type
+            `${chat_id}-anon_customer-admin`, // Where the legacy/initial frontend might be
+            `${chat_id}-customer-admin`   // Where the upgraded/known frontend might be
           ];
           // Deduplicate rooms
           const uniqueRooms = [...new Set(rooms)];
-          
+
           console.log(`[ORDER] Emitting socket events to rooms: ${uniqueRooms.join(', ')}`);
 
           uniqueRooms.forEach(roomId => {
-              req.io.to(roomId).emit("new_message", {
-                _id: systemMessage._id,
-                chat_id: systemMessage.chat_id,
-                chat_type: systemMessage.chat_type,
-                sender: systemMessage.sender,
-                sender_id: systemMessage.sender_id,
-                message_content: systemMessage.message_content,
-                message_type: systemMessage.message_type,
-                message_sent_at: systemMessage.message_sent_at,
-              });
-              
-              req.io.to(roomId).emit("new_message", {
-                _id: orderCardMessage._id,
-                chat_id: orderCardMessage.chat_id,
-                chat_type: orderCardMessage.chat_type,
-                sender: orderCardMessage.sender,
-                sender_id: orderCardMessage.sender_id,
-                message_content: orderCardMessage.message_content,
-                message_type: orderCardMessage.message_type,
-                card_data: orderCardMessage.card_data,
-                message_sent_at: orderCardMessage.message_sent_at,
-              });
+            req.io.to(roomId).emit("new_message", {
+              _id: systemMessage._id,
+              chat_id: systemMessage.chat_id,
+              chat_type: systemMessage.chat_type,
+              sender: systemMessage.sender,
+              sender_id: systemMessage.sender_id,
+              message_content: systemMessage.message_content,
+              message_type: systemMessage.message_type,
+              message_sent_at: systemMessage.message_sent_at,
+            });
+
+            req.io.to(roomId).emit("new_message", {
+              _id: orderCardMessage._id,
+              chat_id: orderCardMessage.chat_id,
+              chat_type: orderCardMessage.chat_type,
+              sender: orderCardMessage.sender,
+              sender_id: orderCardMessage.sender_id,
+              message_content: orderCardMessage.message_content,
+              message_type: orderCardMessage.message_type,
+              card_data: orderCardMessage.card_data,
+              message_sent_at: orderCardMessage.message_sent_at,
+            });
           });
         }
 
@@ -432,6 +436,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         final_order_items: final_order_items || [],
         final_amount: final_amount || 0,
         advance_amount_requested: advance_amount_requested || 0,
+        paymentBreakdowns: paymentBreakdowns || [],
         paymentDetails: paymentDetails || {},
         specificTerms: specificTerms || [],
         order_status: order_status || 'draft',
@@ -456,7 +461,7 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         const servicesMap = new Map();
         if (order.final_order_items && Array.isArray(order.final_order_items)) {
           order.final_order_items.forEach((item) => {
-             if (!item) return;
+            if (!item) return;
             const serviceName = item.name_of_service?.split(" - ")[0] || item.name_of_service || "Service";
             if (!servicesMap.has(serviceName)) {
               servicesMap.set(serviceName, {
@@ -478,18 +483,19 @@ export const createOrUpdateAnonOrder = async (req, res) => {
         }
 
         const cardData = {
-            anon_order_id: order.anon_order_id,
-            order_status: order.order_status,
-            manager_name: "Event Manager",
-            created_at: order.created_at,
-            event_type: order.event_type || "",
-            event_date: order.event_start,
-            event_time: order.event_time || "",
-            location: order.event_location || "",
-            guests: `${order.guest_count || 0} guests`,
-            services: Array.from(servicesMap.values()),
-            payment_breakdown: order.paymentDetails?.customerPayable || {},
-            advance_amount_requested: order.advance_amount_requested || 0,
+          anon_order_id: order.anon_order_id,
+          order_status: order.order_status,
+          manager_name: "Event Manager",
+          created_at: order.created_at,
+          event_type: order.event_type || "",
+          event_date: order.event_start,
+          event_time: order.event_time || "",
+          location: order.event_location || "",
+          guests: `${order.guest_count || 0} guests`,
+          services: Array.from(servicesMap.values()),
+          payment_breakdown: order.paymentDetails?.customerPayable || {},
+          paymentBreakdowns: order.paymentBreakdowns || [],
+          advance_amount_requested: order.advance_amount_requested || 0,
         };
 
         const orderCardMessage = await Message.create({
@@ -506,47 +512,47 @@ export const createOrUpdateAnonOrder = async (req, res) => {
 
         await Chat.updateOne(
           { chat_id, chat_type: chatType },
-          { 
-            $set: { 
+          {
+            $set: {
               last_message_updated_at: new Date(),
               chat_updated_at: new Date()
-            } 
+            }
           }
         );
 
         if (req.io) {
           console.log(`[ORDER] Emitting socket events for chat ${chat_id}`);
-          
+
           const rooms = [
-              `${chat_id}-${chatType}`, 
-              `${chat_id}-anon_customer-admin`, 
-              `${chat_id}-customer-admin`
+            `${chat_id}-${chatType}`,
+            `${chat_id}-anon_customer-admin`,
+            `${chat_id}-customer-admin`
           ];
           const uniqueRooms = [...new Set(rooms)];
-          
+
           uniqueRooms.forEach(roomId => {
-              req.io.to(roomId).emit("new_message", {
-                _id: systemMessage._id,
-                chat_id: systemMessage.chat_id,
-                chat_type: systemMessage.chat_type,
-                sender: systemMessage.sender,
-                sender_id: systemMessage.sender_id,
-                message_content: systemMessage.message_content,
-                message_type: systemMessage.message_type,
-                message_sent_at: systemMessage.message_sent_at,
-              });
-              
-              req.io.to(roomId).emit("new_message", {
-                _id: orderCardMessage._id,
-                chat_id: orderCardMessage.chat_id,
-                chat_type: orderCardMessage.chat_type,
-                sender: orderCardMessage.sender,
-                sender_id: orderCardMessage.sender_id,
-                message_content: orderCardMessage.message_content,
-                message_type: orderCardMessage.message_type,
-                card_data: orderCardMessage.card_data,
-                message_sent_at: orderCardMessage.message_sent_at,
-              });
+            req.io.to(roomId).emit("new_message", {
+              _id: systemMessage._id,
+              chat_id: systemMessage.chat_id,
+              chat_type: systemMessage.chat_type,
+              sender: systemMessage.sender,
+              sender_id: systemMessage.sender_id,
+              message_content: systemMessage.message_content,
+              message_type: systemMessage.message_type,
+              message_sent_at: systemMessage.message_sent_at,
+            });
+
+            req.io.to(roomId).emit("new_message", {
+              _id: orderCardMessage._id,
+              chat_id: orderCardMessage.chat_id,
+              chat_type: orderCardMessage.chat_type,
+              sender: orderCardMessage.sender,
+              sender_id: orderCardMessage.sender_id,
+              message_content: orderCardMessage.message_content,
+              message_type: orderCardMessage.message_type,
+              card_data: orderCardMessage.card_data,
+              message_sent_at: orderCardMessage.message_sent_at,
+            });
           });
         }
 

@@ -57,14 +57,13 @@ export const createBooking = async (req, res) => {
       customer_contact_email,
 
       already_paid_amount,
-      advance_amount_paid,
 
       payment_status,              // advance_paid|fully_paid|refunded (any case)
       payment_method,
 
-      // Payment blocks from order
       paymentDetails,              // { customerPayable, vendorReceivable }
       payment_method_details,      // array of method entries
+      paymentBreakdowns,           // array of payment break points passed from checkout
 
       // For compatibility with some callers
       final_order_items,           // cart items array
@@ -112,13 +111,9 @@ export const createBooking = async (req, res) => {
 
     const finalAmountNum = asNumber(final_amount);
     const alreadyPaid = asNumber(already_paid_amount, 0);
-    const advancePaid = asNumber(advance_amount_paid, 0);
 
     if (alreadyPaid > finalAmountNum) {
       return res.status(400).json({ message: "already_paid_amount cannot exceed final_amount" });
-    }
-    if (advancePaid > finalAmountNum) {
-      return res.status(400).json({ message: "advance_amount_paid cannot exceed final_amount" });
     }
 
     // Map paymentDetails to schema payment_details
@@ -197,10 +192,10 @@ export const createBooking = async (req, res) => {
       customer_contact_number,
       customer_contact_email,
       already_paid_amount: alreadyPaid,
-      advance_amount_paid: advancePaid,
       payment_status: payStatusNorm || "advance_paid",
       payment_method,
       payment_details,
+      payment_breakdowns: paymentBreakdowns || [], // Save into Event
       payment_method_details: normalizedMethodDetails,
       final_order_items: items,
     };
@@ -256,8 +251,73 @@ export const createBooking = async (req, res) => {
       );
     }
 
-    // Handle anonymous order conversion if applicable
+    // Resolve Quotation ID
     let effectiveQuotationId = quotation_id || body.quotationId;
+
+    if (!effectiveQuotationId && event_id && event_id.startsWith("ODR")) {
+      try {
+        const sourceOrder = await Order.findOne({ order_id: event_id });
+        if (sourceOrder && sourceOrder.quotation_id) {
+          effectiveQuotationId = sourceOrder.quotation_id;
+        }
+      } catch (err) { }
+    }
+
+    // Process Payment Breakdowns Status Update
+    try {
+      if (normalizedMethodDetails && normalizedMethodDetails.length > 0) {
+        // Last one pushed usually represents the new valid payment just made
+        const recentPayment = normalizedMethodDetails[normalizedMethodDetails.length - 1];
+        if (recentPayment && recentPayment.payment_status === "SUCCESS") {
+          const breakdownNamePassed = recentPayment.payment_group;
+
+          if (breakdownNamePassed) {
+            console.log(`[BOOKING] Attempting to mark payment breakdown "${breakdownNamePassed}" as Paid for ${effectiveQuotationId}`);
+
+            const updateQuery = breakdownNamePassed === "FULL"
+              ? { $set: { "paymentBreakdowns.$[elem].status": "Paid" } }
+              : { $set: { "paymentBreakdowns.$[elem].status": "Paid" } };
+
+            const arrayFilters = breakdownNamePassed === "FULL"
+              ? [{ "elem.status": { $ne: "Paid" } }]
+              : [{ "elem.name": breakdownNamePassed }];
+
+            const updateOptions = { arrayFilters, new: true };
+
+            // Apply to Orders Model
+            let orderRes = await Order.updateMany(
+              { quotation_id: effectiveQuotationId },
+              updateQuery,
+              updateOptions
+            );
+
+            // Apply to AnonCustomerOrder Model
+            let anonRes = await AnonCustomerOrder.updateMany(
+              { anon_order_id: effectiveQuotationId },
+              updateQuery,
+              updateOptions
+            );
+
+            // Apply to Events Model
+            const eventUpdateQuery = breakdownNamePassed === "FULL"
+              ? { $set: { "payment_breakdowns.$[elem].status": "Paid" } }
+              : { $set: { "payment_breakdowns.$[elem].status": "Paid" } };
+
+            let eventRes = await Events.updateMany(
+              { event_id: saved.event_id || saved._id },
+              eventUpdateQuery,
+              updateOptions
+            );
+
+            console.log(`[BOOKING] Mark Paid Result -> Orders: ${orderRes.modifiedCount}, Anon: ${anonRes.modifiedCount}, Events: ${eventRes.modifiedCount}`);
+          }
+        }
+      }
+    } catch (paymentBreakdownErr) {
+      console.error("[BOOKING] Failed to map paymentBreakdowns paid status:", paymentBreakdownErr);
+    }
+
+    // Handle anonymous order conversion if applicable
 
     // Fallback: If quotation_id is missing, try to find it via Order if event_id is an Order ID (ODR...)
     if (!effectiveQuotationId && event_id && event_id.startsWith("ODR")) {
@@ -891,5 +951,26 @@ export const cancelBooking = async (req, res) => {
       message: "Failed to cancel booking",
       error: error.message
     });
+  }
+};
+
+// GET /api/bookings/transactions/:event_id
+export const getTransactionsByEventId = async (req, res) => {
+  try {
+    const { event_id } = req.params;
+    if (!event_id) return res.status(400).json({ message: "event_id is required" });
+
+    const event = await Events.findOne({ event_id });
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const { Transaction } = await import("../models/transactions.js");
+    const transactions = await Transaction.find({ quotation_id: event.quotation_id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({ transactions, event_id, quotation_id: event.quotation_id });
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };

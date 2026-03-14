@@ -15,7 +15,8 @@ import {
   getAllVendorServiceSchedules,
   addBookingInvoice,
   updateEventPaymentDetails,
-  cancelBooking
+  cancelBooking,
+  getTransactionsByEventId
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
@@ -343,5 +344,7 @@ router.put("/:event_id/payment-details", updateEventPaymentDetails);
  *         description: Booking already cancelled
  */
 router.put("/:event_id/cancel", cancelBooking);
+
+router.get("/transactions/:event_id", getTransactionsByEventId);
 
 export default router;
