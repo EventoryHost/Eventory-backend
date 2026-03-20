@@ -194,9 +194,9 @@ const eventsSchema = new mongoose.Schema({
     validate: {
       validator: function (v) {
         if (!v) return true; // Allow empty
-        return /^[6-9]\d{9}$/.test(v);
+        return /^\d{10}$/.test(v);
       },
-      message: 'Vendor manager contact must be a valid Indian mobile number'
+      message: 'Vendor manager contact must be a valid 10-digit number'
     }
   },
   vendor_manager_contact_email: {
@@ -214,9 +214,9 @@ const eventsSchema = new mongoose.Schema({
     validate: {
       validator: function (v) {
         if (!v) return true; // Allow empty
-        return /^[6-9]\d{9}$/.test(v);
+        return /^\d{10}$/.test(v);
       },
-      message: 'Customer contact must be a valid Indian mobile number'
+      message: 'Customer contact must be a valid 10-digit number'
     }
   },
   customer_contact_email: {
