@@ -6,7 +6,16 @@ import { MakeupArtistModel } from "../models/reduxModels/makeupArtist.js";
 import { ReduxPhotographerVideographerModel } from "../models/reduxModels/photographerVideographer.js"; 
 import { ReduxVenueProviderModel } from "../models/reduxModels/venueProvider.js";
 
+// Real models for accurate counts
+import { Caterer } from "../models/caterer.js";
+import { Decorator } from "../models/decorator.js";
+import { DjArtist } from "../models/djArtist.js";
+import { MakeupArtist } from "../models/makeupArtist.js";
+import { PhotographerVideographer } from "../models/photographerVideographer.js";
+import VenueProvider from "../models/venueProvider.js";
+
 // 📦 GET /api/vendors/all
+// ... (existing code for getAllVendors)
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find(
@@ -217,6 +226,46 @@ export const checkVendorHasServices = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while checking vendor services",
+      error: error.message,
+    });
+  }
+};
+
+// 📦 GET /api/vendors/counts-by-category
+export const getVendorCountsByCategory = async (req, res) => {
+  try {
+    const [
+      catererCount,
+      decoratorCount,
+      djCount,
+      makeupCount,
+      photographerCount,
+      venueCount
+    ] = await Promise.all([
+      Caterer.countDocuments({}),
+      Decorator.countDocuments({}),
+      DjArtist.countDocuments({}),
+      MakeupArtist.countDocuments({}),
+      PhotographerVideographer.countDocuments({}),
+      VenueProvider.countDocuments({})
+    ]);
+
+    res.status(200).json({
+      success: true,
+      counts: {
+        caterers: catererCount,
+        decorators: decoratorCount,
+        dj_artists: djCount,
+        makeup_artists: makeupCount,
+        photographers: photographerCount,
+        venues: venueCount
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching vendor counts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching vendor counts",
       error: error.message,
     });
   }
