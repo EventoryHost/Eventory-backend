@@ -9,6 +9,7 @@ import Quotation from "../models/quotations.js";
 import { sendEmailInvoice } from "./sesController.js";
 import { sendFCMNotificationToVendor, sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
 import generateUniqueId, { generatePaymentId, generateSignature } from "../utils/generateId.js";
+import { buildPayoutsHeaders, getPayoutsBaseUrl } from "../utils/cashfreePayoutsHelper.js";
 import { sqs } from "../config/awsConfig.js";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
 import adminNotification from "../models/emNotifications.js";
@@ -336,26 +337,7 @@ const getPaymentSession = async (req, res) => {
 
 
 
-function buildPayoutsHeaders() {
-  const payoutsClientId = process.env.CASHFREE_CLIENT_ID; // set in env
-  const payoutsSecret = process.env.CASHFREE_CLIENT_SECRET; // set in env
-  const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = generateSignature(
-    payoutsClientId,
-    publicKey,
-    timestamp
-  );
-
-
-  return {
-    "Content-Type": "application/json",
-    "x-api-version": "2024-01-01",
-    "x-client-id": `${payoutsClientId}`,
-    "x-client-secret": `${payoutsSecret}`,
-    "x-cf-signature": `${signature}`,
-  };
-}
+// buildPayoutsHeaders is now imported from utils/cashfreePayoutsHelper.js
 
 const N = (v) => Number(v ?? 0)
 
@@ -687,10 +669,15 @@ const verifyCustomerPayment = async (req, res) => {
       console.error(`[VerifyPayment] ⚠️ Service/Model not found for ID: ${service_id}. BUT payment is PAID. Proceeding.`);
     }
 
-    let bankDetailsValid = !!(serviceDoc?.bank_details && Object.keys(serviceDoc.bank_details).length > 0);
+    let bankDetailsValid = !!(serviceDoc?.bank_details && (serviceDoc.bank_details.account_number || serviceDoc.bank_details.upi_id));
     if (!bankDetailsValid) {
-      console.warn(`⚠️ [VerifyPayment] Bank details missing or invalid for service ${service_id}. Payout will be skipped.`);
+      console.warn(`⚠️ [VerifyPayment] Bank details and UPI ID missing or invalid for service ${service_id}. Payout will be skipped.`);
     }
+
+    // Determine payout mode: UPI if only VPA, IMPS if bank account exists
+    const hasBank = !!(serviceDoc?.bank_details?.account_number && serviceDoc?.bank_details?.ifsc);
+    const hasUpi = !!serviceDoc?.bank_details?.upi_id;
+    const payoutMode = hasBank ? "imps" : hasUpi ? "upi" : "imps";
 
     // canonical service snapshot
     const serviceSnapshot = serviceData || (serviceDoc ? serviceDoc.toObject() : {});
@@ -704,82 +691,57 @@ const verifyCustomerPayment = async (req, res) => {
     const primaryBank = serviceDoc?.bank_details || {};
     let beneficiary_id = primaryBank?.beneficiary_id;
 
+    // Beneficiary should already be created when bank details were saved.
+    // If missing, generate one and save it as a fallback.
     if (!beneficiary_id) {
+      console.warn(`[VerifyPayment] ⚠️ No beneficiary_id found for service ${service_id}. Generating fallback.`);
       beneficiary_id = generateUniqueId("BENE");
-      primaryBank.beneficiary_id = beneficiary_id;
-      await serviceDoc.save();
+      if (serviceDoc) {
+        serviceDoc.bank_details.beneficiary_id = beneficiary_id;
+        await serviceDoc.save();
+      }
     }
 
-    const payoutsBase = process.env.IS_DEV === "true"
-      ? "https://sandbox.cashfree.com/payout"
-      : "https://api.cashfree.com/payout";
-
+    const payoutsBase = getPayoutsBaseUrl();
     const headers = buildPayoutsHeaders();
 
-    const getBeneUrl = `${payoutsBase}/beneficiary`;
-    let hasBeneficiary = false;
-
-    // Vendor special case check
+    // Verify beneficiary exists in Cashfree; create as fallback if not
     if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+      let hasBeneficiary = false;
       try {
-        await axios.get(getBeneUrl, { headers, params: { beneficiary_id: beneficiary_id } });
+        await axios.get(`${payoutsBase}/beneficiary`, { headers, params: { beneficiary_id } });
         hasBeneficiary = true;
       } catch (e) {
-        const status = e?.response?.status;
-        if (status !== 404) {
-          return res.status(500).json({ error: "Failed to fetch beneficiary", details: e?.response?.data || e.message });
+        if (e?.response?.status !== 404) {
+          console.error("❌ [VerifyPayment] Error checking beneficiary:", e?.response?.data || e.message);
         }
       }
 
       if (!hasBeneficiary) {
-        const createBody = {
-          beneficiary_id: beneficiary_id,
-          beneficiary_name: vendorName,
-          beneficiary_instrument_details: {
-            bank_account_number: primaryBank.account_number,
-            bank_ifsc: primaryBank.ifsc,
-          },
-          beneficiary_contact_details: {
-            beneficiary_email: vendorDoc?.email || "noreply@example.com",
-            beneficiary_phone: (vendorDoc?.vendor_mobile || "").replace(/\D/g, "").slice(-10),
-            beneficiary_country_code: "+91",
-          },
-        };
+        console.warn(`[VerifyPayment] Beneficiary ${beneficiary_id} not found in Cashfree. Creating as fallback.`);
         try {
-          await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
+          const instrumentDetails = hasBank
+            ? { bank_account_number: primaryBank.account_number, bank_ifsc: primaryBank.ifsc }
+            : { vpa: primaryBank.upi_id };
+
+          await axios.post(`${payoutsBase}/beneficiary`, {
+            beneficiary_id,
+            beneficiary_name: vendorName,
+            beneficiary_instrument_details: instrumentDetails,
+            beneficiary_contact_details: {
+              beneficiary_email: vendorDoc?.email || "noreply@example.com",
+              beneficiary_phone: (vendorDoc?.vendor_mobile || "").replace(/\D/g, "").slice(-10),
+              beneficiary_country_code: "+91",
+            },
+          }, { headers });
         } catch (e) {
-          console.error("❌ Failed to create beneficiary:", e?.response?.data || e.message);
-          // return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
+          console.error("❌ [VerifyPayment] Fallback beneficiary creation failed:", e?.response?.data || e.message);
         }
       }
     }
 
     if (!bankDetailsValid) {
       console.log(`[VerifyPayment] Skipping payout initiation due to missing bank details.`);
-    }
-
-
-    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
-      if (!hasBeneficiary) {
-        const createBody = {
-          beneficiary_id: beneficiary_id,
-          beneficiary_name: vendorName,
-          beneficiary_instrument_details: {
-            bank_account_number: primaryBank.account_number,
-            bank_ifsc: primaryBank.ifsc,
-          },
-          beneficiary_contact_details: {
-            beneficiary_email: vendorDoc.email || "noreply@example.com",
-            beneficiary_phone: (vendorDoc.vendor_mobile || "").replace(/\D/g, "").slice(-10),
-            beneficiary_country_code: "+91",
-          },
-        };
-        try {
-          await axios.post(`${payoutsBase}/beneficiary`, createBody, { headers });
-        } catch (e) {
-          return res.status(500).json({ error: "Failed to create beneficiary", details: e?.response?.data || e.message });
-        }
-      }
     }
     const transfer_id = generateUniqueId("TRN");
 
@@ -794,7 +756,7 @@ const verifyCustomerPayment = async (req, res) => {
       transfer_id,
       status: "INIT",
       transfer_amount: payoutAmount,
-      transfer_mode: "IMPS",
+      transfer_mode: payoutMode.toUpperCase(),
       beneficiary_id,
       payment_type,
       paymentDetails: {
@@ -818,7 +780,7 @@ const verifyCustomerPayment = async (req, res) => {
         transfer_id: transfer_id,
         transfer_amount: payoutAmount,
         beneficiary_details: { beneficiary_id: beneficiary_id },
-        transfer_mode: "imps",
+        transfer_mode: payoutMode,
       };
 
       let transferResp;

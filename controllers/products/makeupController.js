@@ -347,6 +347,7 @@ const createMakeupArtist = async (req, res) => {
         account_type: req.body.account_type,
         account_number: req.body.account_number,
         ifsc: req.body.ifsc,
+        upi_id: req.body.upi_id,
         service_id,
         vendor_id,
       },

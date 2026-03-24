@@ -5,6 +5,9 @@ import Photographer from "../../models/photographerVideographer.js";
 import { Vendor } from "../../models/vendor.js";
 import MakeupArtist from "../../models/makeupArtist.js";
 import DjArtist from "../../models/djArtist.js";
+import axios from "axios";
+import generateUniqueId from "../../utils/generateId.js";
+import { buildPayoutsHeaders, getPayoutsBaseUrl, validateVPA } from "../../utils/cashfreePayoutsHelper.js";
 
 // A mapping object to dynamically select the model based on the category
 const vendorModels = {
@@ -184,10 +187,25 @@ const getBankDetails = async (req, res) => {
 export const addBankDetails = async (req, res) => {
   try {
     const { vendor_id } = req.params;
-    const { bank_name, account_number, account_type, ifsc, service_id } = req.body;
+    const { bank_name, account_number, account_type, ifsc, service_id, upi_id } = req.body;
 
-    if (!bank_name || !account_number || !account_type || !ifsc || !service_id || !vendor_id) {
-      return res.status(400).json({ message: "All bank details fields are required" });
+    if (!service_id || !vendor_id) {
+      return res.status(400).json({ message: "service_id and vendor_id are required" });
+    }
+
+    const hasBankDetails = !!(bank_name && account_number && account_type && ifsc);
+    const hasUpi = !!upi_id;
+
+    if (!hasBankDetails && !hasUpi) {
+      return res.status(400).json({ message: "Either bank details (bank name, account number, account type, IFSC) or UPI ID is required" });
+    }
+
+    // Heuristic VPA validation
+    if (upi_id) {
+      const vpaResult = validateVPA(upi_id);
+      if (!vpaResult.valid) {
+        return res.status(400).json({ message: vpaResult.error });
+      }
     }
 
     const ServiceModel = getServiceModel(service_id);
@@ -195,6 +213,15 @@ export const addBankDetails = async (req, res) => {
       return res.status(400).json({ message: "Invalid service_id prefix" });
     }
 
+    // Check if there's an existing beneficiary_id
+    const existingService = await ServiceModel.findOne({ vendor_id, service_id });
+    let beneficiary_id = existingService?.bank_details?.beneficiary_id;
+
+    if (!beneficiary_id) {
+      beneficiary_id = generateUniqueId("BENE");
+    }
+
+    // Save bank details first
     const updateResult = await ServiceModel.updateOne(
       { vendor_id: vendor_id, service_id: service_id },
       {
@@ -202,18 +229,77 @@ export const addBankDetails = async (req, res) => {
           bank_details: {
             vendor_id,
             service_id,
-            bank_name,
-            account_number,
-            account_type,
-            ifsc,
+            bank_name: bank_name || undefined,
+            account_number: account_number || undefined,
+            account_type: account_type || undefined,
+            ifsc: ifsc || undefined,
+            upi_id: upi_id || undefined,
+            beneficiary_id,
           },
         },
       },
       { runValidators: true }
     );
 
-    if (updateResult.modifiedCount === 0) {
+    if (updateResult.modifiedCount === 0 && updateResult.matchedCount === 0) {
       return res.status(404).json({ message: "Service not found or no changes made" });
+    }
+
+    // Create/update Cashfree beneficiary
+    try {
+      const vendorDoc = await Vendor.findOne({ vendor_id });
+      const vendorName = existingService?.business_details?.business_registration_name || vendorDoc?.vendor_name || "Vendor";
+
+      const payoutsBase = getPayoutsBaseUrl();
+      const headers = buildPayoutsHeaders();
+
+      // Check if beneficiary already exists
+      let hasBeneficiary = false;
+      try {
+        await axios.get(`${payoutsBase}/beneficiary`, { headers, params: { beneficiary_id } });
+        hasBeneficiary = true;
+      } catch (e) {
+        if (e?.response?.status !== 404) {
+          console.error("❌ [addBankDetails] Error checking beneficiary:", e?.response?.data || e.message);
+        }
+      }
+
+      // Use bank details if available, otherwise VPA
+      const instrumentDetails = hasBankDetails
+        ? { bank_account_number: account_number, bank_ifsc: ifsc }
+        : { vpa: upi_id };
+
+      const beneficiaryBody = {
+        beneficiary_id,
+        beneficiary_name: vendorName,
+        beneficiary_instrument_details: instrumentDetails,
+        beneficiary_contact_details: {
+          beneficiary_email: vendorDoc?.email || "noreply@example.com",
+          beneficiary_phone: (vendorDoc?.vendor_mobile || "").replace(/\D/g, "").slice(-10),
+          beneficiary_country_code: "+91",
+        },
+      };
+
+      if (hasBeneficiary) {
+        // Update existing beneficiary
+        try {
+          await axios.put(`${payoutsBase}/beneficiary/${beneficiary_id}`, beneficiaryBody, { headers });
+          console.log(`[addBankDetails] ✅ Beneficiary updated: ${beneficiary_id}`);
+        } catch (e) {
+          console.error("❌ [addBankDetails] Failed to update beneficiary:", e?.response?.data || e.message);
+        }
+      } else {
+        // Create new beneficiary
+        try {
+          await axios.post(`${payoutsBase}/beneficiary`, beneficiaryBody, { headers });
+          console.log(`[addBankDetails] ✅ Beneficiary created: ${beneficiary_id}`);
+        } catch (e) {
+          console.error("❌ [addBankDetails] Failed to create beneficiary:", e?.response?.data || e.message);
+        }
+      }
+    } catch (beneErr) {
+      console.error("❌ [addBankDetails] Beneficiary flow error:", beneErr.message);
+      // Don't fail the bank details save if beneficiary creation fails
     }
 
     res.status(200).json({
