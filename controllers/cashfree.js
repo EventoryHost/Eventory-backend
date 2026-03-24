@@ -949,7 +949,7 @@ const verifyCustomerPayment = async (req, res) => {
 
         // Find chat type to determine sender/chat_type
         const chat = await Chat.findOne({ chat_id: quotation_id });
-        const chatType = chat?.chat_type || (finalCustomerId.startsWith("ANON") ? "anon_customer-admin" : "customer_admin");
+        const chatType = chat?.chat_type || (finalCustomerId.startsWith("ANON") ? "anon_customer-admin" : "customer-admin");
 
         const msgPayload = {
           chat_id: quotation_id,
