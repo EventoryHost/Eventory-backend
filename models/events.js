@@ -197,7 +197,7 @@ const eventsSchema = new mongoose.Schema({
         const stripped = v.replace(/^(\+91|91|0)/, '');
         return /^[6-9]\d{9}$/.test(stripped);
       },
-      message: 'Vendor manager contact must be a valid Indian mobile number'
+      message: 'Vendor manager contact must be a valid 10-digit number'
     }
   },
   vendor_manager_contact_email: {
@@ -218,7 +218,7 @@ const eventsSchema = new mongoose.Schema({
         const stripped = v.replace(/^(\+91|91|0)/, '');
         return /^[6-9]\d{9}$/.test(stripped);
       },
-      message: 'Customer contact must be a valid Indian mobile number'
+      message: 'Customer contact must be a valid 10-digit number'
     }
   },
   customer_contact_email: {
