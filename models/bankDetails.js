@@ -24,6 +24,9 @@ const bankDetailsSchema = new Schema({
   ifsc: {
     type: String
   },
+  upi_id: {
+    type: String
+  },
   beneficiary_id: {
     type: String
   },
