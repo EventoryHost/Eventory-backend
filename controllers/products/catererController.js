@@ -286,6 +286,7 @@ const createCaterer = async (req, res) => {
 
       bank_details: {
         account_type: req.body.account_type,
+        upi_id: req.body.upi_id,
         service_id,
         vendor_id: req.body.vendor_id,
       },
