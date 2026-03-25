@@ -964,7 +964,23 @@ export const getTransactionsByEventId = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Event not found" });
 
     const { Transaction } = await import("../models/transactions.js");
-    const transactions = await Transaction.find({ quotation_id: event.quotation_id })
+
+    // Fetch the order to get the correct internal order id
+    const order = await Order.findOne({ quotation_id: event.quotation_id }).lean();
+    const internalOrderId = order ? order.order_id : null;
+
+    // Broaden search to catch transactions linked by quotation_id, event_id, or the order's internal ID
+    const queryOr = [
+      { quotation_id: event.quotation_id },
+      { event_id: event.event_id },
+      { quotation_id: event.event_id }
+    ];
+
+    if (internalOrderId) {
+      queryOr.push({ internalOrderId: internalOrderId });
+    }
+
+    const transactions = await Transaction.find({ $or: queryOr })
       .sort({ createdAt: -1 })
       .lean();
 
