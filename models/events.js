@@ -99,6 +99,9 @@ const eventsSchema = new mongoose.Schema({
   quotation_id: {
     type: String
   },
+  order_id: {
+    type: String
+  },
   em_id: {
     type: String
   },
@@ -159,7 +162,7 @@ const eventsSchema = new mongoose.Schema({
   },
   final_guest_count: {
     type: Number,
-    min: 1
+    min: 0
   },
   specific_terms: {
     type: [String],
