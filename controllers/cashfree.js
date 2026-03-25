@@ -63,7 +63,7 @@ const createOrder = async (req, res) => {
 
       if (serviceModel) {
         const serviceDoc = await serviceModel.findOne({ service_id });
-        const bankDetailsValid = !!(serviceDoc?.bank_details && serviceDoc.bank_details.account_number);
+        const bankDetailsValid = !!(serviceDoc?.bank_details && (serviceDoc.bank_details.account_number || serviceDoc.bank_details.upi_id));
         if (!bankDetailsValid) {
           console.warn(`[createOrder] 🛑 Blocking order creation. Bank details missing for service: ${service_id}`);
 
@@ -513,11 +513,21 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
+    // NEW: Resolve Event ID early so we can attach it to transactions immediately!
+    let event_id;
+    let existingEventForEarlyId = await Events.findOne({ quotation_id: quotation_id }).select("event_id").lean();
+    if (existingEventForEarlyId) {
+      event_id = existingEventForEarlyId.event_id;
+    } else {
+      event_id = generateUniqueId("EVTY"); // Pre-allocate the new event ID
+    }
+
     // NEW: Record the PG Payment Transaction
     try {
       const pg_transfer_id = generateUniqueId("TRN_PG");
       await Transaction.create({
         quotation_id: quotation_id,
+        event_id: event_id,
         internalOrderId: internalOrderId,
         vendor_id: vendor_id,
         customer_id: finalCustomerId,
@@ -814,6 +824,7 @@ const verifyCustomerPayment = async (req, res) => {
             vendor_id,
             customer_id: finalCustomerId,
             service_id,
+            event_id,
             pgOrderId: order_id,
             pgStatus: payment.order_status,
             beneficiary_id,
@@ -1021,7 +1032,6 @@ const verifyCustomerPayment = async (req, res) => {
     });
 
     // ── Check if an event already exists for this quotation ──
-    let event_id;
     const existingEvent = await Events.findOne({ quotation_id: quotation_id });
 
     if (existingEvent) {
@@ -1125,10 +1135,35 @@ const verifyCustomerPayment = async (req, res) => {
           }
           return b;
         }),
+        order_id: internalOrderId,
       });
 
       await preBooking.save();
       console.log(`[VerifyPayment] Event ${event_id} successfully created.`);
+
+      // Link the new event back to the original order
+      await Order.findOneAndUpdate(
+        { order_id: internalOrderId },
+        { $set: { event_id: event_id } }
+      );
+      console.log(`[VerifyPayment] Order ${internalOrderId} updated with event_id: ${event_id}`);
+
+      // Send Slack notification for new booking
+      const { sendSlackBookingMessage } = await import("../utils/slackNotifier.js");
+      if (process.env.IS_DEV !== 'true') {
+        sendSlackBookingMessage({
+          bookingid: event_id,
+          customer: customerName,
+          vendorId: vendor_id,
+          serviceName: service_id,
+          guest: preBooking.final_guest_count || 0,
+          startDate: new Date(preBooking.event_start).toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+        });
+      }
     }
 
     const paymentMethod = payment.order_meta.payment_methods !== null
