@@ -75,6 +75,9 @@ const paymentBreakdownsSchema = new Schema({
     enum: ["Unpaid", "Paid", "Failed"],
     default: "Unpaid"
   },
+  paid_at: {
+    type: Date
+  },
   custom_items: [{
     name_of_service: String,
     price: Number,
@@ -93,7 +96,10 @@ const paymentDetailsSchema = new Schema({
     total: { type: Number, default: 0 },
     baseAmount: { type: Number, default: 0 },
     convenienceFee: { type: Number, default: 0 },
-    taxOnConvenience: { type: Number, default: 0 }
+    taxOnConvenience: { type: Number, default: 0 },
+    couponCode: { type: String, default: null },
+    couponDiscount: { type: Number, default: 0 },
+    breakdownDiscount: { type: Number, default: 0 }
   },
   vendorReceivable: {
     total: { type: Number, default: 0 },

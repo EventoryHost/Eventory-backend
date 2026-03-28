@@ -275,8 +275,8 @@ export const createBooking = async (req, res) => {
             console.log(`[BOOKING] Attempting to mark payment breakdown "${breakdownNamePassed}" as Paid for ${effectiveQuotationId}`);
 
             const updateQuery = breakdownNamePassed === "FULL"
-              ? { $set: { "paymentBreakdowns.$[elem].status": "Paid" } }
-              : { $set: { "paymentBreakdowns.$[elem].status": "Paid" } };
+              ? { $set: { "paymentBreakdowns.$[elem].status": "Paid", "paymentBreakdowns.$[elem].paid_at": new Date() } }
+              : { $set: { "paymentBreakdowns.$[elem].status": "Paid", "paymentBreakdowns.$[elem].paid_at": new Date() } };
 
             const arrayFilters = breakdownNamePassed === "FULL"
               ? [{ "elem.status": { $ne: "Paid" } }]
@@ -300,8 +300,8 @@ export const createBooking = async (req, res) => {
 
             // Apply to Events Model
             const eventUpdateQuery = breakdownNamePassed === "FULL"
-              ? { $set: { "payment_breakdowns.$[elem].status": "Paid" } }
-              : { $set: { "payment_breakdowns.$[elem].status": "Paid" } };
+              ? { $set: { "payment_breakdowns.$[elem].status": "Paid", "payment_breakdowns.$[elem].paid_at": new Date() } }
+              : { $set: { "payment_breakdowns.$[elem].status": "Paid", "payment_breakdowns.$[elem].paid_at": new Date() } };
 
             let eventRes = await Events.updateMany(
               { event_id: saved.event_id || saved._id },

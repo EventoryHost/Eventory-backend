@@ -170,7 +170,6 @@ customerSchema.index({ email_address: 1 });
 customerSchema.index({ pincode: 1 });
 customerSchema.index({ customer_created_at: -1 });
 customerSchema.index({ customer_updated_at: -1 });
-customerSchema.index({ customer_id: 1 });
 
 const Customer = mongoose.model('Customers', customerSchema);
 
