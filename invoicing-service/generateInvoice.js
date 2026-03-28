@@ -618,6 +618,18 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
        </tr>`
       : "";
 
+    const previousPaymentsNum = (paymentDetails.alreadyPaidAmount && Number(paymentDetails.alreadyPaidAmount) > paidAmountNum) 
+      ? Number(paymentDetails.alreadyPaidAmount) - paidAmountNum 
+      : 0;
+
+    const previousPaymentsRow = previousPaymentsNum > 0
+      ? `
+       <tr class="total-row">
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Previous Payments:</td>
+         <td style="font-weight:bold; text-align:center;">Rs ${previousPaymentsNum.toFixed(2)}</td>
+       </tr>`
+      : "";
+
     let totalRow = `
        <tr class="total-row">
          <td colspan="${colspan}" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Convenience Fee:</td>
@@ -628,6 +640,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
          <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Total to be paid:</td>
          <td style="font-weight:bold; text-align:center;">Rs ${finalAmount.toFixed(2)}</td>
        </tr>
+       ${previousPaymentsRow}
        <tr class="total-row">
          <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Paid (${(paymentType || 'Full').replace(/([a-z])(\d)/g, '$1 $2').toUpperCase()}):</td>
          <td style="font-weight:bold; text-align:center;">Rs ${paidAmountNum.toFixed(2)}</td>

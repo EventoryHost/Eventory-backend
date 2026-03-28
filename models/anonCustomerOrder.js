@@ -272,7 +272,6 @@ const anonCustomerOrderSchema = new mongoose.Schema({
 
 // Indexes
 anonCustomerOrderSchema.index({ chat_id: 1 });
-anonCustomerOrderSchema.index({ anon_user_id: 1 });
 anonCustomerOrderSchema.index({ order_status: 1 });
 anonCustomerOrderSchema.index({ created_at: -1 });
 anonCustomerOrderSchema.index({ priority: 1 });
