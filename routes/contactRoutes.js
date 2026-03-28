@@ -24,7 +24,6 @@ router.use(
  *   post:
  *     summary: Send contact inquiry email to support
  *     tags: [Contact]
- *     ...
  */
 router.post("/send-contact-email", sendContactEmail);
 

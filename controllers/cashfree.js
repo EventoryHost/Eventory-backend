@@ -381,64 +381,74 @@ const verifyCustomerPayment = async (req, res) => {
       payment_type,
       couponCode,
       couponDiscount,
+      breakdownDiscount,
       service_id,
       serviceData,
       customer_id,
       chat_id,
     } = req.body;
-    const response = await cashfree.PGFetchOrder(order_id);
-    if (!response.data || response.data.length === 0) {
-      return res.status(400).json({ error: "Payment not found" });
-    }
-
-    const payment = response.data;
-    if (payment.order_status !== "PAID") {
-      console.warn(`[VerifyPayment] Payment status for ${order_id} is ${payment.order_status}. Notifying chat.`);
-
-      try {
-        if (req.io) {
-          const finalOrder = await Order.findOne({ order_id: internal_order_id });
-          const order_quotation_id = finalOrder ? finalOrder.quotation_id : (internal_order_id);
-          const chat = await Chat.findOne({
-            $or: [{ chat_id: chat_id }, { chat_id: order_quotation_id }, { quotation_id: order_quotation_id }],
-          });
-          const finalChatId = chat_id || chat?.chat_id || order_quotation_id;
-          const chatType = chat ? chat.chat_type : (customer_id?.startsWith("ANON") ? "anon_customer-admin" : "customer-admin");
-
-          const failMsg = {
-            chat_id: finalChatId,
-            chat_type: chatType,
-            sender: "admin",
-            sender_id: "SYSTEM",
-            message_type: "system",
-            message_content: `❌ Payment of ₹${order_amount} failed for Order ID: ${internal_order_id}. Status: ${payment.order_status}`,
-            message_sent_at: new Date(),
-            card_data: {
-              type: "payment_failure",
-              status: payment.order_status,
-              order_id: internal_order_id,
-            },
-          };
-          const savedMsg = await Message.create(failMsg);
-
-          // "Dual-Cast" Strategy
-          const rooms = [
-            `${finalChatId}-${chatType}`,
-            `${finalChatId}-customer-admin`,
-            `${finalChatId}-anon_customer-admin`,
-          ];
-          const uniqueRooms = [...new Set(rooms)];
-
-          console.log(`[VerifyPayment] Emitting FAILURE to rooms: ${uniqueRooms.join(', ')}`);
-          uniqueRooms.forEach(roomId => {
-            req.io.to(roomId).emit("new_message", savedMsg);
-          });
-        }
-      } catch (err) {
-        console.error("❌ Failed to send failure notification to chat:", err.message);
+    let payment = { order_status: "PAID" };
+    if (order_amount > 0) {
+      const response = await cashfree.PGFetchOrder(order_id);
+      if (!response.data || response.data.length === 0) {
+        return res.status(400).json({ error: "Payment not found" });
       }
 
-      return res.status(400).json({ error: "Payment not successful", status: payment.order_status });
+      payment = response.data;
+      if (payment.order_status !== "PAID") {
+        console.warn(`[VerifyPayment] Payment status for ${order_id} is ${payment.order_status}. Notifying chat.`);
+
+        try {
+          if (req.io) {
+            const finalOrder = await Order.findOne({ order_id: internal_order_id });
+            const order_quotation_id = finalOrder ? finalOrder.quotation_id : (internal_order_id);
+            const chat = await Chat.findOne({
+              $or: [{ chat_id: chat_id }, { chat_id: order_quotation_id }, { quotation_id: order_quotation_id }],
+            });
+            const finalChatId = chat_id || chat?.chat_id || order_quotation_id;
+            const chatType = chat ? chat.chat_type : (customer_id?.startsWith("ANON") ? "anon_customer-admin" : "customer-admin");
+
+            const failMsg = {
+              chat_id: finalChatId,
+              chat_type: chatType,
+              sender: "admin",
+              sender_id: "SYSTEM",
+              message_type: "system",
+              message_content: `❌ Payment of ₹${order_amount} failed for Order ID: ${internal_order_id}. Status: ${payment.order_status}`,
+              message_sent_at: new Date(),
+              card_data: {
+                type: "payment_failure",
+                status: payment.order_status,
+                order_id: internal_order_id,
+              },
+            };
+            const savedMsg = await Message.create(failMsg);
+
+            // "Dual-Cast" Strategy
+            const rooms = [
+              `${finalChatId}-${chatType}`,
+              `${finalChatId}-customer-admin`,
+              `${finalChatId}-anon_customer-admin`,
+            ];
+            const uniqueRooms = [...new Set(rooms)];
+
+            console.log(`[VerifyPayment] Emitting FAILURE to rooms: ${uniqueRooms.join(', ')}`);
+            uniqueRooms.forEach(roomId => {
+              req.io.to(roomId).emit("new_message", savedMsg);
+            });
+          }
+        } catch (err) {
+          console.error("❌ Failed to send failure notification to chat:", err.message);
+        }
+
+        return res.status(400).json({ error: "Payment not successful", status: payment.order_status });
+      }
+    } else {
+      console.log(`[VerifyPayment] Zero amount payment detected for order ${internal_order_id}. Skipping Cashfree check.`);
+      payment = {
+        order_status: "PAID",
+        order_tags: { internal_order_id: internal_order_id || "MISSING" }
+      };
     }
 
     // Fetch the final order to get required IDs
@@ -523,40 +533,44 @@ const verifyCustomerPayment = async (req, res) => {
     }
 
     // NEW: Record the PG Payment Transaction
-    try {
-      const pg_transfer_id = generateUniqueId("TRN_PG");
-      await Transaction.create({
-        quotation_id: quotation_id,
-        event_id: event_id,
-        internalOrderId: internalOrderId,
-        vendor_id: vendor_id,
-        customer_id: finalCustomerId,
-        service_id: service_id,
-        pgOrderId: order_id,
-        pgStatus: payment.order_status,
-        transfer_id: pg_transfer_id,
-        status: "SUCCESS",
-        transfer_amount: order_amount,
-        transfer_mode: "PG_IN",
-        payment_type: payment_type,
-        paymentDetails: {
-          customerPayable: {
-            total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-            baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-            convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-            taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+    if (order_amount > 0) {
+      try {
+        const pg_transfer_id = generateUniqueId("TRN_PG");
+        await Transaction.create({
+          quotation_id: quotation_id,
+          event_id: event_id,
+          internalOrderId: internalOrderId,
+          vendor_id: vendor_id,
+          customer_id: finalCustomerId,
+          service_id: service_id,
+          pgOrderId: order_id,
+          pgStatus: payment.order_status,
+          transfer_id: pg_transfer_id,
+          status: "SUCCESS",
+          transfer_amount: order_amount,
+          transfer_mode: "PG_IN",
+          payment_type: payment_type,
+          paymentDetails: {
+            customerPayable: {
+              total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+              baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+              convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+              taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+            },
+            vendorReceivable: {
+              total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+              baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+              commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+              taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+            },
           },
-          vendorReceivable: {
-            total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-            baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-            commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-            taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-          },
-        },
-      });
-      console.log(`[VerifyPayment] ✅ Successfully recorded PG_IN transaction for ${order_id}`);
-    } catch (txnErr) {
-      console.error(`[VerifyPayment] ❌ Failed to record PG_IN transaction:`, txnErr);
+        });
+        console.log(`[VerifyPayment] ✅ Successfully recorded PG_IN transaction for ${order_id}`);
+      } catch (txnErr) {
+        console.error(`[VerifyPayment] ❌ Failed to record PG_IN transaction:`, txnErr);
+      }
+    } else {
+      console.log(`[VerifyPayment] Skipped PG_IN transaction recording for zero amount payment.`);
     }
 
     // Success Socket Emission
@@ -618,15 +632,15 @@ const verifyCustomerPayment = async (req, res) => {
           : NaN
       ) || null;
 
-    const previousTxn = await Transaction.findOne({
+    const previousPayouts = await Transaction.find({
       quotation_id: quotation_id,
       vendor_id: vendor_id,
-      customer_id: finalCustomerId,
-      service_id: service_id,
       internalOrderId: internalOrderId,
+      transfer_mode: { $ne: "PG_IN" },
+      status: { $nin: ["FAILED", "REVERSED", "CANCELLED"] }
     }).lean();
 
-    const alreadyPaid = previousTxn?.transfer_amount ?? 0;
+    const alreadyPaid = previousPayouts.reduce((sum, txn) => sum + (Number(txn.transfer_amount) || 0), 0);
 
     let payoutAmount;
 
@@ -638,7 +652,7 @@ const verifyCustomerPayment = async (req, res) => {
 
     if (payment_type === "full") {
       payoutAmount = receivableFromOrder;
-    } else if (payment_type === "remaining" || payment_type === "Last Pay" || payment_type === "Final Pay") {
+    } else if (payment_type === "remaining" || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("late")) {
       payoutAmount = Number(maxAllowedPayout.toFixed(2));
     } else {
       // For anything else ("Advance", "Advance 1", "Token"), we payout the passed amount
@@ -755,121 +769,130 @@ const verifyCustomerPayment = async (req, res) => {
     }
     const transfer_id = generateUniqueId("TRN");
 
-    await Transaction.create({
-      quotation_id,
-      internalOrderId,
-      vendor_id,
-      customer_id: finalCustomerId,
-      service_id,
-      pgOrderId: order_id,
-      pgStatus: payment.order_status || null,
-      transfer_id,
-      status: "INIT",
-      transfer_amount: payoutAmount,
-      transfer_mode: payoutMode.toUpperCase(),
-      beneficiary_id,
-      payment_type,
-      paymentDetails: {
-        customerPayable: {
-          total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-          baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-          convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-          taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-        },
-        vendorReceivable: {
-          total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-          baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-          commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-          taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-        },
-      },
-    });
-
-    if (bankDetailsValid) {
-      const transferBody = {
-        transfer_id: transfer_id,
+    if (payoutAmount > 0) {
+      await Transaction.create({
+        quotation_id,
+        internalOrderId,
+        vendor_id,
+        customer_id: finalCustomerId,
+        service_id,
+        pgOrderId: order_id,
+        pgStatus: payment.order_status || null,
+        transfer_id,
+        status: "INIT",
         transfer_amount: payoutAmount,
-        beneficiary_details: { beneficiary_id: beneficiary_id },
-        transfer_mode: payoutMode,
-      };
+        transfer_mode: payoutMode.toUpperCase(),
+        beneficiary_id,
+        payment_type,
+        paymentDetails: {
+          customerPayable: {
+            total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+            baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+            convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+            taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+          },
+          vendorReceivable: {
+            total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+            baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+            commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+            taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+          },
+        },
+      });
 
-      let transferResp;
+      if (bankDetailsValid) {
+        const transferBody = {
+          transfer_id: transfer_id,
+          transfer_amount: payoutAmount,
+          beneficiary_details: { beneficiary_id: beneficiary_id },
+          transfer_mode: payoutMode,
+        };
 
-      if (finalOrder?.vendor_id !== "VEN05012026111140552") {
-        try {
-          transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-        } catch (e) {
-          await Transaction.findOneAndUpdate(
-            { transfer_id: transfer_id },
-            {
-              $set: {
-                status: "FAILED_INIT",
-                cf_transfer_id: null,
-                transfer_amount: payoutAmount,
-                transfer_mode: "IMPS",
-                added_on: undefined,
-                updated_on: new Date(),
+        let transferResp;
+
+        if (finalOrder?.vendor_id !== "VEN05012026111140552") {
+          try {
+            transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
+          } catch (e) {
+            await Transaction.findOneAndUpdate(
+              { transfer_id: transfer_id },
+              {
+                $set: {
+                  status: "FAILED_INIT",
+                  cf_transfer_id: null,
+                  transfer_amount: payoutAmount,
+                  transfer_mode: "IMPS",
+                  added_on: undefined,
+                  updated_on: new Date(),
+                },
               },
-            },
-            { new: true }
-          );
-          return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+              { new: true }
+            );
+            return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
+          }
         }
-      }
-      const transferData = transferResp?.data || {};
-      await Transaction.findOneAndUpdate(
-        { transfer_id },
-        {
-          $set: {
-            vendor_id,
-            customer_id: finalCustomerId,
-            service_id,
-            event_id,
-            pgOrderId: order_id,
-            pgStatus: payment.order_status,
-            beneficiary_id,
-            cf_transfer_id: transferData.cf_transfer_id || null,
-            status: transferData.status || null,
-            transfer_amount: transferData.transfer_amount ?? payoutAmount,
-            transfer_mode: transferData.transfer_mode || "IMPS",
-            transfer_utr: transferData.transfer_utr || null,
-            added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-            updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-            payment_type,
-            paymentDetails: {
-              customerPayable: {
-                total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-                baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-                convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-                taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-              },
-              vendorReceivable: {
-                total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-                baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-                commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-                taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+        const transferData = transferResp?.data || {};
+        await Transaction.findOneAndUpdate(
+          { transfer_id },
+          {
+            $set: {
+              vendor_id,
+              customer_id: finalCustomerId,
+              service_id,
+              event_id,
+              pgOrderId: order_id,
+              pgStatus: payment.order_status,
+              beneficiary_id,
+              cf_transfer_id: transferData.cf_transfer_id || null,
+              status: transferData.status || null,
+              transfer_amount: transferData.transfer_amount ?? payoutAmount,
+              transfer_mode: transferData.transfer_mode || "IMPS",
+              transfer_utr: transferData.transfer_utr || null,
+              added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
+              updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
+              payment_type,
+              paymentDetails: {
+                customerPayable: {
+                  total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
+                  baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
+                  convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
+                  taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+                },
+                vendorReceivable: {
+                  total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
+                  baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
+                  commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
+                  taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
+                },
               },
             },
           },
-        },
-        { new: true }
-      );
+          { new: true }
+        );
+      }
+    } else {
+      console.log(`[VerifyPayment] Skipped Payout transaction recording for zero payout amount.`);
     }
 
     // Update payment details in the Order model
     const paymentDetailsUpdate = {
       paymentStatus:
-        (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last"))
+        (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("late"))
           ? "Fully Paid"
           : "Partially Paid",
       customerPayable: {
-        total: finalOrder?.paymentDetails?.customerPayable?.total ?? order_amount,
+        total: (N(finalOrder?.paymentDetails?.customerPayable?.baseAmount || order_amount) + N(finalOrder?.paymentDetails?.customerPayable?.convenienceFee) + N(finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience)) - N(couponDiscount) - N(breakdownDiscount),
         baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? order_amount,
         convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
         taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
+        couponCode: couponCode || finalOrder?.paymentDetails?.customerPayable?.couponCode || null,
+        couponDiscount: N(couponDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.couponDiscount || 0),
+        breakdownDiscount: N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.breakdownDiscount || 0),
       },
       vendorReceivable: {
-        total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? order_amount,
+        total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining") 
+          ? (Number(receivableFromOrder) || order_amount) 
+          : (finalOrder?.paymentDetails?.vendorReceivable?.total ?? order_amount),
         baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? order_amount,
         commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
         taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
@@ -884,7 +907,7 @@ const verifyCustomerPayment = async (req, res) => {
     );
 
     // Update the matching paymentBreakdown status to "Paid"
-    if (payment_type && payment_type !== "full") {
+    if (payment_type && payment_type !== "full" && payment_type !== "remaining") {
       await Order.findOneAndUpdate(
         {
           order_id: internalOrderId,
@@ -892,17 +915,32 @@ const verifyCustomerPayment = async (req, res) => {
           "paymentBreakdowns.status": "Unpaid",
         },
         {
-          $set: { "paymentBreakdowns.$.status": "Paid" },
+          $set: { 
+            "paymentBreakdowns.$.status": "Paid",
+            "paymentBreakdowns.$.paid_at": new Date()
+          },
         }
       );
       console.log(`[VerifyPayment] Marked breakdown "${payment_type}" as Paid for order ${internalOrderId}`);
-    } else if (payment_type === "full") {
-      // Full payment: mark ALL breakdowns as Paid
+      
+      // Also silently mark 0-amount Token as Paid unconditionally
+      await Order.updateMany(
+        { order_id: internalOrderId },
+        { $set: { "paymentBreakdowns.$[elem].status": "Paid" } },
+        { arrayFilters: [{ "elem.name": { $regex: /token/i }, "elem.amount": { $in: [0, "0", null] } }] }
+      );
+    } else if (payment_type === "full" || payment_type === "remaining") {
+      // Full/Remaining payment: mark ALL breakdowns as Paid
       await Order.updateOne(
         { order_id: internalOrderId },
-        { $set: { "paymentBreakdowns.$[].status": "Paid" } }
+        { 
+          $set: { 
+            "paymentBreakdowns.$[].status": "Paid",
+            "paymentBreakdowns.$[].paid_at": new Date()
+          } 
+        }
       );
-      console.log(`[VerifyPayment] Marked all breakdowns as Paid (full payment) for order ${internalOrderId}`);
+      console.log(`[VerifyPayment] Marked all breakdowns as Paid (${payment_type} payment) for order ${internalOrderId}`);
     }
 
     // Try to sanitize known names for chat logs, else default back
@@ -1045,7 +1083,22 @@ const verifyCustomerPayment = async (req, res) => {
       const updateData = {
         $set: {
           already_paid_amount: newTotalPaid,
-          payment_status: newTotalPaid >= (existingEvent.final_amount || 0) ? "fully_paid" : "advance_paid",
+          payment_status: (newTotalPaid >= (existingEvent.final_amount || 0) || payment_type.toLowerCase().includes("late") || payment_type === "remaining") ? "fully_paid" : "advance_paid",
+          payment_details: {
+            customerPayable: {
+              ...(existingEvent.payment_details?.customerPayable || {}),
+              couponCode: couponCode || existingEvent.payment_details?.customerPayable?.couponCode || null,
+              couponDiscount: N(couponDiscount) || N(existingEvent.payment_details?.customerPayable?.couponDiscount || 0),
+              breakdownDiscount: N(breakdownDiscount) || N(existingEvent.payment_details?.customerPayable?.breakdownDiscount || 0),
+              discountAmount: N(couponDiscount) + N(breakdownDiscount) || N(existingEvent.payment_details?.customerPayable?.discountAmount || 0),
+            },
+            vendorReceivable: {
+              ...(existingEvent.payment_details?.vendorReceivable || {}),
+              total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining") 
+                ? (Number(receivableFromOrder) || existingEvent.payment_details?.vendorReceivable?.total) 
+                : (existingEvent.payment_details?.vendorReceivable?.total),
+            }
+          }
         },
         $push: {
           payment_method_details: {
@@ -1060,16 +1113,30 @@ const verifyCustomerPayment = async (req, res) => {
       };
 
       // Mark the specific breakdown as Paid in the array
-      if (payment_type && payment_type !== "remaining" && payment_type !== "full") {
+      const updateOptions = { new: true };
+      
+      if (payment_type === "remaining" || payment_type === "full") {
+        updateData.$set["payment_breakdowns.$[].status"] = "Paid";
+        updateData.$set["payment_breakdowns.$[].paid_at"] = new Date();
+      } else if (payment_type) {
         updateData.$set["payment_breakdowns.$[elem].status"] = "Paid";
+        updateData.$set["payment_breakdowns.$[elem].paid_at"] = new Date();
+        updateOptions.arrayFilters = [{ "elem.name": payment_type }];
       }
 
-      const updateOptions = {
-        arrayFilters: [{ "elem.name": payment_type }],
-        new: true
-      };
-
       await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
+      
+      // Also silently mark 0-amount Token as Paid unconditionally for Event
+      await Events.updateMany(
+        { event_id },
+        { 
+          $set: { 
+            "payment_breakdowns.$[elem].status": "Paid",
+            "payment_breakdowns.$[elem].paid_at": new Date()
+          } 
+        },
+        { arrayFilters: [{ "elem.name": { $regex: /token/i }, "elem.amount": { $in: [0, "0", null] } }] }
+      );
       console.log(`[VerifyPayment] Event ${event_id} updated. New total paid: ${newTotalPaid}`);
     } else {
       // ── CREATE new event (first payment for this quotation) ──
@@ -1104,7 +1171,7 @@ const verifyCustomerPayment = async (req, res) => {
         customer_contact_email: customerEmail,
 
         already_paid_amount: Number(order_amount),
-        payment_status: (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last")) ? "fully_paid" : "advance_paid",
+        payment_status: (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("late")) ? "fully_paid" : "advance_paid",
         payment_method: "online",
 
         payment_details: {
@@ -1115,8 +1182,10 @@ const verifyCustomerPayment = async (req, res) => {
             taxOnConvenience: N(finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience),
             convenienceFeeBefore: N(finalOrder?.paymentDetails?.customerPayable?.convenienceFeeBefore),
             taxOnConvenienceBefore: N(finalOrder?.paymentDetails?.customerPayable?.taxOnConvenienceBefore),
-            couponCode: finalOrder?.paymentDetails?.customerPayable?.couponCode ?? null,
-            discountAmount: N(finalOrder?.paymentDetails?.customerPayable?.discountAmount),
+            couponCode: couponCode || finalOrder?.paymentDetails?.customerPayable?.couponCode || null,
+            couponDiscount: N(couponDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.couponDiscount),
+            breakdownDiscount: N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.breakdownDiscount),
+            discountAmount: N(couponDiscount) + N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.discountAmount),
           },
           vendorReceivable: {
             total: N(finalOrder?.paymentDetails?.vendorReceivable?.total),
@@ -1130,7 +1199,8 @@ const verifyCustomerPayment = async (req, res) => {
         payment_method_details: [],
         payment_breakdowns: (finalOrder?.paymentBreakdowns || []).map(b => {
           const isMatching = payment_type === "full" || payment_type === "remaining" || (b.name && b.name === payment_type);
-          if (isMatching) {
+          const isZeroToken = (b.name && b.name.toLowerCase().includes("token") && Number(b.amount) === 0);
+          if (isMatching || isZeroToken) {
             return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
           }
           return b;
@@ -1200,13 +1270,14 @@ const verifyCustomerPayment = async (req, res) => {
     const discountForInvoice = Math.max(0, Number(discountAbs.toFixed(2)));
     const finalAmount = Math.max(0, totalCustomerPayable - discountForInvoice);
 
+    const safeAlreadyPaid = existingEvent ? Number(existingEvent.already_paid_amount || 0) : 0;
     const paidAmount =
       payment_type === "advance"
         ? N(order_amount)
         : payment_type === "full"
           ? finalAmount
           : payment_type === "remaining"
-            ? Math.max(0, N(totalCustomerPayable) - N(alreadyPaid) - 0)
+            ? Math.max(0, N(totalCustomerPayable) - safeAlreadyPaid - 0)
             : N(order_amount);
 
     const formatDateTimeForDisplay = (dateInput) => {

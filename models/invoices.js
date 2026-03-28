@@ -78,7 +78,6 @@ const invoicesSchema = new mongoose.Schema({
 });
 
 // Indexes for better performance
-invoicesSchema.index({ invoice_no: 1 });
 invoicesSchema.index({ vendor_id: 1 });
 invoicesSchema.index({ service_id: 1 });
 invoicesSchema.index({ customer_id: 1 });

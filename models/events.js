@@ -61,6 +61,9 @@ const paymentBreakdownsSchema = new mongoose.Schema({
     enum: ["Unpaid", "Paid", "Failed"],
     default: "Unpaid"
   },
+  paid_at: {
+    type: Date
+  },
   custom_items: [{
     name_of_service: String,
     price: Number,
@@ -397,7 +400,6 @@ eventsSchema.index({ payment_status: 1 });
 eventsSchema.index({ event_start: 1, event_end: 1 }); // Compound index for date range queries
 eventsSchema.index({ event_created_at: -1 });
 eventsSchema.index({ event_updated_at: -1 });
-eventsSchema.index({ event_id: 1 });
 eventsSchema.index({ quotation_id: 1 });
 
 const Events = mongoose.model('Events', eventsSchema);
