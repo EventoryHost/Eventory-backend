@@ -221,7 +221,7 @@ export const initializeAnonymousChat = async (req, res) => {
             chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
-            message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
+            message_content: "Hey there! Welcome to Eventory - your personal event planning companion. Let's get your dream event rolling. It'll only take 2 minutes!",
             message_type: "text",
           });
 
@@ -244,14 +244,14 @@ export const initializeAnonymousChat = async (req, res) => {
             chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
-            message_content: "Please select your event type",
+            message_content: "First things first - what are we celebrating?",
             message_type: "options",
             options: [
-              { label: "Wedding", value: "Wedding" },
               { label: "Birthday", value: "Birthday" },
-              { label: "Corporate", value: "Corporate" },
               { label: "Anniversary", value: "Anniversary" },
-              { label: "Other", value: "Other" },
+              { label: "Social Gathering", value: "Social Gathering" },
+              { label: "Corporate Event", value: "Corporate Event" },
+              { label: "Something else", value: "Something else" },
             ],
           });
 
