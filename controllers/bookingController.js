@@ -249,6 +249,61 @@ export const createBooking = async (req, res) => {
         { em_id, service_id, quotation_id },
         { $set: orderUpdatePayload }
       );
+
+      // --- NEW: Record Transaction and Trigger Invoicing for FREE BOOKING ---
+      if (payStatusNorm === "fully_paid" || (paymentDetails?.customerPayable?.total || 0) === 0) {
+        try {
+          const { Transaction } = await import("../models/transactions.js");
+          const { sqs } = await import("../config/awsConfig.js");
+          const { SendMessageCommand } = await import("@aws-sdk/client-sqs");
+
+          const trnId = generateUniqueId("TRN_FREE");
+          
+          await Transaction.create({
+            quotation_id: quotation_id || effectiveQuotationId,
+            event_id: saved.event_id || saved._id,
+            internalOrderId: event_id || (em_id && service_id && quotation_id ? `ODR_${quotation_id}` : null),
+            vendor_id: vendor_id,
+            customer_id: customer_id,
+            service_id: service_id,
+            pgOrderId: "free_booking",
+            pgStatus: "PAID",
+            transfer_id: trnId,
+            status: "SUCCESS",
+            transfer_amount: 0,
+            transfer_mode: "FREE_BOOKING",
+            payment_type: "Token",
+            paymentDetails: orderUpdatePayload.paymentDetails
+          });
+
+          const sqsMessage = {
+            type: "bookingPayment",
+            customer: { id: customer_id, name: doc.customer_name, mobile: doc.customer_contact_number, email: doc.customer_contact_email },
+            vendor: { id: vendor_id, name: doc.vendor_manager_name },
+            paymentDetails: {
+              event_id: saved.event_id || saved._id,
+              amount: 0,
+              paidAmount: 0,
+              finalAmount: orderUpdatePayload.paymentDetails.customerPayable.total,
+              paymentType: "Token",
+              method: "Free Booking",
+              items: doc.final_order_items,
+              transaction_id: "free_booking",
+              date: new Date().toLocaleDateString("en-GB")
+            },
+          };
+
+          await sqs.send(new SendMessageCommand({
+            QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
+              ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+              : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
+            MessageBody: JSON.stringify(sqsMessage),
+          }));
+          console.log(`[BOOKING] Recorded FREE transaction and sent SQS for invoicing for Order: ${quotation_id}`);
+        } catch (syncErr) {
+          console.error("[BOOKING] Failed to sync free booking transaction/invoice:", syncErr.message);
+        }
+      }
     }
 
     // Resolve Quotation ID

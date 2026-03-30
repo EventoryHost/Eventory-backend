@@ -92,6 +92,9 @@ const paymentDetailsSchema = new Schema({
     enum: ["Unpaid", "Fully Paid", "Partially Paid", "Failed"],
     default: "Unpaid"
   },
+  transactionId: {
+    type: String
+  },
   customerPayable: {
     total: { type: Number, default: 0 },
     baseAmount: { type: Number, default: 0 },

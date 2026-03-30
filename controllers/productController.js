@@ -1049,7 +1049,14 @@ const searchAllVendors = async (query) => {
         }
       });
     } else {
-      combinedResults.sort((a, b) => b._id.getTimestamp() - a._id.getTimestamp());
+      combinedResults.sort((a, b) => {
+        const catA = a.business_details?.category || 999;
+        const catB = b.business_details?.category || 999;
+        if (catA !== catB) {
+          return catA - catB;
+        }
+        return (b._id ? b._id.getTimestamp() : 0) - (a._id ? a._id.getTimestamp() : 0);
+      });
     }
 
     const totalResults = combinedResults.length;

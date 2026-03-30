@@ -6,7 +6,7 @@ import { Events } from "../models/events.js";
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const { invoice_url, type, invoice_for, payment_label, vendor_id, service_id, customer_id, event_id } =
+    const { invoice_url, type, invoice_for, payment_label, vendor_id, service_id, customer_id, event_id, transaction_id } =
       req.body;
 
     // Validate required fields
@@ -106,6 +106,7 @@ export const createInvoice = async (req, res) => {
       service_id,
       customer_id: type === "registration" ? null : customer_id,
       event_id: type === "registration" ? null : event_id,
+      transaction_id: transaction_id || null,
     });
 
     await invoice.save();

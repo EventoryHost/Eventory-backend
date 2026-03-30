@@ -64,6 +64,9 @@ const invoicesSchema = new mongoose.Schema({
   event_id: {
     type: String // Event_id for any event. null in case of registration
   },
+  transaction_id: {
+    type: String
+  },
   invoice_created_at: {
     type: Date,
     default: () => {
@@ -82,6 +85,7 @@ invoicesSchema.index({ vendor_id: 1 });
 invoicesSchema.index({ service_id: 1 });
 invoicesSchema.index({ customer_id: 1 });
 invoicesSchema.index({ event_id: 1 });
+invoicesSchema.index({ transaction_id: 1 });
 invoicesSchema.index({ type: 1 });
 invoicesSchema.index({ invoice_created_at: -1 });
 
