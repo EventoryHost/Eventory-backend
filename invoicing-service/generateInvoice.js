@@ -394,6 +394,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
         "VENDOR_REGISTRATION",
       customer_id: null,
       event_id: null,
+      transaction_id: paymentDetails.transaction_id || null,
     });
 
 
@@ -774,7 +775,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const eventId = paymentDetails.event_id || paymentDetails.eventId || null;
 
     // Create CUSTOMER invoice record in new Invoices collection
-    await axios.post(`${process.env.URL}/api/invoices`, {
+    const baseUrl = process.env.URL.startsWith('http') ? process.env.URL : `https://${process.env.URL}`;
+    await axios.post(`${baseUrl}/api/invoices`, {
       invoice_url: custInvoiceUrl,
       type: invoiceType,          // 'advance_booking' | 'booking' | 'payment'
       invoice_for: 'customer',
@@ -783,6 +785,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       service_id: serviceId,
       customer_id: customerId,
       event_id: eventId,
+      transaction_id: paymentDetails.transaction_id || null,
     });
 
     // if (customer.mobile) {
@@ -909,7 +912,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
           : "booking";
 
     // Create VENDOR invoice record in new Invoices collection
-    await axios.post(`${process.env.URL}/api/invoices`, {
+    const vendorBaseUrl = process.env.URL.startsWith('http') ? process.env.URL : `https://${process.env.URL}`;
+    await axios.post(`${vendorBaseUrl}/api/invoices`, {
       invoice_url: venInvoiceUrl,
       type: vendorInvoiceType,    // 'advance_booking' | 'booking' | 'payment'
       invoice_for: 'vendor',
@@ -918,6 +922,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       service_id: serviceId,
       customer_id: customerId,
       event_id: eventId,
+      transaction_id: paymentDetails.transaction_id || null,
     });
 
     // if (vendor.mobile) {
@@ -929,6 +934,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     //   );
     // }
   } catch (err) {
+    console.error("[Invoicing] ERROR generating booking invoice:", err.message);
+    if (err.response) console.error("[Invoicing] API Error Details:", JSON.stringify(err.response.data));
     try {
       if (page && !page.isClosed()) await page.close();
       if (browser) await browser.close();

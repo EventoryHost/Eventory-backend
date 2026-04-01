@@ -896,15 +896,23 @@ const verifyCustomerPayment = async (req, res) => {
         baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? order_amount,
         commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
         taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-      }
+      },
+      transactionId: order_id
     };
 
     // Update the order with payment details
-    await Order.findOneAndUpdate(
+    console.log(`[VerifyPayment] Updating order ${internalOrderId} with transactionId: ${order_id}`);
+    const updatedOrder = await Order.findOneAndUpdate(
       { order_id: internalOrderId },
-      { $set: { paymentDetails: paymentDetailsUpdate } },
+      { 
+        $set: { 
+          paymentDetails: paymentDetailsUpdate,
+          "paymentDetails.transactionId": order_id // Explicitly set it too
+        } 
+      },
       { new: true }
     );
+    console.log(`[VerifyPayment] Order update result. transactionId in DB: ${updatedOrder?.paymentDetails?.transactionId}`);
 
     // Update the matching paymentBreakdown status to "Paid"
     if (payment_type && payment_type !== "full" && payment_type !== "remaining") {
@@ -1382,6 +1390,7 @@ const verifyCustomerPayment = async (req, res) => {
       customerLink,
       vendorLink,
       event_id: event_id,
+      transaction_id: order_id,
       serviceData: serviceSnapshot,      // NEW: full service data into paymentDetails
     };
 
@@ -1392,12 +1401,14 @@ const verifyCustomerPayment = async (req, res) => {
       paymentDetails: paymentDetailsMsg,
     };
 
+    console.log(`[VerifyPayment] Sending SQS message for invoicing:`, JSON.stringify(sqsMessage, null, 2));
     await sqs.send(new SendMessageCommand({
       QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
         ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
         : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
       MessageBody: JSON.stringify(sqsMessage),
     }));
+    console.log(`[VerifyPayment] SQS message sent successfully.`);
 
     console.log("Invoice generated successfully");
     const updatedEvent = await Events.findOne({ event_id });
