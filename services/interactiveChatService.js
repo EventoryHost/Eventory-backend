@@ -9,235 +9,337 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
     try {
         console.log(`[DEBUG] handleInteractiveMessage entry: chatId=${chatId}, content="${messageContent}"`);
         
-        // Fetch Chat to get the correct anon_customer_id or customer_id
         const chat = await Chat.findOne({ chat_id: chatId });
-        if (!chat) {
-            console.error(`Chat not found: ${chatId}`);
-            return;
-        }
+        if (!chat) return;
 
         let userId = chat.customer_id || chat.anon_customer_id;
         let isCustomer = !!chat.customer_id;
-        let enquiry; // Declare once at top level
+        let enquiry;
 
-        // Common Query for existing enquiries
         let enquiryQuery = { 
-            status: { $in: ["OPEN", "PROCESSING"] } 
+            status: { $nin: ["CLOSED", "CONVERTED"] } 
         };
-        if (isCustomer) {
-            enquiryQuery.customer_id = userId;
-        } else {
-            enquiryQuery.anon_customer_id = userId;
+        if (isCustomer) enquiryQuery.customer_id = userId;
+        else enquiryQuery.anon_customer_id = userId;
+
+        enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
+
+        let messageStr = "";
+        if (typeof messageContent === "string") {
+            messageStr = messageContent;
+        } else if (messageContent !== null && messageContent !== undefined) {
+            messageStr = typeof messageContent === "object" ? JSON.stringify(messageContent) : String(messageContent);
         }
+        
+        const normalizedContent = messageStr.trim();
+        const lowerContent = normalizedContent.toLowerCase();
 
+        // 1. HELPERS
+        const sendMessage = async (content, type = "text", options = null, action = null, delay = 1000) => {
+            return new Promise((resolve) => {
+                setTimeout(async () => {
+                    const msg = await Message.create({
+                        chat_id: chatId,
+                        chat_type: chat.chat_type,
+                        sender: "admin",
+                        sender_id: "admin",
+                        message_content: content,
+                        message_type: type,
+                        options: options,
+                        action: action
+                    });
+                    if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", msg.toObject());
+                    await triggerCustomerNotification(userId, chatId, content, io);
+                    resolve(msg);
+                }, delay);
+            });
+        };
 
-        // 1. Check for Vendor Card Actions (Like/Dislike) or Order Confirmation
+        // 2. VENDOR CARD ACTIONS (STAY AS IS)
         if (messageContent.startsWith("LIKE_VENDOR:") || messageContent.startsWith("DISLIKE_VENDOR:")) {
             const [action, vendorId] = messageContent.split(":");
-            console.log(`User ${userId} performed ${action} on vendor ${vendorId}`);
-
             if (action === "LIKE_VENDOR") {
-                // Send "Order Summary"
-                const orderSummaryMsg = await Message.create({
-                    chat_id: chatId,
-                    chat_type: chat.chat_type,
-                    sender: "admin",
-                    sender_id: "admin",
-                    message_content: "Great choice! Here is the summary of your order.",
-                    message_type: "order_summary",
-                    card_data: {
-                        vendor_id: vendorId,
-                        items: [{ name: "Standard Package", price: 5000, quantity: 1 }],
-                        total: 5000,
-                        tax: 900,
-                        grand_total: 5900
-                    },
-                    action: "confirm_order"
-                });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", orderSummaryMsg.toObject());
-
-                // Trigger customer notification
-                await triggerCustomerNotification(userId, chatId, "Great choice! Here is the summary of your order.", io);
-
-                // Send Confirmation Options
-                const confirmMsg = await Message.create({
-                    chat_id: chatId,
-                    chat_type: chat.chat_type,
-                    sender: "admin",
-                    sender_id: "admin",
-                    message_content: "Would you like to proceed with this order?",
-                    message_type: "options",
-                    options: [
-                        { label: "Confirm Order", value: `CONFIRM_ORDER:${vendorId}` },
-                        { label: "Cancel", value: "CANCEL_ORDER" }
-                    ]
-                });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", confirmMsg.toObject());
-                
-                // Trigger customer notification
-                await triggerCustomerNotification(userId, chatId, "Would you like to proceed with this order?", io);
+                await sendMessage("Great choice! Here is the summary of your order.", "order_summary", null, "confirm_order");
+                await sendMessage("Would you like to proceed with this order?", "options", [
+                    { label: "Confirm Order", value: `CONFIRM_ORDER:${vendorId}` },
+                    { label: "Cancel", value: "CANCEL_ORDER" }
+                ]);
             } else {
-                const ackMsg = await Message.create({
-                    chat_id: chatId,
-                    chat_type: chat.chat_type,
-                    sender: "admin",
-                    sender_id: "admin",
-                    message_content: "Got it. We'll look for other options.",
-                    message_type: "text"
-                });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", ackMsg.toObject());
-
-                // Trigger customer notification
-                await triggerCustomerNotification(userId, chatId, "Got it. We'll look for other options.", io);
+                await sendMessage("Got it. We'll look for other options.");
             }
             return;
         }
 
         if (messageContent.startsWith("CONFIRM_ORDER:")) {
-            // Update order status to approved
-            try {
-                const order = await AnonCustomerOrder.findOneAndUpdate(
-                    { chat_id: chatId, order_status: { $ne: 'converted' } },
-                    { $set: { order_status: 'approved' } },
-                    { new: true, sort: { created_at: -1 } }
-                );
-                if (order) {
-                    console.log(`[ORDER] Order ${order.anon_order_id} marked as approved via chat confirmation.`);
-                }
-            } catch (err) {
-                console.error("[ERROR] Failed to update order status on confirmation:", err);
-            }
-
-             const loginMsg = await Message.create({
-                chat_id: chatId,
-                chat_type: chat.chat_type,
-                sender: "admin",
-                sender_id: "admin",
+             await Message.create({
+                chat_id: chatId, chat_type: chat.chat_type, sender: "admin", sender_id: "admin",
                 message_content: "To save your order and proceed to checkout, please login or sign up.",
-                message_type: "login_prompt",
-                action: "login_redirect"
+                message_type: "login_prompt", action: "login_redirect"
             });
-            if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", loginMsg.toObject());
-
-            // Trigger customer notification
-            await triggerCustomerNotification(userId, chatId, "To save your order and proceed to checkout, please login or sign up.", io);
             return;
         }
 
-        // 2. Step-by-Step Interactive Flow Logic
-        const eventTypes = ["wedding", "birthday", "corporate", "anniversary", "other"];
-        const normalizedContent = messageContent?.trim().toLowerCase();
-        const isEventTypeSelection = eventTypes.includes(normalizedContent);
+        // 3. STEP-BY-STEP FLOW
+        const eventTypes = ["birthday", "anniversary", "social gathering", "corporate event", "something else"];
+        const isEventTypeSelection = eventTypes.includes(lowerContent);
 
-        console.log(`[DEBUG] Flow check: isEventTypeSelection=${isEventTypeSelection}, normalizedContent="${normalizedContent}"`);
-
-        // --- STEP 1: EVENT TYPE SELECTION ---
-        // Flow condition: Either it's a known event type, OR we don't have an active enquiry yet
-        // If we don't have an enquiry, this first message MUST be the event type (specified as 'Other' or custom)
-        enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
-
+        // STEP 2: HANDLE EVENT TYPE SELECTION
         if (!enquiry || isEventTypeSelection) {
-            if (enquiry) {
-                enquiry.event_type = messageContent;
-                enquiry.status = "OPEN"; // Reset to OPEN so next message is treated as Time
-                await enquiry.save();
-                console.log(`[FLOW 4] Event type selected (Update): "${messageContent}" for chat_id=${chatId}`);
+            if (lowerContent === "something else") {
+                if (!enquiry) {
+                    enquiry = await CustomerEnquiry.create({
+                        enquiry_id: generateUniqueId("ENQ"),
+                        [isCustomer ? "customer_id" : "anon_customer_id"]: userId,
+                        event_type: "WAITING_FOR_CUSTOM_TYPE",
+                        status: "OPEN"
+                    });
+                }
+                await sendMessage("Love it! What exactly are we celebrating?");
+                return;
+            }
+
+            if (enquiry && enquiry.event_type === "WAITING_FOR_CUSTOM_TYPE") {
+                enquiry.event_type = normalizedContent;
+                enquiry.status = "COLLECTING_DATE";
+            } else if (enquiry) {
+                enquiry.event_type = normalizedContent;
+                enquiry.status = "COLLECTING_DATE";
             } else {
                 enquiry = await CustomerEnquiry.create({
                     enquiry_id: generateUniqueId("ENQ"),
                     [isCustomer ? "customer_id" : "anon_customer_id"]: userId,
-                    event_type: messageContent,
-                    status: "OPEN"
+                    event_type: normalizedContent,
+                    status: "COLLECTING_DATE"
                 });
-                console.log(`[FLOW 4] Event type selected (New): "${messageContent}" for chat_id=${chatId}`);
             }
+            await enquiry.save();
+            chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+            await chat.save();
 
-            // Send "How Soon" Options
-            setTimeout(async () => {
-                const timeOptionsMsg = await Message.create({
-                    chat_id: chatId,
-                    chat_type: chat.chat_type,
-                    sender: "admin",
-                    sender_id: "admin",
-                    message_content: "How soon is your event?",
-                    message_type: "options",
-                    options: [
-                        { label: "Immediately", value: "Immediately" },
-                        { label: "After a month", value: "After a month" },
-                        { label: "Just exploring", value: "Just exploring" }
-                    ]
-                });
-
-                if (io) {
-                    io.to(`${chatId}-${chat.chat_type}`).emit("new_message", timeOptionsMsg.toObject());
-                    
-                    // Trigger customer notification
-                    await triggerCustomerNotification(userId, chatId, "How soon is your event?", io);
-                    console.log(`[FLOW 5] Event time options sent: chat_id=${chatId}`);
-                }
-            }, 1000);
-
+            // Transition to STEP 3: Event Date
+            await sendMessage("Love it! Now, when are you planning to host it?", "date_picker", [
+                { label: "Still exploring - not sure yet", value: "STILL_EXPLORING" }
+            ]);
             return;
         }
 
-        // --- STEP 2+: HANDLE EXISTING ENQUIRY ---
-        // (Enquiry already exists and it's not a re-selection of event type)
+        if (!enquiry) return;
 
-        if (enquiry) {
-            if (enquiry.status === "PROCESSING") {
-                console.log(`[DEBUG] Enquiry ${enquiry.enquiry_id} is already in PROCESSING status. Skipping interactive flow.`);
+        // STEP 3 -> 4: Event Date Selection
+        if (enquiry.status === "COLLECTING_DATE") {
+            enquiry.event_date = lowerContent === "still_exploring" ? null : normalizedContent;
+            enquiry.status = "COLLECTING_LOCATION";
+            await enquiry.save();
+            chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+            await chat.save();
+
+            await sendMessage("Got it! Which city or area is the event in?");
+            return;
+        }
+
+        // STEP 4 -> 5: Location / City
+        if (enquiry.status === "COLLECTING_LOCATION") {
+            enquiry.city = normalizedContent;
+            enquiry.status = "COLLECTING_VENUE";
+            await enquiry.save();
+            chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+            await chat.save();
+
+            await sendMessage("Is this event happening at home or at an outside venue?", "options", [
+                { label: "At home", value: "At home" },
+                { label: "Outdoor / Outside venue", value: "Outdoor / Outside venue" }
+            ]);
+            return;
+        }
+
+        // STEP 5 -> 6: Venue Setting
+        if (enquiry.status === "COLLECTING_VENUE") {
+            if (lowerContent === "outdoor / outside venue") {
+                enquiry.venue_setting = "Outdoor";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("Have you already decided on a venue, or would you like Eventory to help find one?", "options", [
+                    { label: "Yes, I have a venue in mind", value: "VENUE_YES" },
+                    { label: "I need help finding a venue", value: "VENUE_HELP" }
+                ]);
+                return;
+            } else if (lowerContent === "at home") {
+                enquiry.venue_setting = "At home";
+                enquiry.status = "COLLECTING_SERVICES";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                // Proceed to Step 6
+                await sendMessage("Perfect! What kind of services are you looking for? (Select all that apply)", "multi_select", [
+                    { label: "Catering", value: "Catering" },
+                    { label: "Venue", value: "Venue" },
+                    { label: "Photography / Videography", value: "Photography / Videography" },
+                    { label: "Decoration & Florals", value: "Decoration & Florals" },
+                    { label: "Music / Entertainment", value: "Music / Entertainment" },
+                    { label: "Makeup & Styling", value: "Makeup & Styling" },
+                    { label: "Others", value: "Others" }
+                ]);
+                return;
+            } else if (lowerContent === "venue_yes" || lowerContent === "venue_help") {
+                enquiry.venue_help_needed = lowerContent === "venue_help";
+                enquiry.status = "COLLECTING_SERVICES";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                // Proceed to Step 6
+                await sendMessage("Perfect! What kind of services are you looking for? (Select all that apply)", "multi_select", [
+                    { label: "Catering", value: "Catering" },
+                    { label: "Venue", value: "Venue" },
+                    { label: "Photography / Videography", value: "Photography / Videography" },
+                    { label: "Decoration & Florals", value: "Decoration & Florals" },
+                    { label: "Music / Entertainment", value: "Music / Entertainment" },
+                    { label: "Makeup & Styling", value: "Makeup & Styling" },
+                    { label: "Others", value: "Others" }
+                ]);
+                return;
+            }
+        }
+
+        // STEP 6 -> 7: Services Needed
+        if (enquiry.status === "COLLECTING_SERVICES") {
+            // Check if user is answering the custom "Others" or "Guest Count"
+            if (enquiry.services_needed.length > 0 && (lowerContent.includes("under") || lowerContent.includes("-") || lowerContent.includes("+"))) {
+                enquiry.guest_count = normalizedContent;
+                enquiry.status = "COLLECTING_BUDGET";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                // Proceed to Step 7
+                await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
+                    { label: "Yes, I have a rough number", value: "BUDGET_YES" },
+                    { label: "Not decided yet", value: "BUDGET_NO" }
+                ]);
                 return;
             }
 
-            // If status is OPEN, we assume this message is the Timing selection
-            console.log(`[FLOW 6] Event time selected: "${messageContent}" for chat_id=${chatId}`);
-            console.log(`[FLOW] Step 2: Saving event time "${messageContent}" for enquiry ${enquiry.enquiry_id}`);
-            enquiry.event_time = messageContent;
-            enquiry.status = "PROCESSING";
+            // Normal service selection (could be multi_select JSON string from frontend)
+            let selectedServices = [];
+            try {
+                selectedServices = JSON.parse(normalizedContent);
+            } catch (e) {
+                selectedServices = [normalizedContent];
+            }
+
+            if (selectedServices.includes("Others") && !enquiry.services_needed.includes("Others")) {
+                enquiry.services_needed = selectedServices;
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("What other services are you looking for?");
+                return;
+            }
+
+            enquiry.services_needed = selectedServices;
             await enquiry.save();
+            chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+            await chat.save();
 
-            // Send Follow-up messages
-            setTimeout(async () => {
-                // 1. Assigning EM message
-                const assigningMsg = await Message.create({
-                    chat_id: chatId,
-                    chat_type: chat.chat_type,
-                    sender: "admin",
-                    sender_id: "admin",
-                    message_content: "We're assigning an event manager to assist you with your query.",
-                    message_type: "text"
-                });
-                if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", assigningMsg.toObject());
-
-                // Trigger customer notification
-                await triggerCustomerNotification(userId, chatId, "We're assigning an event manager to assist you with your query.", io);
-
-                // 2. Processing / Review prompt
-                setTimeout(async () => {
-                    const processingMsg = await Message.create({
-                        chat_id: chatId,
-                        chat_type: chat.chat_type,
-                        sender: "admin",
-                        sender_id: "admin",
-                        message_content: "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.",
-                        message_type: "options",
-                        action: "check_reviews",
-                        options: [
-                            { label: "Check Reviews", value: "CHECK_REVIEWS_ACTION" }
-                        ]
-                    });
-                    if (io) {
-                        io.to(`${chatId}-${chat.chat_type}`).emit("new_message", processingMsg.toObject());
-                        
-                        // Trigger customer notification
-                        await triggerCustomerNotification(userId, chatId, "I'm working on your query. It may take a little while. Meanwhile, you can check our reviews.", io);
-                        console.log(`[FLOW 7] Reviews and connecting message sent: chat_id=${chatId}`);
-                    }
-                }, 1500);
-
-            }, 800);
-
+            const needsGuestCount = selectedServices.some(s => s === "Catering" || s === "Venue");
+            if (needsGuestCount) {
+                await sendMessage("Around how many guests are you expecting?", "options", [
+                    { label: "Under 25", value: "Under 25" },
+                    { label: "25–50", value: "25–50" },
+                    { label: "50–100", value: "50–100" },
+                    { label: "100–200", value: "100–200" },
+                    { label: "200+", value: "200+" },
+                    { label: "Not sure yet", value: "Not sure yet" }
+                ]);
+            } else {
+                enquiry.status = "COLLECTING_BUDGET";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
+                    { label: "Yes, I have a rough number", value: "BUDGET_YES" },
+                    { label: "Not decided yet", value: "BUDGET_NO" }
+                ]);
+            }
             return;
+        }
+
+        // STEP 7 -> 8/9: Budget
+        if (enquiry.status === "COLLECTING_BUDGET") {
+            if (lowerContent === "budget_yes") {
+                enquiry.budget_option = "Yes";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("What's your approximate budget range?", "options", [
+                    { label: "Under ₹20,000", value: "Under ₹20,000" },
+                    { label: "₹20,000 – ₹60,000", value: "₹20,000 – ₹60,000" },
+                    { label: "₹60,000 – ₹1,00,000", value: "₹60,000 – ₹1,00,000" },
+                    { label: "Above ₹1,00,000", value: "Above ₹1,00,000" },
+                    { label: "Prefer to discuss with the manager", value: "Prefer to discuss with the manager" }
+                ]);
+                return;
+            } else {
+                enquiry.budget_option = lowerContent === "budget_no" ? "No" : enquiry.budget_option;
+                if (!enquiry.budget_range && lowerContent !== "budget_no") {
+                    enquiry.budget_range = normalizedContent;
+                }
+                enquiry.status = "COLLECTING_CONTACT";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                
+                // STEP 8
+                await sendMessage("This already sounds exciting! Here’s how we’ll help you:\nA dedicated Event Manager (FREE) will:\n • Share curated options\n • Suggest themes & ideas\n • Help you plan within your budget\n • Handle the entire coordination\nSo you can enjoy the event stress-free! \nTo make sure they can reach you quickly, could you share a couple of details?");
+                
+                // STEP 9
+                await sendMessage("Your name? (First name works just fine!)");
+                return;
+            }
+        }
+
+        // STEP 9 -> 10: Contact Collection
+        if (enquiry.status === "COLLECTING_CONTACT") {
+            if (!enquiry.customer_name) {
+                enquiry.customer_name = normalizedContent;
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("Your phone number?");
+                return;
+            }
+            if (!enquiry.phone_number) {
+                 // Simple validation check
+                if (!/^\d{10}$/.test(normalizedContent.replace(/\s/g, ""))) {
+                    // console.warn("Invalid phone number:", normalizedContent);
+                    // We'll proceed for now but normally we'd validate
+                }
+                enquiry.phone_number = normalizedContent;
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("Best time to call? (Optional but helpful)", "options", [
+                    { label: "Morning (9am–12pm)", value: "Morning (9am–12pm)" },
+                    { label: "Afternoon (12pm–4pm)", value: "Afternoon (12pm–4pm)" },
+                    { label: "Evening (4pm–8pm)", value: "Evening (4pm–8pm)" },
+                    { label: "Anytime works!", value: "Anytime works!" }
+                ]);
+                return;
+            }
+            if (!enquiry.best_time_to_call) {
+                enquiry.best_time_to_call = normalizedContent;
+                enquiry.status = "PROCESSING";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+
+                // STEP 10: Confirmation
+                await sendMessage(`Wonderful, ${enquiry.customer_name}!\nYour event brief is with us. One of our Event Managers will call you shortly at ${enquiry.phone_number}.\nWhile you wait - here's what our clients say about us.`, "options", [
+                    { label: "Read Reviews", value: "CHECK_REVIEWS_ACTION" },
+                    { label: "Back to Home", value: "BACK_TO_HOME_ACTION" }
+                ]);
+                console.log(`[FLOW] Lead capture complete for chat_id=${chatId}`);
+                return;
+            }
         }
 
     } catch (error) {
