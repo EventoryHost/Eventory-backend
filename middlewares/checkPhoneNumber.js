@@ -1,7 +1,7 @@
 import { findPhoneNumbersInText } from "libphonenumber-js";
 
 // Rename the function to match its purpose
-export const checkProfanity = (text) => {
+export const checkPhoneNumber = (text) => {
   if (!text || typeof text !== "string") return false;
 
   try {

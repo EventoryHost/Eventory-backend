@@ -24,8 +24,15 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
         enquiry = await CustomerEnquiry.findOne(enquiryQuery).sort({ created_at: -1 });
 
-        const normalizedContent = messageContent?.trim();
-        const lowerContent = normalizedContent?.toLowerCase();
+        let messageStr = "";
+        if (typeof messageContent === "string") {
+            messageStr = messageContent;
+        } else if (messageContent !== null && messageContent !== undefined) {
+            messageStr = typeof messageContent === "object" ? JSON.stringify(messageContent) : String(messageContent);
+        }
+        
+        const normalizedContent = messageStr.trim();
+        const lowerContent = normalizedContent.toLowerCase();
 
         // 1. HELPERS
         const sendMessage = async (content, type = "text", options = null, action = null, delay = 1000) => {
