@@ -106,6 +106,122 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (specificTerms) updateFields.specificTerms = specificTerms;
     if (em_id) updateFields.em_id = em_id;
 
+    // ── MULTI-VENDOR SEGMENT PROCESSING ──
+    const vendor_segments = incomingData.vendor_segments;
+    if (Array.isArray(vendor_segments) && vendor_segments.length > 0) {
+      console.log(`📦 Processing ${vendor_segments.length} vendor segment(s)`);
+
+      // 1. Persist segments on the order
+      updateFields.vendor_segments = vendor_segments;
+
+      // 2. Derive compat mirrors from segment[0]
+      const s0 = vendor_segments[0];
+      if (!updateFields.vendor_id)          updateFields.vendor_id          = s0.vendor_id;
+      if (!updateFields.service_id)         updateFields.service_id         = s0.service_id;
+      if (!updateFields.vendor_manager_name) updateFields.vendor_manager_name = s0.vendor_manager_name;
+      if (!updateFields.vendor_manager_contact_number)
+        updateFields.vendor_manager_contact_number = s0.vendor_manager_contact_number;
+      if (!updateFields.vendor_manager_contact_email)
+        updateFields.vendor_manager_contact_email  = s0.vendor_manager_contact_email;
+      if (!updateFields.event_type)         updateFields.event_type     = s0.event_type;
+      if (!updateFields.event_start)        updateFields.event_start    = s0.event_start;
+      if (!updateFields.event_end)          updateFields.event_end      = s0.event_end;
+      if (!updateFields.event_location)     updateFields.event_location = s0.event_location;
+      if (!updateFields.location_type)      updateFields.location_type  = s0.location_type;
+      if (!updateFields.final_guest_count)  updateFields.final_guest_count = s0.final_guest_count;
+
+      // 3. Build flat final_order_items (tagged per vendor)
+      const flatItems = [];
+      for (const seg of vendor_segments) {
+        for (const item of (seg.segment_final_order_items || [])) {
+          flatItems.push({
+            ...item,
+            vendor_id:   seg.vendor_id,
+            service_id:  seg.service_id,
+            vendor_name: seg.vendor_name
+          });
+        }
+      }
+      updateFields.final_order_items = flatItems;
+
+      // 4. Merge per-segment terms (deduplicated union)
+      const allTerms = new Set();
+      for (const seg of vendor_segments) {
+        for (const t of (seg.specificTerms || [])) allTerms.add(t);
+      }
+      updateFields.specificTerms = [...allTerms];
+
+      // 4.5 Proportionally allocate vendor commission to each breakdown
+      for (const seg of vendor_segments) {
+        const segBreakdowns = seg.paymentBreakdowns || [];
+        const validBreakdowns = segBreakdowns.filter(b => b.name !== 'Discount');
+        const segTotalBase = validBreakdowns.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+        
+        const overallCommission = Number(seg.paymentDetails?.vendorReceivable?.commission) || 0;
+        
+        for (const b of validBreakdowns) {
+          const amt = Number(b.amount) || 0;
+          b.vendor_base_amount = amt;
+          if (segTotalBase > 0) {
+            const ratio = amt / segTotalBase;
+            b.vendor_commission = Number((overallCommission * ratio).toFixed(2));
+          } else {
+            b.vendor_commission = 0;
+          }
+        }
+      }
+
+      // 5. Build COMBINED customer payment schedule
+      //    Sum amounts for same-name milestones across all segments
+      const milestoneOrder = ['Token','Advance 1','Advance 2','Advance 3','Advance 4','Final Pay','Last Pay','Discount'];
+      const milestoneMap = new Map();
+      for (const seg of vendor_segments) {
+        for (const b of (seg.paymentBreakdowns || [])) {
+          if (milestoneMap.has(b.name)) {
+            const existing = milestoneMap.get(b.name);
+            existing.amount += Number(b.amount) || 0;
+            // Keep earliest date
+            if (b.date && (!existing.date || new Date(b.date) < new Date(existing.date))) {
+              existing.date = b.date;
+            }
+          } else {
+            milestoneMap.set(b.name, { ...b, amount: Number(b.amount) || 0 });
+          }
+        }
+      }
+      const mergedBreakdowns = [...milestoneMap.values()]
+        .sort((a, b) => milestoneOrder.indexOf(a.name) - milestoneOrder.indexOf(b.name));
+      updateFields.paymentBreakdowns = mergedBreakdowns;
+
+      // 6. Aggregate vendor receivable total across segments
+      if (updateFields.paymentDetails) {
+        const totalReceivable = vendor_segments.reduce(
+          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.total) || 0), 0
+        );
+        const totalBaseAmount = vendor_segments.reduce(
+          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.baseAmount) || 0), 0
+        );
+        const totalCommission = vendor_segments.reduce(
+          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.commission) || 0), 0
+        );
+        const totalTaxOnCommission = vendor_segments.reduce(
+          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) || 0), 0
+        );
+        updateFields.paymentDetails = {
+          ...updateFields.paymentDetails,
+          vendorReceivable: {
+            ...updateFields.paymentDetails.vendorReceivable,
+            total: totalReceivable,
+            baseAmount: totalBaseAmount,
+            commission: totalCommission,
+            taxOnCommission: totalTaxOnCommission,
+          }
+        };
+      }
+
+      console.log(`✅ Segments processed: ${flatItems.length} items, ${mergedBreakdowns.length} milestones, ${allTerms.size} terms`);
+    }
+
     // UPSERT THE ORDER
     // UPSERT OR CREATE ORDER
     let updatedOrder;
@@ -141,6 +257,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         if (updateFields.customer_name) eventSyncFields.customer_name = updateFields.customer_name;
         if (updateFields.customer_contact_number) eventSyncFields.customer_contact_number = updateFields.customer_contact_number;
         if (updateFields.customer_contact_email) eventSyncFields.customer_contact_email = updateFields.customer_contact_email;
+        if (updateFields.vendor_segments) eventSyncFields.vendor_segments = updateFields.vendor_segments;
 
         // ── MERGE payment_breakdowns: preserve "Paid" statuses from event ──
         if (updateFields.paymentBreakdowns) {

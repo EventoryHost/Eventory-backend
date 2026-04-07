@@ -39,7 +39,11 @@ const cartItemSchema = new mongoose.Schema({
   },
   total_amount: {
     type: Number
-  }
+  },
+  // Multi-vendor attribution (optional — present when segments are used)
+  vendor_id: { type: String },
+  service_id: { type: String },
+  vendor_name: { type: String }
 }, { _id: false });
 
 // Payment Breakdowns Schema (embedded in Events)
@@ -68,7 +72,14 @@ const paymentBreakdownsSchema = new mongoose.Schema({
     name_of_service: String,
     price: Number,
     description: String
-  }]
+  }],
+  transaction_id: String,
+  payout_status: { type: String, enum: ['Pending', 'Processing', 'Paid', 'Failed'], default: 'Pending' },
+  vendor_base_amount: Number,
+  vendor_commission: Number,
+  payout_transfer_id: String,
+  amount_received_at: Date,
+  amount_shared_at: Date
 }, { _id: false });
 
 // Events Schema
@@ -91,13 +102,11 @@ const eventsSchema = new mongoose.Schema({
   },
   vendor_id: {
     type: String,
-    required: true
-    // Reference to vendor - removed ref for flexibility
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   service_id: {
     type: String,
-    required: true
-    // Reference to service - removed ref for flexibility
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   quotation_id: {
     type: String
@@ -113,24 +122,26 @@ const eventsSchema = new mongoose.Schema({
   },
   location_type: {
     type: String,
-    required: true,
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
     enum: ['INDOOR', 'OUTDOOR'],
     validate: {
       validator: function (v) {
+        if (!v) return true;
         return ['INDOOR', 'OUTDOOR'].includes(v);
       },
-      message: 'Location type must be either INDOOR (vendor visits customer) or OUTDOOR (customer visits vendor)'
+      message: 'Location type must be either INDOOR or OUTDOOR'
     }
   },
   event_location: {
     type: String,
-    required: true // Address of either vendor or customer
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   event_start: {
     type: Date,
-    required: true,
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
     validate: {
       validator: function (v) {
+        if (!v) return true;
         return v instanceof Date && !isNaN(v);
       },
       message: 'Event start date must be a valid date'
@@ -341,7 +352,12 @@ const eventsSchema = new mongoose.Schema({
       }
     }
   ],
-  final_order_items: [cartItemSchema] // Array of cart items
+  final_order_items: [cartItemSchema], // Array of cart items
+  // Multi-vendor segments (cart of self-contained mini-orders)
+  vendor_segments: {
+    type: mongoose.Schema.Types.Mixed,
+    default: []
+  }
 }, {
   collection: 'events'
 });
