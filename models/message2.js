@@ -43,7 +43,9 @@ const messageSchema = new Schema(
         "options",
         "order_summary",
         "login_prompt",
-        "review_prompt"
+        "review_prompt",
+        "date_picker",
+        "multi_select"
       ],
       required: true,
       default: "text",

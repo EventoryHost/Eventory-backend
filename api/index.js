@@ -33,12 +33,24 @@ const router = Router();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: function (origin, callback) {
+      // Allow all origins for development
+      callback(null, true);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
   },
+  transports: ['polling', 'websocket'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 45000,
+  allowEIO3: true
 });
 
-io.on("connection", (socket) => handleSocketConnection(socket, io));
+io.on("connection", (socket) => {
+  console.log(`🧠 Socket connected: ${socket.id} (Transport: ${socket.conn.transport.name})`);
+  handleSocketConnection(socket, io);
+});
 
 app.use(morgan("dev"));
 

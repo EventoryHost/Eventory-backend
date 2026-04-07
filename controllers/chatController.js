@@ -1,5 +1,5 @@
-import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
-import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
+import { checkPhoneNumber } from "../middlewares/checkPhoneNumber.js";
+import { checkProfanity } from "../middlewares/checkProfanity.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
 import APIFeatures from "../utils/apiFeatures.js";
@@ -171,7 +171,9 @@ export const handleSocketConnection = (socket, io) => {
         const systemMessageTypes = ["vendor_card", "approval_request", "order", "system", "options", "order_summary", "login_prompt", "review_prompt"];
 
         if (!systemMessageTypes.includes(message_type)) {
-          if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
+          const isInteractiveChat = ["anon_customer-admin", "customer-admin"].includes(chat_type);
+          
+          if (!isInteractiveChat && (checkPhoneNumber(message_content) || checkEmails(message_content))) {
             console.log("Personal information detected:", message_content);
             if (typeof callback === "function") {
               callback("Please refrain from sharing personal information!");

@@ -26,9 +26,39 @@ const customerEnquirySchema = new mongoose.Schema({
   event_time: {
     type: String
   },
+  city: {
+    type: String
+  },
+  venue_setting: {
+    type: String // At home, Outdoor
+  },
+  venue_help_needed: {
+    type: Boolean
+  },
+  services_needed: {
+    type: [String]
+  },
+  guest_count: {
+    type: String
+  },
+  budget_option: {
+    type: String // Yes, No
+  },
+  budget_range: {
+    type: String
+  },
+  customer_name: {
+    type: String
+  },
+  phone_number: {
+    type: String
+  },
+  best_time_to_call: {
+    type: String
+  },
   status: {
     type: String,
-    enum: ["OPEN", "PROCESSING", "CLOSED", "CONVERTED"],
+    enum: ["OPEN", "COLLECTING_DATE", "COLLECTING_LOCATION", "COLLECTING_VENUE", "COLLECTING_SERVICES", "COLLECTING_BUDGET", "COLLECTING_CONTACT", "PROCESSING", "CLOSED", "CONVERTED"],
     default: "OPEN"
   }
 }, {
