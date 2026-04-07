@@ -234,7 +234,7 @@ export const initializeAnonymousChat = async (req, res) => {
         } catch (err) {
           console.error("Error sending first greeting message:", err);
         }
-      }, 1500);
+      }, 500);
 
       // 2. Delayed second message (3.5 seconds total - 1.5s + 2s)
       setTimeout(async () => {
@@ -264,7 +264,7 @@ export const initializeAnonymousChat = async (req, res) => {
         } catch (err) {
           console.error("Error sending delayed options message:", err);
         }
-      }, 3500);
+      }, 2500);
     } else if (messageCount > 0 || chat.is_auto_initialised) {
       // Ensure flag is set if we have messages (sanity check)
       if (!chat.is_auto_initialised) {
