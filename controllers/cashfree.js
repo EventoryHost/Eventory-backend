@@ -890,8 +890,8 @@ const verifyCustomerPayment = async (req, res) => {
         breakdownDiscount: N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.breakdownDiscount || 0),
       },
       vendorReceivable: {
-        total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining") 
-          ? (Number(receivableFromOrder) || order_amount) 
+        total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining")
+          ? (Number(receivableFromOrder) || order_amount)
           : (finalOrder?.paymentDetails?.vendorReceivable?.total ?? order_amount),
         baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? order_amount,
         commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
@@ -904,11 +904,10 @@ const verifyCustomerPayment = async (req, res) => {
     console.log(`[VerifyPayment] Updating order ${internalOrderId} with transactionId: ${order_id}`);
     const updatedOrder = await Order.findOneAndUpdate(
       { order_id: internalOrderId },
-      { 
-        $set: { 
-          paymentDetails: paymentDetailsUpdate,
-          "paymentDetails.transactionId": order_id // Explicitly set it too
-        } 
+      {
+        $set: {
+          paymentDetails: paymentDetailsUpdate
+        }
       },
       { new: true }
     );
@@ -923,14 +922,14 @@ const verifyCustomerPayment = async (req, res) => {
           "paymentBreakdowns.status": "Unpaid",
         },
         {
-          $set: { 
+          $set: {
             "paymentBreakdowns.$.status": "Paid",
             "paymentBreakdowns.$.paid_at": new Date()
           },
         }
       );
       console.log(`[VerifyPayment] Marked breakdown "${payment_type}" as Paid for order ${internalOrderId}`);
-      
+
       // Also silently mark 0-amount Token as Paid unconditionally
       await Order.updateMany(
         { order_id: internalOrderId },
@@ -941,11 +940,11 @@ const verifyCustomerPayment = async (req, res) => {
       // Full/Remaining payment: mark ALL breakdowns as Paid
       await Order.updateOne(
         { order_id: internalOrderId },
-        { 
-          $set: { 
+        {
+          $set: {
             "paymentBreakdowns.$[].status": "Paid",
             "paymentBreakdowns.$[].paid_at": new Date()
-          } 
+          }
         }
       );
       console.log(`[VerifyPayment] Marked all breakdowns as Paid (${payment_type} payment) for order ${internalOrderId}`);
@@ -1102,8 +1101,8 @@ const verifyCustomerPayment = async (req, res) => {
             },
             vendorReceivable: {
               ...(existingEvent.payment_details?.vendorReceivable || {}),
-              total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining") 
-                ? (Number(receivableFromOrder) || existingEvent.payment_details?.vendorReceivable?.total) 
+              total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining")
+                ? (Number(receivableFromOrder) || existingEvent.payment_details?.vendorReceivable?.total)
                 : (existingEvent.payment_details?.vendorReceivable?.total),
             }
           }
@@ -1122,7 +1121,7 @@ const verifyCustomerPayment = async (req, res) => {
 
       // Mark the specific breakdown as Paid in the array
       const updateOptions = { new: true };
-      
+
       if (payment_type === "remaining" || payment_type === "full") {
         updateData.$set["payment_breakdowns.$[].status"] = "Paid";
         updateData.$set["payment_breakdowns.$[].paid_at"] = new Date();
@@ -1133,15 +1132,15 @@ const verifyCustomerPayment = async (req, res) => {
       }
 
       await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
-      
+
       // Also silently mark 0-amount Token as Paid unconditionally for Event
       await Events.updateMany(
         { event_id },
-        { 
-          $set: { 
+        {
+          $set: {
             "payment_breakdowns.$[elem].status": "Paid",
             "payment_breakdowns.$[elem].paid_at": new Date()
-          } 
+          }
         },
         { arrayFilters: [{ "elem.name": { $regex: /token/i }, "elem.amount": { $in: [0, "0", null] } }] }
       );
