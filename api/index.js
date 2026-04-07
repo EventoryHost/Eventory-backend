@@ -33,8 +33,11 @@ const router = Router();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: function (origin, callback) {
+      // Allow all origins for development
+      callback(null, true);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
   },
   transports: ['polling', 'websocket'],

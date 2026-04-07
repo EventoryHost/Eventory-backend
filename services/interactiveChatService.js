@@ -31,32 +31,57 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             messageStr = typeof messageContent === "object" ? JSON.stringify(messageContent) : String(messageContent);
         }
         
-        const normalizedContent = messageStr.trim();
-        const lowerContent = normalizedContent.toLowerCase();
-
         // 1. HELPERS
-        const sendMessage = async (content, type = "text", options = null, action = null, delay = 1000) => {
+        const sendMessage = async (content, type = "text", options = null, action = null, delay = 400) => {
             return new Promise((resolve) => {
                 setTimeout(async () => {
-                    const msg = await Message.create({
-                        chat_id: chatId,
-                        chat_type: chat.chat_type,
-                        sender: "admin",
-                        sender_id: "admin",
-                        message_content: content,
-                        message_type: type,
-                        options: options,
-                        action: action
-                    });
-                    if (io) io.to(`${chatId}-${chat.chat_type}`).emit("new_message", msg.toObject());
-                    await triggerCustomerNotification(userId, chatId, content, io);
-                    resolve(msg);
+                    try {
+                        const chat = await Chat.findOne({ chat_id: chatId });
+                        if (!chat) {
+                            console.error(`[CHAT_SERVICE] Chat not found for ID: ${chatId}`);
+                            resolve(null);
+                            return;
+                        }
+
+                        const msg = await Message.create({
+                            chat_id: chatId,
+                            chat_type: chat.chat_type,
+                            sender: "admin",
+                            sender_id: "admin",
+                            message_content: content,
+                            message_type: type,
+                            options: options,
+                            action: action
+                        });
+
+                        console.log(`[CHAT_SERVICE] Message created: ${msg._id} (${type}) for room ${chatId}`);
+
+                        if (io) {
+                            // DUAL-EMIT to ensure delivery to both potential rooms
+                            const roomAnon = `${chatId}-anon_customer-admin`;
+                            const roomCust = `${chatId}-customer-admin`;
+                            
+                            const payload = msg.toObject();
+                            io.to(roomAnon).emit("new_message", payload);
+                            io.to(roomCust).emit("new_message", payload);
+                            console.log(`[CHAT_SERVICE] Socket emitted to rooms: ${roomAnon}, ${roomCust}`);
+                        }
+                        resolve(msg);
+                    } catch (err) {
+                        console.error("[CHAT_SERVICE] Error in sendMessage timeout:", err);
+                        resolve(null);
+                    }
                 }, delay);
             });
         };
 
+        const normalizedContent = (messageContent || "").toString().trim();
+        const lowerContent = normalizedContent.toLowerCase();
+        
+        console.log(`[CHAT_SERVICE] Handling message: "${normalizedContent}" (Lower: "${lowerContent}") for Chat: ${chatId}`);
+
         // 2. VENDOR CARD ACTIONS (STAY AS IS)
-        if (messageContent.startsWith("LIKE_VENDOR:") || messageContent.startsWith("DISLIKE_VENDOR:")) {
+        if (normalizedContent.startsWith("LIKE_VENDOR:") || normalizedContent.startsWith("DISLIKE_VENDOR:")) {
             const [action, vendorId] = messageContent.split(":");
             if (action === "LIKE_VENDOR") {
                 await sendMessage("Great choice! Here is the summary of your order.", "order_summary", null, "confirm_order");
@@ -84,35 +109,26 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         const isEventTypeSelection = eventTypes.includes(lowerContent);
 
         // STEP 2: HANDLE EVENT TYPE SELECTION
-        if (!enquiry || isEventTypeSelection) {
-            if (lowerContent === "something else") {
-                if (!enquiry) {
-                    enquiry = await CustomerEnquiry.create({
-                        enquiry_id: generateUniqueId("ENQ"),
-                        [isCustomer ? "customer_id" : "anon_customer_id"]: userId,
-                        event_type: "WAITING_FOR_CUSTOM_TYPE",
-                        status: "OPEN"
-                    });
-                }
-                await sendMessage("Love it! What exactly are we celebrating?");
-                return;
-            }
+        console.log(`[CHAT_SERVICE] Found Enquiry: ${enquiry ? enquiry.enquiry_id : "NONE"} (Status: ${enquiry?.status || "N/A"})`);
 
-            if (enquiry && enquiry.event_type === "WAITING_FOR_CUSTOM_TYPE") {
+        if (!enquiry || isEventTypeSelection) {
+            console.log(`[CHAT_SERVICE] Step 1: Handling Event Type selection (isSelection: ${isEventTypeSelection})`);
+            if (enquiry && isEventTypeSelection) {
+                // If it's a new selection for an existing enquiry, just update the type
+                console.log(`[CHAT_SERVICE] Updating existing enquiry ${enquiry.enquiry_id} to ${normalizedContent}`);
                 enquiry.event_type = normalizedContent;
-                enquiry.status = "COLLECTING_DATE";
-            } else if (enquiry) {
-                enquiry.event_type = normalizedContent;
-                enquiry.status = "COLLECTING_DATE";
+                enquiry.status = "COLLECTING_DATE"; // Reset to date step
             } else {
+                console.log(`[CHAT_SERVICE] Creating NEW enquiry for ${normalizedContent}`);
                 enquiry = await CustomerEnquiry.create({
                     enquiry_id: generateUniqueId("ENQ"),
-                    [isCustomer ? "customer_id" : "anon_customer_id"]: userId,
+                    [userId.startsWith("CUST") || !userId.startsWith("ANON") ? "customer_id" : "anon_customer_id"]: userId,
                     event_type: normalizedContent,
                     status: "COLLECTING_DATE"
                 });
             }
             await enquiry.save();
+            console.log(`[CHAT_SERVICE] Enquiry saved. Sending date_picker...`);
             chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
             await chat.save();
 
