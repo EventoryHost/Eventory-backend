@@ -32,7 +32,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         }
         
         // 1. HELPERS
-        const sendMessage = async (content, type = "text", options = null, action = null, delay = 400) => {
+        const sendMessage = async (content, type = "text", options = null, action = null, delay = 50) => {
             return new Promise((resolve) => {
                 setTimeout(async () => {
                     try {
@@ -305,7 +305,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 await chat.save();
                 
                 // STEP 8
-                await sendMessage("This already sounds exciting! Here’s how we’ll help you:\nA dedicated Event Manager (FREE) will:\n • Share curated options\n • Suggest themes & ideas\n • Help you plan within your budget\n • Handle the entire coordination\nSo you can enjoy the event stress-free! \nTo make sure they can reach you quickly, could you share a couple of details?");
+                await sendMessage("This already sounds exciting! Here's how we'll help you:");
+                await sendMessage("A dedicated Event Manager (FREE) will:\n • Share curated options\n • Suggest themes & ideas\n • Help you plan within your budget\n • Handle the entire coordination\nSo you can enjoy the event stress-free!");
+                await sendMessage("To make sure they can reach you quickly, could you share a couple of details?");
                 
                 // STEP 9
                 await sendMessage("Your name? (First name works just fine!)");

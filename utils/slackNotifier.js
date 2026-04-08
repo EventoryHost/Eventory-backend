@@ -17,8 +17,8 @@ export async function sendSlackMessage({
   date,
 }) {
   try {
-    if (process.env.IS_LOCAL === "true") {
-      console.log("Skipping Slack notification (IS_LOCAL=true)");
+    if (process.env.IS_LOCAL === "true" || process.env.IS_DEV === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true or IS_DEV=true)");
       return;
     }
     await slackClient.chat.postMessage({
@@ -86,8 +86,8 @@ export async function sendSlackBookingMessage({
   startDate,
 }) {
   try {
-    if (process.env.IS_LOCAL === "true") {
-      console.log("Skipping Slack notification (IS_LOCAL=true)");
+    if (process.env.IS_LOCAL === "true" || process.env.IS_DEV === "true") {
+      console.log("Skipping Slack notification (IS_LOCAL=true or IS_DEV=true)");
       return;
     }
     await slackClient.chat.postMessage({
@@ -157,8 +157,8 @@ export async function sendSlackAnonChatMessage({
     const isLocal = process.env.IS_LOCAL === "true";
     const isDev = process.env.IS_DEV === "true";
 
-    if (isLocal && !isDev) {
-      console.log("Skipping Slack notification (IS_LOCAL=true and IS_DEV!=true)");
+    if (isLocal || isDev) {
+      console.log("Skipping Slack notification (IS_LOCAL=true or IS_DEV=true)");
       return;
     }
     await slackClient.chat.postMessage({
