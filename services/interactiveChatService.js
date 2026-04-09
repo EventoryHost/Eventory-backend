@@ -219,8 +219,8 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
         // STEP 6 -> 7: Services Needed
         if (enquiry.status === "COLLECTING_SERVICES") {
-            // Check if user is answering the custom "Others" or "Guest Count"
-            if (enquiry.services_needed.length > 0 && (lowerContent.includes("under") || lowerContent.includes("-") || lowerContent.includes("+"))) {
+            // Check if user is answering the guest count question
+            if (enquiry.services_needed.length > 0 && enquiry.pending_others_input !== true && (lowerContent.includes("under") || lowerContent.includes("–") || lowerContent.includes("-") || lowerContent.includes("+") || lowerContent === "not sure yet")) {
                 enquiry.guest_count = normalizedContent;
                 enquiry.status = "COLLECTING_BUDGET";
                 await enquiry.save();
@@ -230,6 +230,25 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
                     { label: "Yes, I have a rough number", value: "BUDGET_YES" },
                     { label: "Not decided yet", value: "BUDGET_NO" }
+                ]);
+                return;
+            }
+
+            // Check if user is answering the "What other services?" follow-up
+            if (enquiry.services_needed.includes("Others") && enquiry.pending_others_input === true) {
+                enquiry.other_service_details = normalizedContent;
+                enquiry.pending_others_input = false;
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                // Always ask guest count after custom service input
+                await sendMessage("Around how many guests are you expecting?", "options", [
+                    { label: "Under 25", value: "Under 25" },
+                    { label: "25–50", value: "25–50" },
+                    { label: "50–100", value: "50–100" },
+                    { label: "100–200", value: "100–200" },
+                    { label: "200+", value: "200+" },
+                    { label: "Not sure yet", value: "Not sure yet" }
                 ]);
                 return;
             }
@@ -244,6 +263,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
             if (selectedServices.includes("Others") && !enquiry.services_needed.includes("Others")) {
                 enquiry.services_needed = selectedServices;
+                enquiry.pending_others_input = true;
                 await enquiry.save();
                 chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
                 await chat.save();
@@ -251,31 +271,20 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 return;
             }
 
+            // All other service selections — always ask guest count
             enquiry.services_needed = selectedServices;
             await enquiry.save();
             chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
             await chat.save();
 
-            const needsGuestCount = selectedServices.some(s => s === "Catering" || s === "Venue");
-            if (needsGuestCount) {
-                await sendMessage("Around how many guests are you expecting?", "options", [
-                    { label: "Under 25", value: "Under 25" },
-                    { label: "25–50", value: "25–50" },
-                    { label: "50–100", value: "50–100" },
-                    { label: "100–200", value: "100–200" },
-                    { label: "200+", value: "200+" },
-                    { label: "Not sure yet", value: "Not sure yet" }
-                ]);
-            } else {
-                enquiry.status = "COLLECTING_BUDGET";
-                await enquiry.save();
-                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
-                await chat.save();
-                await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
-                    { label: "Yes, I have a rough number", value: "BUDGET_YES" },
-                    { label: "Not decided yet", value: "BUDGET_NO" }
-                ]);
-            }
+            await sendMessage("Around how many guests are you expecting?", "options", [
+                { label: "Under 25", value: "Under 25" },
+                { label: "25–50", value: "25–50" },
+                { label: "50–100", value: "50–100" },
+                { label: "100–200", value: "100–200" },
+                { label: "200+", value: "200+" },
+                { label: "Not sure yet", value: "Not sure yet" }
+            ]);
             return;
         }
 
@@ -355,6 +364,13 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                     { label: "Read Reviews", value: "CHECK_REVIEWS_ACTION" },
                     { label: "Back to Home", value: "BACK_TO_HOME_ACTION" }
                 ]);
+
+                // STEP 11: Inspo and references — unlock free-form chat
+                await sendMessage("Thanks for sharing! Feel free to share more about your event plans and ideas.\nOur team will review and suggest personalised options.", "flow_complete", null, "enable_free_chat", 1500);
+                enquiry.status = "FLOW_COMPLETE";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
                 console.log(`[FLOW] Lead capture complete for chat_id=${chatId}`);
                 return;
             }

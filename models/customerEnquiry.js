@@ -38,6 +38,13 @@ const customerEnquirySchema = new mongoose.Schema({
   services_needed: {
     type: [String]
   },
+  pending_others_input: {
+    type: Boolean,
+    default: false
+  },
+  other_service_details: {
+    type: String
+  },
   guest_count: {
     type: String
   },
@@ -58,7 +65,7 @@ const customerEnquirySchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["OPEN", "COLLECTING_DATE", "COLLECTING_LOCATION", "COLLECTING_VENUE", "COLLECTING_SERVICES", "COLLECTING_BUDGET", "COLLECTING_CONTACT", "PROCESSING", "CLOSED", "CONVERTED"],
+    enum: ["OPEN", "COLLECTING_DATE", "COLLECTING_LOCATION", "COLLECTING_VENUE", "COLLECTING_SERVICES", "COLLECTING_BUDGET", "COLLECTING_CONTACT", "PROCESSING", "FLOW_COMPLETE", "CLOSED", "CONVERTED"],
     default: "OPEN"
   }
 }, {
