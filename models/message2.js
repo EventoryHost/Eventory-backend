@@ -45,7 +45,8 @@ const messageSchema = new Schema(
         "login_prompt",
         "review_prompt",
         "date_picker",
-        "multi_select"
+        "multi_select",
+        "flow_complete"
       ],
       required: true,
       default: "text",
