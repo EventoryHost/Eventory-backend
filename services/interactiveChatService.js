@@ -241,15 +241,26 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 await enquiry.save();
                 chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
                 await chat.save();
-                // Always ask guest count after custom service input
-                await sendMessage("Around how many guests are you expecting?", "options", [
-                    { label: "Under 25", value: "Under 25" },
-                    { label: "25–50", value: "25–50" },
-                    { label: "50–100", value: "50–100" },
-                    { label: "100–200", value: "100–200" },
-                    { label: "200+", value: "200+" },
-                    { label: "Not sure yet", value: "Not sure yet" }
-                ]);
+                // Only ask guest count if Catering or Venue is selected
+                if (enquiry.services_needed.some(s => s === "Catering" || s === "Venue")) {
+                    await sendMessage("Around how many guests are you expecting?", "options", [
+                        { label: "Under 25", value: "Under 25" },
+                        { label: "25–50", value: "25–50" },
+                        { label: "50–100", value: "50–100" },
+                        { label: "100–200", value: "100–200" },
+                        { label: "200+", value: "200+" },
+                        { label: "Not sure yet", value: "Not sure yet" }
+                    ]);
+                } else {
+                    enquiry.status = "COLLECTING_BUDGET";
+                    await enquiry.save();
+                    chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                    await chat.save();
+                    await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
+                        { label: "Yes, I have a rough number", value: "BUDGET_YES" },
+                        { label: "Not decided yet", value: "BUDGET_NO" }
+                    ]);
+                }
                 return;
             }
 
@@ -271,20 +282,31 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 return;
             }
 
-            // All other service selections — always ask guest count
+            // Normal service selections — only ask guest count if Catering or Venue is selected
             enquiry.services_needed = selectedServices;
             await enquiry.save();
             chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
             await chat.save();
 
-            await sendMessage("Around how many guests are you expecting?", "options", [
-                { label: "Under 25", value: "Under 25" },
-                { label: "25–50", value: "25–50" },
-                { label: "50–100", value: "50–100" },
-                { label: "100–200", value: "100–200" },
-                { label: "200+", value: "200+" },
-                { label: "Not sure yet", value: "Not sure yet" }
-            ]);
+            if (selectedServices.some(s => s === "Catering" || s === "Venue")) {
+                await sendMessage("Around how many guests are you expecting?", "options", [
+                    { label: "Under 25", value: "Under 25" },
+                    { label: "25–50", value: "25–50" },
+                    { label: "50–100", value: "50–100" },
+                    { label: "100–200", value: "100–200" },
+                    { label: "200+", value: "200+" },
+                    { label: "Not sure yet", value: "Not sure yet" }
+                ]);
+            } else {
+                enquiry.status = "COLLECTING_BUDGET";
+                await enquiry.save();
+                chat.metadata = { ...chat.metadata, ...enquiry.toObject() };
+                await chat.save();
+                await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
+                    { label: "Yes, I have a rough number", value: "BUDGET_YES" },
+                    { label: "Not decided yet", value: "BUDGET_NO" }
+                ]);
+            }
             return;
         }
 
@@ -314,12 +336,12 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 await chat.save();
                 
                 // STEP 8
-                await sendMessage("This already sounds exciting! Here's how we'll help you:");
-                await sendMessage("A dedicated Event Manager (FREE) will:\n • Share curated options\n • Suggest themes & ideas\n • Help you plan within your budget\n • Handle the entire coordination\nSo you can enjoy the event stress-free!");
-                await sendMessage("To make sure they can reach you quickly, could you share a couple of details?");
+                await sendMessage("This already sounds exciting! Here's how we'll help you:", "text", null, null, 800);
+                await sendMessage("A dedicated Event Manager (FREE) will:\n • Share curated options\n • Suggest themes & ideas\n • Help you plan within your budget\n • Handle the entire coordination\nSo you can enjoy the event stress-free!", "text", null, null, 1500);
+                await sendMessage("To make sure they can reach you quickly, could you share a couple of details?", "text", null, null, 1200);
                 
                 // STEP 9
-                await sendMessage("Your name? (First name works just fine!)");
+                await sendMessage("Your name? (First name works just fine!)", "text", null, null, 1000);
                 return;
             }
         }
