@@ -79,6 +79,7 @@ export const initializeAnonymousUser = async (req, res) => {
     // 2. If no user found (or no anon_id), create new one
     if (isNewUser) {
         user = new AnonymousUser({
+            anon_id: anon_id || undefined, // Use provided ID from client if we have one
             first_seen_at: new Date(),
             last_seen_at: new Date(),
             acquisition: {

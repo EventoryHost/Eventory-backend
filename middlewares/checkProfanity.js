@@ -6,7 +6,7 @@ import { customAbusiveWords } from "../constants/bad_words.js";
 filter.addWords(...customAbusiveWords);
 
 // Rename the function to match its purpose
-export const checkPhoneNumber = (text) => {
+export const checkProfanity = (text) => {
   if (!text || typeof text !== "string") return false;
 
   try {
