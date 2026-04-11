@@ -357,6 +357,10 @@ const eventsSchema = new mongoose.Schema({
   vendor_segments: {
     type: mongoose.Schema.Types.Mixed,
     default: []
+  },
+  order_id: {
+    type: String,
+    // Add reference to original Order ID, if available.
   }
 }, {
   collection: 'events'

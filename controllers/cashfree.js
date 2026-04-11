@@ -545,6 +545,18 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
+    let customerDoc = null;
+    if (finalCustomerId && !finalCustomerId.startsWith("ANON")) {
+       customerDoc = await Customer.findOne({ customer_id: finalCustomerId }).lean();
+    }
+    const customerEmail = customerDoc?.email_address || customerDoc?.email || finalOrder?.customer_email || payment?.customer_details?.customer_email || "";
+    const customerPhone = customerDoc?.mobile_number || customerDoc?.customer_contact_number || finalOrder?.customer_contact_number || payment?.customer_details?.customer_phone || "0000000000";
+    let customerName = customerDoc?.customer_name || customerDoc?.name || finalOrder?.customer_name || payment?.customer_details?.customer_name || "Customer";
+
+    const vendorDoc = await Vendor.findOne({ vendor_id: vendor_id }).lean();
+    const ServiceModel = await getServiceModelById(service_id);
+    const serviceDoc = ServiceModel ? await ServiceModel.findOne({ service_id: service_id }).lean() : null;
+
     // NEW: Resolve Event ID early so we can attach it to transactions immediately!
     let event_id;
     let existingEventForEarlyId = await Events.findOne({ quotation_id: quotation_id }).select("event_id").lean();
@@ -835,7 +847,7 @@ const verifyCustomerPayment = async (req, res) => {
 
     // Prepare combined values for messages and order update
     const vendorName = vendorSegments[0]?.vendor_name || "Vendor(s)";
-    const customerName = finalOrder?.customer_name || "Customer";
+    customerName = finalOrder?.customer_name || customerName || "Customer";
     const receivableFromOrder = Number(finalOrder?.paymentDetails?.vendorReceivable?.total || 0);
 
     const paymentDetailsUpdate = {
@@ -853,8 +865,7 @@ const verifyCustomerPayment = async (req, res) => {
       { order_id: internalOrderId },
       { 
         $set: { 
-          paymentDetails: paymentDetailsUpdate,
-          "paymentDetails.transactionId": order_id // Explicitly set it too
+          paymentDetails: paymentDetailsUpdate
         } 
       },
       { new: true }
@@ -1097,10 +1108,21 @@ const verifyCustomerPayment = async (req, res) => {
       if (payment_type === "remaining" || payment_type === "full") {
         updateData.$set["payment_breakdowns.$[].status"] = "Paid";
         updateData.$set["payment_breakdowns.$[].paid_at"] = new Date();
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[b].status"] = "Paid";
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[b].paid_at"] = new Date();
+        updateOptions.arrayFilters = [
+           { "seg": { $exists: true } }, 
+           { "b": { $exists: true } }
+        ];
       } else if (payment_type) {
         updateData.$set["payment_breakdowns.$[elem].status"] = "Paid";
         updateData.$set["payment_breakdowns.$[elem].paid_at"] = new Date();
-        updateOptions.arrayFilters = [{ "elem.name": payment_type }];
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].status"] = "Paid";
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].paid_at"] = new Date();
+        updateOptions.arrayFilters = [
+           { "elem.name": payment_type },
+           { "seg": { $exists: true } }
+        ];
       }
 
       await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
@@ -1125,6 +1147,7 @@ const verifyCustomerPayment = async (req, res) => {
       console.log(`[VerifyPayment] No existing event found. Creating NEW event ${event_id} for Customer ID: ${finalCustomerId} | Order ID: ${internalOrderId}`);
       const preBooking = new Events({
         event_id: event_id,
+        order_id: internalOrderId,
         customer_id: finalCustomerId,
         vendor_id: vendor_id,
         service_id: service_id,
@@ -1183,6 +1206,17 @@ const verifyCustomerPayment = async (req, res) => {
             return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
           }
           return b;
+        }),
+        vendor_segments: (finalOrder?.vendor_segments || []).map(seg => {
+            const updatedBreakdowns = (seg.paymentBreakdowns || []).map(b => {
+                const isMatching = payment_type === "full" || payment_type === "remaining" || (b.name && b.name === payment_type);
+                const isZeroToken = (b.name && b.name.toLowerCase().includes("token") && Number(b.amount) === 0);
+                if (isMatching || isZeroToken) {
+                    return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
+                }
+                return b;
+            });
+            return { ...seg, paymentBreakdowns: updatedBreakdowns };
         }),
         order_id: internalOrderId,
       });
@@ -1362,7 +1396,7 @@ const verifyCustomerPayment = async (req, res) => {
       vendorLink,
       event_id: event_id,
       transaction_id: order_id,
-      serviceData: serviceSnapshot,      // NEW: full service data into paymentDetails
+      serviceData: serviceData,      // NEW: full service data into paymentDetails
     };
 
     const sqsMessage = {
