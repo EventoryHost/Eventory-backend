@@ -1,41 +1,48 @@
 import "dotenv/config.js";
 import multer from "multer";
-import multerS3 from "multer-s3";
-import { s3 } from "../config/awsConfig.js";
+import path from "path";
+import fs from "fs";
+
+// Ensure uploads directory exists
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const getFolderName = (mimeType) => {
   switch (mimeType) {
     case "application/pdf":
       return "documents/";
     case "image/jpeg":
+    case "image/jpg":
     case "image/png":
     case "image/gif":
+    case "image/webp":
       return "images/";
     case "video/mp4":
     case "video/mpeg":
+    case "video/quicktime":
+    case "video/webm":
       return "videos/";
     default:
       return "others/";
   }
 };
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
 const upload = (vendorType) =>
   multer({
-    storage: multerS3({
-      s3: s3,
-      bucket: process.env.AWS_S3_BUCKET_NAME,
-      acl: "public-read",
-
-      key: (req, file, cb) => {
-        const userId = req.params.id;
-        const folder = req.body.name
-          ? `${vendorType}/${req.body.name}/${getFolderName(file.mimetype)}`
-          : `${vendorType}/${userId}/${getFolderName(file.mimetype)}`;
-
-        const filename = `${folder}${file.fieldname}-${file.originalname}`;
-        cb(null, filename);
-      },
-    }),
+    storage: storage,
   });
 
+export { getFolderName }; // Export for use in controller
 export default upload;
