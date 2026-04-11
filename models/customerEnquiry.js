@@ -65,7 +65,26 @@ const customerEnquirySchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["OPEN", "COLLECTING_DATE", "COLLECTING_LOCATION", "COLLECTING_VENUE", "COLLECTING_SERVICES", "COLLECTING_BUDGET", "COLLECTING_CONTACT", "PROCESSING", "FLOW_COMPLETE", "CLOSED", "CONVERTED"],
+    enum: [
+      "OPEN", 
+      "COLLECTING_DATE", 
+      "COLLECTING_LOCATION", 
+      "COLLECTING_VENUE_SETTING", 
+      "COLLECTING_VENUE_DECISION", 
+      "COLLECTING_SERVICES", 
+      "COLLECTING_OTHER_SERVICES_DETAILS",
+      "COLLECTING_GUEST_COUNT", 
+      "COLLECTING_BUDGET_OPTION", 
+      "COLLECTING_BUDGET_RANGE", 
+      "STEP_8_HANDOFF", 
+      "COLLECTING_NAME", 
+      "COLLECTING_PHONE", 
+      "COLLECTING_CALL_TIME", 
+      "PROCESSING", 
+      "FLOW_COMPLETE", 
+      "CLOSED", 
+      "CONVERTED"
+    ],
     default: "OPEN"
   }
 }, {

@@ -11,6 +11,7 @@ import fs from "fs";
 import { s3 } from "../config/awsConfig.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getFolderName } from "../middlewares/uploads.js";
+import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 
 export const handleSocketConnection = (socket, io) => {
   console.log(`🧠 Socket connected: ${socket.id}`);
@@ -348,16 +349,9 @@ export const handleSocketConnection = (socket, io) => {
           callback(null, savedMessage);
         }
 
-        // ------------------- INTERACTIVE FLOW (AUTO-REPLY) -------------------
-        console.log(`[DEBUG] Interactive check: chat_type=${chat_type}, sender=${sender}, content="${message_content}"`);
         if (((chat_type === "anon_customer-admin" && sender === "anonymous_customer") || 
             (chat_type === "customer-admin" && sender === "customer")) && !attachment_url) {
-            // We need the ID. 
-            // In socket send_message, we have sender_id which is the anon_customer_id or customer_id.
-            console.log(`[FLOW 4 PRE] Triggering handleInteractiveMessage for chat_id=${chat_id}`);
             await handleInteractiveMessage(chat_id, sender_id, message_content?.trim(), io);
-        } else if (attachment_url) {
-            console.log(`[FLOW] Skipping handleInteractiveMessage because message has an attachment.`);
         }
       } catch (err) {
         console.error("send_message error:", err);
@@ -832,26 +826,37 @@ export const uploadChatMedia = async (req, res) => {
 
     // Clean up local file after successful upload
     if (tempPath && fs.existsSync(tempPath)) {
-      fs.unlinkSync(tempPath);
-      console.log(`Cleaned up temporary file: ${tempPath}`);
+      try {
+        // Use async unlink for better performance and wrap in try-catch for EBUSY
+        fs.unlink(tempPath, (err) => {
+          if (err) {
+            console.warn(`[CHAT_MEDIA] EBUSY or failed to delete temp file: ${tempPath}. This is non-fatal.`, err.message);
+          } else {
+            console.log(`[CHAT_MEDIA] Cleaned up temporary file: ${tempPath}`);
+          }
+        });
+      } catch (cleanErr) {
+        console.warn(`[CHAT_MEDIA] Non-fatal error during cleanup trigger:`, cleanErr.message);
+      }
     }
 
+    // ALWAYS return success if S3 upload worked
     return res.status(200).json({
       message: "File uploaded successfully",
       attachment_url: cloudFrontUrl,
-      url: cloudFrontUrl, // Added for compatibility with different frontend usages
+      url: cloudFrontUrl, 
       message_type: contentType,
       original_name: req.file.originalname,
     });
   } catch (error) {
     console.error("Error uploading chat media:", error);
     
-    // Clean up local file even on failure
+    // Clean up local file even on failure - best effort
     if (tempPath && fs.existsSync(tempPath)) {
       try {
-        fs.unlinkSync(tempPath);
+        fs.unlink(tempPath, () => {});
       } catch (e) {
-        console.error("Failed to delete temp file on error:", e);
+        // Silently fail on second cleanup attempt
       }
     }
 
