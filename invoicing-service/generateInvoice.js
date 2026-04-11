@@ -796,143 +796,168 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     //   );
     // }
 
-    // ---------- VENDOR INVOICE PDF ----------
-    tableRows = "";
-    runningSerial = 1;
+    // ── VENDOR INVOICE PDF GENERATION (MULTI-VENDOR SUPPORT) ──
+    const vendorSegments = (paymentDetails.vendor_segments && paymentDetails.vendor_segments.length > 0)
+      ? paymentDetails.vendor_segments
+      : [{
+          vendor_id: vendor.id,
+          service_id: paymentDetails.service_id || paymentDetails.serviceId || "BOOKING_SERVICE",
+          vendor_name: vendor.businessDetails?.businessName || "Vendor",
+          paymentDetails: paymentDetails,
+          serviceData: paymentDetails.serviceData || {}
+        }];
 
-    const hasVendorGst = !!vendorGst;
+    console.log(`[Invoicing] Generating invoices for ${vendorSegments.length} vendor segment(s)`);
 
-    // Always show full columns with GST breakdown for vendor invoices
-    colspan = "5";
-    tableHeader = `
+    for (const segment of vendorSegments) {
+      const segVendorId = segment.vendor_id;
+      const segServiceId = segment.service_id;
+      const segVendorName = segment.vendor_name || "Vendor";
+      const segServiceData = segment.serviceData || {};
+
+      // Calculate segment-specific totals
+      const segCommission = Number(segment.paymentDetails?.vendorReceivable?.commission || 0);
+      const segTotalReceivable = Number(segment.paymentDetails?.vendorReceivable?.total || 0);
+      
+      // Calculate share of paid amount for this vendor
+      // If it's a full payment, they get their total share.
+      // If partial, we derive it from their share of this specific milestone (available in paymentBreakdowns)
+      let segPaidAmount = 0;
+      if (ptLower === "full" || ptLower === "remaining") {
+        segPaidAmount = segTotalReceivable;
+      } else {
+        const milestone = (segment.paymentBreakdowns || []).find(b => b.name === paymentType);
+        segPaidAmount = milestone ? Number(milestone.amount || 0) : 0;
+      }
+
+      // If zero paid for this vendor in this milestone, skip their specific invoice for now?
+      // Actually, we should probably generate it anyway if it's a booking event.
+      if (segPaidAmount <= 0 && ptLower !== "full") {
+          console.log(`[Invoicing] Skipping vendor invoice for ${segVendorId} as paid amount is 0`);
+          continue;
+      }
+
+      tableRows = "";
+      runningSerial = 1;
+
+      // Filter items for this vendor
+      const segItems = items.filter(item => item.vendor_id === segVendorId || item.service_id === segServiceId);
+      // Fallback if no items matched (single vendor compatibility)
+      const itemsToDisplay = segItems.length > 0 ? segItems : items;
+
+      itemsToDisplay.forEach((item) => {
+        const gross = Number(item.amount) || 0;
+        const net = gross / 1.18;
+        const tax = gross - net;
+        tableRows += `
+          <tr>
+            <td style="text-align:center;">${runningSerial}</td>
+            <td>${item.name || "Item"}</td>
+            <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
+            <td style="text-align:center;">18%</td>
+            <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
+            <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
+          </tr>
+        `;
+        runningSerial++;
+      });
+
+      const segVendorDetails = `
+        <p><strong>${capitalizeWords(segServiceData?.business_details?.business_registration_name || segVendorName)}</strong></p>
+        <p>${segServiceData?.business_details?.business_address || ""}</p>
+        <p>${segServiceData?.business_details?.pincode || ""}</p>
+        <p>${segServiceData?.business_details?.pan ? `PAN: ${segServiceData.business_details.pan}` : ""}</p>
+        <p>${segServiceData?.business_details?.gst ? `GST: ${segServiceData.business_details.gst}` : ""}</p>
+      `;
+
+      const segVendorTotalRow = `
+        <tr class="total-row">
+          <td colspan="5" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Vendor Commission:</td>
+          <td style="font-weight:bold;border-top: 20px solid #000; text-align:center;">- Rs ${segCommission.toFixed(2)}</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="5" style="text-align:right;font-weight:bold;">Total Receivable:</td>
+          <td style="font-weight:bold; text-align:center;">Rs ${segTotalReceivable.toFixed(2)}</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="5" style="text-align:right;font-weight:bold;">Received:</td>
+          <td style="font-weight:bold; text-align:center;">Rs ${segPaidAmount.toFixed(2)}</td>
+        </tr>
+      `;
+
+      const segAmountWordsRow = `
+        <tr class="amount-words-row">
+          <td colspan="6" style="text-align:left;font-style:italic;padding-top:10px;">
+            <strong>Amount Received:</strong> ${formatAmountInWords(segPaidAmount)}
+          </td>
+        </tr>
+      `;
+
+      const segIdHtml = `
+        <p><strong>Vendor ID:</strong></p>
+        <p>${segVendorId}</p>
+      `;
+
+      html = readFileSync(templatePath, "utf8");
+      html = html
+        .replace("{{invoiceCount}}", invoiceNumber)
+        .replace("{{paymentId}}", paymentId)
+        .replace("{{paymentMethod}}", paymentMethod)
+        .replace("{{invoiceDate}}", invoiceDate)
+        .replace("{{amount}}", `Rs ${segPaidAmount.toFixed(2)}`)
+        .replace("{{userId}}", segIdHtml)
+        .replace("{{vendorBlock}}", `
+          <div class="billed-to">
+            <h3><strong>Issued to:</strong></h3>
+            <div class="customer-info">
+              ${segVendorDetails}
+            </div>
+          </div>
+        `)
+        .replace("{{customerBlock}}", "")
+        .replace("{{tableHeader}}", `
           <th>S.No.</th>
           <th>Item Details</th>
           <th>Net Amount</th>
           <th>GST %</th>
           <th>GST</th>
           <th>Total Amount</th>
-    `;
+        `)
+        .replace("{{tableRows}}", tableRows)
+        .replace("{{totalRow}}", segVendorTotalRow)
+        .replace("{{amountInWordsRow}}", segAmountWordsRow)
+        .replace("{{signatureRow}}", signatureRow);
 
-    items.forEach((item) => {
-      const gross = Number(item.amount) || 0;
-      const net = gross / 1.18;
-      const tax = gross - net;
-      tableRows += `
-        <tr>
-          <td style="text-align:center;">${runningSerial}</td>
-          <td>${item.name || "Item"}</td>
-          <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
-          <td style="text-align:center;">18%</td>
-          <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
-          <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
-        </tr>
-      `;
-      runningSerial++;
-    });
+      browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+      page = await browser.newPage();
+      await page.setContent(html, { waitUntil: "load" });
+      await page.addStyleTag({ content: css });
+      const segPdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
-    id = `
-      <p><strong>Vendor ID:</strong></p>
-      <p>${vendor.id}</p>
-    `;
+      if (page && !page.isClosed()) await page.close();
+      if (browser) await browser.close();
 
-    const vendorTotalReceivableNum = Number(paymentDetails?.vendorReceivable?.total || 0);
-    const alreadyPaidTotalVal = Number(paymentDetails?.alreadyPaidAmount || paidAmountNum || 0);
-    const vendorReceivedNum = Math.min(alreadyPaidTotalVal, vendorTotalReceivableNum);
+      const venInvoiceUrl = await uploadToS3(
+        segPdfBuffer,
+        `bookings/${eventId}/vendors/${segVendorId}/vendor-${paymentLabel}.pdf`
+      );
 
-    const balanceReceivable = Math.max(0, vendorTotalReceivableNum - vendorReceivedNum);
-    const balanceRowVendor = balanceReceivable > 0
-      ? `
-          <tr class="total-row">
-            <td colspan="${colspan}" style="text-align:right;font-weight:bold;">To be received:</td>
-            <td style="font-weight:bold; text-align:center;">Rs ${balanceReceivable.toFixed(2)}</td>
-          </tr>`
-      : "";
+      // Create VENDOR invoice record in database
+      const vBaseUrl = process.env.URL.startsWith('http') ? process.env.URL : `https://${process.env.URL}`;
+      await axios.post(`${vBaseUrl}/api/invoices`, {
+        invoice_url: venInvoiceUrl,
+        type: isFullOrFinal ? "booking" : "advance_booking",
+        invoice_for: 'vendor',
+        payment_label: paymentLabel,
+        vendor_id: segVendorId,
+        service_id: segServiceId,
+        customer_id: customerId,
+        event_id: eventId,
+        transaction_id: paymentDetails.transaction_id || null,
+      });
 
-    const vendorTotalRow = `
-    <tr class="total-row">
-      <td colspan="${colspan}" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Vendor Commission:</td>
-      <td style="font-weight:bold;border-top: 2px solid #000; text-align:center;">- Rs ${commissionFee.toFixed(2)}</td>
-    </tr>
-    <tr class="total-row">
-      <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Total Receivable:</td>
-      <td style="font-weight:bold; text-align:center;">Rs ${vendorTotalReceivableNum.toFixed(2)}</td>
-    </tr>
-    <tr class="total-row">
-      <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Received:</td>
-      <td style="font-weight:bold; text-align:center;">Rs ${vendorReceivedNum.toFixed(2)}</td>
-    </tr>
-    ${balanceRowVendor}
-  `;
-
-    const vendorAmountInWordsRow = `
-    <tr class="amount-words-row">
-      <td colspan="${Number(colspan) + 1}" style="text-align:left;font-style:italic;padding-top:10px;">
-        <strong>Amount Received:</strong> ${formatAmountInWords(vendorReceivedNum)}
-      </td>
-    </tr>
-  `;
-
-    html = readFileSync(templatePath, "utf8");
-    html = html
-      .replace("{{invoiceCount}}", invoiceNumber)
-      .replace("{{paymentId}}", paymentDetails.invoiceNumber || paymentDetails.paymentId || "-")
-      .replace("{{paymentMethod}}", paymentMethod)
-      .replace("{{invoiceDate}}", invoiceDate)
-      .replace("{{amount}}", `Rs ${vendorReceivedNum.toFixed(2)}`)
-      .replace("{{userId}}", id)
-      .replace("{{vendorBlock}}", vendorBlock)
-      .replace("{{customerBlock}}", "")
-      .replace("{{tableHeader}}", tableHeader)
-      .replace("{{tableRows}}", tableRows)
-      .replace("{{totalRow}}", vendorTotalRow)
-      .replace("{{amountInWordsRow}}", vendorAmountInWordsRow)
-      .replace("{{signatureRow}}", signatureRow);
-
-    browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
-    page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    await page.addStyleTag({ content: css });
-    pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
-
-    if (page && !page.isClosed()) await page.close();
-    if (browser) await browser.close();
-
-    const venInvoiceUrl = await uploadToS3(
-      pdfBuffer,
-      `bookings/${paymentDetails.event_id}/vendors/${vendor.id}/vendor-${paymentLabel}.pdf`
-    );
-
-
-    // Reuse same invoiceType logic as above
-    const vendorInvoiceType =
-      paymentType === "advance"
-        ? "advance_booking"
-        : paymentType === "remaining"
-          ? "payment"
-          : "booking";
-
-    // Create VENDOR invoice record in new Invoices collection
-    const vendorBaseUrl = process.env.URL.startsWith('http') ? process.env.URL : `https://${process.env.URL}`;
-    await axios.post(`${vendorBaseUrl}/api/invoices`, {
-      invoice_url: venInvoiceUrl,
-      type: vendorInvoiceType,    // 'advance_booking' | 'booking' | 'payment'
-      invoice_for: 'vendor',
-      payment_label: paymentLabel,
-      vendor_id: vendorId,
-      service_id: serviceId,
-      customer_id: customerId,
-      event_id: eventId,
-      transaction_id: paymentDetails.transaction_id || null,
-    });
-
-    // if (vendor.mobile) {
-    //   await sendVendorEventBookingMessage(
-    //     venInvoiceUrl,
-    //     `vendor-${invoiceNumber}.pdf`,
-    //     vendor.mobile,
-    //     paymentDetails.date,
-    //   );
-    // }
+      console.log(`[Invoicing] Generated vendor invoice for ${segVendorId}: ${venInvoiceUrl}`);
+    }
   } catch (err) {
     console.error("[Invoicing] ERROR generating booking invoice:", err.message);
     if (err.response) console.error("[Invoicing] API Error Details:", JSON.stringify(err.response.data));

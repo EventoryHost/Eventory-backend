@@ -40,7 +40,11 @@ const orderCartSchema = new Schema({
   },
   total_amount: {
     type: Number
-  }
+  },
+  // Multi-vendor attribution (optional — present when segments are used)
+  vendor_id: { type: String },
+  service_id: { type: String },
+  vendor_name: { type: String }
 }, { _id: false });
 
 // Last Approval Schema (embedded in Orders)
@@ -82,7 +86,14 @@ const paymentBreakdownsSchema = new Schema({
     name_of_service: String,
     price: Number,
     description: String
-  }]
+  }],
+  transaction_id: String,
+  payout_status: { type: String, enum: ['Pending', 'Processing', 'Paid', 'Failed'], default: 'Pending' },
+  vendor_base_amount: Number,
+  vendor_commission: Number,
+  payout_transfer_id: String,
+  amount_received_at: Date,
+  amount_shared_at: Date
 }, { _id: false });
 
 // Payment Details Schema (embedded in Orders)
@@ -112,6 +123,67 @@ const paymentDetailsSchema = new Schema({
   }
 }, { _id: false });
 
+// ── Vendor Segment sub-schemas (multi-vendor orders) ──
+
+// Per-segment vendor settlement
+const segmentPaymentDetailsSchema = new Schema({
+  vendorReceivable: {
+    total: { type: Number, default: 0 },
+    baseAmount: { type: Number, default: 0 },
+    commission: { type: Number, default: 0 },
+    commissionBefore: { type: Number, default: 0 },
+    taxOnCommission: { type: Number, default: 0 },
+    taxOnCommissionBefore: { type: Number, default: 0 }
+  }
+}, { _id: false });
+
+// Per-segment payment breakdown (vendor's share of each milestone)
+const segmentBreakdownSchema = new Schema({
+  name: String,
+  amount: Number,
+  date: Date,
+  status: { type: String, enum: ['Unpaid', 'Paid', 'Failed'], default: 'Unpaid' },
+  paid_at: Date,
+  custom_items: [{ name_of_service: String, price: Number, description: String }],
+  transaction_id: String,
+  payout_status: { type: String, enum: ['Pending', 'Processing', 'Paid', 'Failed'], default: 'Pending' },
+  vendor_base_amount: Number,
+  vendor_commission: Number,
+  payout_transfer_id: String,
+  amount_received_at: Date,
+  amount_shared_at: Date
+}, { _id: false });
+
+// Vendor Segment — a fully self-contained mini-order within a cart
+const vendorSegmentSchema = new Schema({
+  vendor_id: String,
+  service_id: String,
+  vendor_name: String,
+  vendor_manager_name: String,
+  vendor_manager_contact_number: String,
+  vendor_manager_contact_email: String,
+
+  // Per-segment event details
+  event_type: String,
+  event_start: Date,
+  event_end: Date,
+  event_location: String,
+  location_type: { type: String, enum: ['indoor', 'outdoor', 'INDOOR', 'OUTDOOR'] },
+  final_guest_count: Number,
+
+  // Per-segment content
+  segment_final_order_items: { type: [orderCartSchema], default: [] },
+  segment_final_amount: { type: Number, default: 0 },
+  specificTerms: { type: [String], default: [] },
+  additional_notes: String,
+
+  // Per-segment payment schedule (vendor's share of each milestone)
+  paymentBreakdowns: { type: [segmentBreakdownSchema], default: [] },
+
+  // Per-segment vendor settlement
+  paymentDetails: { type: segmentPaymentDetailsSchema, default: () => ({}) }
+}, { _id: false });
+
 // Orders Schema according to ERD
 const ordersSchema = new Schema({
   order_id: {
@@ -131,13 +203,11 @@ const ordersSchema = new Schema({
   },
   service_id: {
     type: String,
-    required: true
-    // {}YYYYMMDDhhmmss for which service provider
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   vendor_id: {
     type: String,
-    required: true
-    // VENyyyymmddhhmmss
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   quotation_id: {
     type: String,
@@ -146,8 +216,7 @@ const ordersSchema = new Schema({
   },
   vendor_manager_name: {
     type: String,
-    required: true
-    // Manager responsible for the event/booking from vendor's side
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   customer_name: {
     type: String,
@@ -161,23 +230,20 @@ const ordersSchema = new Schema({
   },
   event_start: {
     type: Date,
-    required: true,
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
     set: function (value) {
       if (value instanceof Date) {
-        // Convert to IST (UTC+5:30) if it's a Date object
         const istOffset = 5.5 * 60 * 60 * 1000;
         return new Date(value.getTime() + istOffset);
       }
       return value;
     }
-    // When the event will start
   },
   event_end: {
     type: Date,
-    required: true,
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
     set: function (value) {
       if (value instanceof Date) {
-        // Convert to IST (UTC+5:30) if it's a Date object
         const istOffset = 5.5 * 60 * 60 * 1000;
         return new Date(value.getTime() + istOffset);
       }
@@ -185,16 +251,15 @@ const ordersSchema = new Schema({
     },
     validate: {
       validator: function (v) {
+        if (!v || !this.event_start) return true;
         return v instanceof Date && !isNaN(v) && v >= this.event_start;
       },
       message: 'Event end date must be on or after event start date'
     }
-    // When the event will get over
   },
   event_type: {
     type: String,
-    required: true
-    // Name of The Event
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   final_guest_count: {
     type: Number
@@ -207,8 +272,7 @@ const ordersSchema = new Schema({
   },
   event_location: {
     type: String,
-    required: true
-    // Address of either vendor or customer
+    // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
   final_amount: {
     type: Number,
@@ -295,6 +359,11 @@ const ordersSchema = new Schema({
     type: [String],
     default: []
   },
+  // Multi-vendor segments (cart of self-contained mini-orders)
+  vendor_segments: {
+    type: [vendorSegmentSchema],
+    default: []
+  },
   order_created_at: {
     type: Date,
     default: () => {
@@ -364,4 +433,4 @@ ordersSchema.index({ "paymentDetails.transactionId": 1 });
 const Orders = mongoose.models.Orders || mongoose.model('Orders', ordersSchema);
 
 export default Orders;
-export { ordersSchema, orderCartSchema, lastApprovalSchema, paymentDetailsSchema };
+export { ordersSchema, orderCartSchema, lastApprovalSchema, paymentDetailsSchema, vendorSegmentSchema };
