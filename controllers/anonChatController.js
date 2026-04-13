@@ -249,10 +249,6 @@ export const initializeAnonymousChat = async (req, res) => {
             options: [
               { label: "Birthday", value: "Birthday" },
               { label: "Anniversary", value: "Anniversary" },
-              { label: "Wedding", value: "Wedding" },
-              { label: "Annaprashan", value: "Annaprashan" },
-              { label: "Baby Shower", value: "Baby Shower" },
-              { label: "Housewarming", value: "Housewarming" },
               { label: "Social Gathering", value: "Social Gathering" },
               { label: "Corporate Event", value: "Corporate Event" },
               { label: "Something else", value: "Something else" },
