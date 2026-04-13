@@ -39,6 +39,12 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             console.error(`[CHAT_INTERACTIVE] Database error finding enquiry:`, dbErr);
         }
 
+
+        const syncEnquiryToChat = async () => {
+            if (chat && enquiry) {
+            }
+        };
+
         const sendMessage = async (content, type = "text", options = null, action = null, delay = 50) => {
             return new Promise((resolve) => {
                 setTimeout(async () => {
@@ -106,10 +112,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             }
 
             await enquiry.save();
-            const metadata = chat.metadata || {};
-            chat.metadata = { ...metadata, ...enquiry.toObject() };
-            chat.markModified("metadata");
-            await chat.save();
+            await syncEnquiryToChat();
 
             await sendMessage("Love it! Now, when are you planning to host it?", "date_picker", [
                 { label: "Still exploring - not sure yet", value: "STILL_EXPLORING" }
@@ -133,11 +136,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.event_date = dateMatch ? new Date(dateMatch[0]) : null;
             enquiry.status = "COLLECTING_LOCATION";
             await enquiry.save();
-
-            const metadata = chat.metadata || {};
-            chat.metadata = { ...metadata, ...enquiry.toObject() };
-            chat.markModified("metadata");
-            await chat.save();
+            await syncEnquiryToChat();
 
             await sendMessage("Got it! Which city or area is the event in?");
             return;
@@ -148,6 +147,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.city = normalizedContent;
             enquiry.status = "COLLECTING_VENUE_SETTING";
             await enquiry.save();
+            await syncEnquiryToChat();
 
             await sendMessage("Is this event happening at home or at an outside venue?", "options", [
                 { label: "At home", value: "At home" },
@@ -163,6 +163,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             if (lowerContent.includes("outside") || lowerContent.includes("outdoor")) {
                 enquiry.status = "COLLECTING_VENUE_DECISION";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Have you already decided on a venue, or would you like Eventory to help find one?", "options", [
                     { label: "Yes, I have a venue in mind", value: "VENUE_YES" },
                     { label: "I need help finding a venue", value: "VENUE_HELP" }
@@ -170,6 +171,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             } else {
                 enquiry.status = "COLLECTING_SERVICES";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Perfect! What kind of services are you looking for? (Select all that apply)", "multi_select", [
                     { label: "Catering", value: "Catering" },
                     { label: "Venue", value: "Venue" },
@@ -188,6 +190,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.venue_help_needed = lowerContent.includes("help");
             enquiry.status = "COLLECTING_SERVICES";
             await enquiry.save();
+            await syncEnquiryToChat();
 
             await sendMessage("Perfect! What kind of services are you looking for? (Select all that apply)", "multi_select", [
                 { label: "Catering", value: "Catering" },
@@ -220,6 +223,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 enquiry.status = "COLLECTING_OTHER_SERVICES_DETAILS";
                 enquiry.pending_others_input = true;
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Could you tell us more about the other services you need?");
                 return;
             }
@@ -233,6 +237,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             if (needsGuests) {
                 enquiry.status = "COLLECTING_GUEST_COUNT";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Around how many guests are you expecting?", "options", [
                     { label: "Under 25", value: "Under 25" },
                     { label: "25–50", value: "25–50" },
@@ -244,6 +249,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             } else {
                 enquiry.status = "COLLECTING_BUDGET_OPTION";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
                     { label: "Yes, I have a rough number", value: "BUDGET_YES" },
                     { label: "Not decided yet", value: "BUDGET_NO" }
@@ -265,6 +271,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             if (needsGuests) {
                 enquiry.status = "COLLECTING_GUEST_COUNT";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Around how many guests are you expecting?", "options", [
                     { label: "Under 25", value: "Under 25" },
                     { label: "25–50", value: "25–50" },
@@ -276,6 +283,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             } else {
                 enquiry.status = "COLLECTING_BUDGET_OPTION";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
                     { label: "Yes, I have a rough number", value: "BUDGET_YES" },
                     { label: "Not decided yet", value: "BUDGET_NO" }
@@ -289,6 +297,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.guest_count = normalizedContent;
             enquiry.status = "COLLECTING_BUDGET_OPTION";
             await enquiry.save();
+            await syncEnquiryToChat();
 
             await sendMessage("Almost there! Do you have a budget in mind for this event?", "options", [
                 { label: "Yes, I have a rough number", value: "BUDGET_YES" },
@@ -305,6 +314,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             if (hasBudget) {
                 enquiry.status = "COLLECTING_BUDGET_RANGE";
                 await enquiry.save();
+            await syncEnquiryToChat();
                 await sendMessage("What's your approximate budget range?", "options", [
                     { label: "Under ₹20,000", value: "Under ₹20,000" },
                     { label: "₹20,000 – ₹60,000", value: "₹20,000 – ₹60,000" },
@@ -314,7 +324,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
                 ]);
             } else {
                 enquiry.status = "STEP_8_HANDOFF";
-                await handleStep8Handoff(enquiry, sendMessage);
+                await handleStep8Handoff(enquiry, sendMessage, syncEnquiryToChat);
             }
             return;
         }
@@ -324,7 +334,8 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.budget_range = normalizedContent;
             enquiry.status = "STEP_8_HANDOFF";
             await enquiry.save();
-            await handleStep8Handoff(enquiry, sendMessage);
+            await syncEnquiryToChat();
+            await handleStep8Handoff(enquiry, sendMessage, syncEnquiryToChat);
             return;
         }
 
@@ -333,6 +344,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.customer_name = normalizedContent;
             enquiry.status = "COLLECTING_PHONE";
             await enquiry.save();
+            await syncEnquiryToChat();
             await sendMessage("Your phone number?");
             return;
         }
@@ -342,6 +354,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.phone_number = normalizedContent;
             enquiry.status = "COLLECTING_CALL_TIME";
             await enquiry.save();
+            await syncEnquiryToChat();
             await sendMessage("Best time to call? (Optional but helpful)", "options", [
                 { label: "Morning (9am–12pm)", value: "Morning (9am–12pm)" },
                 { label: "Afternoon (12pm–4pm)", value: "Afternoon (12pm–4pm)" },
@@ -356,6 +369,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             enquiry.best_time_to_call = normalizedContent;
             enquiry.status = "FLOW_COMPLETE";
             await enquiry.save();
+            await syncEnquiryToChat();
 
             const name = enquiry.customer_name || "there";
             const phone = enquiry.phone_number || "the provided number";
@@ -380,9 +394,10 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 };
 
 // HELPER FOR STEP 8 HANDOFF TEXT
-const handleStep8Handoff = async (enquiry, sendMessage) => {
+const handleStep8Handoff = async (enquiry, sendMessage, syncEnquiryToChat) => {
     enquiry.status = "COLLECTING_NAME";
     await enquiry.save();
+    if (syncEnquiryToChat) await syncEnquiryToChat();
     
     await sendMessage("This already sounds exciting! Here’s how we’ll help you:", "text", null, null, 50);
     
