@@ -42,6 +42,14 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
         const syncEnquiryToChat = async () => {
             if (chat && enquiry) {
+                try {
+                    const metadata = chat.metadata || {};
+                    chat.metadata = { ...metadata, ...(typeof enquiry.toObject === 'function' ? enquiry.toObject() : enquiry) };
+                    chat.markModified("metadata");
+                    await chat.save();
+                } catch(e) {
+                    console.error("[STAB] syncEnquiryToChat ERR:", e);
+                }
             }
         };
 
