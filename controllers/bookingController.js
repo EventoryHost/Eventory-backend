@@ -33,6 +33,7 @@ export const createBooking = async (req, res) => {
       vendor_id,
       service_id,
       quotation_id,
+      order_id,
       em_id,
 
       event_type,
@@ -67,6 +68,7 @@ export const createBooking = async (req, res) => {
 
       // For compatibility with some callers
       final_order_items,           // cart items array
+      vendor_segments,             // multi-vendor segments
     } = body;
 
     // Required validations (minimal)
@@ -175,6 +177,7 @@ export const createBooking = async (req, res) => {
       vendor_id,
       service_id,
       quotation_id,
+      order_id,
       em_id,
       event_type,
       location_type: locType || "INDOOR",
@@ -198,6 +201,7 @@ export const createBooking = async (req, res) => {
       payment_breakdowns: paymentBreakdowns || [], // Save into Event
       payment_method_details: normalizedMethodDetails,
       final_order_items: items,
+      vendor_segments: vendor_segments || [],
     };
 
     let saved;
@@ -258,7 +262,7 @@ export const createBooking = async (req, res) => {
           const { SendMessageCommand } = await import("@aws-sdk/client-sqs");
 
           const trnId = generateUniqueId("TRN_FREE");
-          
+
           await Transaction.create({
             quotation_id: quotation_id || effectiveQuotationId,
             event_id: saved.event_id || saved._id,
@@ -276,10 +280,22 @@ export const createBooking = async (req, res) => {
             paymentDetails: orderUpdatePayload.paymentDetails
           });
 
+          const vSegs = req.body.vendor_segments && req.body.vendor_segments.length > 0
+            ? req.body.vendor_segments.map(s => ({
+              vendor_id: s.vendor_id,
+              service_id: s.service_id,
+              vendor_name: s.vendor_name || "Vendor",
+              paymentDetails: s.paymentDetails,
+              paymentBreakdowns: s.paymentBreakdowns,
+              serviceData: s.serviceData || {}
+            }))
+            : [];
+
           const sqsMessage = {
             type: "bookingPayment",
             customer: { id: customer_id, name: doc.customer_name, mobile: doc.customer_contact_number, email: doc.customer_contact_email },
             vendor: { id: vendor_id, name: doc.vendor_manager_name },
+            vendor_segments: vSegs,
             paymentDetails: {
               event_id: saved.event_id || saved._id,
               amount: 0,
@@ -288,7 +304,7 @@ export const createBooking = async (req, res) => {
               paymentType: "Token",
               method: "Free Booking",
               items: doc.final_order_items,
-              transaction_id: "free_booking",
+              transaction_id: trnId,
               date: new Date().toLocaleDateString("en-GB")
             },
           };

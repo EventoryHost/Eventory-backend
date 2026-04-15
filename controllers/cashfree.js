@@ -50,9 +50,26 @@ const createOrder = async (req, res) => {
   try {
     const { vendor_id, service_id, chat_id, order_id: internal_order_id } = req.body;
 
-    // BLOcking: Check for vendor bank details before order creation
-    if (service_id) {
-      const prefix = service_id.substring(0, 4).toUpperCase();
+    // BLOCKING: Check for vendor bank details before order creation
+    const serviceIdsToCheck = [];
+    if (req.body.vendor_segments && Array.isArray(req.body.vendor_segments)) {
+      for (const seg of req.body.vendor_segments) {
+        if (seg.service_id) {
+          serviceIdsToCheck.push({
+            service_id: seg.service_id,
+            vendor_id: seg.vendor_id,
+            vendor_name: seg.vendor_name || "Unknown"
+          });
+        }
+      }
+    } else if (service_id) {
+      serviceIdsToCheck.push({ service_id, vendor_id, vendor_name: "Vendor" });
+    }
+
+    const missingBankSegments = [];
+    for (const item of serviceIdsToCheck) {
+      const { service_id: sid } = item;
+      const prefix = sid.substring(0, 4).toUpperCase();
       let serviceModel = null;
       if (prefix.startsWith("CAT")) serviceModel = Caterer;
       else if (prefix.startsWith("DECO")) serviceModel = Decorator;
@@ -62,55 +79,59 @@ const createOrder = async (req, res) => {
       else if (prefix.startsWith("DJS")) serviceModel = DjArtist;
 
       if (serviceModel) {
-        const serviceDoc = await serviceModel.findOne({ service_id });
+        const serviceDoc = await serviceModel.findOne({ service_id: sid });
         const bankDetailsValid = !!(serviceDoc?.bank_details && (serviceDoc.bank_details.account_number || serviceDoc.bank_details.upi_id));
         if (!bankDetailsValid) {
-          console.warn(`[createOrder] 🛑 Blocking order creation. Bank details missing for service: ${service_id}`);
-
-          // Notify EM
-          try {
-            let em_id = "ADMIN"; // Fallback
-            let final_chat_id = chat_id;
-            let final_order_id = internal_order_id;
-
-            // Try to find the order to get em_id and chat_id (quotation_id)
-            if (internal_order_id) {
-              const orderDoc = await Order.findOne({ order_id: internal_order_id });
-              if (orderDoc) {
-                em_id = orderDoc.em_id || em_id;
-                final_chat_id = final_chat_id || orderDoc.quotation_id;
-              }
-            } else if (chat_id) {
-              const chatDocArray = await adminNotification.find({ chat_id }).limit(1); // Not the best, but using models we have
-              // Better: search quotations or orders
-              const orderDoc = await Order.findOne({ quotation_id: chat_id });
-              if (orderDoc) {
-                em_id = orderDoc.em_id || em_id;
-                final_order_id = final_order_id || orderDoc.order_id;
-              }
-            }
-
-            if (em_id && final_chat_id) {
-              await adminNotification.create({
-                em_id: em_id,
-                chat_id: final_chat_id,
-                order_id: final_order_id,
-                message: `⚠️ Payment Blocked: Vendor (${vendor_id}) is missing bank details for Service (${service_id}). Please add them immediately to allow customer payment.`,
-                notification_type: 'checkout_message',
-                timestamp: new Date().toISOString()
-              });
-              console.log(`[createOrder] EM Notification created for EM: ${em_id}`);
-            }
-          } catch (notiErr) {
-            console.error("❌ [createOrder] Error creating EM notification:", notiErr);
-          }
-
-          return res.status(400).json({
-            error: "Vendor bank details missing. Payment cannot be processed.",
-            code: "MISSING_BANK_DETAILS"
-          });
+          missingBankSegments.push(item);
         }
       }
+    }
+
+    if (missingBankSegments.length > 0) {
+      console.warn(`[createOrder] 🛑 Blocking order creation. Bank details missing for: ${missingBankSegments.map(s => s.service_id).join(", ")}`);
+
+      // Notify EM
+      try {
+        let em_id = "ADMIN"; // Fallback
+        let final_chat_id = chat_id;
+        let final_order_id = internal_order_id;
+
+        // Try to find the order to get em_id and chat_id (quotation_id)
+        if (internal_order_id) {
+          const orderDoc = await Order.findOne({ order_id: internal_order_id });
+          if (orderDoc) {
+            em_id = orderDoc.em_id || em_id;
+            final_chat_id = final_chat_id || orderDoc.quotation_id;
+          }
+        } else if (chat_id) {
+          const orderDoc = await Order.findOne({ quotation_id: chat_id });
+          if (orderDoc) {
+            em_id = orderDoc.em_id || em_id;
+            final_order_id = final_order_id || orderDoc.order_id;
+          }
+        }
+
+        if (em_id && final_chat_id) {
+          const missingDetails = missingBankSegments.map(s => `${s.vendor_name} (${s.service_id})`).join(", ");
+          await adminNotification.create({
+            em_id: em_id,
+            chat_id: final_chat_id,
+            order_id: final_order_id,
+            message: `⚠️ Payment Blocked: Bank details missing for services: ${missingDetails}. Please add them immediately to allow customer payment.`,
+            notification_type: 'checkout_message',
+            timestamp: new Date().toISOString()
+          });
+          console.log(`[createOrder] EM Notification created for EM: ${em_id}`);
+        }
+      } catch (notiErr) {
+        console.error("❌ [createOrder] Error creating EM notification:", notiErr);
+      }
+
+      return res.status(400).json({
+        error: `Vendor bank details missing for: ${missingBankSegments.map(s => s.service_id).join(", ")}. Payment cannot be processed.`,
+        code: "MISSING_BANK_DETAILS",
+        missing_segments: missingBankSegments
+      });
     }
 
     const request = {
@@ -379,6 +400,7 @@ const verifyCustomerPayment = async (req, res) => {
       internal_order_id,
       order_amount,
       payment_type,
+      selected_breakdowns,
       couponCode,
       couponDiscount,
       breakdownDiscount,
@@ -523,6 +545,18 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
+    let customerDoc = null;
+    if (finalCustomerId && !finalCustomerId.startsWith("ANON")) {
+       customerDoc = await Customer.findOne({ customer_id: finalCustomerId }).lean();
+    }
+    const customerEmail = customerDoc?.email_address || customerDoc?.email || finalOrder?.customer_email || payment?.customer_details?.customer_email || "";
+    const customerPhone = customerDoc?.mobile_number || customerDoc?.customer_contact_number || finalOrder?.customer_contact_number || payment?.customer_details?.customer_phone || "0000000000";
+    let customerName = customerDoc?.customer_name || customerDoc?.name || finalOrder?.customer_name || payment?.customer_details?.customer_name || "Customer";
+
+    const vendorDoc = await Vendor.findOne({ vendor_id: vendor_id }).lean();
+    const ServiceModel = await getServiceModelById(service_id);
+    const serviceDoc = ServiceModel ? await ServiceModel.findOne({ service_id: service_id }).lean() : null;
+
     // NEW: Resolve Event ID early so we can attach it to transactions immediately!
     let event_id;
     let existingEventForEarlyId = await Events.findOne({ quotation_id: quotation_id }).select("event_id").lean();
@@ -625,278 +659,203 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
-    const receivableFromOrder =
-      Number(
-        finalOrder?.paymentDetails?.vendorReceivable?.total != null
-          ? finalOrder.paymentDetails.vendorReceivable.total
-          : NaN
-      ) || null;
-
-    const previousPayouts = await Transaction.find({
-      quotation_id: quotation_id,
-      vendor_id: vendor_id,
-      internalOrderId: internalOrderId,
-      transfer_mode: { $ne: "PG_IN" },
-      status: { $nin: ["FAILED", "REVERSED", "CANCELLED"] }
-    }).lean();
-
-    const alreadyPaid = previousPayouts.reduce((sum, txn) => sum + (Number(txn.transfer_amount) || 0), 0);
-
-    let payoutAmount;
-
-    // NEW: Dynamic Category Payout Logic
-    // Token / Advance / Final Pay / Last Pay will be passed as `payment_type`.
-    // We cap ANY payout to strictly what is mathematically owed up to that point.
-    // Ensure we do not pay the vendor more than `receivableFromOrder - alreadyPaid`.
-    const maxAllowedPayout = Math.max(0, (receivableFromOrder ?? 0) - alreadyPaid);
-
-    if (payment_type === "full") {
-      payoutAmount = receivableFromOrder;
-    } else if (payment_type === "remaining" || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("late")) {
-      payoutAmount = Number(maxAllowedPayout.toFixed(2));
-    } else {
-      // For anything else ("Advance", "Advance 1", "Token"), we payout the passed amount
-      // but cap it against the final allowable vendor receivable so we don't accidentally
-      // pay out Eventory's commission during heavy advance phases.
-      payoutAmount = Math.min(order_amount, maxAllowedPayout);
-      payoutAmount = Number(payoutAmount.toFixed(2));
-    }
-
-    console.log(`[VerifyPayment] Payment Type: ${payment_type}, Payout Amount Calculated: ${payoutAmount}, Receivable was: ${receivableFromOrder}, Already Paid was: ${alreadyPaid}`);
-
-    if (payoutAmount === null || payoutAmount === undefined || isNaN(payoutAmount)) {
-      console.error(`[VerifyPayment] 400: Invalid payoutAmount: ${payoutAmount}`);
-      return res.status(400).json({ error: `Invalid payout amount calculated: ${payoutAmount}` });
-    }
-
-    const vendorDoc = await Vendor.findOne({ vendor_id });
-    if (!vendorDoc) {
-      console.error(`[VerifyPayment] ⚠️ Vendor not found for ID: ${vendor_id}. Search query: { vendor_id: "${vendor_id}" }. BUT payment is PAID. Proceeding.`);
-      // return res.status(404).json({ error: `Vendor not found for ID: ${vendor_id}` });
-    }
-
-    const customerDoc = await Customer.findOne({ customer_id: finalCustomerId });
-    if (!customerDoc) {
-      console.warn(`[VerifyPayment] Customer record not found for ID: ${finalCustomerId}. Falling back to Order details.`);
-      // We don't return 404 anymore; we proceed with fallback logic.
-    }
+    const vendorSegments = (finalOrder.vendor_segments && finalOrder.vendor_segments.length > 0)
+      ? finalOrder.vendor_segments
+      : [{
+          vendor_id: vendor_id,
+          service_id: service_id,
+          vendor_name: vendorDoc?.vendor_name || "Vendor",
+          paymentDetails: finalOrder.paymentDetails,
+          paymentBreakdowns: finalOrder.paymentBreakdowns
+        }];
 
 
-    const ServiceModel = await getServiceModelById(service_id);
-    if (!ServiceModel) {
-      console.error(`[VerifyPayment] ⚠️ Invalid service_id prefix in ${service_id}. BUT payment is PAID. Proceeding.`);
-      // return res.status(400).json({ error: `Invalid service_id prefix in ${service_id}` });
-    }
+    console.log(`[VerifyPayment] Distributing payout across ${vendorSegments.length} segment(s) for milestone: ${payment_type}`);
 
-    const serviceDoc = ServiceModel ? await ServiceModel.findOne({ service_id }) : null;
-    if (!serviceDoc) {
-      console.error(`[VerifyPayment] ⚠️ Service/Model not found for ID: ${service_id}. BUT payment is PAID. Proceeding.`);
-    }
-
-    let bankDetailsValid = !!(serviceDoc?.bank_details && (serviceDoc.bank_details.account_number || serviceDoc.bank_details.upi_id));
-    if (!bankDetailsValid) {
-      console.warn(`⚠️ [VerifyPayment] Bank details and UPI ID missing or invalid for service ${service_id}. Payout will be skipped.`);
-    }
-
-    // Determine payout mode: UPI if only VPA, IMPS if bank account exists
-    const hasBank = !!(serviceDoc?.bank_details?.account_number && serviceDoc?.bank_details?.ifsc);
-    const hasUpi = !!serviceDoc?.bank_details?.upi_id;
-    const payoutMode = hasBank ? "imps" : hasUpi ? "upi" : "imps";
-
-    // canonical service snapshot
-    const serviceSnapshot = serviceData || (serviceDoc ? serviceDoc.toObject() : {});
-
-    // name?? 
-    const vendorName = serviceDoc?.business_details?.business_registration_name || "Vendor";
-    const customerName = customerDoc?.customer_name || finalOrder.customer_name || "Guest Customer";
-    const customerEmail = customerDoc?.email_address || finalOrder.customer_contact_email || "noreply@eventory.in";
-    const customerPhone = customerDoc?.mobile_number || finalOrder.customer_contact_number || "0000000000";
-
-    const primaryBank = serviceDoc?.bank_details || {};
-    let beneficiary_id = primaryBank?.beneficiary_id;
-
-    // Beneficiary should already be created when bank details were saved.
-    // If missing, generate one and save it as a fallback.
-    if (!beneficiary_id) {
-      console.warn(`[VerifyPayment] ⚠️ No beneficiary_id found for service ${service_id}. Generating fallback.`);
-      beneficiary_id = generateUniqueId("BENE");
-      if (serviceDoc) {
-        serviceDoc.bank_details.beneficiary_id = beneficiary_id;
-        await serviceDoc.save();
+    // If granular selected breakdowns are provided, we map them by service_id
+    const selectedPayoutsMap = new Map();
+    if (selected_breakdowns && selected_breakdowns.length > 0) {
+      console.log(`[VerifyPayment] Using selected_breakdowns for granular payout calculation.`);
+      for (const sb of selected_breakdowns) {
+        const sid = sb.service_id;
+        if (!selectedPayoutsMap.has(sid)) selectedPayoutsMap.set(sid, 0);
+        
+        // Find the segment and its breakdown to get the accurate net payout
+        const matchSeg = vendorSegments.find(s => s.service_id === sid);
+        const matchBreakdown = matchSeg?.paymentBreakdowns?.find(b => b.name === sb.name);
+        
+        let netBreakdownAmount = sb.amount;
+        if (matchBreakdown) {
+           const base = Number(matchBreakdown.vendor_base_amount || matchBreakdown.amount || 0);
+           const comm = Number(matchBreakdown.vendor_commission || 0);
+           netBreakdownAmount = Math.max(0, base - comm);
+        }
+        
+        selectedPayoutsMap.set(sid, selectedPayoutsMap.get(sid) + netBreakdownAmount);
       }
     }
 
-    const payoutsBase = getPayoutsBaseUrl();
-    const headers = buildPayoutsHeaders();
+    for (const segment of vendorSegments) {
+      const segVendorId = segment.vendor_id;
+      const segServiceId = segment.service_id;
+      const segVendorName = segment.vendor_name || "Vendor";
 
-    // Verify beneficiary exists in Cashfree; create as fallback if not
-    if (finalOrder?.vendor_id !== "VEN05012026111140552") {
-      let hasBeneficiary = false;
-      try {
-        await axios.get(`${payoutsBase}/beneficiary`, { headers, params: { beneficiary_id } });
-        hasBeneficiary = true;
-      } catch (e) {
-        if (e?.response?.status !== 404) {
-          console.error("❌ [VerifyPayment] Error checking beneficiary:", e?.response?.data || e.message);
+      const segReceivable = Number(segment.paymentDetails?.vendorReceivable?.total ?? 0);
+      
+      const segPreviousPayouts = await Transaction.find({
+        quotation_id: quotation_id,
+        service_id: segServiceId,
+        internalOrderId: internalOrderId,
+        transfer_mode: { $ne: "PG_IN" },
+        status: { $nin: ["FAILED", "REVERSED", "CANCELLED"] }
+      }).lean();
+
+      const segAlreadyPaid = segPreviousPayouts.reduce((sum, txn) => sum + (Number(txn.transfer_amount) || 0), 0);
+      const segMaxAllowed = Math.max(0, segReceivable - segAlreadyPaid);
+
+      let segPayoutAmount = 0;
+
+      if (selected_breakdowns && selected_breakdowns.length > 0) {
+        segPayoutAmount = selectedPayoutsMap.get(segServiceId) || 0;
+      } else if (payment_type === "full") {
+        segPayoutAmount = segReceivable;
+      } else if (payment_type === "remaining" || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("late")) {
+        segPayoutAmount = Number(segMaxAllowed.toFixed(2));
+      } else {
+        // Find this vendor's share for this milestone name
+        const milestone = (segment.paymentBreakdowns || []).find(b => b.name === payment_type);
+        if (milestone) {
+          const netMilestone = Math.max(0, (Number(milestone.vendor_base_amount || milestone.amount) || 0) - (Number(milestone.vendor_commission) || 0));
+          // Backward compatibility fallback to milestone.amount if new fields are 0
+          const calcAmount = netMilestone > 0 ? netMilestone : (Number(milestone.amount) || 0);
+          segPayoutAmount = Math.min(calcAmount, segMaxAllowed);
+          segPayoutAmount = Number(segPayoutAmount.toFixed(2));
         }
       }
 
-      if (!hasBeneficiary) {
-        console.warn(`[VerifyPayment] Beneficiary ${beneficiary_id} not found in Cashfree. Creating as fallback.`);
+      console.log(`[VerifyPayment] Segment ${segServiceId}: Receivable=${segReceivable}, AlreadyPaid=${segAlreadyPaid}, Share=${segPayoutAmount}`);
+
+      if (segPayoutAmount <= 0) continue;
+
+
+      // ── Process Beneficiary and Payout for Segment ──
+      const SegServiceModel = await getServiceModelById(segServiceId);
+      const segServiceDoc = SegServiceModel ? await SegServiceModel.findOne({ service_id: segServiceId }) : null;
+      if (!segServiceDoc) {
+        console.error(`[VerifyPayment] Segment service ${segServiceId} not found. Skipping segment payout.`);
+        continue;
+      }
+
+      const segBank = segServiceDoc.bank_details || {};
+      const segHasBank = !!(segBank.account_number && segBank.ifsc);
+      const segHasUpi = !!segBank.upi_id;
+      const segBankValid = segHasBank || segHasUpi;
+
+      const segBeneficiaryId = segBank.beneficiary_id || generateUniqueId("BENE");
+      if (!segBank.beneficiary_id && SegServiceModel) {
+        await SegServiceModel.updateOne({ service_id: segServiceId }, { $set: { "bank_details.beneficiary_id": segBeneficiaryId } });
+      }
+
+      const segPayoutMode = segHasBank ? "imps" : (segHasUpi ? "upi" : "imps");
+      const pBase = getPayoutsBaseUrl();
+      const pHeaders = buildPayoutsHeaders();
+
+      // Beneficiary check/create in Cashfree
+      if (segVendorId !== "VEN05012026111140552") {
+        let exists = false;
         try {
-          const instrumentDetails = hasBank
-            ? { bank_account_number: primaryBank.account_number, bank_ifsc: primaryBank.ifsc }
-            : { vpa: primaryBank.upi_id };
-
-          await axios.post(`${payoutsBase}/beneficiary`, {
-            beneficiary_id,
-            beneficiary_name: vendorName,
-            beneficiary_instrument_details: instrumentDetails,
-            beneficiary_contact_details: {
-              beneficiary_email: vendorDoc?.email || "noreply@example.com",
-              beneficiary_phone: (vendorDoc?.vendor_mobile || "").replace(/\D/g, "").slice(-10),
-              beneficiary_country_code: "+91",
-            },
-          }, { headers });
+          await axios.get(`${pBase}/beneficiary`, { headers: pHeaders, params: { beneficiary_id: segBeneficiaryId } });
+          exists = true;
         } catch (e) {
-          console.error("❌ [VerifyPayment] Fallback beneficiary creation failed:", e?.response?.data || e.message);
+          if (e?.response?.status === 404) {
+            try {
+              const inst = segHasBank 
+                ? { bank_account_number: segBank.account_number, bank_ifsc: segBank.ifsc }
+                : { vpa: segBank.upi_id };
+              await axios.post(`${pBase}/beneficiary`, {
+                beneficiary_id: segBeneficiaryId,
+                beneficiary_name: segServiceDoc.business_details?.business_registration_name || segVendorName,
+                beneficiary_instrument_details: inst,
+                beneficiary_contact_details: {
+                  beneficiary_email: segServiceDoc.business_details?.business_email || "noreply@eventory.in",
+                  beneficiary_phone: (segServiceDoc.basic_details?.service_contact_number || "0000000000").replace(/\D/g, "").slice(-10),
+                  beneficiary_country_code: "+91"
+                }
+              }, { headers: pHeaders });
+              exists = true;
+            } catch (beneErr) {
+              console.error(`[VerifyPayment] Failed to create beneficiary for ${segServiceId}:`, beneErr?.response?.data || beneErr.message);
+            }
+          }
         }
       }
-    }
 
-    if (!bankDetailsValid) {
-      console.log(`[VerifyPayment] Skipping payout initiation due to missing bank details.`);
-    }
-    const transfer_id = generateUniqueId("TRN");
-
-    if (payoutAmount > 0) {
+      const segTransferId = generateUniqueId("TRN");
+      
+      // 1. Transaction INIT record
       await Transaction.create({
         quotation_id,
         internalOrderId,
-        vendor_id,
+        vendor_id: segVendorId,
         customer_id: finalCustomerId,
-        service_id,
+        service_id: segServiceId,
         pgOrderId: order_id,
         pgStatus: payment.order_status || null,
-        transfer_id,
+        transfer_id: segTransferId,
         status: "INIT",
-        transfer_amount: payoutAmount,
-        transfer_mode: payoutMode.toUpperCase(),
-        beneficiary_id,
+        transfer_amount: segPayoutAmount,
+        transfer_mode: segPayoutMode.toUpperCase(),
+        beneficiary_id: segBeneficiaryId,
         payment_type,
         paymentDetails: {
-          customerPayable: {
-            total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-            baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-            convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-            taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-          },
-          vendorReceivable: {
-            total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-            baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-            commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-            taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-          },
-        },
+          customerPayable: finalOrder.paymentDetails.customerPayable,
+          vendorReceivable: segment.paymentDetails.vendorReceivable
+        }
       });
 
-      if (bankDetailsValid) {
-        const transferBody = {
-          transfer_id: transfer_id,
-          transfer_amount: payoutAmount,
-          beneficiary_details: { beneficiary_id: beneficiary_id },
-          transfer_mode: payoutMode,
-        };
-
-        let transferResp;
-
-        if (finalOrder?.vendor_id !== "VEN05012026111140552") {
-          try {
-            transferResp = await axios.post(`${payoutsBase}/transfers`, transferBody, { headers });
-          } catch (e) {
-            await Transaction.findOneAndUpdate(
-              { transfer_id: transfer_id },
-              {
-                $set: {
-                  status: "FAILED_INIT",
-                  cf_transfer_id: null,
-                  transfer_amount: payoutAmount,
-                  transfer_mode: "IMPS",
-                  added_on: undefined,
-                  updated_on: new Date(),
-                },
-              },
-              { new: true }
-            );
-            return res.status(500).json({ error: "Failed to initiate payout transfer", details: e?.response?.data || e.message });
-          }
+      // 2. CF Transfer Call
+      if (segBankValid && segVendorId !== "VEN05012026111140552") {
+        try {
+          const tResp = await axios.post(`${pBase}/transfers`, {
+            transfer_id: segTransferId,
+            transfer_amount: segPayoutAmount,
+            beneficiary_details: { beneficiary_id: segBeneficiaryId },
+            transfer_mode: segPayoutMode
+          }, { headers: pHeaders });
+          
+          const tData = tResp?.data || {};
+          await Transaction.findOneAndUpdate(
+            { transfer_id: segTransferId },
+            { $set: { 
+                cf_transfer_id: tData.cf_transfer_id || null,
+                status: tData.status || "SUCCESS",
+                transfer_utr: tData.transfer_utr || null,
+                updated_on: new Date()
+              } 
+            }
+          );
+          console.log(`[VerifyPayment] Payout initiated for ${segServiceId}: ${segPayoutAmount}`);
+        } catch (tErr) {
+          console.error(`[VerifyPayment] Transfer failure for ${segServiceId}:`, tErr?.response?.data || tErr.message);
+          await Transaction.findOneAndUpdate(
+            { transfer_id: segTransferId },
+            { $set: { status: "FAILED_INIT", updated_on: new Date() } }
+          );
         }
-        const transferData = transferResp?.data || {};
-        await Transaction.findOneAndUpdate(
-          { transfer_id },
-          {
-            $set: {
-              vendor_id,
-              customer_id: finalCustomerId,
-              service_id,
-              event_id,
-              pgOrderId: order_id,
-              pgStatus: payment.order_status,
-              beneficiary_id,
-              cf_transfer_id: transferData.cf_transfer_id || null,
-              status: transferData.status || null,
-              transfer_amount: transferData.transfer_amount ?? payoutAmount,
-              transfer_mode: transferData.transfer_mode || "IMPS",
-              transfer_utr: transferData.transfer_utr || null,
-              added_on: transferData.added_on ? new Date(transferData.added_on) : undefined,
-              updated_on: transferData.updated_on ? new Date(transferData.updated_on) : new Date(),
-              payment_type,
-              paymentDetails: {
-                customerPayable: {
-                  total: finalOrder?.paymentDetails?.customerPayable?.total ?? 0,
-                  baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? 0,
-                  convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-                  taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-                },
-                vendorReceivable: {
-                  total: finalOrder?.paymentDetails?.vendorReceivable?.total ?? 0,
-                  baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? 0,
-                  commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-                  taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-                },
-              },
-            },
-          },
-          { new: true }
-        );
       }
-    } else {
-      console.log(`[VerifyPayment] Skipped Payout transaction recording for zero payout amount.`);
     }
 
-    // Update payment details in the Order model
+    // Prepare combined values for messages and order update
+    const vendorName = vendorSegments[0]?.vendor_name || "Vendor(s)";
+    customerName = finalOrder?.customer_name || customerName || "Customer";
+    const receivableFromOrder = Number(finalOrder?.paymentDetails?.vendorReceivable?.total || 0);
+
     const paymentDetailsUpdate = {
-      paymentStatus:
-        (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("late"))
-          ? "Fully Paid"
-          : "Partially Paid",
-      customerPayable: {
-        total: (N(finalOrder?.paymentDetails?.customerPayable?.baseAmount || order_amount) + N(finalOrder?.paymentDetails?.customerPayable?.convenienceFee) + N(finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience)) - N(couponDiscount) - N(breakdownDiscount),
-        baseAmount: finalOrder?.paymentDetails?.customerPayable?.baseAmount ?? order_amount,
-        convenienceFee: finalOrder?.paymentDetails?.customerPayable?.convenienceFee ?? 0,
-        taxOnConvenience: finalOrder?.paymentDetails?.customerPayable?.taxOnConvenience ?? 0,
-        couponCode: couponCode || finalOrder?.paymentDetails?.customerPayable?.couponCode || null,
-        couponDiscount: N(couponDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.couponDiscount || 0),
-        breakdownDiscount: N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.breakdownDiscount || 0),
-      },
-      vendorReceivable: {
-        total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining") 
-          ? (Number(receivableFromOrder) || order_amount) 
-          : (finalOrder?.paymentDetails?.vendorReceivable?.total ?? order_amount),
-        baseAmount: finalOrder?.paymentDetails?.vendorReceivable?.baseAmount ?? order_amount,
-        commission: finalOrder?.paymentDetails?.vendorReceivable?.commission ?? 0,
-        taxOnCommission: finalOrder?.paymentDetails?.vendorReceivable?.taxOnCommission ?? 0,
-      },
+      paymentStatus: (payment_type === "full" || payment_type === "remaining" || payment_type.toLowerCase().includes("final") || payment_type.toLowerCase().includes("last") || payment_type.toLowerCase().includes("late"))
+        ? "Fully Paid"
+        : "Partially Paid",
+      customerPayable: finalOrder.paymentDetails.customerPayable,
+      vendorReceivable: finalOrder.paymentDetails.vendorReceivable,
       transactionId: order_id
     };
 
@@ -906,49 +865,72 @@ const verifyCustomerPayment = async (req, res) => {
       { order_id: internalOrderId },
       { 
         $set: { 
-          paymentDetails: paymentDetailsUpdate,
-          "paymentDetails.transactionId": order_id // Explicitly set it too
+          paymentDetails: paymentDetailsUpdate
         } 
       },
       { new: true }
     );
     console.log(`[VerifyPayment] Order update result. transactionId in DB: ${updatedOrder?.paymentDetails?.transactionId}`);
 
-    // Update the matching paymentBreakdown status to "Paid"
-    if (payment_type && payment_type !== "full" && payment_type !== "remaining") {
+    // Update matching paymentBreakdown status to "Paid" (including segments)
+    if (selected_breakdowns && selected_breakdowns.length > 0) {
+      console.log(`[VerifyPayment] Updating granular breakdowns based on selected_breakdowns array.`);
+      const orderDocForSave = await Order.findOne({ order_id: internalOrderId });
+      if (orderDocForSave && orderDocForSave.vendor_segments) {
+         for (const sb of selected_breakdowns) {
+            const seg = orderDocForSave.vendor_segments.find(s => s.service_id === sb.service_id);
+            if (seg && seg.paymentBreakdowns) {
+               const bk = seg.paymentBreakdowns.find(b => b.name === sb.name);
+               if (bk) {
+                  bk.status = "Paid";
+                  bk.paid_at = new Date();
+                  bk.transaction_id = order_id;
+                  bk.payout_status = "Processing"; 
+               }
+            }
+         }
+         if (orderDocForSave.paymentBreakdowns) {
+            for (const sb of selected_breakdowns) {
+               const bk = orderDocForSave.paymentBreakdowns.find(b => b.name === sb.name);
+               if (bk && bk.status !== "Paid") {
+                  bk.status = "Paid";
+                  bk.paid_at = new Date();
+                  bk.transaction_id = order_id;
+               }
+            }
+         }
+         await orderDocForSave.save();
+      }
+    } else if (payment_type && payment_type !== "full" && payment_type !== "remaining") {
       await Order.findOneAndUpdate(
-        {
-          order_id: internalOrderId,
-          "paymentBreakdowns.name": payment_type,
-          "paymentBreakdowns.status": "Unpaid",
-        },
+        { order_id: internalOrderId },
         {
           $set: { 
-            "paymentBreakdowns.$.status": "Paid",
-            "paymentBreakdowns.$.paid_at": new Date()
+            "paymentBreakdowns.$[elem].status": "Paid",
+            "paymentBreakdowns.$[elem].paid_at": new Date(),
+            "vendor_segments.$[].paymentBreakdowns.$[elem].status": "Paid",
+            "vendor_segments.$[].paymentBreakdowns.$[elem].paid_at": new Date()
           },
+        },
+        { 
+          arrayFilters: [{ "elem.name": payment_type }],
+          new: true 
         }
       );
-      console.log(`[VerifyPayment] Marked breakdown "${payment_type}" as Paid for order ${internalOrderId}`);
-      
-      // Also silently mark 0-amount Token as Paid unconditionally
-      await Order.updateMany(
-        { order_id: internalOrderId },
-        { $set: { "paymentBreakdowns.$[elem].status": "Paid" } },
-        { arrayFilters: [{ "elem.name": { $regex: /token/i }, "elem.amount": { $in: [0, "0", null] } }] }
-      );
+      console.log(`[VerifyPayment] Marked breakdown "${payment_type}" as Paid for order ${internalOrderId} and all segments`);
     } else if (payment_type === "full" || payment_type === "remaining") {
-      // Full/Remaining payment: mark ALL breakdowns as Paid
+      // Full/Remaining payment: mark ALL breakdowns in ALL segments as Paid
       await Order.updateOne(
         { order_id: internalOrderId },
-        { 
-          $set: { 
+        {
+          $set: {
             "paymentBreakdowns.$[].status": "Paid",
-            "paymentBreakdowns.$[].paid_at": new Date()
+            "paymentBreakdowns.$[].paid_at": new Date(),
+            "vendor_segments.$[].paymentBreakdowns.$[].status": "Paid",
+            "vendor_segments.$[].paymentBreakdowns.$[].paid_at": new Date()
           } 
         }
       );
-      console.log(`[VerifyPayment] Marked all breakdowns as Paid (${payment_type} payment) for order ${internalOrderId}`);
     }
 
     // Try to sanitize known names for chat logs, else default back
@@ -1102,8 +1084,8 @@ const verifyCustomerPayment = async (req, res) => {
             },
             vendorReceivable: {
               ...(existingEvent.payment_details?.vendorReceivable || {}),
-              total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining") 
-                ? (Number(receivableFromOrder) || existingEvent.payment_details?.vendorReceivable?.total) 
+              total: (payment_type.toLowerCase().includes("late") || payment_type === "remaining")
+                ? (Number(receivableFromOrder) || existingEvent.payment_details?.vendorReceivable?.total)
                 : (existingEvent.payment_details?.vendorReceivable?.total),
             }
           }
@@ -1122,26 +1104,37 @@ const verifyCustomerPayment = async (req, res) => {
 
       // Mark the specific breakdown as Paid in the array
       const updateOptions = { new: true };
-      
+
       if (payment_type === "remaining" || payment_type === "full") {
         updateData.$set["payment_breakdowns.$[].status"] = "Paid";
         updateData.$set["payment_breakdowns.$[].paid_at"] = new Date();
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[b].status"] = "Paid";
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[b].paid_at"] = new Date();
+        updateOptions.arrayFilters = [
+           { "seg": { $exists: true } }, 
+           { "b": { $exists: true } }
+        ];
       } else if (payment_type) {
         updateData.$set["payment_breakdowns.$[elem].status"] = "Paid";
         updateData.$set["payment_breakdowns.$[elem].paid_at"] = new Date();
-        updateOptions.arrayFilters = [{ "elem.name": payment_type }];
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].status"] = "Paid";
+        updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].paid_at"] = new Date();
+        updateOptions.arrayFilters = [
+           { "elem.name": payment_type },
+           { "seg": { $exists: true } }
+        ];
       }
 
       await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
-      
+
       // Also silently mark 0-amount Token as Paid unconditionally for Event
       await Events.updateMany(
         { event_id },
-        { 
-          $set: { 
+        {
+          $set: {
             "payment_breakdowns.$[elem].status": "Paid",
             "payment_breakdowns.$[elem].paid_at": new Date()
-          } 
+          }
         },
         { arrayFilters: [{ "elem.name": { $regex: /token/i }, "elem.amount": { $in: [0, "0", null] } }] }
       );
@@ -1154,6 +1147,7 @@ const verifyCustomerPayment = async (req, res) => {
       console.log(`[VerifyPayment] No existing event found. Creating NEW event ${event_id} for Customer ID: ${finalCustomerId} | Order ID: ${internalOrderId}`);
       const preBooking = new Events({
         event_id: event_id,
+        order_id: internalOrderId,
         customer_id: finalCustomerId,
         vendor_id: vendor_id,
         service_id: service_id,
@@ -1212,6 +1206,17 @@ const verifyCustomerPayment = async (req, res) => {
             return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
           }
           return b;
+        }),
+        vendor_segments: (finalOrder?.vendor_segments || []).map(seg => {
+            const updatedBreakdowns = (seg.paymentBreakdowns || []).map(b => {
+                const isMatching = payment_type === "full" || payment_type === "remaining" || (b.name && b.name === payment_type);
+                const isZeroToken = (b.name && b.name.toLowerCase().includes("token") && Number(b.amount) === 0);
+                if (isMatching || isZeroToken) {
+                    return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
+                }
+                return b;
+            });
+            return { ...seg, paymentBreakdowns: updatedBreakdowns };
         }),
         order_id: internalOrderId,
       });
@@ -1391,13 +1396,21 @@ const verifyCustomerPayment = async (req, res) => {
       vendorLink,
       event_id: event_id,
       transaction_id: order_id,
-      serviceData: serviceSnapshot,      // NEW: full service data into paymentDetails
+      serviceData: serviceData,      // NEW: full service data into paymentDetails
     };
 
     const sqsMessage = {
       type: "bookingPayment",
       customer: customerPayload,
-      vendor: vendorPayload,
+      vendor: vendorPayload, // Primary vendor for backward compatibility
+      vendor_segments: vendorSegments.map(seg => ({
+        vendor_id: seg.vendor_id,
+        service_id: seg.service_id,
+        vendor_name: seg.vendor_name,
+        paymentDetails: seg.paymentDetails,
+        paymentBreakdowns: seg.paymentBreakdowns,
+        serviceData: seg.serviceData || {} // Ensure we pass the snapshot
+      })),
       paymentDetails: paymentDetailsMsg,
     };
 

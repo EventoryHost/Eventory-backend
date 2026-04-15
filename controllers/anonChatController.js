@@ -221,7 +221,7 @@ export const initializeAnonymousChat = async (req, res) => {
             chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
-            message_content: "Hey there! Thanks for choosing Eventory. We're here to make your event planning simple and stress-free.",
+            message_content: "Hey there! Welcome to Eventory - your personal event planning companion. Let's get your dream event rolling. It'll only take 2 minutes!",
             message_type: "text",
           });
 
@@ -234,7 +234,7 @@ export const initializeAnonymousChat = async (req, res) => {
         } catch (err) {
           console.error("Error sending first greeting message:", err);
         }
-      }, 1500);
+      }, 500);
 
       // 2. Delayed second message (3.5 seconds total - 1.5s + 2s)
       setTimeout(async () => {
@@ -244,14 +244,14 @@ export const initializeAnonymousChat = async (req, res) => {
             chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
-            message_content: "Please select your event type",
+            message_content: "First things first - what are we celebrating?",
             message_type: "options",
             options: [
-              { label: "Wedding", value: "Wedding" },
               { label: "Birthday", value: "Birthday" },
-              { label: "Corporate", value: "Corporate" },
               { label: "Anniversary", value: "Anniversary" },
-              { label: "Other", value: "Other" },
+              { label: "Social Gathering", value: "Social Gathering" },
+              { label: "Corporate Event", value: "Corporate Event" },
+              { label: "Something else", value: "Something else" },
             ],
           });
 
@@ -264,7 +264,7 @@ export const initializeAnonymousChat = async (req, res) => {
         } catch (err) {
           console.error("Error sending delayed options message:", err);
         }
-      }, 3500);
+      }, 2500);
     } else if (messageCount > 0 || chat.is_auto_initialised) {
       // Ensure flag is set if we have messages (sanity check)
       if (!chat.is_auto_initialised) {
@@ -491,6 +491,7 @@ export const sendAnonymousMessage = async (req, res) => {
     // --- INTERACTIVE FLOW LOGIC ---
     // Now applies to both anonymous and logged-in customers.
     if (chatType === "anon_customer-admin" || chatType === "customer-admin") {
+      console.log(`[STAB] Calling handleInteractiveMessage for chat: ${chat.chat_id}, sender: ${sender_id}`);
       await handleInteractiveMessage(
         chat.chat_id,
         sender_id,
@@ -568,7 +569,6 @@ export const getAnonymousMessages = async (req, res) => {
     // Only get the current active chat. 
     // If completed chats exist, we DO NOT show them to start fresh.
     const chat = await Chat.findOne(chatQuery).select("chat_id");
-    console.log("DEBUG [getMessages]: Found Chat for query:", chatQuery, chat ? chat.chat_id : "NULL");
 
     if (!chat) {
       return res.status(200).json({ messages: [], hasMore: false });
@@ -584,14 +584,10 @@ export const getAnonymousMessages = async (req, res) => {
     if (cursor) {
       query._id = { $lt: cursor }; // Using $lt for descending sort (newest first)
     }
-    console.log("DEBUG [getMessages]: Message Query:", query);
-
     const messages = await Message.find(query)
       .sort({ createdAt: -1 }) // Newest first
       .limit(limit + 1)
       .lean();
-
-    console.log("DEBUG [getMessages]: Messages found count:", messages.length);
 
     let hasMore = false;
     let nextCursor = null;
