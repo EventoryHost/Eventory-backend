@@ -103,9 +103,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         const genericGreetings = ["hi", "hello", "hey", "hii", "hey there", "hola", "yo"];
         const isGreeting = genericGreetings.includes(lowerContent);
 
-        // STEP 2: Event Type Selection (Start flow if it's a known type OR any significant custom message when no enquiry exists)
-        if ((!enquiry || enquiry.status === "OPEN") && (isKnownEventType || (!enquiry && !isGreeting && normalizedContent.length > 2))) {
-            console.log(`[CHAT_SERVICE] Step 2: Handling Event Type selection. Match: ${isKnownEventType ? "keyword" : "custom"}`);
+        // STEP 2: Event Type Selection (Start flow if it's a known type OR any custom message)
+        if (!enquiry || enquiry.status === "OPEN") {
+            console.log(`[CHAT_SERVICE] Step 2: Handling Event Type selection. Match: custom string`);
 
             if (enquiry) {
                 enquiry.event_type = normalizedContent;
@@ -128,9 +128,9 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             return;
         }
 
-        // AGGRESSIVE SAFETY CHECK: If no enquiry exists and it wasn't an event selection, we can't proceed
+        // AGGRESSIVE SAFETY CHECK: If no enquiry exists we can't proceed
         if (!enquiry) {
-            console.warn(`[CHAT_INTERACTIVE] No active enquiry found for user: ${userId} and message didn't match event types. Skipping. Content: "${normalizedContent}"`);
+            console.warn(`[CHAT_INTERACTIVE] No active enquiry found for user: ${userId}. Skipping. Content: "${normalizedContent}"`);
             return;
         }
 
@@ -139,8 +139,7 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             const dateMatch = normalizedContent.match(/\d{4}-\d{2}-\d{2}/);
             const isExploring = lowerContent === "still exploring - not sure yet" || lowerContent === "still_exploring";
 
-            if (!dateMatch && !isExploring) return;
-
+            // If random text is entered, proceed with null date instead of getting stuck
             enquiry.event_date = dateMatch ? new Date(dateMatch[0]) : null;
             enquiry.status = "COLLECTING_LOCATION";
             await enquiry.save();
