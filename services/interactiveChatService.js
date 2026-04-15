@@ -358,7 +358,14 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
         // STEP 9b: Phone -> Call Time
         if (enquiry.status === "COLLECTING_PHONE") {
-            enquiry.phone_number = normalizedContent;
+            // Validate: must be exactly 10 digits and start with 6, 7, 8, or 9
+            const digitsOnly = normalizedContent.replace(/\D/g, "");
+            if (digitsOnly.length !== 10 || /^[0-5]/.test(digitsOnly)) {
+                await sendMessage("Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9).");
+                return;
+            }
+
+            enquiry.phone_number = digitsOnly;
             enquiry.status = "COLLECTING_CALL_TIME";
             await enquiry.save();
             await syncEnquiryToChat();
