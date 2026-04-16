@@ -28,7 +28,7 @@ export default function chatRoutes(io) {
 router.get("/:chatId/messages", getMessagesByChatId);
 
 //2. Upload media to a chat
-router.post("/upload-media", upload("chat").single("file"), uploadChatMedia);
+router.post("/upload-media", upload("chat").array("files", 10), uploadChatMedia);
 
 //3. Search messages within a chat
 router.get("/:chatId/search", searchMessages);

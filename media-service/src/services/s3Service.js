@@ -140,10 +140,10 @@ export const uploadToS3 = async ({
 
   console.log("Uploaded to S3:", { originalUrl, previewUrl });
 
-  const cloudfrontDomain = process.env.CLOUDFRONT_URL || "";
+  const cloudfrontDomain = (process.env.CLOUDFRONT_URL || "").replace(/\/$/, "");
 
   return {
-    originalUrl: `${cloudfrontDomain}${originalKey}`,
-    previewUrl: `${cloudfrontDomain}${previewKey}`,
+    originalUrl: `${cloudfrontDomain}/${originalKey}`,
+    previewUrl: `${cloudfrontDomain}/${previewKey}`,
   };
 };
