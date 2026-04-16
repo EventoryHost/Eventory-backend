@@ -1,5 +1,5 @@
-import { checkProfanity } from "../middlewares/checkPhoneNumber.js";
-import { checkPhoneNumber } from "../middlewares/checkProfanity.js";
+import { checkPhoneNumber } from "../middlewares/checkPhoneNumber.js";
+import { checkProfanity } from "../middlewares/checkProfanity.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
 import APIFeatures from "../utils/apiFeatures.js";
@@ -7,6 +7,10 @@ import mongoose from "mongoose";
 import { checkEmails } from "../middlewares/checkEmails.js";
 import customerNotification from "../models/customerNotifications.js";
 import { updateEnquiryWithMessage } from "./vendorEnquiryController.js";
+import fs from "fs";
+import { s3 } from "../config/awsConfig.js";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getFolderName } from "../middlewares/uploads.js";
 import { handleInteractiveMessage } from "../services/interactiveChatService.js";
 
 export const handleSocketConnection = (socket, io) => {
@@ -171,7 +175,9 @@ export const handleSocketConnection = (socket, io) => {
         const systemMessageTypes = ["vendor_card", "approval_request", "order", "system", "options", "order_summary", "login_prompt", "review_prompt"];
 
         if (!systemMessageTypes.includes(message_type)) {
-          if (checkPhoneNumber(message_content) || checkEmails(message_content)) {
+          const isInteractiveChat = ["anon_customer-admin", "customer-admin"].includes(chat_type);
+          
+          if (!isInteractiveChat && (checkPhoneNumber(message_content) || checkEmails(message_content))) {
             console.log("Personal information detected:", message_content);
             if (typeof callback === "function") {
               callback("Please refrain from sharing personal information!");
@@ -343,13 +349,8 @@ export const handleSocketConnection = (socket, io) => {
           callback(null, savedMessage);
         }
 
-        // ------------------- INTERACTIVE FLOW (AUTO-REPLY) -------------------
-        console.log(`[DEBUG] Interactive check: chat_type=${chat_type}, sender=${sender}, content="${message_content}"`);
-        if ((chat_type === "anon_customer-admin" && sender === "anonymous_customer") || 
-            (chat_type === "customer-admin" && sender === "customer")) {
-            // We need the ID. 
-            // In socket send_message, we have sender_id which is the anon_customer_id or customer_id.
-            console.log(`[FLOW 4 PRE] Triggering handleInteractiveMessage for chat_id=${chat_id}`);
+        if (((chat_type === "anon_customer-admin" && sender === "anonymous_customer") || 
+            (chat_type === "customer-admin" && sender === "customer")) && !attachment_url) {
             await handleInteractiveMessage(chat_id, sender_id, message_content?.trim(), io);
         }
       } catch (err) {
@@ -769,58 +770,87 @@ export const getMessageContext = async (req, res) => {
   }
 };
 
-export const uploadChatMedia = (req, res) => {
+export const uploadChatMedia = async (req, res) => {
   try {
-    if (!req.file) {
-      console.error("No file received in upload request");
-      return res.status(400).json({ error: "No file uploaded" });
+    const files = req.files || (req.file ? [req.file] : []);
+    if (files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
     }
 
-    // Log more details about the incoming file
-    console.log("Server received file for upload:", {
-      originalname: req.file.originalname,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-      key: req.file.key,
-      timestamp: req.body.timestamp || "none",
-    });
+    const bucket = process.env.AWS_S3_BUCKET_NAME;
 
-    // Make sure we have a key for the file
-    const fileKey = req.file.key;
-    if (!fileKey) {
-      console.error("No file key present in uploaded file");
-      return res
-        .status(500)
-        .json({ error: "File upload failed - no file key" });
+    const results = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const fileStream = fs.createReadStream(file.path);
+          const stats = fs.statSync(file.path);
+          const folder = getFolderName(file.mimetype);
+          const fileKey = `chat/media/${folder}${file.filename}`;
+
+          const command = new PutObjectCommand({
+            Bucket: bucket,
+            Key: fileKey,
+            Body: fileStream,
+            ContentType: file.mimetype,
+            ContentLength: stats.size,
+            ACL: "public-read",
+          });
+
+          await s3.send(command);
+          console.log(`Successfully uploaded file to S3 via PutObject. URL: ${fileKey}`);
+
+          // Generate CloudFront URL using env var (required in prod) with clean fallback
+          const timestamp = req.body.timestamp || Date.now();
+          const cfBase = (process.env.CLOUDFRONT_URL || "https://d1u34m45xfa3ar.cloudfront.net").replace(/\/$/, "");
+          const cloudFrontUrl = `${cfBase}/${fileKey}?t=${timestamp}`;
+
+          // Determine content type
+          let contentType = "file";
+          const mimeType = file.mimetype || "";
+          if (mimeType.startsWith("image/")) contentType = "image";
+          else if (mimeType.startsWith("video/")) contentType = "video";
+          else if (mimeType === "application/pdf") contentType = "pdf";
+
+          // Cleanup local file
+          try {
+            fs.unlinkSync(file.path);
+          } catch (unlinkErr) {
+            console.error("Error deleting local file after S3 upload:", unlinkErr);
+          }
+
+          return {
+            attachment_url: cloudFrontUrl,
+            url: cloudFrontUrl,
+            message_type: contentType,
+            original_name: file.originalname,
+          };
+        } catch (fileErr) {
+          console.error(`Error uploading individual file ${file.originalname}:`, fileErr);
+          throw fileErr;
+        }
+      })
+    );
+
+    // Provide backward compatible response if only one file was uploaded
+    if (results.length === 1) {
+      return res.status(200).json({
+        message: "File uploaded successfully",
+        ...results[0],
+        files: results
+      });
     }
 
-    // Generate URL with timestamp if provided to prevent caching
-    const timestamp = req.body.timestamp || Date.now();
-    const cloudFrontUrl = `https://d1u34m45xfa3ar.cloudfront.net/${fileKey}?t=${timestamp}`;
-
-    // Determine content type based on mime type
-    let contentType = "file";
-    const mimeType = req.file.mimetype || "";
-
-    if (mimeType.startsWith("image/")) {
-      contentType = "image";
-    } else if (mimeType.startsWith("video/")) {
-      contentType = "video";
-    } else if (mimeType === "application/pdf") {
-      contentType = "pdf";
-    }
-
-    console.log(`Successfully processed file upload. URL: ${cloudFrontUrl}`);
-
-    return res.status(200).json({
-      message: "File uploaded successfully",
-      attachment_url: cloudFrontUrl,
-      message_type: contentType,
-      original_name: req.file.originalname,
+    res.status(200).json({
+      message: "Files uploaded successfully",
+      files: results,
+      // Fallback for single file extractors using the first file
+      attachment_url: results[0].attachment_url,
+      message_type: results[0].message_type,
+      url: results[0].url
     });
   } catch (error) {
-    console.error("Error uploading chat media:", error);
-    return res.status(500).json({ error: "Failed to upload media" });
+    console.error("Error in uploadChatMedia:", error);
+    res.status(500).json({ error: "Error uploading media to S3", details: error.message });
   }
 };
 export const pinMessageInChat = async (req, res) => {

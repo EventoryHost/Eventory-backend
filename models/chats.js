@@ -72,6 +72,10 @@ const chatSchema = new Schema({
   is_auto_initialised: {
     type: Boolean,
     default: false
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   collection: 'chat2'
