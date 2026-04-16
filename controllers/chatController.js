@@ -799,17 +799,10 @@ export const uploadChatMedia = async (req, res) => {
           await s3.send(command);
           console.log(`Successfully uploaded file to S3 via PutObject. URL: ${fileKey}`);
 
-          // Generate URL with domain fallback based on environment
+          // Generate CloudFront URL using env var (required in prod) with clean fallback
           const timestamp = req.body.timestamp || Date.now();
-          
-          let domainFallback = "https://d5b8uhuzdzhj3.cloudfront.net"; // Default (Prod)
-          if (bucket === "eventory-bucket") {
-            domainFallback = "https://d1u34m45xfa3ar.cloudfront.net"; // Dev
-          }
-
-          const cloudFrontDomain = process.env.CLOUDFRONT_URL || domainFallback;
-          const baseUrl = cloudFrontDomain.endsWith("/") ? cloudFrontDomain.slice(0, -1) : cloudFrontDomain;
-          const cloudFrontUrl = `${baseUrl}/${fileKey}?t=${timestamp}`;
+          const cfBase = (process.env.CLOUDFRONT_URL || "https://d1u34m45xfa3ar.cloudfront.net").replace(/\/$/, "");
+          const cloudFrontUrl = `${cfBase}/${fileKey}?t=${timestamp}`;
 
           // Determine content type
           let contentType = "file";
