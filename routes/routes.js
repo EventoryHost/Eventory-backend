@@ -46,6 +46,7 @@ import anonChatRoutes from "../routes/anonChatRoutes.js";
 import anonUserRoutes from "../routes/anonUserRoutes.js";
 import vendorPreferenceRoutes from "../routes/vendorPreferences.js";
 import anonOrderRoutes from "../routes/anonOrderRoutes.js";
+import shortLinkRoutes from "../routes/ShortLinkRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -97,6 +98,7 @@ router.use("/device-tokens", deviceTokenRoutes);
 router.use("/webhook", waRoutes);
 router.use("/whatsapp", whatsappRoutes);
 router.use("/vendor-preferences", vendorPreferenceRoutes);
+router.use("/shortlink", shortLinkRoutes);
 
 return router;
 }
