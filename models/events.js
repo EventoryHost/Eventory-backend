@@ -212,7 +212,7 @@ const eventsSchema = new mongoose.Schema({
       validator: function (v) {
         if (!v) return true; // Allow empty
         const stripped = v.replace(/^(\+91|91|0)/, '');
-        return /^[6-9]\d{9}$/.test(stripped);
+        return /^\d{10}$/.test(stripped);
       },
       message: 'Vendor manager contact must be a valid 10-digit number'
     }
@@ -233,7 +233,7 @@ const eventsSchema = new mongoose.Schema({
       validator: function (v) {
         if (!v) return true; // Allow empty
         const stripped = v.replace(/^(\+91|91|0)/, '');
-        return /^[6-9]\d{9}$/.test(stripped);
+        return /^\d{10}$/.test(stripped);
       },
       message: 'Customer contact must be a valid 10-digit number'
     }

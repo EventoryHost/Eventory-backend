@@ -44,7 +44,7 @@ const eventManagerSchema = new Schema({
     required: true,
     validate: {
       validator: function (v) {
-        return /^[6-9]\d{9}$/.test(v);
+        return /^\d{10}$/.test(v);
       },
       message: 'Invalid contact number format'
     }
