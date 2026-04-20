@@ -104,8 +104,8 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
         const isGreeting = genericGreetings.includes(lowerContent);
 
         // STEP 2: Event Type Selection (Start flow if it's a known type OR any custom message)
-        if (!enquiry || enquiry.status === "OPEN") {
-            console.log(`[CHAT_SERVICE] Step 2: Handling Event Type selection. Match: custom string`);
+        if (!enquiry || enquiry.status === "OPEN" || isKnownEventType) {
+            console.log(`[CHAT_SERVICE] Step 2: Handling Event Type selection. Match: ${isKnownEventType ? "keyword" : "custom string"}`);
 
             if (enquiry) {
                 enquiry.event_type = normalizedContent;
