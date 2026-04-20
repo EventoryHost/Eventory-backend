@@ -167,6 +167,9 @@ export const createBooking = async (req, res) => {
         tax_type: it?.tax_type,
         tax_amount: asNumber(it?.tax_amount, 0),
         total_amount: asNumber(it?.total_amount, 0),
+        vendor_id: it?.vendor_id || null,
+        service_id: it?.service_id || null,
+        vendor_name: it?.vendor_name || null,
       }))
       : [];
 
