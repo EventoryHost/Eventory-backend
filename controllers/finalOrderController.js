@@ -151,20 +151,26 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       }
       updateFields.specificTerms = [...allTerms];
 
-      // 4.5 Proportionally allocate vendor commission to each breakdown
+      // 4.5 Assign vendor commission ONLY to the final breakdown (Final Pay / last milestone)
+      // Commission must not be deducted from Token or Advance payouts
       for (const seg of vendor_segments) {
         const segBreakdowns = seg.paymentBreakdowns || [];
         const validBreakdowns = segBreakdowns.filter(b => b.name !== 'Discount');
-        const segTotalBase = validBreakdowns.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
         
         const overallCommission = Number(seg.paymentDetails?.vendorReceivable?.commission) || 0;
+        const overallTaxOnCommission = Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) || 0;
+        const totalCommission = overallCommission + overallTaxOnCommission;
         
-        for (const b of validBreakdowns) {
+        // Find the last milestone (Final Pay preferred, otherwise the actual last one)
+        const finalIdx = validBreakdowns.findIndex(b => b.name === 'Final Pay');
+        const lastIdx = finalIdx !== -1 ? finalIdx : validBreakdowns.length - 1;
+        
+        for (let i = 0; i < validBreakdowns.length; i++) {
+          const b = validBreakdowns[i];
           const amt = Number(b.amount) || 0;
           b.vendor_base_amount = amt;
-          if (segTotalBase > 0) {
-            const ratio = amt / segTotalBase;
-            b.vendor_commission = Number((overallCommission * ratio).toFixed(2));
+          if (i === lastIdx) {
+            b.vendor_commission = Number(totalCommission.toFixed(2));
           } else {
             b.vendor_commission = 0;
           }

@@ -825,8 +825,8 @@ export const resetAnonymousChat = async (req, res) => {
     chat.chat_status = "FINISHED";
     await chat.save();
 
-    // Also close any OPEN or PROCESSING enquiries for this user to ensure fresh start
-    let enquiryQuery = { status: { $in: ["OPEN", "PROCESSING"] } };
+    // Also close any unfinished enquiries for this user to ensure fresh start
+    let enquiryQuery = { status: { $nin: ["CLOSED", "CONVERTED"] } };
     if (chatType === "customer-admin") {
       enquiryQuery.customer_id = userId;
     } else {

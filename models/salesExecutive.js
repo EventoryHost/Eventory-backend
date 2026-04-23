@@ -44,7 +44,7 @@ const salesExecutiveSchema = new Schema({
     validate: {
       validator: function (v) {
         if (!v) return true;
-        return /^[6-9]\d{9}$/.test(v);
+        return /^\d{10}$/.test(v);
       },
       message: 'Invalid contact number format'
     }

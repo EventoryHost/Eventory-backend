@@ -1278,6 +1278,9 @@ const verifyCustomerPayment = async (req, res) => {
       name: c.name_of_service || `Item ${idx + 1}`,
       type: finalOrder?.event_type || "-",
       amount: String(Number(N(c.total_amount).toFixed(2))),
+      vendor_id: c.vendor_id || null,
+      service_id: c.service_id || null,
+      vendor_name: c.vendor_name || null,
     }));
 
     const discountForInvoice = Math.max(0, Number(discountAbs.toFixed(2)));

@@ -533,6 +533,15 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     let totalTaxAmount = 0;
     let totalGrossAmount = 0;
 
+    // Build a map for Vendor Serials to maintain anonymity
+    const vendorSerialMap = new Map();
+    let currentVendorSerial = 1;
+    items.forEach(item => {
+        if (item.vendor_id && !vendorSerialMap.has(item.vendor_id)) {
+            vendorSerialMap.set(item.vendor_id, currentVendorSerial++);
+        }
+    });
+
     items.forEach((item) => {
       const gross = Number(item.amount) || 0;
       const net = gross / 1.18;
@@ -542,12 +551,17 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       totalTaxAmount += tax;
       totalGrossAmount += gross;
 
+      let displayName = item.name || item.name_of_service || "Item";
+      if (item.vendor_id && vendorSerialMap.has(item.vendor_id)) {
+          displayName = `Vendor ${vendorSerialMap.get(item.vendor_id)} - ${displayName}`;
+      }
+
       if (isDelhiCustomer) {
         const half = tax / 2;
         tableRows += `
           <tr>
             <td style="text-align:center;">${runningSerial}</td>
-            <td>${item.name || "Item"}</td>
+            <td>${displayName}</td>
             <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
             <td style="text-align:center;">9%</td>
             <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
@@ -560,7 +574,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         tableRows += `
           <tr>
             <td style="text-align:center;">${runningSerial}</td>
-            <td>${item.name || "Item"}</td>
+            <td>${displayName}</td>
             <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
             <td style="text-align:center;">18%</td>
             <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
@@ -619,8 +633,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
        </tr>`
       : "";
 
-    const previousPaymentsNum = (paymentDetails.alreadyPaidAmount && Number(paymentDetails.alreadyPaidAmount) > paidAmountNum) 
-      ? Number(paymentDetails.alreadyPaidAmount) - paidAmountNum 
+    const previousPaymentsNum = (paymentDetails.alreadyPaidAmount && Number(paymentDetails.alreadyPaidAmount) > paidAmountNum)
+      ? Number(paymentDetails.alreadyPaidAmount) - paidAmountNum
       : 0;
 
     const previousPaymentsRow = previousPaymentsNum > 0
@@ -631,10 +645,17 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
        </tr>`
       : "";
 
+    const ccfTax = Number(paymentDetails.customerPayable?.taxOnConvenience) || (convinienceFee - (convinienceFee / 1.18));
+    const ccfBase = convinienceFee - ccfTax;
+
     let totalRow = `
        <tr class="total-row">
-         <td colspan="${colspan}" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Convenience Fee:</td>
-         <td style="font-weight:bold;border-top: 2px solid #000; text-align:center;">Rs ${convinienceFee.toFixed(2)}</td>
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;border-top: 2px solid #000;">Total convenience:</td>
+         <td style="font-weight:bold;border-top: 2px solid #000; text-align:center;">Rs ${ccfBase.toFixed(2)}</td>
+       </tr>
+       <tr class="total-row">
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Total GST on convenience:</td>
+         <td style="font-weight:bold; text-align:center;">Rs ${ccfTax.toFixed(2)}</td>
        </tr>
        ${discountTotalsRow}
        <tr class="total-row">
@@ -800,12 +821,12 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const vendorSegments = (paymentDetails.vendor_segments && paymentDetails.vendor_segments.length > 0)
       ? paymentDetails.vendor_segments
       : [{
-          vendor_id: vendor.id,
-          service_id: paymentDetails.service_id || paymentDetails.serviceId || "BOOKING_SERVICE",
-          vendor_name: vendor.businessDetails?.businessName || "Vendor",
-          paymentDetails: paymentDetails,
-          serviceData: paymentDetails.serviceData || {}
-        }];
+        vendor_id: vendor.id,
+        service_id: paymentDetails.service_id || paymentDetails.serviceId || "BOOKING_SERVICE",
+        vendor_name: vendor.businessDetails?.businessName || "Vendor",
+        paymentDetails: paymentDetails,
+        serviceData: paymentDetails.serviceData || {}
+      }];
 
     console.log(`[Invoicing] Generating invoices for ${vendorSegments.length} vendor segment(s)`);
 
@@ -818,7 +839,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       // Calculate segment-specific totals
       const segCommission = Number(segment.paymentDetails?.vendorReceivable?.commission || 0);
       const segTotalReceivable = Number(segment.paymentDetails?.vendorReceivable?.total || 0);
-      
+
       // Calculate share of paid amount for this vendor
       // If it's a full payment, they get their total share.
       // If partial, we derive it from their share of this specific milestone (available in paymentBreakdowns)
@@ -833,8 +854,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       // If zero paid for this vendor in this milestone, skip their specific invoice for now?
       // Actually, we should probably generate it anyway if it's a booking event.
       if (segPaidAmount <= 0 && ptLower !== "full") {
-          console.log(`[Invoicing] Skipping vendor invoice for ${segVendorId} as paid amount is 0`);
-          continue;
+        console.log(`[Invoicing] Skipping vendor invoice for ${segVendorId} as paid amount is 0`);
+        continue;
       }
 
       tableRows = "";
