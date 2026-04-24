@@ -462,6 +462,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         ? "Eventory-Coupon-Code"
         : paymentDetails.method || "Online";
     const paymentType = paymentDetails.paymentType || null;
+    // Clean "Advance 1" → "Advance" for display (strip trailing digit when only one advance)
+    const paymentTypeDisplay = paymentType ? paymentType.replace(/^(Advance)\s*\d*$/i, '$1') : null;
 
     // Generate a filename-friendly payment label from paymentType
     const paymentLabel = (() => {
@@ -664,7 +666,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
        </tr>
        ${previousPaymentsRow}
        <tr class="total-row">
-         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Paid (${(paymentType || 'Full').replace(/([a-z])(\d)/g, '$1 $2').toUpperCase()}):</td>
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Paid (${(paymentTypeDisplay || 'Full').replace(/([a-z])(\d)/g, '$1 $2').toUpperCase()}):</td>
          <td style="font-weight:bold; text-align:center;">Rs ${paidAmountNum.toFixed(2)}</td>
        </tr>
        ${balanceRow}

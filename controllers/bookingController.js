@@ -391,6 +391,42 @@ export const createBooking = async (req, res) => {
       console.error("[BOOKING] Failed to map paymentBreakdowns paid status:", paymentBreakdownErr);
     }
 
+    // Handle zero-amount breakdowns (e.g., ₹0 Token) that come pre-marked as "Paid" from frontend
+    try {
+      if (Array.isArray(paymentBreakdowns) && paymentBreakdowns.length > 0) {
+        const zeroAmountPaid = paymentBreakdowns.filter(
+          (b) => b.status === "Paid" && Number(b.amount || 0) === 0
+        );
+        for (const zb of zeroAmountPaid) {
+          if (!zb.name) continue;
+          console.log(`[BOOKING] Marking zero-amount breakdown "${zb.name}" as Paid on Order for ${effectiveQuotationId}`);
+
+          const zeroUpdateQuery = {
+            $set: {
+              "paymentBreakdowns.$[elem].status": "Paid",
+              "paymentBreakdowns.$[elem].paid_at": new Date(),
+            },
+          };
+          const zeroArrayFilters = [{ "elem.name": zb.name }];
+          const zeroUpdateOptions = { arrayFilters: zeroArrayFilters };
+
+          await Order.updateMany(
+            { quotation_id: effectiveQuotationId },
+            zeroUpdateQuery,
+            zeroUpdateOptions
+          ).catch(() => {});
+
+          await AnonCustomerOrder.updateMany(
+            { anon_order_id: effectiveQuotationId },
+            zeroUpdateQuery,
+            zeroUpdateOptions
+          ).catch(() => {});
+        }
+      }
+    } catch (zeroBreakdownErr) {
+      console.error("[BOOKING] Failed to update zero-amount breakdown status:", zeroBreakdownErr);
+    }
+
     // Handle anonymous order conversion if applicable
 
     // Fallback: If quotation_id is missing, try to find it via Order if event_id is an Order ID (ODR...)
