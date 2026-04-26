@@ -462,13 +462,15 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         ? "Eventory-Coupon-Code"
         : paymentDetails.method || "Online";
     const paymentType = paymentDetails.paymentType || null;
+    const isConsolidated = (paymentType || "").toLowerCase() === "consolidated";
     // Clean "Advance 1" → "Advance" for display (strip trailing digit when only one advance)
-    const paymentTypeDisplay = paymentType ? paymentType.replace(/^(Advance)\s*\d*$/i, '$1') : null;
+    const paymentTypeDisplay = isConsolidated ? "Full" : (paymentType ? paymentType.replace(/^(Advance)\s*\d*$/i, '$1') : null);
 
     // Generate a filename-friendly payment label from paymentType
     const paymentLabel = (() => {
       if (!paymentType) return "payment";
       const t = paymentType.toLowerCase().replace(/\s+/g, "");
+      if (t === "consolidated") return "consolidated";
       if (t === "token") return "token";
       if (t === "full") return "fullpay";
       if (t === "remaining") return "remaining";
@@ -478,6 +480,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       return t; // fallback: use normalized string
     })();
     const paidAmountNum = (() => {
+      if (isConsolidated) return finalAmount; // Consolidated = full amount
       const explicit = Number(paymentDetails.paidAmount || 0);
       const ptLower = (paymentType || "").toLowerCase();
       if (ptLower === "full") return finalAmount;
@@ -625,8 +628,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       </tr>`
         : "";
 
-    const alreadyPaidTotal = Number(paymentDetails.alreadyPaidAmount || paidAmountNum);
-    const balanceDue = Math.max(0, finalAmount - alreadyPaidTotal);
+    const alreadyPaidTotal = isConsolidated ? finalAmount : Number(paymentDetails.alreadyPaidAmount || paidAmountNum);
+    const balanceDue = isConsolidated ? 0 : Math.max(0, finalAmount - alreadyPaidTotal);
     const balanceRow = balanceDue > 0
       ? `
        <tr class="total-row">
@@ -635,9 +638,10 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
        </tr>`
       : "";
 
-    const previousPaymentsNum = (paymentDetails.alreadyPaidAmount && Number(paymentDetails.alreadyPaidAmount) > paidAmountNum)
-      ? Number(paymentDetails.alreadyPaidAmount) - paidAmountNum
-      : 0;
+    const previousPaymentsNum = isConsolidated ? 0
+      : ((paymentDetails.alreadyPaidAmount && Number(paymentDetails.alreadyPaidAmount) > paidAmountNum)
+        ? Number(paymentDetails.alreadyPaidAmount) - paidAmountNum
+        : 0);
 
     const previousPaymentsRow = previousPaymentsNum > 0
       ? `
@@ -750,6 +754,14 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       </div>
     `;
 
+    // For consolidated invoices, override the title
+    if (isConsolidated) {
+      html = html.replace(
+        '<h2><strong>INVOICE - {{invoiceCount}}</strong></h2>',
+        `<h2><strong>CONSOLIDATED INVOICE - {{invoiceCount}}</strong></h2>`
+      );
+    }
+
     html = html
       .replace("{{invoiceCount}}", invoiceNumber)
       .replace("{{paymentId}}", paymentId)
@@ -785,7 +797,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     // Decide invoice type for this payment
     const ptLower = (paymentType || "").toLowerCase();
-    const isFullOrFinal = ptLower === "full" || ptLower === "remaining" || ptLower.includes("final") || ptLower.includes("last");
+    const isFullOrFinal = ptLower === "full" || ptLower === "remaining" || ptLower.includes("final") || ptLower.includes("last") || ptLower === "consolidated";
     const invoiceType = isFullOrFinal ? "booking" : "advance_booking";
 
     const customerId = customer.id; // from customerPayload
@@ -846,7 +858,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       // If it's a full payment, they get their total share.
       // If partial, we derive it from their share of this specific milestone (available in paymentBreakdowns)
       let segPaidAmount = 0;
-      if (ptLower === "full" || ptLower === "remaining") {
+      if (isConsolidated || ptLower === "full" || ptLower === "remaining") {
         segPaidAmount = segTotalReceivable;
       } else {
         const milestone = (segment.paymentBreakdowns || []).find(b => b.name === paymentType);
@@ -922,6 +934,13 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       `;
 
       html = readFileSync(templatePath, "utf8");
+      // For consolidated invoices, override the vendor invoice title too
+      if (isConsolidated) {
+        html = html.replace(
+          '<h2><strong>INVOICE - {{invoiceCount}}</strong></h2>',
+          `<h2><strong>CONSOLIDATED INVOICE - {{invoiceCount}}</strong></h2>`
+        );
+      }
       html = html
         .replace("{{invoiceCount}}", invoiceNumber)
         .replace("{{paymentId}}", paymentId)
