@@ -1426,8 +1426,37 @@ const verifyCustomerPayment = async (req, res) => {
     }));
     console.log(`[VerifyPayment] SQS message sent successfully.`);
 
+    // ── Consolidated Invoice: detect fully_paid and send second SQS ──
     console.log("Invoice generated successfully");
     const updatedEvent = await Events.findOne({ event_id });
+    try {
+      const allBreakdownsPaid = updatedEvent?.payment_breakdowns?.length > 0 &&
+        updatedEvent.payment_breakdowns.every(b =>
+          b.status === "Paid" || Number(b.amount || 0) === 0
+        );
+
+      if (allBreakdownsPaid) {
+        console.log(`[VerifyPayment] All breakdowns paid for ${event_id}. Sending consolidated invoice SQS.`);
+        const consolidatedMsg = {
+          ...sqsMessage,
+          paymentDetails: {
+            ...paymentDetailsMsg,
+            paymentType: "Consolidated",
+            paidAmount: String(Number(finalAmount.toFixed(2))),
+            alreadyPaidAmount: String(Number(finalAmount.toFixed(2))),
+          },
+        };
+        await sqs.send(new SendMessageCommand({
+          QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
+            ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+            : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
+          MessageBody: JSON.stringify(consolidatedMsg),
+        }));
+        console.log(`[VerifyPayment] Consolidated invoice SQS sent for ${event_id}.`);
+      }
+    } catch (consolidatedErr) {
+      console.error(`[VerifyPayment] Failed to send consolidated invoice SQS:`, consolidatedErr.message);
+    }
     return res.status(200).json({
       message: "Customer payment verified",
       payment,

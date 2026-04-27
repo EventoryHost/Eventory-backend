@@ -303,8 +303,9 @@ export const createBooking = async (req, res) => {
               event_id: saved.event_id || saved._id,
               amount: 0,
               paidAmount: 0,
+              alreadyPaidAmount: 0, // Zero balance for free booking
               finalAmount: orderUpdatePayload.paymentDetails.customerPayable.total,
-              paymentType: "Token",
+              paymentType: "Consolidated", // Free bookings are always fully paid at creation
               method: "Free Booking",
               items: doc.final_order_items,
               transaction_id: trnId,
