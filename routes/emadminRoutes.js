@@ -2,6 +2,7 @@ import express from "express";
 import {
   authenticateEMAdmin,
   authenticateSalesAdmin,
+  authenticateBusinessAdmin,
   getEMNotifications,
   markAllNotificationsAsRead,
   getEMProfile,
@@ -77,6 +78,10 @@ router.post("/emauth", authenticateEMAdmin);
  *         description: Server error
  */
 router.post("/salesauth", authenticateSalesAdmin);
+
+// POST route for Business Admin authentication
+router.post("/businessauth", authenticateBusinessAdmin);
+
 
 /**
  * @swagger

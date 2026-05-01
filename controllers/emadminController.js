@@ -1,6 +1,7 @@
 import EventManager from "../models/eventManager.js";
 import EMNotifications from "../models/emNotifications.js";
 import SalesExecutive from "../models/salesExecutive.js";
+import BusinessAdmin from "../models/businessAdmin.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -151,6 +152,59 @@ export const authenticateSalesAdmin = async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+};
+
+/**
+ * Authenticate Business Admin user (plain-text password match)
+ */
+export const authenticateBusinessAdmin = async (req, res) => {
+  const { user_name, password } = req.body;
+
+  if (!user_name || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Username and password are required" });
+  }
+
+  try {
+    const user = await BusinessAdmin.findOne({
+      user_name: { $regex: new RegExp(`^${user_name}$`, 'i') }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Plain-text comparison
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      {
+        business_admin_id: user.business_admin_id,
+        user_name: user.user_name,
+        contact_name: user.contact_name,
+        role: "business",
+      },
+      JWT_SECRET
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Authenticated successfully",
+      token,
+      user: {
+        business_admin_id: user.business_admin_id,
+        user_name: user.user_name,
+        contact_name: user.contact_name,
+        role: "business",
+      },
+    });
+  } catch (err) {
+    console.error("Business Admin Auth error:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
