@@ -391,8 +391,7 @@ export const updateServiceDetails = async (req, res) => {
       console.log(`Service type detected from prefix ${prefix}: ${normalizedServiceType}`);
     }
     
-    // Handle DJ-Artist variations (with hyphen, space, capitals, etc.)
-    // Normalize all DJ variations to 'dj-artist' for consistent matching
+    // Normalize DJ variations to 'dj-artist'
     if (normalizedServiceType && (
       normalizedServiceType === 'dj-artist' ||
       normalizedServiceType === 'dj artist' ||
@@ -400,9 +399,18 @@ export const updateServiceDetails = async (req, res) => {
       normalizedServiceType === 'dj' ||
       (normalizedServiceType.includes('dj') && normalizedServiceType.includes('artist'))
     )) {
-      // Normalize all DJ variations to 'dj-artist'
       normalizedServiceType = 'dj-artist';
       console.log(`DJ Artist detected, normalized to: ${normalizedServiceType}`);
+    }
+
+    // Normalize venue provider variations to 'venue-provider'
+    if (normalizedServiceType && (
+      normalizedServiceType === 'venue provider' ||
+      normalizedServiceType === 'venueprovider' ||
+      normalizedServiceType === 'venue-provider'
+    )) {
+      normalizedServiceType = 'venue-provider';
+      console.log(`Venue Provider detected, normalized to: ${normalizedServiceType}`);
     }
     
     console.log(`Normalized service type: ${normalizedServiceType}`);
