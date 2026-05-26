@@ -191,6 +191,7 @@ export const createBooking = async (req, res) => {
       specific_terms: nonEmptyArray(specific_terms),
       final_amount: finalAmountNum,
       event_status: statusNorm || "booked",
+      vendor_name: req.body.vendor_name || vendor_segments?.[0]?.vendor_name || null,
       vendor_manager_name,
       customer_name,
       vendor_manager_contact_number,

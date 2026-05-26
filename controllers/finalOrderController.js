@@ -118,6 +118,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       const s0 = vendor_segments[0];
       if (!updateFields.vendor_id)          updateFields.vendor_id          = s0.vendor_id;
       if (!updateFields.service_id)         updateFields.service_id         = s0.service_id;
+      if (!updateFields.vendor_name)        updateFields.vendor_name        = s0.vendor_name;
       if (!updateFields.vendor_manager_name) updateFields.vendor_manager_name = s0.vendor_manager_name;
       if (!updateFields.vendor_manager_contact_number)
         updateFields.vendor_manager_contact_number = s0.vendor_manager_contact_number;
