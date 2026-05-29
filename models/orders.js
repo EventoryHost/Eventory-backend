@@ -168,6 +168,7 @@ const vendorSegmentSchema = new Schema({
   event_start: Date,
   event_end: Date,
   event_location: String,
+  vendor_location: String,
   location_type: { type: String, enum: ['indoor', 'outdoor', 'INDOOR', 'OUTDOOR'] },
   final_guest_count: Number,
 
@@ -273,6 +274,10 @@ const ordersSchema = new Schema({
   event_location: {
     type: String,
     // required relaxed — derived from vendor_segments[0] for multi-vendor orders
+  },
+  vendor_location: {
+    type: String,
+    // explicitly defined location for custom vendors
   },
   final_amount: {
     type: Number,

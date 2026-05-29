@@ -118,6 +118,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       const s0 = vendor_segments[0];
       if (!updateFields.vendor_id)          updateFields.vendor_id          = s0.vendor_id;
       if (!updateFields.service_id)         updateFields.service_id         = s0.service_id;
+      if (!updateFields.vendor_name)        updateFields.vendor_name        = s0.vendor_name;
       if (!updateFields.vendor_manager_name) updateFields.vendor_manager_name = s0.vendor_manager_name;
       if (!updateFields.vendor_manager_contact_number)
         updateFields.vendor_manager_contact_number = s0.vendor_manager_contact_number;
@@ -127,6 +128,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       if (!updateFields.event_start)        updateFields.event_start    = s0.event_start;
       if (!updateFields.event_end)          updateFields.event_end      = s0.event_end;
       if (!updateFields.event_location)     updateFields.event_location = s0.event_location;
+      if (!updateFields.vendor_location)    updateFields.vendor_location = s0.vendor_location;
       if (!updateFields.location_type)      updateFields.location_type  = s0.location_type;
       if (!updateFields.final_guest_count)  updateFields.final_guest_count = s0.final_guest_count;
 
@@ -258,6 +260,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         if (updateFields.event_start) eventSyncFields.event_start = updateFields.event_start;
         if (updateFields.event_end) eventSyncFields.event_end = updateFields.event_end;
         if (updateFields.event_location) eventSyncFields.event_location = updateFields.event_location;
+        if (updateFields.vendor_location) eventSyncFields.vendor_location = updateFields.vendor_location;
         if (updateFields.location_type) eventSyncFields.location_type = updateFields.location_type;
         if (updateFields.final_guest_count != null) eventSyncFields.final_guest_count = updateFields.final_guest_count;
         if (updateFields.customer_name) eventSyncFields.customer_name = updateFields.customer_name;

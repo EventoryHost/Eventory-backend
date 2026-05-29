@@ -41,6 +41,10 @@ const clientSecret = process.env.CASHFREE_CLIENT_SECRET_PG;
 const cashfree = process.env.IS_DEV === "true" ? new Cashfree(CFEnvironment.SANDBOX, `${clientId}`, `${clientSecret}`) :
   new Cashfree(CFEnvironment.PRODUCTION, `${clientId}`, `${clientSecret}`);
 
+// Non-onboarded vendor constants (environment-aware)
+const NON_ONBOARDED_VENDOR_ID = process.env.IS_DEV === "true" ? "VEN04012026001126960" : "VEN05012026111140552";
+const NON_ONBOARDED_SERVICE_ID = process.env.IS_DEV === "true" ? "CAT04012026002741768" : "VNP05012026115907886";
+
 const createOrder = async (req, res) => {
 
   var { amount, currency, customer_details } = req.body;
@@ -78,6 +82,7 @@ const createOrder = async (req, res) => {
       else if (prefix.startsWith("MKA")) serviceModel = MakeupArtist;
       else if (prefix.startsWith("DJS")) serviceModel = DjArtist;
 
+      // Do not skip bank details check for non-onboarded vendor, the generic IDs will be checked
       if (serviceModel) {
         const serviceDoc = await serviceModel.findOne({ service_id: sid });
         const bankDetailsValid = !!(serviceDoc?.bank_details && (serviceDoc.bank_details.account_number || serviceDoc.bank_details.upi_id));
@@ -761,7 +766,7 @@ const verifyCustomerPayment = async (req, res) => {
       const pHeaders = buildPayoutsHeaders();
 
       // Beneficiary check/create in Cashfree
-      if (segVendorId !== "VEN05012026111140552") {
+      if (segVendorId !== NON_ONBOARDED_VENDOR_ID) {
         let exists = false;
         try {
           await axios.get(`${pBase}/beneficiary`, { headers: pHeaders, params: { beneficiary_id: segBeneficiaryId } });
@@ -814,7 +819,7 @@ const verifyCustomerPayment = async (req, res) => {
       });
 
       // 2. CF Transfer Call
-      if (segBankValid && segVendorId !== "VEN05012026111140552") {
+      if (segBankValid && segVendorId !== NON_ONBOARDED_VENDOR_ID) {
         try {
           const tResp = await axios.post(`${pBase}/transfers`, {
             transfer_id: segTransferId,
