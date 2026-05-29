@@ -136,6 +136,9 @@ const eventsSchema = new mongoose.Schema({
     type: String,
     // required relaxed — derived from vendor_segments[0] for multi-vendor orders
   },
+  vendor_location: {
+    type: String,
+  },
   event_start: {
     type: Date,
     // required relaxed — derived from vendor_segments[0] for multi-vendor orders
