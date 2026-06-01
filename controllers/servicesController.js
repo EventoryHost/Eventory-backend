@@ -356,6 +356,7 @@ export const getAllServices = async (req, res) => {
       page = 1, 
       limit = 20, 
       search = '', 
+      location = '',
       sortBy = 'vendor_name', 
       order = 'asc',
       fields 
@@ -375,7 +376,7 @@ export const getAllServices = async (req, res) => {
       dj_artist: DjArtist
     };
 
-    const searchQuery = search ? {
+    const searchFilter = search ? {
       $or: [
         { vendor_id: { $regex: search, $options: 'i' } },
         { service_id: { $regex: search, $options: 'i' } },
@@ -387,7 +388,43 @@ export const getAllServices = async (req, res) => {
         { vendor_mobile: { $regex: search, $options: 'i' } },
         { email_address: { $regex: search, $options: 'i' } }
       ]
-    } : {};
+    } : null;
+
+    // Location filter: searches across business address, operational cities, service areas,
+    // and category-specific service location address fields
+    const locationFilter = location ? {
+      $or: [
+        { "business_details.business_address": { $regex: location, $options: 'i' } },
+        { "business_details.operational_cities": { $regex: location, $options: 'i' } },
+        { service_areas: { $regex: location, $options: 'i' } },
+        // Category-specific service location address fields
+        { "basic_details.service_location_caterer.service_address": { $regex: location, $options: 'i' } },
+        { "basic_details.service_location_venue.service_address": { $regex: location, $options: 'i' } },
+        { "basic_details.service_location_dj_artist.service_address": { $regex: location, $options: 'i' } },
+        { "basic_details.service_location_decorator.service_address": { $regex: location, $options: 'i' } },
+        { "basic_details.service_location_photographer.service_address": { $regex: location, $options: 'i' } },
+        { "basic_details.service_location_makeupartist.service_address": { $regex: location, $options: 'i' } },
+        // Also search by pincode (business and service)
+        ...((/^\d+$/.test(location)) ? [
+          { "business_details.pincode": parseInt(location) },
+          { "basic_details.service_location_caterer.service_pincode": parseInt(location) },
+          { "basic_details.service_location_venue.service_pincode": parseInt(location) },
+          { "basic_details.service_location_dj_artist.service_pincode": parseInt(location) },
+          { "basic_details.service_location_decorator.service_pincode": parseInt(location) },
+          { "basic_details.service_location_photographer.service_pincode": parseInt(location) },
+          { "basic_details.service_location_makeupartist.service_pincode": parseInt(location) },
+        ] : [])
+      ]
+    } : null;
+
+    // Combine search and location filters with $and if both are present
+    let searchQuery = {};
+    const conditions = [searchFilter, locationFilter].filter(Boolean);
+    if (conditions.length === 1) {
+      searchQuery = conditions[0];
+    } else if (conditions.length > 1) {
+      searchQuery = { $and: conditions };
+    }
 
     let selectFields = {};
     if (fields) {
