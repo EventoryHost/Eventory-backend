@@ -390,31 +390,9 @@ export const getAllServices = async (req, res) => {
       ]
     } : null;
 
-    // Location filter: searches across business address, operational cities, service areas,
-    // and category-specific service location address fields
+    // Location filter: searches by business address only
     const locationFilter = location ? {
-      $or: [
-        { "business_details.business_address": { $regex: location, $options: 'i' } },
-        { "business_details.operational_cities": { $regex: location, $options: 'i' } },
-        { service_areas: { $regex: location, $options: 'i' } },
-        // Category-specific service location address fields
-        { "basic_details.service_location_caterer.service_address": { $regex: location, $options: 'i' } },
-        { "basic_details.service_location_venue.service_address": { $regex: location, $options: 'i' } },
-        { "basic_details.service_location_dj_artist.service_address": { $regex: location, $options: 'i' } },
-        { "basic_details.service_location_decorator.service_address": { $regex: location, $options: 'i' } },
-        { "basic_details.service_location_photographer.service_address": { $regex: location, $options: 'i' } },
-        { "basic_details.service_location_makeupartist.service_address": { $regex: location, $options: 'i' } },
-        // Also search by pincode (business and service)
-        ...((/^\d+$/.test(location)) ? [
-          { "business_details.pincode": parseInt(location) },
-          { "basic_details.service_location_caterer.service_pincode": parseInt(location) },
-          { "basic_details.service_location_venue.service_pincode": parseInt(location) },
-          { "basic_details.service_location_dj_artist.service_pincode": parseInt(location) },
-          { "basic_details.service_location_decorator.service_pincode": parseInt(location) },
-          { "basic_details.service_location_photographer.service_pincode": parseInt(location) },
-          { "basic_details.service_location_makeupartist.service_pincode": parseInt(location) },
-        ] : [])
-      ]
+      "business_details.business_address": { $regex: location, $options: 'i' }
     } : null;
 
     // Combine search and location filters with $and if both are present
