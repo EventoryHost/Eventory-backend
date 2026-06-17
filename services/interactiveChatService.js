@@ -4,6 +4,7 @@ import Chat from "../models/chats.js";
 import generateUniqueId from "../utils/generateId.js";
 import AnonCustomerOrder from "../models/anonCustomerOrder.js";
 import CustomerNotification from "../models/customerNotifications.js";
+import { triggerSlackListAndWebhookNotification } from "../utils/slackLists.js";
 
 export const handleInteractiveMessage = async (chatId, socketSenderId, messageContent, io) => {
     try {
@@ -121,6 +122,11 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
 
             await enquiry.save();
             await syncEnquiryToChat();
+
+            // Create initial ticket on Slack List
+            triggerSlackListAndWebhookNotification(enquiry, "create").catch((err) => {
+                console.error("[SLACK_INTEGRATION_TRIGGER] Initial Slack ticket creation failed:", err);
+            });
 
             await sendMessage("Love it! Now, when are you planning to host it?", "date_picker", [
                 { label: "Still exploring - not sure yet", value: "STILL_EXPLORING" }
@@ -399,6 +405,11 @@ export const handleInteractiveMessage = async (chatId, socketSenderId, messageCo
             // STEP 11: Inspo & Unlock
             await sendMessage("Thanks for sharing! Feel free to share more about your event plans and ideas. Our team will review and suggest personalised options.", "flow_complete");
             
+            // Trigger Slack List final update and Webhook Notification
+            triggerSlackListAndWebhookNotification(enquiry, "complete").catch((err) => {
+                console.error("[SLACK_INTEGRATION_TRIGGER] Final Slack ticket update failed:", err);
+            });
+
             return;
         }
 
@@ -412,6 +423,11 @@ const handleStep8Handoff = async (enquiry, sendMessage, syncEnquiryToChat) => {
     enquiry.status = "COLLECTING_NAME";
     await enquiry.save();
     if (syncEnquiryToChat) await syncEnquiryToChat();
+    
+    // Update Slack ticket with requirements gathered so far
+    triggerSlackListAndWebhookNotification(enquiry, "update_requirements").catch((err) => {
+        console.error("[SLACK_INTEGRATION_TRIGGER] Slack ticket requirements update failed:", err);
+    });
     
     await sendMessage("This already sounds exciting! Here’s how we’ll help you:", "text", null, null, 50);
     

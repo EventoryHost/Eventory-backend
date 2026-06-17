@@ -63,6 +63,10 @@ const customerEnquirySchema = new mongoose.Schema({
   best_time_to_call: {
     type: String
   },
+  slack_ticket_id: {
+    type: String,
+    required: false
+  },
   status: {
     type: String,
     enum: [

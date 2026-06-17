@@ -139,3 +139,7 @@ dist
 #firebase configs
 .firebase-service-account.json
 firebase-service-account.json
+
+# Slack Integration Files
+utils/slackLists.js
+docs/SLACK_INTEGRATION.md
