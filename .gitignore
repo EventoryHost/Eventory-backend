@@ -141,5 +141,4 @@ dist
 firebase-service-account.json
 
 # Slack Integration Files
-utils/slackLists.js
 docs/SLACK_INTEGRATION.md
