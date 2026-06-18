@@ -11,6 +11,7 @@ import {
   verifyWhatsappWebhook,
   handleIncomingWhatsappMessage
 } from "../controllers/whatsappController.js";
+import { triggerInteraktSlackIntegration } from "../utils/slackLists.js";
 
 const waRoutes = Router();
 
@@ -173,5 +174,37 @@ waRoutes.get("/whatsapp", verifyWhatsappWebhook);
  *     tags: [WhatsApp Integration]
  */
 waRoutes.post("/whatsapp", handleIncomingWhatsappMessage);
+
+/**
+ * @swagger
+ * /webhook/interakt-slack:
+ *   post:
+ *     summary: Receive lead payload from Interakt and push to Slack List & Webhook
+ *     tags: [WhatsApp Integration]
+ */
+waRoutes.post("/interakt-slack", async (req, res) => {
+  try {
+    const result = await triggerInteraktSlackIntegration(req.body);
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        message: "Lead processed and Slack ticket created successfully.",
+        ticket_id: result.ticket_id,
+        mock: result.mock
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: result.error || "Failed to process lead."
+      });
+    }
+  } catch (error) {
+    console.error("Error handling interakt-slack webhook:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 export default waRoutes;
