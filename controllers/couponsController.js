@@ -445,10 +445,10 @@ export const validateCouponForCustomer = async (req, res) => {
 
     let pricingDetails = null;
     if (canUse) {
-      const fee = Math.max(0, Number(convenienceFee) || 0);
+      // Discount applies on the full customer payable (currentTotal), not just convenienceFee
       const total = Math.max(0, Number(currentTotal) || 0);
-      const rawDiscount = (fee * coupon.discount_percentage) / 100;
-      const discountAmount = Math.min(rawDiscount, fee);
+      const rawDiscount = (total * coupon.discount_percentage) / 100;
+      const discountAmount = rawDiscount;
       const finalAmount = Math.max(0, total - discountAmount);
 
       pricingDetails = {
