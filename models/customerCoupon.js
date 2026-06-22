@@ -22,7 +22,6 @@ const customerCouponSchema = new Schema(
     discount_percentage: {
       type: Number,
       required: true,
-      enum: [25, 50, 100],
     },
     is_active: {
       type: Boolean,
