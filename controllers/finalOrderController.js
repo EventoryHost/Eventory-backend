@@ -199,6 +199,18 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       }
       const mergedBreakdowns = [...milestoneMap.values()]
         .sort((a, b) => milestoneOrder.indexOf(a.name) - milestoneOrder.indexOf(b.name));
+
+      // 5.5 Inject platform margin (Convenience Fee + Taxes) into the Final Pay checkout milestone
+      if (updateFields.paymentDetails && updateFields.paymentDetails.customerPayable) {
+        const cp = updateFields.paymentDetails.customerPayable;
+        const platformCcfShare = (Number(cp.convenienceFee) || 0) + (Number(cp.taxOnConvenience) || 0);
+        if (platformCcfShare > 0 && mergedBreakdowns.length > 0) {
+          let targetIdx = mergedBreakdowns.findIndex(b => b.name === 'Final Pay');
+          if (targetIdx === -1) targetIdx = mergedBreakdowns.length - 1;
+          mergedBreakdowns[targetIdx].amount += platformCcfShare;
+        }
+      }
+
       updateFields.paymentBreakdowns = mergedBreakdowns;
 
       // 6. Aggregate vendor receivable total across segments

@@ -371,13 +371,11 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
     }
 
     const usedCoupons = Array.isArray(customer.coupons_used) ? customer.coupons_used : [];
-    const eligibleDiscounts = Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
-      ? customer.eligible_discounts
-      : deriveEligibleDiscounts(customer.highest_discount_ever_applied);
 
+    // Return all active customer coupons that haven't been used by this customer
     const allCoupons = await CustomerCoupon.find({ is_active: true });
     const availableCoupons = allCoupons.filter((c) =>
-      eligibleDiscounts.includes(c.discount_percentage) && !usedCoupons.includes(c.coupon_code)
+      !usedCoupons.includes(c.coupon_code)
     );
 
     const mappedCoupons = availableCoupons.map((coupon) => ({
@@ -392,8 +390,6 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
       data: {
         availableCoupons: mappedCoupons,
         customerEligibility: {
-          canUse: eligibleDiscounts,
-          highestUsed: customer.highest_discount_ever_applied || 0,
           totalCouponsUsed: Array.isArray(customer.applied_coupons) ? customer.applied_coupons.length : 0,
         },
       },
@@ -436,45 +432,50 @@ export const validateCouponForCustomer = async (req, res) => {
       return res.status(404).json({ success: false, valid: false, error: 'Invalid or inactive coupon code' });
     }
 
-    const eligibleDiscounts =
-      (Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
-        ? customer.eligible_discounts
-        : deriveEligibleDiscounts(customer.highest_discount_ever_applied)) || [];
+    // Check if customer has already used this specific coupon
+    const usedCoupons = Array.isArray(customer.coupons_used) ? customer.coupons_used : [];
+    const alreadyUsed = usedCoupons.includes(coupon.coupon_code);
 
-    const canUse = eligibleDiscounts.includes(coupon.discount_percentage);
-
-    let pricingDetails = null;
-    if (canUse) {
-      // Discount applies on the full customer payable (currentTotal), not just convenienceFee
-      const total = Math.max(0, Number(currentTotal) || 0);
-      const rawDiscount = (total * coupon.discount_percentage) / 100;
-      const discountAmount = rawDiscount;
-      const finalAmount = Math.max(0, total - discountAmount);
-
-      pricingDetails = {
-        originalAmount: total,
-        discountPercentage: coupon.discount_percentage,
-        discountAmount,
-        finalAmount,
-        savings: discountAmount,
-      };
+    if (alreadyUsed) {
+      return res.json({
+        success: true,
+        valid: false,
+        data: {
+          coupon: null,
+          pricing: null,
+          message: `You have already used coupon ${coupon.coupon_code}`,
+          customerEligibility: {
+            totalCouponsUsed: Array.isArray(customer.applied_coupons) ? customer.applied_coupons.length : 0,
+            reason: `Coupon ${coupon.coupon_code} already used`,
+          },
+        },
+      });
     }
+
+    // Discount applies on the full customer payable (currentTotal)
+    const total = Math.max(0, Number(currentTotal) || 0);
+    const rawDiscount = (total * coupon.discount_percentage) / 100;
+    const discountAmount = rawDiscount;
+    const finalAmount = Math.max(0, total - discountAmount);
+
+    const pricingDetails = {
+      originalAmount: total,
+      discountPercentage: coupon.discount_percentage,
+      discountAmount,
+      finalAmount,
+      savings: discountAmount,
+    };
 
     return res.json({
       success: true,
-      valid: canUse,
+      valid: true,
       data: {
-        coupon: canUse
-          ? { code: coupon.coupon_code, discount: coupon.discount_percentage, team: coupon.coupon_team }
-          : null,
+        coupon: { code: coupon.coupon_code, discount: coupon.discount_percentage, team: coupon.coupon_team },
         pricing: pricingDetails,
-        message: canUse
-          ? `Valid! ${coupon.discount_percentage}% off convenience fee - Save ₹${pricingDetails.savings}`
-          : `You have already used a ${customer.highest_discount_ever_applied}% discount coupon`,
+        message: `Valid! ${coupon.discount_percentage}% off - Save ₹${pricingDetails.savings}`,
         customerEligibility: {
-          canUse: eligibleDiscounts,
-          highestUsed: customer.highest_discount_ever_applied || 0,
-          reason: !canUse ? `You have already used a ${customer.highest_discount_ever_applied}% discount coupon` : null,
+          totalCouponsUsed: Array.isArray(customer.applied_coupons) ? customer.applied_coupons.length : 0,
+          reason: null,
         },
       },
     });
@@ -525,25 +526,16 @@ export const applyCouponForCustomer = async (req, res) => {
       });
     }
 
-    const currentEligible =
-      Array.isArray(customer.eligible_discounts) && customer.eligible_discounts.length
-        ? customer.eligible_discounts
-        : deriveEligibleDiscounts(customer.highest_discount_ever_applied);
-
-    if (!currentEligible.includes(coupon.discount_percentage)) {
-      return res.status(403).json({
+    // Check if customer has already used this specific coupon
+    const usedCoupons = Array.isArray(customer.coupons_used) ? customer.coupons_used : [];
+    if (usedCoupons.includes(coupon.coupon_code)) {
+      return res.status(400).json({
         success: false,
-        error: `You cannot use ${coupon.discount_percentage}% discount coupons`,
-        availableDiscounts: currentEligible,
+        error: `Coupon ${coupon.coupon_code} has already been used`,
       });
     }
 
     const originalAmount = Number(finalAmount) + Number(savings);
-
-    const updatedCanUseDiscounts = calculateNewEligibility(
-      currentEligible,
-      coupon.discount_percentage,
-    );
 
     const now = new Date();
     const couponUsage = {
@@ -563,11 +555,6 @@ export const applyCouponForCustomer = async (req, res) => {
           coupons_used: coupon.coupon_code,
         },
         $set: {
-          highest_discount_ever_applied: Math.max(
-            customer.highest_discount_ever_applied || 0,
-            coupon.discount_percentage,
-          ),
-          eligible_discounts: updatedCanUseDiscounts,
           last_coupon_used_at: now,
         },
       },
@@ -588,10 +575,6 @@ export const applyCouponForCustomer = async (req, res) => {
           finalAmount: Number(finalAmount),
           discountPercentage: coupon.discount_percentage,
           savings: Number(savings),
-        },
-        futureEligibility: {
-          canUseDiscounts: updatedCanUseDiscounts,
-          message: getEligibilityMessage(updatedCanUseDiscounts),
         },
       },
     });
