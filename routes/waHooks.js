@@ -183,6 +183,9 @@ waRoutes.post("/whatsapp", handleIncomingWhatsappMessage);
  *     tags: [WhatsApp Integration]
  */
 waRoutes.post("/interakt-slack", async (req, res) => {
+  console.log("========== INTERAKT WEBHOOK ==========");
+  console.log(JSON.stringify(req.body, null, 2));
+  console.log("======================================");
   try {
     const result = await triggerInteraktSlackIntegration(req.body);
     if (result.success) {

@@ -424,6 +424,18 @@ export const triggerInteraktSlackIntegration = async (data) => {
         const budget_range = data.budget_range || "Not specified";
         const best_time_to_call = data.best_time_to_call || "Anytime";
 
+        console.log("customer_name:", customer_name);
+        console.log("phone_number:", phone_number);
+        console.log("event_type:", event_type);
+        console.log("event_date:", event_date);
+        console.log("city:", city);
+        console.log("venue_setting:", venue_setting);
+        console.log("services_needed:", services_needed);
+        console.log("other_service_details:", other_service_details);
+        console.log("guest_count:", guest_count);
+        console.log("budget_range:", budget_range);
+        console.log("best_time_to_call:", best_time_to_call);
+
         // Create Mongoose db record for audit/fallback tracking
         let savedEnquiry = null;
         if (mongoose.connection && mongoose.connection.readyState === 1) {
@@ -596,13 +608,20 @@ export const triggerInteraktSlackIntegration = async (data) => {
             });
         }
 
+        console.log("Mapped Event Option:", eventTypeOption);
+        console.log("Mapped Services:", servicesOptions);
+
         console.log(`[SLACK_INTEGRATION_INTERAKT] Creating Slack List ticket for Interakt lead...`);
+        const slackPayload = {
+            "list_id": "F09RT5WG6Q5",
+            "initial_fields": initialFields
+        };
+        console.log("Slack Payload:");
+        console.log(JSON.stringify(slackPayload, null, 2));
+
         const listResponse = await axios.post(
             "https://slack.com/api/slackLists.items.create",
-            {
-                "list_id": "F09RT5WG6Q5",
-                "initial_fields": initialFields
-            },
+            slackPayload,
             {
                 headers: {
                     "Authorization": `Bearer ${token}`,
@@ -610,6 +629,9 @@ export const triggerInteraktSlackIntegration = async (data) => {
                 }
             }
         );
+
+        console.log("Slack Response:");
+        console.log(JSON.stringify(listResponse.data, null, 2));
 
         if (!listResponse.data || !listResponse.data.ok) {
             console.error("[SLACK_INTEGRATION_INTERAKT] Failed to create Slack List item. Response:", listResponse.data);
