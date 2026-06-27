@@ -27,11 +27,11 @@ const generateAgreementHTML = (agreementData) => {
 
   const currentDate = formatDateDDMMYYYY(new Date());
   const sevenDaysFromNow = formatDateDDMMYYYY(
-    new Date(new Date().setDate(new Date().getDate() + 7))
+    new Date(new Date().setDate(new Date().getDate() + 7)),
   );
 
   try {
-    const templatePath = path.resolve("templates", "agreementTemplate.html");     // Read template file
+    const templatePath = path.resolve("templates", "agreementTemplate.html"); // Read template file
     let html = readFileSync(templatePath, "utf8");
 
     const commissionTableRows = commissionData
@@ -39,15 +39,15 @@ const generateAgreementHTML = (agreementData) => {
         (item) => `
         <tr>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.priceRange}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['25_plus_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['18_25_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['13_18_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['8_12_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['4_7_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['1_3_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['event_day']}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["25_plus_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["18_25_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["13_18_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["8_12_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["4_7_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["1_3_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["event_day"]}%</td>
         </tr>
-    `
+    `,
       )
       .join("");
 
@@ -56,15 +56,15 @@ const generateAgreementHTML = (agreementData) => {
         (item) => `
         <tr>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.priceRange}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['25_plus_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['18_25_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['13_18_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['8_12_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['4_7_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['1_3_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['event_day']}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["25_plus_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["18_25_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["13_18_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["8_12_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["4_7_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["1_3_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["event_day"]}%</td>
         </tr>
-    `
+    `,
       )
       .join("");
 
@@ -73,15 +73,15 @@ const generateAgreementHTML = (agreementData) => {
         (item) => `
         <tr>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.priceRange}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['25_plus_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['18_25_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['13_18_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['8_12_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['4_7_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['1_3_days']}%</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item['event_day']}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["25_plus_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["18_25_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["13_18_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["8_12_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["4_7_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["1_3_days"]}%</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item["event_day"]}%</td>
         </tr>
-    `
+    `,
       )
       .join("");
 
@@ -91,12 +91,24 @@ const generateAgreementHTML = (agreementData) => {
     html = html.replace(/{{vendorName}}/g, vendorData?.fullName || "Vendor");
     html = html.replace(/{{currentDate}}/g, currentDate);
     html = html.replace(/{{sevenDaysFromNow}}/g, sevenDaysFromNow);
-    html = html.replace(/{{vendorFullName}}/g, vendorData?.fullName || "Vendor Name");
-    html = html.replace(/{{vendorAddress}}/g, vendorData?.address || "Vendor Address");
+    html = html.replace(
+      /{{vendorFullName}}/g,
+      vendorData?.fullName || "Vendor Name",
+    );
+    html = html.replace(
+      /{{vendorAddress}}/g,
+      vendorData?.address || "Vendor Address",
+    );
     html = html.replace(/{{vendorServiceType}}/g, vendorServiceTypeFormatted);
     html = html.replace(/{{commissionTableRows}}/g, commissionTableRows);
-    html = html.replace(/{{vendorCancellationTableRows}}/g, vendorCancellationTableRows);
-    html = html.replace(/{{customerCancellationTableRows}}/g, customerCancellationTableRows);
+    html = html.replace(
+      /{{vendorCancellationTableRows}}/g,
+      vendorCancellationTableRows,
+    );
+    html = html.replace(
+      /{{customerCancellationTableRows}}/g,
+      customerCancellationTableRows,
+    );
     html = html.replace(/{{signature}}/g, signature);
 
     return html;
@@ -152,7 +164,7 @@ async function generateAgreementPDF(serviceType, vendorId, agreementData) {
     const agreementUrl = await uploadAgreementToS3(
       pdfBuffer,
       serviceType,
-      vendorId
+      vendorId,
     );
 
     console.log("Agreement uploaded to S3:", agreementUrl);
@@ -170,7 +182,7 @@ async function generateAgreementPDF(serviceType, vendorId, agreementData) {
   } catch (error) {
     console.error("Error generating agreement PDF:", error);
     console.error("Error stack:", error.stack);
-        try {
+    try {
       if (page && !page.isClosed()) {
         await page.close();
       }
@@ -180,7 +192,7 @@ async function generateAgreementPDF(serviceType, vendorId, agreementData) {
     } catch (cleanupError) {
       console.error("Error during cleanup:", cleanupError);
     }
-    
+
     throw error;
   }
 }
@@ -188,15 +200,16 @@ async function generateAgreementPDF(serviceType, vendorId, agreementData) {
 // Main function to generate and store agreement
 async function generateAndStoreAgreement(serviceType, vendorId, agreementData) {
   try {
-    const result = await generateAgreementPDF(serviceType, vendorId, agreementData);
-    await axios.post(
-      `${process.env.URL}/api/agreements/add-vendor-agreement`,
-      {
-        serviceType: serviceType,
-        vendorId: vendorId,
-        agreementUrl: result.agreementUrl,
-      }
+    const result = await generateAgreementPDF(
+      serviceType,
+      vendorId,
+      agreementData,
     );
+    await axios.post(`${process.env.URL}/api/agreements/add-vendor-agreement`, {
+      serviceType: serviceType,
+      vendorId: vendorId,
+      agreementUrl: result.agreementUrl,
+    });
     console.log("Service model updated successfully via API");
 
     return result;

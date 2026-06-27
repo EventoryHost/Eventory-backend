@@ -194,7 +194,10 @@ router.get("/search/", searchProducts);
 // router.get("/:service_id/:vendor_id", vendorController.getVendorByIdAndCategory);
 
 // // Add Bank Details route
-router.patch("/vendor/:vendor_id/bank-details", vendorController.addBankDetails); // Ensure this matches your controller function
+router.patch(
+  "/vendor/:vendor_id/bank-details",
+  vendorController.addBankDetails,
+); // Ensure this matches your controller function
 /**
  * @swagger
  * /vendor/{vendorId}/bank-details:
@@ -216,6 +219,5 @@ router.get("/vendor/:vendor_id/bank-details", vendorController.getBankDetails);
 //   "/vendor/:vendor_id/bank-details",
 //   vendorController.deleteBankDetails,
 // );
-
 
 export default router;

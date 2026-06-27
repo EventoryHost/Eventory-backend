@@ -9,7 +9,7 @@ const Schema = _Schema;
 const serviceLocationVenueSchema = new Schema(
   {
     service_address: {
-      type: String
+      type: String,
     },
     lat: {
       type: String,
@@ -37,7 +37,7 @@ const serviceLocationVenueSchema = new Schema(
       type: String,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Venue Provider Basic Details Schema
@@ -88,7 +88,7 @@ const venueBasicDetailsSchema = new Schema(
     ],
     service_location_venue: serviceLocationVenueSchema,
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Venue Provider Feature Details Schema
@@ -140,7 +140,7 @@ const venueServiceDetailsSchema = new Schema(
       },
     ],
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Venue Provider Additional Details Schema
@@ -150,10 +150,12 @@ const venueAdditionalDetailsSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    asset_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    asset_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     asset_videos: [
       {
         type: String,
@@ -179,7 +181,7 @@ const venueAdditionalDetailsSchema = new Schema(
       type: String,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Venue Provider Policies Schema (separate for venue providers)
@@ -202,7 +204,7 @@ const venuePoliciesSchema = new Schema(
       type: Date,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Main Venue Provider Schema
@@ -287,7 +289,7 @@ const venueProviderSchema = new Schema(
   },
   {
     collection: "venue-providers",
-  }
+  },
 );
 
 // Pre-save middleware to update venue_provider_updated_at on every save
@@ -303,7 +305,7 @@ venueProviderSchema.pre("save", function (next) {
   }
   if (this.isModified("business_details") && this.business_details) {
     this.business_details.business_updated_at = new Date(
-      now.getTime() + istOffset
+      now.getTime() + istOffset,
     );
   }
   next();
@@ -326,7 +328,7 @@ venueProviderSchema.pre(
       this.set({ "business_details.business_updated_at": istTime });
     }
     next();
-  }
+  },
 );
 
 // Indexes for better performance

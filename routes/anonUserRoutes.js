@@ -1,5 +1,8 @@
 import express from "express";
-import { initializeAnonymousUser, updateAnonymousUserActivity } from "../controllers/anonymousUserController.js";
+import {
+  initializeAnonymousUser,
+  updateAnonymousUserActivity,
+} from "../controllers/anonymousUserController.js";
 
 const router = express.Router();
 

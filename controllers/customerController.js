@@ -124,7 +124,7 @@ export const markNotificationAsRead = async (req, res) => {
     const updated = await customerNotification.findByIdAndUpdate(
       notificationId,
       { read: true },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
@@ -137,12 +137,10 @@ export const markNotificationAsRead = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error marking notification as read:", error);
-    return res
-      .status(500)
-      .json({
-        message: "Failed to mark notification as read",
-        error: error.message,
-      });
+    return res.status(500).json({
+      message: "Failed to mark notification as read",
+      error: error.message,
+    });
   }
 };
 
@@ -174,7 +172,9 @@ export const getFavoriteServices = async (req, res) => {
       } else if (serviceId.startsWith("dec")) {
         collection = Decorator;
       } else if (serviceId.startsWith("prop")) {
-        return res.status(400).json({ message: "Prop rental service is not available" });
+        return res
+          .status(400)
+          .json({ message: "Prop rental service is not available" });
       } else if (serviceId.startsWith("mak")) {
         collection = MakeupArtist;
       } else {
@@ -247,7 +247,7 @@ export const removeFavourite = async (req, res) => {
         .json({ message: "Service not found in favourites" });
     }
     customer.wishlisted_services = customer.wishlisted_services.filter(
-      (id) => id !== service_id
+      (id) => id !== service_id,
     );
     await customer.save();
     res.status(200).json(customer);
@@ -290,7 +290,7 @@ export const updateCustomer = async (req, res) => {
     const customer = await Customer.findOneAndUpdate(
       { contact_number: mobileFromBody }, // fixed to match schema
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!customer)
@@ -321,12 +321,12 @@ export const updateCustomerBusinessDetails = async (req, res) => {
     }
 
     if (is_business !== undefined) {
-      customer.is_business = is_business === true || is_business === 'true';
+      customer.is_business = is_business === true || is_business === "true";
     }
-    
+
     // Always store uppercase GST
     if (gst_number !== undefined) {
-      customer.gst_number = gst_number ? gst_number.toUpperCase() : '';
+      customer.gst_number = gst_number ? gst_number.toUpperCase() : "";
     }
 
     await customer.save();
@@ -343,7 +343,7 @@ export const getCustomerById = async (req, res) => {
     const { id } = req.params;
 
     const customer = await Customer.findOne({ customer_id: id }).select(
-      "-password"
+      "-password",
     );
 
     if (!customer) {
@@ -396,7 +396,7 @@ export const removeQuotationFromCustomer = async (req, res) => {
     const updatedCustomer = await Customer.findOneAndUpdate(
       { id: customerId },
       { $pull: { quotations: { quotationId: quotationId } } },
-      { new: true } // Return the updated document
+      { new: true }, // Return the updated document
     );
 
     if (!updatedCustomer) {
@@ -405,7 +405,7 @@ export const removeQuotationFromCustomer = async (req, res) => {
 
     // Check if the quotation was actually removed
     const wasQuotationRemoved = updatedCustomer.quotations.some(
-      (q) => q.quotationId === quotationId
+      (q) => q.quotationId === quotationId,
     );
 
     if (wasQuotationRemoved) {
@@ -429,7 +429,7 @@ export const removeQuotationFromCustomer = async (req, res) => {
 export const addCustomerInvoice = async (req, res) => {
   const { invoiceUrl, customerId } = req.body;
   console.log(
-    `Received request to add invoice for customer ${customerId} with URL ${invoiceUrl}`
+    `Received request to add invoice for customer ${customerId} with URL ${invoiceUrl}`,
   );
 
   const customer = await Customer.findOne({ customer_id: customerId });

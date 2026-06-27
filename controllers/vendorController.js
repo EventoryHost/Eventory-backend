@@ -3,7 +3,7 @@ import vendorNotification from "../models/vendorNotifications.js";
 import { ReduxCatererModel } from "../models/reduxModels/caterer.js";
 import { ReduxDecoratorModel } from "../models/reduxModels/decorator.js";
 import { MakeupArtistModel } from "../models/reduxModels/makeupArtist.js";
-import { ReduxPhotographerVideographerModel } from "../models/reduxModels/photographerVideographer.js"; 
+import { ReduxPhotographerVideographerModel } from "../models/reduxModels/photographerVideographer.js";
 import { ReduxVenueProviderModel } from "../models/reduxModels/venueProvider.js";
 
 // Real models for accurate counts
@@ -20,7 +20,7 @@ export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find(
       {},
-      "vendor_id vendor_mobile email_address profile_picture services service_types highest_discount_ever_applied vendor_created_at vendor_updated_at"
+      "vendor_id vendor_mobile email_address profile_picture services service_types highest_discount_ever_applied vendor_created_at vendor_updated_at",
     ).lean();
 
     const filteredVendors = vendors.filter((vendor) => {
@@ -114,7 +114,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
     const { vendor_id } = req.params;
     const result = await vendorNotification.updateMany(
       { vendor_id, read: false },
-      { $set: { read: true, updated_at: new Date().toISOString() } }
+      { $set: { read: true, updated_at: new Date().toISOString() } },
     );
     res.status(200).json({
       success: true,
@@ -137,7 +137,7 @@ export const patchMarkNotificationsAsRead = async (req, res) => {
     const { vendor_id } = req.params;
     await vendorNotification.updateMany(
       { vendor_id, read: false },
-      { $set: { read: true, updated_at: new Date().toISOString() } }
+      { $set: { read: true, updated_at: new Date().toISOString() } },
     );
     res.status(200).json({
       success: true,
@@ -161,7 +161,10 @@ export const getVendorFlowType = async (req, res) => {
     const models = [
       { name: "caterer", model: ReduxCatererModel },
       { name: "decorator", model: ReduxDecoratorModel },
-      { name: "Photographer-Videographer", model: ReduxPhotographerVideographerModel },
+      {
+        name: "Photographer-Videographer",
+        model: ReduxPhotographerVideographerModel,
+      },
       { name: "venue_provider", model: ReduxVenueProviderModel },
       { name: "makeup_artist", model: MakeupArtistModel },
     ];
@@ -208,8 +211,10 @@ export const checkVendorHasServices = async (req, res) => {
       });
     }
 
-    const hasServiceTypes = Array.isArray(vendor.service_types) && vendor.service_types.length > 0;
-    const hasServices = Array.isArray(vendor.services) && vendor.services.length > 0;
+    const hasServiceTypes =
+      Array.isArray(vendor.service_types) && vendor.service_types.length > 0;
+    const hasServices =
+      Array.isArray(vendor.services) && vendor.services.length > 0;
     const hasAnyService = hasServiceTypes && hasServices;
 
     res.status(200).json({
@@ -240,14 +245,14 @@ export const getVendorCountsByCategory = async (req, res) => {
       djCount,
       makeupCount,
       photographerCount,
-      venueCount
+      venueCount,
     ] = await Promise.all([
       Caterer.countDocuments({}),
       Decorator.countDocuments({}),
       DjArtist.countDocuments({}),
       MakeupArtist.countDocuments({}),
       PhotographerVideographer.countDocuments({}),
-      VenueProvider.countDocuments({})
+      VenueProvider.countDocuments({}),
     ]);
 
     res.status(200).json({
@@ -258,8 +263,8 @@ export const getVendorCountsByCategory = async (req, res) => {
         dj_artists: djCount,
         makeup_artists: makeupCount,
         photographers: photographerCount,
-        venues: venueCount
-      }
+        venues: venueCount,
+      },
     });
   } catch (error) {
     console.error("Error fetching vendor counts:", error);

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import axios from "axios";
 import { Customer } from "../models/customer.js";
 import { Vendor } from "../models/vendor.js";
-import Quotation  from "../models/quotations.js";
+import Quotation from "../models/quotations.js";
 import Promotion from "../models/promotions.js";
 dotenv.config();
 
@@ -104,8 +104,6 @@ async function sendConfirmationMessageToWhatsapp(event) {
   }
 }
 
-
-
 async function sendResponseOnIntroMessage(req, res) {
   const { mobile } = req.body;
 
@@ -124,7 +122,6 @@ async function sendResponseOnIntroMessage(req, res) {
         quotations,
         message: `Hello ${customer.customer_name}, Welcome to Eventory!`,
       };
-
     } else if (vendor) {
       const vendor_id = vendor.vendor_id;
       quotations = await Quotation.find({ vendor_id });
@@ -133,19 +130,17 @@ async function sendResponseOnIntroMessage(req, res) {
         quotations,
         message: `Hello ${vendor.vendor_id}, Welcome to Eventory!`,
       };
-      
     } else {
       return res.status(400).json({
-        message: "Please register on www.eventory.in to continue"
+        message: "Please register on www.eventory.in to continue",
       });
     }
 
     return res.status(200).json(response);
-
   } catch (error) {
     console.error("Error sending response on intro message:", error.message);
     return res.status(500).json({
-      message: "Something went wrong. Please try again later."
+      message: "Something went wrong. Please try again later.",
     });
   }
 }
@@ -168,12 +163,12 @@ const sendPromotionTemplate = async (req, res) => {
         promo_sent_to: phoneNumber,
         vendor_name: vendorName,
         vendor_type: vendorType,
-        last_sent_at: currDate
+        last_sent_at: currDate,
       });
 
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotion sent to ${phoneNumber} on ${currDate}`
+        status: `Promotion sent to ${phoneNumber} on ${currDate}`,
       });
     }
 
@@ -181,7 +176,7 @@ const sendPromotionTemplate = async (req, res) => {
     if (data.is_promotions_stopped) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Vendor has stopped promotions on ${data.promotions_stopped_at}`
+        status: `Vendor has stopped promotions on ${data.promotions_stopped_at}`,
       });
     }
 
@@ -189,21 +184,21 @@ const sendPromotionTemplate = async (req, res) => {
     if (data.call_request && data.req_to_join_wa_community) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotion already sent on ${data.last_sent_at}, vendor requested call: ${data.call_requested_at}, and join community: ${data.join_community_req_at}`
+        status: `Promotion already sent on ${data.last_sent_at}, vendor requested call: ${data.call_requested_at}, and join community: ${data.join_community_req_at}`,
       });
     }
 
     if (data.call_request && !data.req_to_join_wa_community) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotion already sent on ${data.last_sent_at}, vendor requested 1:1 call on ${data.call_requested_at}`
+        status: `Promotion already sent on ${data.last_sent_at}, vendor requested 1:1 call on ${data.call_requested_at}`,
       });
     }
 
     if (!data.call_request && data.req_to_join_wa_community) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotion already sent on ${data.last_sent_at}, vendor requested to join community on ${data.join_community_req_at}`
+        status: `Promotion already sent on ${data.last_sent_at}, vendor requested to join community on ${data.join_community_req_at}`,
       });
     }
 
@@ -212,7 +207,7 @@ const sendPromotionTemplate = async (req, res) => {
     if (data.last_sent_at > sixtyDaysAgo) {
       return res.status(200).json({
         number: phoneNumber,
-        status: `Promotion was already sent within 60 days on ${data.last_sent_at}`
+        status: `Promotion was already sent within 60 days on ${data.last_sent_at}`,
       });
     }
 
@@ -221,18 +216,17 @@ const sendPromotionTemplate = async (req, res) => {
 
     await Promotion.updateOne(
       { promo_sent_to: phoneNumber },
-      { $set: { last_sent_at: currDate } }
+      { $set: { last_sent_at: currDate } },
     );
 
     return res.status(200).json({
       number: phoneNumber,
-      status: `Promotion resent on ${currDate}`
+      status: `Promotion resent on ${currDate}`,
     });
-
   } catch (error) {
     console.error("Error sending promotion:", error.message);
     return res.status(500).json({
-      error: error.message || "Internal Server Error"
+      error: error.message || "Internal Server Error",
     });
   }
 };
@@ -294,10 +288,9 @@ const handlePromoResponse = async (req, res) => {
 
     // ✅ JOIN COMMUNITY CASE
     if (payload === "JOIN_COMMUNITY") {
-
       await sendText(
         phone,
-        "Thanks! Here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS"
+        "Thanks! Here's the link to join our WhatsApp community: https://chat.whatsapp.com/INgWzjdxUGR0DkJSJ4fgQS",
       );
 
       await Promotions.updateOne(
@@ -306,18 +299,17 @@ const handlePromoResponse = async (req, res) => {
           $set: {
             req_to_join_wa_community: true,
             join_community_req_at: currDate,
-            is_promotions_stopped: false // Re-enable promotions if needed
-          }
-        }
+            is_promotions_stopped: false, // Re-enable promotions if needed
+          },
+        },
       );
     }
 
     // ✅ BOOK 1:1 CALL CASE
     else if (payload === "BOOK_CALL") {
-
       await sendText(
         phone,
-        "Thanks for showing interest! Someone from our team will connect with you very soon 🙌"
+        "Thanks for showing interest! Someone from our team will connect with you very soon 🙌",
       );
 
       await saveBookingRequestToDB(phone);
@@ -328,18 +320,17 @@ const handlePromoResponse = async (req, res) => {
           $set: {
             call_request: true,
             call_requested_at: currDate,
-            is_promotions_stopped: false
-          }
-        }
+            is_promotions_stopped: false,
+          },
+        },
       );
     }
 
     // ✅ STOP PROMOTIONS CASE
     else if (payload === "STOP_PROMOTIONS") {
-
       await sendText(
         phone,
-        "Thank you for your time! We hope to serve you in future! If you still want to connect, call +91 8800725840"
+        "Thank you for your time! We hope to serve you in future! If you still want to connect, call +91 8800725840",
       );
 
       await Promotions.updateOne(
@@ -347,9 +338,9 @@ const handlePromoResponse = async (req, res) => {
         {
           $set: {
             is_promotions_stopped: true,
-            promotions_stopped_at: currDate
-          }
-        }
+            promotions_stopped_at: currDate,
+          },
+        },
       );
     }
 
@@ -414,8 +405,9 @@ const saveBookingRequestToDB = async (phone) => {
 
 const getVendors = async (req, res) => {
   try {
-    const vendors = await Promotions
-      .find({}, {
+    const vendors = await Promotions.find(
+      {},
+      {
         promo_sent_to: 1,
         vendor_name: 1,
         vendor_type: 1,
@@ -423,7 +415,8 @@ const getVendors = async (req, res) => {
         is_promotions_stopped: 1,
         call_request: 1,
         req_to_join_wa_community: 1,
-      })
+      },
+    )
       .sort({ last_sent_at: -1 })
       .lean();
 
@@ -458,7 +451,7 @@ const getVendors = async (req, res) => {
 // sendInvoiceToWhatsApp(link, mobile, amount)
 //     .then(result => console.log('Success:', result))
 //     .catch(error => console.error('Error:', error));
- const verifyWebhook = (req, res) => {
+const verifyWebhook = (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -476,7 +469,7 @@ const getVendors = async (req, res) => {
   return res.sendStatus(400); // Bad Request if query params missing
 };
 
- const verifyPromoResponseWebhook = (req, res) => {
+const verifyPromoResponseWebhook = (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -494,7 +487,6 @@ const getVendors = async (req, res) => {
   return res.sendStatus(400); // Bad request if query params missing
 };
 
-
 export {
   sendInvoiceToWhatsApp,
   sendConfirmationMessageToWhatsapp,
@@ -503,5 +495,5 @@ export {
   handlePromoResponse,
   getVendors,
   verifyWebhook,
-  verifyPromoResponseWebhook
+  verifyPromoResponseWebhook,
 };

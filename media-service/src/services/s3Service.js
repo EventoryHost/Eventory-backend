@@ -47,7 +47,7 @@ const getContentType = (key) => {
   if (key.includes("/video/")) {
     return "video/mp4";
   }
-  
+
   if (key.includes("/image/")) {
     // Check extensions in the name
     if (key.includes("original") || key.includes("preview")) {
@@ -90,19 +90,20 @@ const uploadBuffer = (buffer, key, contentType) => {
   });
 };
 
-
 export const uploadToS3 = async ({
   originalBuffer,
   previewBuffer,
   serviceType,
   vendorId,
-  originalFile
+  originalFile,
 }) => {
   const timestamp = Date.now();
 
   const originalMimeType = originalFile?.mimetype || "";
-  let originalExt = path.extname(originalFile?.originalname || "").toLowerCase();
-  
+  let originalExt = path
+    .extname(originalFile?.originalname || "")
+    .toLowerCase();
+
   // If still no extension, determine it from the mime type
   if (!originalExt && originalMimeType) {
     if (originalMimeType === "image/jpeg") originalExt = ".jpg";
@@ -118,11 +119,11 @@ export const uploadToS3 = async ({
     else if (originalMimeType.startsWith("image/")) {
       const ext = mime.extension(originalMimeType);
       originalExt = ext ? `.${ext}` : ".jpg";
-    }
-    else originalExt = `.${mime.extension(originalMimeType) || "bin"}`;
+    } else originalExt = `.${mime.extension(originalMimeType) || "bin"}`;
   }
 
-  const isVideo = originalMimeType && originalMimeType.startsWith("video/") ||
+  const isVideo =
+    (originalMimeType && originalMimeType.startsWith("video/")) ||
     [".mp4", ".mov", ".webm", ".mkv", ".avi"].includes(originalExt);
 
   let previewExt = isVideo ? ".mp4" : ".webp";
@@ -135,12 +136,23 @@ export const uploadToS3 = async ({
   const originalContentType = getContentType(originalKey);
   const previewContentType = getContentType(previewKey);
 
-  const originalUrl = await uploadBuffer(originalBuffer, originalKey, originalContentType);
-  const previewUrl = await uploadBuffer(previewBuffer, previewKey, previewContentType);
+  const originalUrl = await uploadBuffer(
+    originalBuffer,
+    originalKey,
+    originalContentType,
+  );
+  const previewUrl = await uploadBuffer(
+    previewBuffer,
+    previewKey,
+    previewContentType,
+  );
 
   console.log("Uploaded to S3:", { originalUrl, previewUrl });
 
-  const cloudfrontDomain = (process.env.CLOUDFRONT_URL || "").replace(/\/$/, "");
+  const cloudfrontDomain = (process.env.CLOUDFRONT_URL || "").replace(
+    /\/$/,
+    "",
+  );
 
   return {
     originalUrl: `${cloudfrontDomain}/${originalKey}`,

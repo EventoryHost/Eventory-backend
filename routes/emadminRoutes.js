@@ -13,10 +13,10 @@ import {
   getAllVendorEnquiries,
   getVendorEnquiry,
   updateVendorEnquiry,
-  deleteVendorEnquiry
+  deleteVendorEnquiry,
 } from "../controllers/vendorEnquiryController.js";
 
-const router = express.Router(); 
+const router = express.Router();
 /**
  * @swagger
  * /api/EMauth:
@@ -82,7 +82,6 @@ router.post("/salesauth", authenticateSalesAdmin);
 // POST route for Business Admin authentication
 router.post("/businessauth", authenticateBusinessAdmin);
 
-
 /**
  * @swagger
  * /api/{adminId}/emNotifications:
@@ -108,7 +107,6 @@ router.post("/businessauth", authenticateBusinessAdmin);
 
 // GET route to fetch notifications by adminId
 router.get("/:em_id/emNotifications", getEMNotifications);
-
 
 /**
  * @swagger

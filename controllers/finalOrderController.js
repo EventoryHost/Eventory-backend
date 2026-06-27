@@ -5,7 +5,10 @@ import vendorNotification from "../models/vendorNotifications.js";
 import adminNotification from "../models/emNotifications.js";
 import Chat from "../models/chats.js";
 import Message from "../models/message2.js";
-import { sendFCMNotificationToVendor, sendFCMNotificationToEm } from "../utils/firebaseNotificationUtils.js";
+import {
+  sendFCMNotificationToVendor,
+  sendFCMNotificationToEm,
+} from "../utils/firebaseNotificationUtils.js";
 import { Customer } from "../models/customer.js";
 
 export const createOrUpdateFinalOrder = async (req, res) => {
@@ -32,18 +35,28 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     // 🆕 HANDLE NEW CUSTOMER CREATION IF NO CUSTOMER ID
     // 🆕 HANDLE CUSTOMER LOOKUP
     // Only look up if customer_id is explicitly missing/null OR it looks like a temporary ID
-    const isTempId = finalCustomerId && (finalCustomerId.startsWith("NEW_") || finalCustomerId === "gen_user_id");
+    const isTempId =
+      finalCustomerId &&
+      (finalCustomerId.startsWith("NEW_") || finalCustomerId === "gen_user_id");
 
     if ((!finalCustomerId || isTempId) && customer_contact_number) {
-      console.log("🆕 Checking for existing customer by number:", customer_contact_number);
+      console.log(
+        "🆕 Checking for existing customer by number:",
+        customer_contact_number,
+      );
 
       // Normalize number if needed (basic strip for now, assuming standard format)
-      // const normalizedNumber = normalizePhoneNumber(customer_contact_number); 
+      // const normalizedNumber = normalizePhoneNumber(customer_contact_number);
 
-      let existingCustomer = await Customer.findOne({ contact_number: customer_contact_number });
+      let existingCustomer = await Customer.findOne({
+        contact_number: customer_contact_number,
+      });
 
       if (existingCustomer) {
-        console.log("✅ Found existing customer:", existingCustomer.customer_id);
+        console.log(
+          "✅ Found existing customer:",
+          existingCustomer.customer_id,
+        );
         finalCustomerId = existingCustomer.customer_id;
       } else {
         console.log("✨ Creating NEW customer for order");
@@ -59,9 +72,10 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     }
 
     if (!finalCustomerId) {
-      console.warn("⚠️ Proceeding without customer_id (migrated legacy behavior or error)");
+      console.warn(
+        "⚠️ Proceeding without customer_id (migrated legacy behavior or error)",
+      );
     }
-
 
     // if (!quotation_id) {
     //   console.log("❌ quotation_id missing");
@@ -82,7 +96,10 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         message_type: "approval_request",
       });
 
-      console.log("🗑️ Deleted approval_request messages:", deletedMessages.deletedCount);
+      console.log(
+        "🗑️ Deleted approval_request messages:",
+        deletedMessages.deletedCount,
+      );
 
       // Reset approvals
       updateFields.customer_approval = null;
@@ -116,31 +133,38 @@ export const createOrUpdateFinalOrder = async (req, res) => {
 
       // 2. Derive compat mirrors from segment[0]
       const s0 = vendor_segments[0];
-      if (!updateFields.vendor_id)          updateFields.vendor_id          = s0.vendor_id;
-      if (!updateFields.service_id)         updateFields.service_id         = s0.service_id;
-      if (!updateFields.vendor_name)        updateFields.vendor_name        = s0.vendor_name;
-      if (!updateFields.vendor_manager_name) updateFields.vendor_manager_name = s0.vendor_manager_name;
+      if (!updateFields.vendor_id) updateFields.vendor_id = s0.vendor_id;
+      if (!updateFields.service_id) updateFields.service_id = s0.service_id;
+      if (!updateFields.vendor_name) updateFields.vendor_name = s0.vendor_name;
+      if (!updateFields.vendor_manager_name)
+        updateFields.vendor_manager_name = s0.vendor_manager_name;
       if (!updateFields.vendor_manager_contact_number)
-        updateFields.vendor_manager_contact_number = s0.vendor_manager_contact_number;
+        updateFields.vendor_manager_contact_number =
+          s0.vendor_manager_contact_number;
       if (!updateFields.vendor_manager_contact_email)
-        updateFields.vendor_manager_contact_email  = s0.vendor_manager_contact_email;
-      if (!updateFields.event_type)         updateFields.event_type     = s0.event_type;
-      if (!updateFields.event_start)        updateFields.event_start    = s0.event_start;
-      if (!updateFields.event_end)          updateFields.event_end      = s0.event_end;
-      if (!updateFields.event_location)     updateFields.event_location = s0.event_location;
-      if (!updateFields.vendor_location)    updateFields.vendor_location = s0.vendor_location;
-      if (!updateFields.location_type)      updateFields.location_type  = s0.location_type;
-      if (!updateFields.final_guest_count)  updateFields.final_guest_count = s0.final_guest_count;
+        updateFields.vendor_manager_contact_email =
+          s0.vendor_manager_contact_email;
+      if (!updateFields.event_type) updateFields.event_type = s0.event_type;
+      if (!updateFields.event_start) updateFields.event_start = s0.event_start;
+      if (!updateFields.event_end) updateFields.event_end = s0.event_end;
+      if (!updateFields.event_location)
+        updateFields.event_location = s0.event_location;
+      if (!updateFields.vendor_location)
+        updateFields.vendor_location = s0.vendor_location;
+      if (!updateFields.location_type)
+        updateFields.location_type = s0.location_type;
+      if (!updateFields.final_guest_count)
+        updateFields.final_guest_count = s0.final_guest_count;
 
       // 3. Build flat final_order_items (tagged per vendor)
       const flatItems = [];
       for (const seg of vendor_segments) {
-        for (const item of (seg.segment_final_order_items || [])) {
+        for (const item of seg.segment_final_order_items || []) {
           flatItems.push({
             ...item,
-            vendor_id:   seg.vendor_id,
-            service_id:  seg.service_id,
-            vendor_name: seg.vendor_name
+            vendor_id: seg.vendor_id,
+            service_id: seg.service_id,
+            vendor_name: seg.vendor_name,
           });
         }
       }
@@ -149,7 +173,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       // 4. Merge per-segment terms (deduplicated union)
       const allTerms = new Set();
       for (const seg of vendor_segments) {
-        for (const t of (seg.specificTerms || [])) allTerms.add(t);
+        for (const t of seg.specificTerms || []) allTerms.add(t);
       }
       updateFields.specificTerms = [...allTerms];
 
@@ -157,16 +181,22 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       // Commission must not be deducted from Token or Advance payouts
       for (const seg of vendor_segments) {
         const segBreakdowns = seg.paymentBreakdowns || [];
-        const validBreakdowns = segBreakdowns.filter(b => b.name !== 'Discount');
-        
-        const overallCommission = Number(seg.paymentDetails?.vendorReceivable?.commission) || 0;
-        const overallTaxOnCommission = Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) || 0;
+        const validBreakdowns = segBreakdowns.filter(
+          (b) => b.name !== "Discount",
+        );
+
+        const overallCommission =
+          Number(seg.paymentDetails?.vendorReceivable?.commission) || 0;
+        const overallTaxOnCommission =
+          Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) || 0;
         const totalCommission = overallCommission + overallTaxOnCommission;
-        
+
         // Find the last milestone (Final Pay preferred, otherwise the actual last one)
-        const finalIdx = validBreakdowns.findIndex(b => b.name === 'Final Pay');
+        const finalIdx = validBreakdowns.findIndex(
+          (b) => b.name === "Final Pay",
+        );
         const lastIdx = finalIdx !== -1 ? finalIdx : validBreakdowns.length - 1;
-        
+
         for (let i = 0; i < validBreakdowns.length; i++) {
           const b = validBreakdowns[i];
           const amt = Number(b.amount) || 0;
@@ -181,15 +211,27 @@ export const createOrUpdateFinalOrder = async (req, res) => {
 
       // 5. Build COMBINED customer payment schedule
       //    Sum amounts for same-name milestones across all segments
-      const milestoneOrder = ['Token','Advance 1','Advance 2','Advance 3','Advance 4','Final Pay','Last Pay','Discount'];
+      const milestoneOrder = [
+        "Token",
+        "Advance 1",
+        "Advance 2",
+        "Advance 3",
+        "Advance 4",
+        "Final Pay",
+        "Last Pay",
+        "Discount",
+      ];
       const milestoneMap = new Map();
       for (const seg of vendor_segments) {
-        for (const b of (seg.paymentBreakdowns || [])) {
+        for (const b of seg.paymentBreakdowns || []) {
           if (milestoneMap.has(b.name)) {
             const existing = milestoneMap.get(b.name);
             existing.amount += Number(b.amount) || 0;
             // Keep earliest date
-            if (b.date && (!existing.date || new Date(b.date) < new Date(existing.date))) {
+            if (
+              b.date &&
+              (!existing.date || new Date(b.date) < new Date(existing.date))
+            ) {
               existing.date = b.date;
             }
           } else {
@@ -197,15 +239,23 @@ export const createOrUpdateFinalOrder = async (req, res) => {
           }
         }
       }
-      const mergedBreakdowns = [...milestoneMap.values()]
-        .sort((a, b) => milestoneOrder.indexOf(a.name) - milestoneOrder.indexOf(b.name));
+      const mergedBreakdowns = [...milestoneMap.values()].sort(
+        (a, b) =>
+          milestoneOrder.indexOf(a.name) - milestoneOrder.indexOf(b.name),
+      );
 
       // 5.5 Inject platform margin (Convenience Fee + Taxes) into the Final Pay checkout milestone
-      if (updateFields.paymentDetails && updateFields.paymentDetails.customerPayable) {
+      if (
+        updateFields.paymentDetails &&
+        updateFields.paymentDetails.customerPayable
+      ) {
         const cp = updateFields.paymentDetails.customerPayable;
-        const platformCcfShare = (Number(cp.convenienceFee) || 0) + (Number(cp.taxOnConvenience) || 0);
+        const platformCcfShare =
+          (Number(cp.convenienceFee) || 0) + (Number(cp.taxOnConvenience) || 0);
         if (platformCcfShare > 0 && mergedBreakdowns.length > 0) {
-          let targetIdx = mergedBreakdowns.findIndex(b => b.name === 'Final Pay');
+          let targetIdx = mergedBreakdowns.findIndex(
+            (b) => b.name === "Final Pay",
+          );
           if (targetIdx === -1) targetIdx = mergedBreakdowns.length - 1;
           mergedBreakdowns[targetIdx].amount += platformCcfShare;
         }
@@ -216,16 +266,28 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       // 6. Aggregate vendor receivable total across segments
       if (updateFields.paymentDetails) {
         const totalReceivable = vendor_segments.reduce(
-          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.total) || 0), 0
+          (sum, seg) =>
+            sum + (Number(seg.paymentDetails?.vendorReceivable?.total) || 0),
+          0,
         );
         const totalBaseAmount = vendor_segments.reduce(
-          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.baseAmount) || 0), 0
+          (sum, seg) =>
+            sum +
+            (Number(seg.paymentDetails?.vendorReceivable?.baseAmount) || 0),
+          0,
         );
         const totalCommission = vendor_segments.reduce(
-          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.commission) || 0), 0
+          (sum, seg) =>
+            sum +
+            (Number(seg.paymentDetails?.vendorReceivable?.commission) || 0),
+          0,
         );
         const totalTaxOnCommission = vendor_segments.reduce(
-          (sum, seg) => sum + (Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) || 0), 0
+          (sum, seg) =>
+            sum +
+            (Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) ||
+              0),
+          0,
         );
         updateFields.paymentDetails = {
           ...updateFields.paymentDetails,
@@ -235,11 +297,13 @@ export const createOrUpdateFinalOrder = async (req, res) => {
             baseAmount: totalBaseAmount,
             commission: totalCommission,
             taxOnCommission: totalTaxOnCommission,
-          }
+          },
         };
       }
 
-      console.log(`✅ Segments processed: ${flatItems.length} items, ${mergedBreakdowns.length} milestones, ${allTerms.size} terms`);
+      console.log(
+        `✅ Segments processed: ${flatItems.length} items, ${mergedBreakdowns.length} milestones, ${allTerms.size} terms`,
+      );
     }
 
     // UPSERT THE ORDER
@@ -250,7 +314,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       updatedOrder = await Order.findOneAndUpdate(
         { order_id },
         { $set: updateFields },
-        { new: true, upsert: true } // Upsert is fine if order_id is valid but not found (rare)
+        { new: true, upsert: true }, // Upsert is fine if order_id is valid but not found (rare)
       );
     } else {
       console.log("✨ Creating FRESH order (no order_id provided)");
@@ -264,25 +328,44 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (order_id && updatedOrder.event_id) {
       try {
         const eventSyncFields = {};
-        if (updateFields.final_order_items) eventSyncFields.final_order_items = updateFields.final_order_items;
-        if (updateFields.final_amount != null) eventSyncFields.final_amount = updateFields.final_amount;
-        if (updateFields.paymentDetails) eventSyncFields.payment_details = updateFields.paymentDetails;
-        if (updateFields.specificTerms) eventSyncFields.specific_terms = updateFields.specificTerms;
-        if (updateFields.event_type) eventSyncFields.event_type = updateFields.event_type;
-        if (updateFields.event_start) eventSyncFields.event_start = updateFields.event_start;
-        if (updateFields.event_end) eventSyncFields.event_end = updateFields.event_end;
-        if (updateFields.event_location) eventSyncFields.event_location = updateFields.event_location;
-        if (updateFields.vendor_location) eventSyncFields.vendor_location = updateFields.vendor_location;
-        if (updateFields.location_type) eventSyncFields.location_type = updateFields.location_type;
-        if (updateFields.final_guest_count != null) eventSyncFields.final_guest_count = updateFields.final_guest_count;
-        if (updateFields.customer_name) eventSyncFields.customer_name = updateFields.customer_name;
-        if (updateFields.customer_contact_number) eventSyncFields.customer_contact_number = updateFields.customer_contact_number;
-        if (updateFields.customer_contact_email) eventSyncFields.customer_contact_email = updateFields.customer_contact_email;
-        if (updateFields.vendor_segments) eventSyncFields.vendor_segments = updateFields.vendor_segments;
+        if (updateFields.final_order_items)
+          eventSyncFields.final_order_items = updateFields.final_order_items;
+        if (updateFields.final_amount != null)
+          eventSyncFields.final_amount = updateFields.final_amount;
+        if (updateFields.paymentDetails)
+          eventSyncFields.payment_details = updateFields.paymentDetails;
+        if (updateFields.specificTerms)
+          eventSyncFields.specific_terms = updateFields.specificTerms;
+        if (updateFields.event_type)
+          eventSyncFields.event_type = updateFields.event_type;
+        if (updateFields.event_start)
+          eventSyncFields.event_start = updateFields.event_start;
+        if (updateFields.event_end)
+          eventSyncFields.event_end = updateFields.event_end;
+        if (updateFields.event_location)
+          eventSyncFields.event_location = updateFields.event_location;
+        if (updateFields.vendor_location)
+          eventSyncFields.vendor_location = updateFields.vendor_location;
+        if (updateFields.location_type)
+          eventSyncFields.location_type = updateFields.location_type;
+        if (updateFields.final_guest_count != null)
+          eventSyncFields.final_guest_count = updateFields.final_guest_count;
+        if (updateFields.customer_name)
+          eventSyncFields.customer_name = updateFields.customer_name;
+        if (updateFields.customer_contact_number)
+          eventSyncFields.customer_contact_number =
+            updateFields.customer_contact_number;
+        if (updateFields.customer_contact_email)
+          eventSyncFields.customer_contact_email =
+            updateFields.customer_contact_email;
+        if (updateFields.vendor_segments)
+          eventSyncFields.vendor_segments = updateFields.vendor_segments;
 
         // ── MERGE payment_breakdowns: preserve "Paid" statuses from event ──
         if (updateFields.paymentBreakdowns) {
-          const existingEvent = await Events.findOne({ event_id: updatedOrder.event_id }).lean();
+          const existingEvent = await Events.findOne({
+            event_id: updatedOrder.event_id,
+          }).lean();
           const existingBreakdowns = existingEvent?.payment_breakdowns || [];
 
           // Build a map of existing paid statuses by breakdown name
@@ -293,41 +376,42 @@ export const createOrUpdateFinalOrder = async (req, res) => {
             }
           }
 
-
-
           // Merge: keep paid status for existing breakdowns, new ones stay as-is
-          const mergedBreakdowns = updateFields.paymentBreakdowns.map(b => ({
+          const mergedBreakdowns = updateFields.paymentBreakdowns.map((b) => ({
             ...b,
-            status: paidStatusMap[b.name] ? "Paid" : (b.status || "Unpaid"),
+            status: paidStatusMap[b.name] ? "Paid" : b.status || "Unpaid",
           }));
 
           eventSyncFields.payment_breakdowns = mergedBreakdowns;
         }
 
-
         if (Object.keys(eventSyncFields).length > 0) {
           const syncResult = await Events.findOneAndUpdate(
             { event_id: updatedOrder.event_id },
             { $set: eventSyncFields },
-            { new: true }
+            { new: true },
           );
           if (syncResult) {
-            console.log(`[OrderSync] Event ${updatedOrder.event_id} synced with order changes.`);
+            console.log(
+              `[OrderSync] Event ${updatedOrder.event_id} synced with order changes.`,
+            );
           } else {
-            console.warn(`[OrderSync] Event ${updatedOrder.event_id} not found, skipping sync.`);
+            console.warn(
+              `[OrderSync] Event ${updatedOrder.event_id} not found, skipping sync.`,
+            );
           }
         }
       } catch (syncErr) {
-        console.error("[OrderSync] Failed to sync order to event:", syncErr.message);
+        console.error(
+          "[OrderSync] Failed to sync order to event:",
+          syncErr.message,
+        );
       }
     }
-
-
 
     // ------------------- SEND REAL-TIME NOTIFICATION -------------------
     try {
       const messageContent = `Final Order Generated: ${updatedOrder.order_id}. Please review and approve.`;
-
 
       // Use quotation_id from the updated order (guaranteed to exist)
       const targetChatId = updatedOrder.quotation_id;
@@ -354,7 +438,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
           const customerRoomId = `${targetChatId}-customer-admin`;
           req.io.to(customerRoomId).emit("new_message", {
             ...savedMessage.toObject(),
-            chat_type: "customer-admin"
+            chat_type: "customer-admin",
           });
 
           // Vendor Room (if different chat_type needed, create another message or just emit)
@@ -362,10 +446,12 @@ export const createOrUpdateFinalOrder = async (req, res) => {
           const vendorRoomId = `${targetChatId}-vendor-admin`;
           req.io.to(vendorRoomId).emit("new_message", {
             ...savedMessage.toObject(),
-            chat_type: "vendor-admin"
+            chat_type: "vendor-admin",
           });
 
-          console.log(`📤 Emitted approval_request to ${customerRoomId} and ${vendorRoomId}`);
+          console.log(
+            `📤 Emitted approval_request to ${customerRoomId} and ${vendorRoomId}`,
+          );
         }
       }
     } catch (msgErr) {
@@ -378,7 +464,6 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         : "Order processed & approval messages refreshed",
       data: updatedOrder,
     });
-
   } catch (error) {
     console.error("❌ Final order error:", error.message);
     return res.status(400).json({
@@ -444,7 +529,7 @@ export const approveFinalOrder = async (req, res) => {
     const order = await Order.findOneAndUpdate(
       { order_id },
       { $set: updateFields },
-      { new: true }
+      { new: true },
     );
 
     if (!order) {
@@ -455,7 +540,7 @@ export const approveFinalOrder = async (req, res) => {
     if (order.customer_approval === true && order.vendor_approval === true) {
       console.log("CASE 1 triggered for order:", order.order_id);
       const parsedFinalPrice = Number(
-        String(order.price || 0).replace(/,/g, "")
+        String(order.price || 0).replace(/,/g, ""),
       );
       const checkout_url =
         order.checkout_url ||
@@ -478,7 +563,7 @@ export const approveFinalOrder = async (req, res) => {
             quotation_id: order.quotation_id,
           },
         },
-        { new: true, upsert: true }
+        { new: true, upsert: true },
       );
 
       await vendorNotification.create({
@@ -504,19 +589,27 @@ export const approveFinalOrder = async (req, res) => {
         priority: "high",
         notification: {
           title: "Final Order Approved",
-          body: message
+          body: message,
         },
         data: {
           type: "final_order_em",
           order_id: order.order_id,
           chat_id: order.quotation_id,
           quotation_id: order.quotation_id,
-        }
-      }).then(result => {
-        console.log(`FCM notifications sent to em ${order.em_id} for final order approval ${order.order_id}`, result);
-      }).catch(error => {
-        console.error("Failed to send FCM notification for final order approval:", error);
-      });
+        },
+      })
+        .then((result) => {
+          console.log(
+            `FCM notifications sent to em ${order.em_id} for final order approval ${order.order_id}`,
+            result,
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to send FCM notification for final order approval:",
+            error,
+          );
+        });
 
       //Trigger for fcm for vendor app for final order
       sendFCMNotificationToVendor({
@@ -524,7 +617,7 @@ export const approveFinalOrder = async (req, res) => {
         priority: "high",
         notification: {
           title: "Final Order Approved",
-          body: `Final Order Approved by both Vendor and Customer. (Order ID: ${order.order_id})`
+          body: `Final Order Approved by both Vendor and Customer. (Order ID: ${order.order_id})`,
         },
         data: {
           type: "final_order_approved",
@@ -532,12 +625,20 @@ export const approveFinalOrder = async (req, res) => {
           chat_id: order.quotation_id,
           quotation_id: order.quotation_id,
           customer_id: order.customer_id,
-        }
-      }).then(result => {
-        console.log(`FCM notifications sent to vendor ${order.vendor_id} for final order approval ${order.order_id}`, result);
-      }).catch(error => {
-        console.error("Failed to send FCM notification for final order approval:", error);
-      });
+        },
+      })
+        .then((result) => {
+          console.log(
+            `FCM notifications sent to vendor ${order.vendor_id} for final order approval ${order.order_id}`,
+            result,
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to send FCM notification for final order approval:",
+            error,
+          );
+        });
 
       // Send message to customer chat only for payment/checkout
       try {
@@ -568,9 +669,9 @@ export const approveFinalOrder = async (req, res) => {
               {
                 $set: {
                   last_message_updated_at: new Date(),
-                  chat_updated_at: new Date()
-                }
-              }
+                  chat_updated_at: new Date(),
+                },
+              },
             );
           }
 
@@ -590,7 +691,9 @@ export const approveFinalOrder = async (req, res) => {
             console.log(`📤 Emitted payment message to room: ${roomId}`);
           }
 
-          console.log("✅ Chat message sent to customer-admin chat for payment");
+          console.log(
+            "✅ Chat message sent to customer-admin chat for payment",
+          );
         }
       } catch (messageError) {
         console.error("❌ Failed to send chat message:", messageError);
@@ -664,18 +767,26 @@ export const approveFinalOrder = async (req, res) => {
         priority: "high",
         notification: {
           title: "Final Order Rejected",
-          body: message
+          body: message,
         },
         data: {
           type: "final_order_em",
           order_id: order.order_id,
           chat_id: order.quotation_id,
-        }
-      }).then(result => {
-        console.log(`FCM notifications sent to em ${order.em_id} for final order rejection ${order.order_id}`, result);
-      }).catch(error => {
-        console.error("Failed to send FCM notification for final order rejection:", error);
-      });
+        },
+      })
+        .then((result) => {
+          console.log(
+            `FCM notifications sent to em ${order.em_id} for final order rejection ${order.order_id}`,
+            result,
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to send FCM notification for final order rejection:",
+            error,
+          );
+        });
 
       //Trigger for fcm for vendor app for final order
       sendFCMNotificationToVendor({
@@ -683,23 +794,31 @@ export const approveFinalOrder = async (req, res) => {
         priority: "high",
         notification: {
           title: "Final Order Rejected",
-          body: `Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`
+          body: `Final Order marked for discussion by ${userType}. (Order ID: ${order.order_id})`,
         },
         data: {
           type: "final_order_rejected",
           order_id: order.order_id,
           chat_id: order.quotation_id,
-        }
-      }).then(result => {
-        console.log(`FCM notifications sent to vendor ${order.vendor_id} for final order rejection ${order.order_id}`, result);
-      }).catch(error => {
-        console.error("Failed to send FCM notification for final order rejection:", error);
-      });
+        },
+      })
+        .then((result) => {
+          console.log(
+            `FCM notifications sent to vendor ${order.vendor_id} for final order rejection ${order.order_id}`,
+            result,
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to send FCM notification for final order rejection:",
+            error,
+          );
+        });
 
       const resetOrder = await Order.findOneAndUpdate(
         { order_id },
         { $set: { customer_approval: null, vendor_approval: null } },
-        { new: true }
+        { new: true },
       );
 
       return res.status(200).json({
@@ -749,7 +868,7 @@ export const approveFinalOrder = async (req, res) => {
           quotation_id: order.quotation_id,
         },
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
 
     //Trigger for fcm for em in app for final order
@@ -758,18 +877,26 @@ export const approveFinalOrder = async (req, res) => {
       priority: "high",
       notification: {
         title: "Final Order Updated",
-        body: message
+        body: message,
       },
       data: {
         type: "final_order_em",
         order_id: order.order_id,
         chat_id: order.quotation_id,
-      }
-    }).then(result => {
-      console.log(`FCM notifications sent to em ${order.em_id} for partial order approval ${order.order_id}`, result);
-    }).catch(error => {
-      console.error("Failed to send FCM notification for partial order approval:", error);
-    });
+      },
+    })
+      .then((result) => {
+        console.log(
+          `FCM notifications sent to em ${order.em_id} for partial order approval ${order.order_id}`,
+          result,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to send FCM notification for partial order approval:",
+          error,
+        );
+      });
 
     //Trigger for fcm for vendor app for final order
     sendFCMNotificationToVendor({
@@ -777,18 +904,26 @@ export const approveFinalOrder = async (req, res) => {
       priority: "high",
       notification: {
         title: "Final Order Updated",
-        body: `Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.order_id})`
+        body: `Final Order approved by ${userType}. Waiting for other party to respond (Order ID: ${order.order_id})`,
       },
       data: {
         type: "final_order_partial_approval",
         order_id: order.order_id,
         chat_id: order.quotation_id,
-      }
-    }).then(result => {
-      console.log(`FCM notifications sent to vendor ${order.vendor_id} for partial order approval ${order.order_id}`, result);
-    }).catch(error => {
-      console.error("Failed to send FCM notification for partial order approval:", error);
-    });
+      },
+    })
+      .then((result) => {
+        console.log(
+          `FCM notifications sent to vendor ${order.vendor_id} for partial order approval ${order.order_id}`,
+          result,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to send FCM notification for partial order approval:",
+          error,
+        );
+      });
 
     return res.status(200).json({
       message: `Approval updated for ${userType}. Checkout link temporarily sent.`,
@@ -807,7 +942,8 @@ export const approveFinalOrder = async (req, res) => {
 export const updateFinalOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
-    const { paymentDetails, specificTerms, paymentBreakdowns, ...updateData } = req.body;
+    const { paymentDetails, specificTerms, paymentBreakdowns, ...updateData } =
+      req.body;
 
     // Handle paymentDetails and specificTerms separately to ensure proper schema validation
     const updateFields = { ...updateData };
@@ -824,7 +960,7 @@ export const updateFinalOrder = async (req, res) => {
     const updatedOrder = await Order.findOneAndUpdate(
       { order_id },
       { $set: updateFields },
-      { new: true }
+      { new: true },
     );
     if (!updatedOrder)
       return res.status(404).json({ message: "Booking not found" });
@@ -907,7 +1043,7 @@ export const updatePaymentDetails = async (req, res) => {
     const updatedOrder = await Order.findOneAndUpdate(
       { order_id },
       { $set: { paymentDetails } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedOrder) {
@@ -943,7 +1079,7 @@ export const updateSpecificTerms = async (req, res) => {
     const updatedOrder = await Order.findOneAndUpdate(
       { order_id },
       { $set: { specificTerms } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedOrder) {
@@ -999,7 +1135,7 @@ export const syncPaymentDetailsToEvents = async (req, res) => {
     const updatedEvent = await Events.findOneAndUpdate(
       { event_id: event.event_id },
       { $set: updateFields },
-      { new: true }
+      { new: true },
     );
 
     res.status(200).json({

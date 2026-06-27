@@ -29,7 +29,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       photographer.basic_details.do_advance_setup !== null &&
       photographer.basic_details.do_post_production_services !== undefined &&
       photographer.basic_details.do_post_production_services !== null &&
-      !!photographer.basic_details.service_location_pav ;
+      !!photographer.basic_details.service_location_pav;
 
     // Log the result of the basic details check
     console.log(`Basic details check: ------- ${basicDetailsComplete}`);
@@ -39,7 +39,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       { service_id: photographerId },
       {
         "basic_details.is_completed": basicDetailsComplete,
-      }
+      },
     );
 
     // Check if service details are complete
@@ -60,7 +60,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       { service_id: photographerId },
       {
         "service_details.is_completed": serviceDetailsComplete,
-      }
+      },
     );
 
     // Check if additional details are complete
@@ -75,7 +75,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
 
     // Log the result of the additional details check
     console.log(
-      `Additional details check: ------- ${additionalDetailsComplete}`
+      `Additional details check: ------- ${additionalDetailsComplete}`,
     );
 
     // Update completed flag for additional details
@@ -83,7 +83,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       { service_id: photographerId },
       {
         "additional_details.is_completed": additionalDetailsComplete,
-      }
+      },
     );
 
     // Check if policies are complete (cancellation and terms only)
@@ -97,7 +97,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
 
     // Log the result of the policies check
     console.log(
-      `Policies check: ------- ${cancellationComplete && termsComplete}`
+      `Policies check: ------- ${cancellationComplete && termsComplete}`,
     );
 
     // Policies are considered complete if both cancellation and terms are filled
@@ -108,7 +108,7 @@ export const checkPhotographerProfileCompletion = async (photographerId) => {
       { service_id: photographerId },
       {
         "policies.is_completed": policiesComplete,
-      }
+      },
     );
 
     return true;

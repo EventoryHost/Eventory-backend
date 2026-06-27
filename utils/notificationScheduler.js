@@ -7,8 +7,8 @@ import { startNotificationWorker } from "../workers/notificationWorker.js";
  * Call this function once in your main server entry point after DB connection.
  */
 export const initializeWorkers = () => {
-    // Start the chat notification worker
-    startNotificationWorker();
-    
-    console.log("All background workers have been initialized.");
+  // Start the chat notification worker
+  startNotificationWorker();
+
+  console.log("All background workers have been initialized.");
 };

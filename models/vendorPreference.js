@@ -19,7 +19,7 @@ const vendorPreferenceSchema = new mongoose.Schema(
     },
     preference_type: {
       type: String,
-      enum: ['liked', 'rejected'],
+      enum: ["liked", "rejected"],
       required: true,
     },
     created_at: {
@@ -32,11 +32,13 @@ const vendorPreferenceSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
-  }
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
+  },
 );
 
-
-const VendorPreference = mongoose.model("VendorPreference", vendorPreferenceSchema);
+const VendorPreference = mongoose.model(
+  "VendorPreference",
+  vendorPreferenceSchema,
+);
 
 export default VendorPreference;

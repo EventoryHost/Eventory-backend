@@ -3,118 +3,124 @@ import generateUniqueId from "../utils/generateId.js";
 import { customerCouponUsageSchema } from "./customerCoupon.js";
 import { normalizePhoneNumber } from "../utils/phoneUtils.js";
 
-
 // Customer Schema
-const customerSchema = new mongoose.Schema({
-  customer_id: {
-    type: String,
-    required: true,
-    unique: true,
-    default: () => generateUniqueId("CUST")
-  },
-  customer_name: {
-    type: String
-  },
-  contact_number: {
-    type: String,
-    required: true,
-    set: normalizePhoneNumber,
-    // validate: {
-    //   validator: function(v) {
-    //     return /^[6-9]\d{9}$/.test(v);
-    //   },
-    //   message: props => `${props.value} is not a valid Indian mobile number!`
-    // }
-  },
-  email_address: {
-    type: String,
-    validate: {
-      validator: function (v) {
-        if (!v) return true; // Allow empty email
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const customerSchema = new mongoose.Schema(
+  {
+    customer_id: {
+      type: String,
+      required: true,
+      unique: true,
+      default: () => generateUniqueId("CUST"),
+    },
+    customer_name: {
+      type: String,
+    },
+    contact_number: {
+      type: String,
+      required: true,
+      set: normalizePhoneNumber,
+      // validate: {
+      //   validator: function(v) {
+      //     return /^[6-9]\d{9}$/.test(v);
+      //   },
+      //   message: props => `${props.value} is not a valid Indian mobile number!`
+      // }
+    },
+    email_address: {
+      type: String,
+      validate: {
+        validator: function (v) {
+          if (!v) return true; // Allow empty email
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid email address!`,
       },
-      message: props => `${props.value} is not a valid email address!`
-    }
-  },
-  customer_address: {
-    type: String,
-  },
-  is_business: {
-    type: Boolean,
-    default: false,
-  },
-  gst_number: {
-    type: String,
-    validate: {
-      validator: function (v) {
-        if (!this.is_business || !v) return true;
-        return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v);
+    },
+    customer_address: {
+      type: String,
+    },
+    is_business: {
+      type: Boolean,
+      default: false,
+    },
+    gst_number: {
+      type: String,
+      validate: {
+        validator: function (v) {
+          if (!this.is_business || !v) return true;
+          return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(
+            v,
+          );
+        },
+        message: (props) => `${props.value} is not a valid GST number!`,
       },
-      message: props => `${props.value} is not a valid GST number!`
-    }
-  },
-  pincode: {
-    type: String, // Changed from Number to String to match ERD
-    validate: {
-      validator: function (v) {
-        if (!v) return true;
-        return /^\d{6}$/.test(v);
+    },
+    pincode: {
+      type: String, // Changed from Number to String to match ERD
+      validate: {
+        validator: function (v) {
+          if (!v) return true;
+          return /^\d{6}$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid 6-digit pincode!`,
       },
-      message: props => `${props.value} is not a valid 6-digit pincode!`
-    }
+    },
+    wishlisted_services: [
+      {
+        type: String, // Array of service_id's
+      },
+    ],
+    coupons_used: {
+      type: [String],
+      default: [],
+    },
+    applied_coupons: {
+      type: [customerCouponUsageSchema],
+      default: [],
+    },
+    eligible_discounts: {
+      type: [Number],
+      default: [25, 50, 100],
+    },
+    highest_discount_ever_applied: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    last_coupon_used_at: {
+      type: Date,
+      default: null,
+    },
+    customer_created_at: {
+      type: Date,
+      default: () => {
+        // Convert to IST (UTC+5:30)
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        return new Date(now.getTime() + istOffset);
+      },
+    },
+    customer_updated_at: {
+      type: Date,
+      default: () => {
+        // Convert to IST (UTC+5:30)
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        return new Date(now.getTime() + istOffset);
+      },
+    },
+    last_coupon_used_at: {
+      type: Date,
+      default: null,
+    },
   },
-  wishlisted_services: [{
-    type: String // Array of service_id's
-  }],
-  coupons_used: {
-    type: [String],
-    default: [],
+  {
+    collection: "customers",
   },
-  applied_coupons: {
-    type: [customerCouponUsageSchema],
-    default: [],
-  },
-  eligible_discounts: {
-    type: [Number],
-    default: [25, 50, 100],
-  },
-  highest_discount_ever_applied: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  last_coupon_used_at: {
-    type: Date,
-    default: null
-  },
-  customer_created_at: {
-    type: Date,
-    default: () => {
-      // Convert to IST (UTC+5:30)
-      const now = new Date();
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      return new Date(now.getTime() + istOffset);
-    }
-  },
-  customer_updated_at: {
-    type: Date,
-    default: () => {
-      // Convert to IST (UTC+5:30)
-      const now = new Date();
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      return new Date(now.getTime() + istOffset);
-    }
-  },
-  last_coupon_used_at: {
-    type: Date,
-    default: null,
-  }
-}, {
-  collection: 'customers'
-});
+);
 
 // Pre-save middleware to update customer_updated_at on every save
-customerSchema.pre('save', function (next) {
+customerSchema.pre("save", function (next) {
   if (!this.isNew) {
     // Convert to IST (UTC+5:30)
     const now = new Date();
@@ -125,13 +131,16 @@ customerSchema.pre('save', function (next) {
 });
 
 // Pre-update middleware to update customer_updated_at on updates
-customerSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
-  // Convert to IST (UTC+5:30)
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  this.set({ customer_updated_at: new Date(now.getTime() + istOffset) });
-  next();
-});
+customerSchema.pre(
+  ["findOneAndUpdate", "updateOne", "updateMany"],
+  function (next) {
+    // Convert to IST (UTC+5:30)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    this.set({ customer_updated_at: new Date(now.getTime() + istOffset) });
+    next();
+  },
+);
 
 // Method to add service to wishlist
 customerSchema.methods.addToWishlist = function (serviceId) {
@@ -171,6 +180,6 @@ customerSchema.index({ pincode: 1 });
 customerSchema.index({ customer_created_at: -1 });
 customerSchema.index({ customer_updated_at: -1 });
 
-const Customer = mongoose.model('Customers', customerSchema);
+const Customer = mongoose.model("Customers", customerSchema);
 
 export { Customer, customerSchema };

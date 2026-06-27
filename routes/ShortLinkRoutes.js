@@ -1,8 +1,8 @@
-import express from 'express';
+import express from "express";
 const router = express.Router();
-import * as shortLinkController from '../controllers/ShortLinkController.js';
+import * as shortLinkController from "../controllers/ShortLinkController.js";
 
-router.post('/create', shortLinkController.createShortLink);
-router.get('/:code', shortLinkController.getShortLink);
+router.post("/create", shortLinkController.createShortLink);
+router.get("/:code", shortLinkController.getShortLink);
 
 export default router;

@@ -24,28 +24,38 @@ export function normalizePhotos(input) {
   if (typeof input === "string") {
     const s = input.trim();
     if (s.startsWith("[") || s.startsWith("{")) {
-      try { return normalizePhotos(JSON.parse(s)); } catch { }
+      try {
+        return normalizePhotos(JSON.parse(s));
+      } catch {}
     }
-    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+    return s
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((u) => ({ original: u, preview: u }));
   }
   if (Array.isArray(input)) {
-    return input.map((it) => {
-      if (!it) return null;
-      if (typeof it === "string") return { original: it, preview: it };
-      const unwrap = (v) => {
-        if (typeof v === "string" && v.trim().startsWith("[")) {
-          try {
-            const arr = JSON.parse(v);
-            const first = Array.isArray(arr) ? arr[0] : arr;
-            return first?.original || first?.preview || "";
-          } catch { return v; }
-        }
-        return v;
-      };
-      const original = unwrap(it.original) || unwrap(it.url) || "";
-      const preview = unwrap(it.preview) || original;
-      return original ? { original, preview } : null;
-    }).filter(Boolean);
+    return input
+      .map((it) => {
+        if (!it) return null;
+        if (typeof it === "string") return { original: it, preview: it };
+        const unwrap = (v) => {
+          if (typeof v === "string" && v.trim().startsWith("[")) {
+            try {
+              const arr = JSON.parse(v);
+              const first = Array.isArray(arr) ? arr[0] : arr;
+              return first?.original || first?.preview || "";
+            } catch {
+              return v;
+            }
+          }
+          return v;
+        };
+        const original = unwrap(it.original) || unwrap(it.url) || "";
+        const preview = unwrap(it.preview) || original;
+        return original ? { original, preview } : null;
+      })
+      .filter(Boolean);
   }
   return [];
 }
@@ -53,11 +63,16 @@ export function normalizePhotos(input) {
 export function normalizeVideos(input) {
   if (!input) return [];
   if (typeof input === "string") {
-    try { return normalizeVideos(JSON.parse(input)); } catch {
-      return input.split(",").map(s => s.trim()).filter(Boolean);
+    try {
+      return normalizeVideos(JSON.parse(input));
+    } catch {
+      return input
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
   }
-  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  if (Array.isArray(input)) return input.map((v) => String(v)).filter(Boolean);
   return [];
 }
 
@@ -87,21 +102,21 @@ const updateSectionCompletion = async (vendorId) => {
 
     // Match schema field names
     decorator.basic_details.is_completed = checkCompletion(
-      decorator.basic_details || {}
+      decorator.basic_details || {},
     );
 
     decorator.theme_details.is_completed = checkCompletion(
-      decorator.theme_details || {}
+      decorator.theme_details || {},
     );
 
     decorator.additional_details.is_completed = checkCompletion(
-      decorator.additional_details || {}
+      decorator.additional_details || {},
     );
 
     decorator.policies.is_completed = checkCompletion(decorator.policies || {});
 
     decorator.business_details.is_completed = checkCompletion(
-      decorator.business_details || {}
+      decorator.business_details || {},
     );
 
     await decorator.save();
@@ -113,11 +128,20 @@ const updateSectionCompletion = async (vendorId) => {
 const normalizeServiceName = (label) => {
   if (!label) return label;
   const s = String(label).trim().toLowerCase();
-  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
-  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s))
+    return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s))
+    return "Makeup-Artist";
   if (["caterer"].includes(s)) return "Caterer";
   if (["decorator"].includes(s)) return "Decorator";
-  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (
+    [
+      "photographer & videographer",
+      "photographer and videographer",
+      "pav",
+    ].includes(s)
+  )
+    return "Photographer & Videographer";
   return label;
 };
 
@@ -125,18 +149,25 @@ const createDecorator = async (req, res) => {
   try {
     // Prevent duplicates per vendor
     const exists = await Decorator.findOne({ vendor_id: req.body.vendor_id });
-    if (exists) return res.status(400).json({ message: "Decorator already exists" });
+    if (exists)
+      return res.status(400).json({ message: "Decorator already exists" });
 
     const service_id = generateUniqueId("DECO");
 
     // Agreements from temp redux model
-    const temp = await ReduxDecoratorModel.findOne({ vendor_id: req.body.vendor_id });
+    const temp = await ReduxDecoratorModel.findOne({
+      vendor_id: req.body.vendor_id,
+    });
     const agreementUrl = temp?.agreement_url || " ";
     const agreementSignedAt = temp?.agreement_signed_at || new Date();
 
     // Normalize media: accept JSON strings, arrays of objects/strings, CSV
-    const theme_portfolio_images = normalizePhotos(req.body.theme_portfolio_images);
-    const theme_portfolio_videos = normalizeVideos(req.body.theme_portfolio_videos);
+    const theme_portfolio_images = normalizePhotos(
+      req.body.theme_portfolio_images,
+    );
+    const theme_portfolio_videos = normalizeVideos(
+      req.body.theme_portfolio_videos,
+    );
     const asset_images = normalizePhotos(req.body.asset_images);
     const asset_videos = normalizeVideos(req.body.asset_videos);
 
@@ -240,18 +271,19 @@ const createDecorator = async (req, res) => {
         themes_offered: req.body.themes_offered || [],
         is_prop_selection_available: req.body.is_prop_selection_available,
         any_custom_design_process: req.body.any_custom_design_process,
-        is_colour_scheme_assistance_provided: req.body.is_colour_scheme_assistance_provided,
+        is_colour_scheme_assistance_provided:
+          req.body.is_colour_scheme_assistance_provided,
         is_theme_customization_allowed: req.body.is_theme_customization_allowed,
         is_venue_adaptability: req.body.is_venue_adaptability,
         theme_elements_available: req.body.theme_elements_available || [],
-        theme_portfolio_images,                 // [{original, preview}]
-        theme_portfolio_videos,                 // [string]
+        theme_portfolio_images, // [{original, preview}]
+        theme_portfolio_videos, // [string]
       },
 
       additional_details: {
         is_completed: false,
-        asset_images,                           // [{original, preview}]
-        asset_videos,                           // [string]
+        asset_images, // [{original, preview}]
+        asset_videos, // [string]
         min_booking_period: req.body.min_booking_period,
         max_booking_period: req.body.max_booking_period,
         prices_starts_from: req.body.prices_starts_from,
@@ -310,21 +342,33 @@ const createDecorator = async (req, res) => {
     const normalizedLabel = normalizeServiceName("Decorator");
 
     if (!Array.isArray(vendor.services)) vendor.services = [];
-    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
+    if (!vendor.services.includes(saved.service_id))
+      vendor.services.push(saved.service_id);
 
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
     const idx = vendor.service_types.findIndex(
-      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase(),
     );
-    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
-    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    const updatedEntry = {
+      service_name: normalizedLabel,
+      service_status: "Inactive",
+      service_id: saved.service_id,
+    };
+    if (idx >= 0)
+      vendor.service_types[idx] = {
+        ...vendor.service_types[idx],
+        ...updatedEntry,
+      };
     else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
     await updateSectionCompletion(saved.vendor_id);
 
     if (process.env.IS_DEV !== "true") {
-      await sendEmailToSlack({ name: saved.basic_details.point_of_contact, type: saved.service_type });
+      await sendEmailToSlack({
+        name: saved.basic_details.point_of_contact,
+        type: saved.service_type,
+      });
     }
 
     res.status(201).json(saved);
@@ -343,10 +387,16 @@ const getAllDecorators = async (req, res) => {
     const { exclude_id, exclude } = req.query;
     let excludeIds = [];
     if (Array.isArray(exclude)) excludeIds = exclude;
-    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    else if (typeof exclude === "string")
+      excludeIds = exclude
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+    const filter = excludeIds.length
+      ? { service_id: { $nin: excludeIds } }
+      : {};
 
     const [decorators, totaldecorators] = await Promise.all([
       Decorator.find(filter).skip(skip).limit(itemsPerPage),
@@ -363,7 +413,6 @@ const getAllDecorators = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
-
 
 const getDecoratorById = async (req, res) => {
   try {

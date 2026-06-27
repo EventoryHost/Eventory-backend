@@ -22,28 +22,38 @@ export function normalizePhotos(input) {
   if (typeof input === "string") {
     const s = input.trim();
     if (s.startsWith("[") || s.startsWith("{")) {
-      try { return normalizePhotos(JSON.parse(s)); } catch { }
+      try {
+        return normalizePhotos(JSON.parse(s));
+      } catch {}
     }
-    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+    return s
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((u) => ({ original: u, preview: u }));
   }
   if (Array.isArray(input)) {
-    return input.map((it) => {
-      if (!it) return null;
-      if (typeof it === "string") return { original: it, preview: it };
-      const unwrap = (v) => {
-        if (typeof v === "string" && v.trim().startsWith("[")) {
-          try {
-            const arr = JSON.parse(v);
-            const first = Array.isArray(arr) ? arr[0] : arr;
-            return first?.original || first?.preview || "";
-          } catch { return v; }
-        }
-        return v;
-      };
-      const original = unwrap(it.original) || unwrap(it.url) || "";
-      const preview = unwrap(it.preview) || original;
-      return original ? { original, preview } : null;
-    }).filter(Boolean);
+    return input
+      .map((it) => {
+        if (!it) return null;
+        if (typeof it === "string") return { original: it, preview: it };
+        const unwrap = (v) => {
+          if (typeof v === "string" && v.trim().startsWith("[")) {
+            try {
+              const arr = JSON.parse(v);
+              const first = Array.isArray(arr) ? arr[0] : arr;
+              return first?.original || first?.preview || "";
+            } catch {
+              return v;
+            }
+          }
+          return v;
+        };
+        const original = unwrap(it.original) || unwrap(it.url) || "";
+        const preview = unwrap(it.preview) || original;
+        return original ? { original, preview } : null;
+      })
+      .filter(Boolean);
   }
   return [];
 }
@@ -51,11 +61,16 @@ export function normalizePhotos(input) {
 export function normalizeVideos(input) {
   if (!input) return [];
   if (typeof input === "string") {
-    try { return normalizeVideos(JSON.parse(input)); } catch {
-      return input.split(",").map(s => s.trim()).filter(Boolean);
+    try {
+      return normalizeVideos(JSON.parse(input));
+    } catch {
+      return input
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
   }
-  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  if (Array.isArray(input)) return input.map((v) => String(v)).filter(Boolean);
   return [];
 }
 
@@ -87,20 +102,20 @@ const updateSectionCompletion = async (vendorId) => {
 
     // Match schema field names
     caterer.basic_details.is_completed = checkCompletion(
-      caterer.basic_details || {}
+      caterer.basic_details || {},
     );
     // caterer.menu_details.is_completed = checkCompletion(
     //   caterer.menu_details || {}
     // );
     caterer.event_details.is_completed = checkCompletion(
-      caterer.event_details || {}
+      caterer.event_details || {},
     );
     caterer.additional_details.is_completed = checkCompletion(
-      caterer.additional_details || {}
+      caterer.additional_details || {},
     );
     caterer.policies.is_completed = checkCompletion(caterer.policies || {});
     caterer.business_details.is_completed = checkCompletion(
-      caterer.business_details || {}
+      caterer.business_details || {},
     );
 
     await caterer.save();
@@ -113,11 +128,20 @@ const updateSectionCompletion = async (vendorId) => {
 const normalizeServiceName = (label) => {
   if (!label) return label;
   const s = String(label).trim().toLowerCase();
-  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
-  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s))
+    return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s))
+    return "Makeup-Artist";
   if (["caterer"].includes(s)) return "Caterer";
   if (["decorator"].includes(s)) return "Decorator";
-  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (
+    [
+      "photographer & videographer",
+      "photographer and videographer",
+      "pav",
+    ].includes(s)
+  )
+    return "Photographer & Videographer";
   return label;
 };
 
@@ -125,19 +149,25 @@ const createCaterer = async (req, res) => {
   try {
     // Prevent duplicate caterer per vendor
     const exists = await Caterer.findOne({ vendor_id: req.body.vendor_id });
-    if (exists) return res.status(400).json({ message: "Caterer already exists" });
+    if (exists)
+      return res.status(400).json({ message: "Caterer already exists" });
 
     // Pull media from body (top-level) and normalize to expected shapes
-    const menu = Array.isArray(req.body.menu) ? req.body.menu : [req.body.menu].filter(Boolean);
+    const menu = Array.isArray(req.body.menu)
+      ? req.body.menu
+      : [req.body.menu].filter(Boolean);
     const asset_images = normalizePhotos(req.body.asset_images);
     const asset_videos = normalizeVideos(req.body.asset_videos);
-    const food_safety_certificates = normalizeVideos(req.body.food_safety_certificates); // typically strings; reuse video normalizer for string[] parsing
+    const food_safety_certificates = normalizeVideos(
+      req.body.food_safety_certificates,
+    ); // typically strings; reuse video normalizer for string[] parsing
 
     // Agreements from temporary redux model
-    const tempCatererData = await ReduxCatererModel.findOne({ vendor_id: req.body.vendor_id });
+    const tempCatererData = await ReduxCatererModel.findOne({
+      vendor_id: req.body.vendor_id,
+    });
     let agreementUrl = tempCatererData?.agreement_url || " ";
     let agreementSignedAt = tempCatererData?.agreement_signed_at || new Date();
-
 
     // Compute profile completion using normalized arrays when applicable
     const fieldsToCheck = [
@@ -157,9 +187,9 @@ const createCaterer = async (req, res) => {
       // Menu
       req.body.veg_or_nonveg,
       menu.length > 0 ||
-      ((req.body.appetizers || []).length > 0 &&
-        (req.body.beverages || []).length > 0 &&
-        (req.body.main_course || []).length > 0),
+        ((req.body.appetizers || []).length > 0 &&
+          (req.body.beverages || []).length > 0 &&
+          (req.body.main_course || []).length > 0),
       (req.body.special_dietary_options || []).length > 0,
       req.body.menu_customizable,
 
@@ -172,8 +202,8 @@ const createCaterer = async (req, res) => {
       // Additional
       req.body.min_booking_period,
       req.body.max_booking_period,
-      asset_images.length > 0,              // normalized
-      asset_videos.length > 0,              // normalized
+      asset_images.length > 0, // normalized
+      asset_videos.length > 0, // normalized
       req.body.is_tasting_session_provided,
       req.body.is_business_license_available,
       food_safety_certificates.length > 0,
@@ -201,7 +231,8 @@ const createCaterer = async (req, res) => {
       req.body.vendor_id,
     ];
     const completedFields = fieldsToCheck.filter(Boolean).length;
-    const profile_completion_score = Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
+    const profile_completion_score =
+      Math.round((completedFields / fieldsToCheck.length) * 100) || 0;
 
     const service_id = generateUniqueId("CAT");
 
@@ -224,7 +255,10 @@ const createCaterer = async (req, res) => {
           service_address: req.body.address,
           lat: req.body.latitude ?? req.body.service_lat,
           lon: req.body.longitude ?? req.body.service_lon,
-          service_pincode: parseInt(req.body.pincode ?? req.body.service_pincode, 10),
+          service_pincode: parseInt(
+            req.body.pincode ?? req.body.service_pincode,
+            10,
+          ),
           google_map_link: req.body.google_map_link,
         },
       },
@@ -232,7 +266,8 @@ const createCaterer = async (req, res) => {
       event_details: {
         is_completed: false,
         event_types_catered: req.body.event_types_catered || [],
-        additional_services_for_any_event: req.body.additional_services_for_any_event || [],
+        additional_services_for_any_event:
+          req.body.additional_services_for_any_event || [],
         staff_provided: req.body.staff_provided || [],
         equipment_provided: req.body.equipment_provided || [],
         menu,
@@ -242,18 +277,25 @@ const createCaterer = async (req, res) => {
         beverages: req.body.beverages || [],
         special_dietary_options: req.body.special_dietary_options || [],
         pre_set_menus: req.body.pre_set_menus || [],
-        menu_customizable: (req.body.menu_customizable === "true" || req.body.menu_customizable === true),
+        menu_customizable:
+          req.body.menu_customizable === "true" ||
+          req.body.menu_customizable === true,
       },
 
       additional_details: {
         is_completed: false,
         min_booking_period: parseInt(req.body.min_booking_period, 10),
-        max_booking_period: parseInt(req.body.max_booking_period, 10) || undefined,
-        asset_images,                            // [{ original, preview }]
-        asset_videos,                            // [string]
-        is_tasting_session_provided: (req.body.is_tasting_session_provided === "true" || req.body.is_tasting_session_provided === true),
-        is_business_license_available: (req.body.is_business_license_available === "true" || req.body.is_business_license_available === true),
-        food_safety_certificates,                // [string]
+        max_booking_period:
+          parseInt(req.body.max_booking_period, 10) || undefined,
+        asset_images, // [{ original, preview }]
+        asset_videos, // [string]
+        is_tasting_session_provided:
+          req.body.is_tasting_session_provided === "true" ||
+          req.body.is_tasting_session_provided === true,
+        is_business_license_available:
+          req.body.is_business_license_available === "true" ||
+          req.body.is_business_license_available === true,
+        food_safety_certificates, // [string]
         prices_starts_from: parseInt(req.body.prices_starts_from, 10),
       },
 
@@ -306,21 +348,33 @@ const createCaterer = async (req, res) => {
     const normalizedLabel = normalizeServiceName("Caterer");
 
     if (!Array.isArray(vendor.services)) vendor.services = [];
-    if (!vendor.services.includes(saved.service_id)) vendor.services.push(saved.service_id);
+    if (!vendor.services.includes(saved.service_id))
+      vendor.services.push(saved.service_id);
 
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
     const idx = vendor.service_types.findIndex(
-      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase(),
     );
-    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: saved.service_id };
-    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    const updatedEntry = {
+      service_name: normalizedLabel,
+      service_status: "Inactive",
+      service_id: saved.service_id,
+    };
+    if (idx >= 0)
+      vendor.service_types[idx] = {
+        ...vendor.service_types[idx],
+        ...updatedEntry,
+      };
     else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
     await updateSectionCompletion(saved.vendor_id);
 
     if (process.env.IS_DEV !== "true") {
-      await sendEmailToSlack({ name: saved.basic_details.point_of_contact, type: saved.service_type });
+      await sendEmailToSlack({
+        name: saved.basic_details.point_of_contact,
+        type: saved.service_type,
+      });
     }
 
     res.status(201).json(saved);
@@ -340,10 +394,16 @@ const getAllCaterers = async (req, res) => {
     const { exclude_id, exclude } = req.query;
     let excludeIds = [];
     if (Array.isArray(exclude)) excludeIds = exclude;
-    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    else if (typeof exclude === "string")
+      excludeIds = exclude
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+    const filter = excludeIds.length
+      ? { service_id: { $nin: excludeIds } }
+      : {};
 
     const [caterers, totalCaterers] = await Promise.all([
       Caterer.find(filter).skip(skip).limit(itemsPerPage),
@@ -360,7 +420,6 @@ const getAllCaterers = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
-
 
 const getCatererById = async (req, res) => {
   try {

@@ -1,5 +1,12 @@
-import { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } from "@aws-sdk/client-sqs";
-import { generateBookingPaymentInvoice, generateVendorOnboardedInvoice } from "./generateInvoice.js";
+import {
+  SQSClient,
+  ReceiveMessageCommand,
+  DeleteMessageCommand,
+} from "@aws-sdk/client-sqs";
+import {
+  generateBookingPaymentInvoice,
+  generateVendorOnboardedInvoice,
+} from "./generateInvoice.js";
 import { generateAndStoreAgreement } from "./generateAgreement.js";
 import dotenv from "dotenv";
 
@@ -13,8 +20,10 @@ const sqs = new SQSClient({
   },
 });
 
-const queueUrl = process.env.IS_DEV === "true" ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue" :
-  "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
+const queueUrl =
+  process.env.IS_DEV === "true"
+    ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+    : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
 console.log("Starting SQS polling service for invoicing and agreements...");
 
@@ -31,7 +40,6 @@ async function pollSQS() {
       const data = await sqs.send(command);
 
       if (data.Messages) {
-
         for (const message of data.Messages) {
           console.log("Received SQS message:", message.Body);
           const body = JSON.parse(message.Body);
@@ -43,19 +51,32 @@ async function pollSQS() {
             if (messageType === "vendorOnboarded" || messageType === 1) {
               // Vendor onboarded invoice
               if (!body.customer || !body.paymentDetails) {
-                throw new Error("Invalid vendor onboarded message: missing customer or paymentDetails");
+                throw new Error(
+                  "Invalid vendor onboarded message: missing customer or paymentDetails",
+                );
               }
-              await generateVendorOnboardedInvoice(body.customer, body.paymentDetails);
-
+              await generateVendorOnboardedInvoice(
+                body.customer,
+                body.paymentDetails,
+              );
             } else if (messageType === 2) {
               // Agreement generation
               if (!body.serviceType || !body.vendorId || !body.agreementData) {
-                throw new Error("Invalid agreement message: missing serviceType, vendorId, or agreementData");
+                throw new Error(
+                  "Invalid agreement message: missing serviceType, vendorId, or agreementData",
+                );
               }
-              await generateAndStoreAgreement(body.serviceType, body.vendorId, body.agreementData);
-
+              await generateAndStoreAgreement(
+                body.serviceType,
+                body.vendorId,
+                body.agreementData,
+              );
             } else {
-              await generateBookingPaymentInvoice(body.customer, body.vendor, body.paymentDetails);
+              await generateBookingPaymentInvoice(
+                body.customer,
+                body.vendor,
+                body.paymentDetails,
+              );
             }
 
             const delCommand = new DeleteMessageCommand({
@@ -64,9 +85,11 @@ async function pollSQS() {
             });
             await sqs.send(delCommand);
             console.log(`Message processed and deleted successfully`);
-
           } catch (err) {
-            console.error(`Processing failed for message type ${messageType}:`, err);
+            console.error(
+              `Processing failed for message type ${messageType}:`,
+              err,
+            );
           }
         }
       }

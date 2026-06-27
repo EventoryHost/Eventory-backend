@@ -182,7 +182,6 @@ waRoutes.post("/whatsapp", handleIncomingWhatsappMessage);
  */
 waRoutes.post("/interakt-slack", async (req, res) => {
   console.log("========== INTERAKT WEBHOOK ==========");
-  console.log(JSON.stringify(req.body, null, 2));
   console.log(
     `Received ${Object.keys(req.body || {}).length} fields from Interakt`,
   );

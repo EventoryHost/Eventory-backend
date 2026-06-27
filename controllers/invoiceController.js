@@ -6,8 +6,17 @@ import { Events } from "../models/events.js";
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const { invoice_url, type, invoice_for, payment_label, vendor_id, service_id, customer_id, event_id, transaction_id } =
-      req.body;
+    const {
+      invoice_url,
+      type,
+      invoice_for,
+      payment_label,
+      vendor_id,
+      service_id,
+      customer_id,
+      event_id,
+      transaction_id,
+    } = req.body;
 
     // Validate required fields
     if (!invoice_url || !type || !vendor_id || !service_id) {
@@ -34,7 +43,7 @@ export const createInvoice = async (req, res) => {
     }
 
     // Validate invoice_for
-    if (invoice_for && !['customer', 'vendor'].includes(invoice_for)) {
+    if (invoice_for && !["customer", "vendor"].includes(invoice_for)) {
       return res.status(400).json({
         success: false,
         message: "Invalid invoice_for. Must be 'customer' or 'vendor'",
@@ -100,7 +109,8 @@ export const createInvoice = async (req, res) => {
     const invoice = new Invoices({
       invoice_url,
       type,
-      invoice_for: invoice_for || (type === "registration" ? "vendor" : "customer"),
+      invoice_for:
+        invoice_for || (type === "registration" ? "vendor" : "customer"),
       payment_label: payment_label || null,
       vendor_id,
       service_id,
@@ -388,7 +398,7 @@ export const updateInvoice = async (req, res) => {
     const invoice = await Invoices.findOneAndUpdate(
       { invoice_id: id },
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!invoice) {

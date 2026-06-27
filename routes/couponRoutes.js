@@ -11,7 +11,7 @@ import {
   getAvailableCouponsForCustomer,
   applyCouponForCustomer,
   getCustomerCouponHistory,
-  validateCouponForCustomer
+  validateCouponForCustomer,
 } from "../controllers/couponsController.js";
 
 // ✅ Get available coupons for a vendor
@@ -32,12 +32,11 @@ router.patch("/deactivate/:coupon_code", deactivateCoupon);
 // ✅ Get all coupons (Admin)
 router.get("/admin/all", getAllCoupons);
 
-
 //to be done
 
-router.get('/customers/available/:customerId', getAvailableCouponsForCustomer);
-router.post('/customers/apply', applyCouponForCustomer);
-router.get('/customers/history/:customerId', getCustomerCouponHistory);
-router.post('/customers/validate', validateCouponForCustomer);
+router.get("/customers/available/:customerId", getAvailableCouponsForCustomer);
+router.post("/customers/apply", applyCouponForCustomer);
+router.get("/customers/history/:customerId", getCustomerCouponHistory);
+router.post("/customers/validate", validateCouponForCustomer);
 
 export default router;

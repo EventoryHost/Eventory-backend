@@ -654,18 +654,6 @@ export const triggerInteraktSlackIntegration = async (data) => {
       }
     }
 
-    // Map Event Date datepicker field safely (only if it is a parseable date)
-    const rawEventDate = payload.event_date;
-    if (rawEventDate) {
-      const parsedTime = Date.parse(rawEventDate);
-      if (!isNaN(parsedTime)) {
-        const dateStr = new Date(parsedTime).toISOString().split("T")[0];
-        initialFields.push({
-          column_id: "Col0AD8JDTHTJ",
-          date: [dateStr],
-        });
-      }
-    }
 
     // Map Vendor Services multi-select dropdown if present
     const rawServices = payload.services_needed;
@@ -693,8 +681,6 @@ export const triggerInteraktSlackIntegration = async (data) => {
       list_id: "F09RT5WG6Q5",
       initial_fields: initialFields,
     };
-    console.log("Slack Payload:");
-    console.log(JSON.stringify(slackPayload, null, 2));
 
     const listResponse = await axios.post(
       "https://slack.com/api/slackLists.items.create",
@@ -706,9 +692,6 @@ export const triggerInteraktSlackIntegration = async (data) => {
         },
       },
     );
-
-    console.log("Slack Response:");
-    console.log(JSON.stringify(listResponse.data, null, 2));
 
     if (!listResponse.data || !listResponse.data.ok) {
       console.error(

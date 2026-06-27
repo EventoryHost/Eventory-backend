@@ -11,8 +11,10 @@ const sqs = new SQSClient({
   },
 });
 
-const queueUrl = process.env.IS_DEV === "true" ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue" :
-  "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
+const queueUrl =
+  process.env.IS_DEV === "true"
+    ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+    : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue";
 
 const generateAndStoreAgreement = async (req, res) => {
   try {
@@ -55,7 +57,7 @@ const generateAndStoreAgreement = async (req, res) => {
     await sqs.send(command);
 
     console.log(
-      `Agreement generation queued successfully for vendor: ${vendorId}, service: ${serviceType}`
+      `Agreement generation queued successfully for vendor: ${vendorId}, service: ${serviceType}`,
     );
 
     res.json({
@@ -80,7 +82,7 @@ const addVendorAgreement = async (req, res) => {
     const { serviceType, vendorId, agreementUrl } = req.body;
 
     console.log(
-      `Updating service model for ${serviceType} with vendorId: ${vendorId}`
+      `Updating service model for ${serviceType} with vendorId: ${vendorId}`,
     );
     console.log(`Agreement URL: ${agreementUrl}`);
 
@@ -94,7 +96,9 @@ const addVendorAgreement = async (req, res) => {
       "../models/reduxModels/djArtist.js"
     );
     const DJArtist = (await import("../models/djArtist.js")).default;
-    const { ReduxMakeupArtistModel } = await import("../models/reduxModels/makeupArtist.js");
+    const { ReduxMakeupArtistModel } = await import(
+      "../models/reduxModels/makeupArtist.js"
+    );
     const { ReduxPhotographerVideographerModel } = await import(
       "../models/reduxModels/photographerVideographer.js"
     );
@@ -104,9 +108,8 @@ const addVendorAgreement = async (req, res) => {
     const { Caterer } = await import("../models/caterer.js");
     const { Decorator } = await import("../models/decorator.js");
     const MakeupArtist = (await import("../models/makeupArtist.js")).default;
-    const Photographer = (
-      await import("../models/photographerVideographer.js")
-    ).default;
+    const Photographer = (await import("../models/photographerVideographer.js"))
+      .default;
     const { Venue } = await import("../models/venueProvider.js");
 
     const updateData = {
@@ -121,7 +124,7 @@ const addVendorAgreement = async (req, res) => {
         const tempCateringUpdate = await ReduxCatererModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
-          { new: true, upsert: false }
+          { new: true, upsert: false },
         );
 
         if (!tempCateringUpdate) {
@@ -142,12 +145,12 @@ const addVendorAgreement = async (req, res) => {
                 agreement_url: agreementUrl,
                 agreement_signed_at: new Date(),
               },
-            }
+            },
           );
         } catch (mainCatererError) {
           console.warn(
             "Error updating main caterer model (expected during onboarding):",
-            mainCatererError.message
+            mainCatererError.message,
           );
         }
         break;
@@ -158,7 +161,7 @@ const addVendorAgreement = async (req, res) => {
         const tempDecoratorUpdate = await ReduxDecoratorModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
-          { new: true, upsert: false }
+          { new: true, upsert: false },
         );
         if (!tempDecoratorUpdate) {
           const newTempDecorator = new ReduxDecoratorModel({
@@ -177,12 +180,12 @@ const addVendorAgreement = async (req, res) => {
                 agreement_url: agreementUrl,
                 agreement_signed_at: new Date(),
               },
-            }
+            },
           );
         } catch (mainDecoratorError) {
           console.warn(
             "Error updating main decorator model (expected during onboarding):",
-            mainDecoratorError.message
+            mainDecoratorError.message,
           );
         }
         break;
@@ -194,7 +197,7 @@ const addVendorAgreement = async (req, res) => {
         const tempMakeupUpdate = await ReduxMakeupArtistModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
-          { new: true, upsert: false }
+          { new: true, upsert: false },
         );
 
         if (!tempMakeupUpdate) {
@@ -214,12 +217,12 @@ const addVendorAgreement = async (req, res) => {
                 agreement_url: agreementUrl,
                 agreement_signed_at: new Date(),
               },
-            }
+            },
           );
         } catch (mainMakeupError) {
           console.warn(
             "Error updating main makeup artist model (expected during onboarding):",
-            mainMakeupError.message
+            mainMakeupError.message,
           );
         }
         break;
@@ -234,7 +237,7 @@ const addVendorAgreement = async (req, res) => {
           await ReduxPhotographerVideographerModel.findOneAndUpdate(
             { vendor_id: vendorId },
             { $set: updateData },
-            { new: true, upsert: false }
+            { new: true, upsert: false },
           );
 
         if (!tempPAVUpdate) {
@@ -254,12 +257,12 @@ const addVendorAgreement = async (req, res) => {
                 agreement_url: agreementUrl,
                 agreement_signed_at: new Date(),
               },
-            }
+            },
           );
         } catch (mainPAVError) {
           console.warn(
             "Error updating main photographer model (expected during onboarding):",
-            mainPAVError.message
+            mainPAVError.message,
           );
         }
         break;
@@ -270,7 +273,7 @@ const addVendorAgreement = async (req, res) => {
         const tempDJUpdate = await DjArtistReduxModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
-          { new: true, upsert: false }
+          { new: true, upsert: false },
         );
         if (!tempDJUpdate) {
           const newTempDJ = new DjArtistReduxModel({
@@ -289,12 +292,12 @@ const addVendorAgreement = async (req, res) => {
                 agreement_url: agreementUrl,
                 agreement_signed_at: new Date(),
               },
-            }
+            },
           );
         } catch (mainDJError) {
           console.warn(
             "Error updating main DJ artist model (expected during onboarding):",
-            mainDJError.message
+            mainDJError.message,
           );
         }
         break;
@@ -306,7 +309,7 @@ const addVendorAgreement = async (req, res) => {
         const tempVenueUpdate = await ReduxVenueProviderModel.findOneAndUpdate(
           { vendor_id: vendorId },
           { $set: updateData },
-          { new: true, upsert: false }
+          { new: true, upsert: false },
         );
 
         if (!tempVenueUpdate) {
@@ -326,19 +329,19 @@ const addVendorAgreement = async (req, res) => {
                 agreement_url: agreementUrl,
                 agreement_signed_at: new Date(),
               },
-            }
+            },
           );
         } catch (mainVenueError) {
           console.warn(
             "Error updating main venue model (expected during onboarding):",
-            mainVenueError.message
+            mainVenueError.message,
           );
         }
         break;
 
       default:
         console.warn(
-          `Service type ${serviceType} not supported for agreement storage`
+          `Service type ${serviceType} not supported for agreement storage`,
         );
     }
 

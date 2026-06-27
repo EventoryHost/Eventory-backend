@@ -113,7 +113,7 @@ export const getAllVendorEnquiries = async (req, res) => {
       status = null,
       em_id = null,
       vendor_id = null,
-      search = null,  
+      search = null,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page));
@@ -124,13 +124,13 @@ export const getAllVendorEnquiries = async (req, res) => {
     if (status) query.enquiry_status = status;
     if (em_id) query.em_id = em_id;
     if (vendor_id) query.vendor_id = vendor_id;
-    
+
     if (search) {
       query.$or = [
-        { enquiry_id: { $regex: search, $options: 'i' } },
-        { vendor_name: { $regex: search, $options: 'i' } },
-        { service_id: { $regex: search, $options: 'i' } },
-        { vendor_id: { $regex: search, $options: 'i' } },
+        { enquiry_id: { $regex: search, $options: "i" } },
+        { vendor_name: { $regex: search, $options: "i" } },
+        { service_id: { $regex: search, $options: "i" } },
+        { vendor_id: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -227,7 +227,7 @@ export const updateVendorEnquiry = async (req, res) => {
     const enquiry = await VendorEnquiry.findOneAndUpdate(
       { enquiry_id },
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).lean();
 
     if (!enquiry) {
@@ -289,7 +289,7 @@ export const deleteVendorEnquiry = async (req, res) => {
 export const updateEnquiryWithMessage = async (
   chat_id,
   last_message,
-  last_message_by
+  last_message_by,
 ) => {
   try {
     await VendorEnquiry.findOneAndUpdate(
@@ -298,7 +298,7 @@ export const updateEnquiryWithMessage = async (
         last_message,
         last_message_time: new Date(),
         last_message_by,
-      }
+      },
     );
   } catch (error) {
     console.error("Error updating enquiry with message:", error);

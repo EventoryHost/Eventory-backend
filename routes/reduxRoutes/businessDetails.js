@@ -15,7 +15,7 @@ const router = express.Router();
 // POST or PUT route to save or update business details
 // router.post("/business-details", async (req, res) => {
 //   const { id, businessDetails2 } = req.body;
-  
+
 //   console.log("Backend received request with data:", { id, businessDetails2 });
 
 //   if (!businessDetails2) {
@@ -197,7 +197,7 @@ const router = express.Router();
 //   }
 
 //   try {
-//     const deletedDetails = await CateringModel.findOneAndDelete({ id: id }); 
+//     const deletedDetails = await CateringModel.findOneAndDelete({ id: id });
 
 //     if (!deletedDetails) {
 //       return res.status(404).json({ message: "Catering details not found for deletion." });

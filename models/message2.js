@@ -14,10 +14,15 @@ const messageSchema = new Schema(
       type: String,
       required: true,
     },
-    chat_type: { 
-      type: String, 
-      required: true, 
-      enum: ["vendor-admin", "customer-admin", "anon_customer-admin","vendor-enquiry"], 
+    chat_type: {
+      type: String,
+      required: true,
+      enum: [
+        "vendor-admin",
+        "customer-admin",
+        "anon_customer-admin",
+        "vendor-enquiry",
+      ],
     },
     sender: {
       type: String,
@@ -26,7 +31,7 @@ const messageSchema = new Schema(
     },
     sender_id: {
       type: String,
-      required: true, 
+      required: true,
     },
     message_type: {
       type: String,
@@ -46,7 +51,7 @@ const messageSchema = new Schema(
         "review_prompt",
         "date_picker",
         "multi_select",
-        "flow_complete"
+        "flow_complete",
       ],
       required: true,
       default: "text",
@@ -56,17 +61,19 @@ const messageSchema = new Schema(
       required: true,
     },
     // For interactive messages (buttons)
-    options: [{
-      label: String,
-      value: String
-    }],
+    options: [
+      {
+        label: String,
+        value: String,
+      },
+    ],
     // For specific actions (e.g., "request_review", "login_prompt")
     action: {
-      type: String
+      type: String,
     },
     // For rich cards (vendor details, order summary)
     card_data: {
-      type: mongoose.Schema.Types.Mixed
+      type: mongoose.Schema.Types.Mixed,
     },
     attachment_url: {
       type: String,
@@ -91,7 +98,7 @@ const messageSchema = new Schema(
   {
     timestamps: true,
     collection: "Message",
-  }
+  },
 );
 
 // Indexes for better performance

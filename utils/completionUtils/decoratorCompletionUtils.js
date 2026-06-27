@@ -1,4 +1,4 @@
-import { Decorator }  from "../../models/decorator.js";
+import { Decorator } from "../../models/decorator.js";
 
 export const checkDecoratorProfileCompletion = async (decoratorId) => {
   try {
@@ -6,7 +6,7 @@ export const checkDecoratorProfileCompletion = async (decoratorId) => {
 
     if (!decorator) {
       throw new Error("Decorator not found");
-    }    // Check if basic details are complete (only check for non-empty fields)
+    } // Check if basic details are complete (only check for non-empty fields)
     const basicDetailsComplete =
       decorator.basic_details.point_of_contact &&
       decorator.basic_details.service_contact_number &&

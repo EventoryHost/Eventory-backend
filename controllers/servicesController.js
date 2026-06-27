@@ -1,4 +1,3 @@
-
 import Caterer from "../models/caterer.js";
 import { Decorator } from "../models/decorator.js";
 import DjArtist from "../models/djArtist.js";
@@ -7,8 +6,6 @@ import PhotographerVideographer from "../models/photographerVideographer.js";
 import Reviews from "../models/reviews.js";
 import VenueProvider from "../models/venueProvider.js";
 // import { Service } from "../models/service.js";
-
-
 
 export const getService = async (req, res) => {
   const vendor_type = req.params.vendor_type;
@@ -26,10 +23,14 @@ export const getService = async (req, res) => {
         vendorData = await VenueProvider.findOne({ vendor_id: vendor_id });
         break;
       case "prop_rental":
-        return res.status(400).json({ message: "Prop rental service is not available" });
+        return res
+          .status(400)
+          .json({ message: "Prop rental service is not available" });
         break;
       case "photographer_videographer":
-        vendorData = await PhotographerVideographer.findOne({ vendor_id: vendor_id });
+        vendorData = await PhotographerVideographer.findOne({
+          vendor_id: vendor_id,
+        });
         break;
       case "makeupartist":
         vendorData = await MakeupArtist.findOne({ vendor_id: vendor_id });
@@ -46,7 +47,9 @@ export const getService = async (req, res) => {
     return res.status(200).json(vendorData);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "An error occurred: " + error.message });
+    return res
+      .status(500)
+      .json({ error: "An error occurred: " + error.message });
   }
 };
 
@@ -207,49 +210,70 @@ export const handleSearch = async (req, res) => {
 
     const limitPerType = 8;
 
-    const [venues, caterers, decorators, pavs, makeup, djs] = await Promise.all([
-      VenueProvider.find({
-        $or: [
-          { "basic_details.point_of_contact": regex },
-          { "business_details.business_registration_name": regex },
-        ],
-      }).select(project).limit(limitPerType).lean(),
+    const [venues, caterers, decorators, pavs, makeup, djs] = await Promise.all(
+      [
+        VenueProvider.find({
+          $or: [
+            { "basic_details.point_of_contact": regex },
+            { "business_details.business_registration_name": regex },
+          ],
+        })
+          .select(project)
+          .limit(limitPerType)
+          .lean(),
 
-      Caterer.find({
-        $or: [
-          { "basic_details.point_of_contact": regex },
-          { "business_details.business_registration_name": regex },
-        ],
-      }).select(project).limit(limitPerType).lean(),
+        Caterer.find({
+          $or: [
+            { "basic_details.point_of_contact": regex },
+            { "business_details.business_registration_name": regex },
+          ],
+        })
+          .select(project)
+          .limit(limitPerType)
+          .lean(),
 
-      Decorator.find({
-        $or: [
-          { "basic_details.point_of_contact": regex },
-          { "business_details.business_registration_name": regex },
-        ],
-      }).select(project).limit(limitPerType).lean(),
+        Decorator.find({
+          $or: [
+            { "basic_details.point_of_contact": regex },
+            { "business_details.business_registration_name": regex },
+          ],
+        })
+          .select(project)
+          .limit(limitPerType)
+          .lean(),
 
-      PhotographerVideographer.find({
-        $or: [
-          { "basic_details.point_of_contact": regex },
-          { "business_details.business_registration_name": regex },
-        ],
-      }).select(project).limit(limitPerType).lean(),
+        PhotographerVideographer.find({
+          $or: [
+            { "basic_details.point_of_contact": regex },
+            { "business_details.business_registration_name": regex },
+          ],
+        })
+          .select(project)
+          .limit(limitPerType)
+          .lean(),
 
-      MakeupArtist.find({
-        $or: [
-          { "basic_details.point_of_contact": regex },
-          { "business_details.business_registration_name": regex },
-        ],
-      }).select(project).limit(limitPerType).lean(),
+        MakeupArtist.find({
+          $or: [
+            { "basic_details.point_of_contact": regex },
+            { "business_details.business_registration_name": regex },
+          ],
+        })
+          .select(project)
+          .limit(limitPerType)
+          .lean(),
 
-      DjArtist.find({                                         // NEW
-        $or: [
-          { "basic_details.point_of_contact": regex },
-          { "business_details.business_registration_name": regex },
-        ],
-      }).select(project).limit(limitPerType).lean(),
-    ]);
+        DjArtist.find({
+          // NEW
+          $or: [
+            { "basic_details.point_of_contact": regex },
+            { "business_details.business_registration_name": regex },
+          ],
+        })
+          .select(project)
+          .limit(limitPerType)
+          .lean(),
+      ],
+    );
 
     const results = [
       { service_type: "venue_provider", services: venues },
@@ -257,7 +281,7 @@ export const handleSearch = async (req, res) => {
       { service_type: "decorator", services: decorators },
       { service_type: "photographer_videographer", services: pavs },
       { service_type: "makeup_artist", services: makeup },
-      { service_type: "dj_artist", services: djs },                 // NEW
+      { service_type: "dj_artist", services: djs }, // NEW
     ].filter((g) => (g.services || []).length > 0);
 
     return res.status(200).json({ results });
@@ -324,14 +348,18 @@ export const updateScheduleColor = async (req, res) => {
     const updatedService = await Model.findOneAndUpdate(
       { id: serviceId, "schedule.id": eventId },
       { $set: { "schedule.$.color": "green" } },
-      { new: true }
+      { new: true },
     ).lean();
 
     if (!updatedService) {
-      return res.status(404).json({ error: "Service or schedule event not found" });
+      return res
+        .status(404)
+        .json({ error: "Service or schedule event not found" });
     }
 
-    return res.status(200).json({ message: "Schedule event color updated", data: updatedService });
+    return res
+      .status(200)
+      .json({ message: "Schedule event color updated", data: updatedService });
   } catch (error) {
     console.error("Error updating schedule color:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -351,49 +379,66 @@ export const updateScheduleColor = async (req, res) => {
  */
 export const getAllServices = async (req, res) => {
   try {
-    const { 
-      category, 
-      page = 1, 
-      limit = 20, 
-      search = '', 
-      location = '',
-      sortBy = 'vendor_name', 
-      order = 'asc',
-      fields 
+    const {
+      category,
+      page = 1,
+      limit = 20,
+      search = "",
+      location = "",
+      sortBy = "vendor_name",
+      order = "asc",
+      fields,
     } = req.query;
-    
+
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const skip = (pageNum - 1) * limitNum;
-    const sortOrder = order.toLowerCase() === 'desc' ? -1 : 1;
-    
+    const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
+
     const serviceModels = {
       caterer: Caterer,
       decorator: Decorator,
       venue_provider: VenueProvider,
       photographer_videographer: PhotographerVideographer,
       makeupartist: MakeupArtist,
-      dj_artist: DjArtist
+      dj_artist: DjArtist,
     };
 
-    const searchFilter = search ? {
-      $or: [
-        { vendor_id: { $regex: search, $options: 'i' } },
-        { service_id: { $regex: search, $options: 'i' } },
-        { "business_details.business_registration_name": { $regex: search, $options: 'i' } },
-        { "basic_details.point_of_contact": { $regex: search, $options: 'i' } },
-        { "basic_details.venue_name": { $regex: search, $options: 'i' } },
-        { service_type: { $regex: search, $options: 'i' } },
-        { vendor_name: { $regex: search, $options: 'i' } },
-        { vendor_mobile: { $regex: search, $options: 'i' } },
-        { email_address: { $regex: search, $options: 'i' } }
-      ]
-    } : null;
+    const searchFilter = search
+      ? {
+          $or: [
+            { vendor_id: { $regex: search, $options: "i" } },
+            { service_id: { $regex: search, $options: "i" } },
+            {
+              "business_details.business_registration_name": {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              "basic_details.point_of_contact": {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            { "basic_details.venue_name": { $regex: search, $options: "i" } },
+            { service_type: { $regex: search, $options: "i" } },
+            { vendor_name: { $regex: search, $options: "i" } },
+            { vendor_mobile: { $regex: search, $options: "i" } },
+            { email_address: { $regex: search, $options: "i" } },
+          ],
+        }
+      : null;
 
     // Location filter: searches by business address only
-    const locationFilter = location ? {
-      "business_details.business_address": { $regex: location, $options: 'i' }
-    } : null;
+    const locationFilter = location
+      ? {
+          "business_details.business_address": {
+            $regex: location,
+            $options: "i",
+          },
+        }
+      : null;
 
     // Combine search and location filters with $and if both are present
     let searchQuery = {};
@@ -406,8 +451,8 @@ export const getAllServices = async (req, res) => {
 
     let selectFields = {};
     if (fields) {
-      const fieldArray = fields.split(',').map(f => f.trim());
-      fieldArray.forEach(field => {
+      const fieldArray = fields.split(",").map((f) => f.trim());
+      fieldArray.forEach((field) => {
         selectFields[field] = 1;
       });
     }
@@ -415,14 +460,14 @@ export const getAllServices = async (req, res) => {
     let allServices = [];
     let totalCount = 0;
 
-    if (category && category.toLowerCase() !== 'all') {
+    if (category && category.toLowerCase() !== "all") {
       const normalizedCategory = category.toLowerCase();
       const Model = serviceModels[normalizedCategory];
-      
+
       if (!Model) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid category",
-          validCategories: [...Object.keys(serviceModels), 'all']
+          validCategories: [...Object.keys(serviceModels), "all"],
         });
       }
 
@@ -439,57 +484,50 @@ export const getAllServices = async (req, res) => {
       }
 
       const services = await query;
-      allServices = services.map(service => ({
+      allServices = services.map((service) => ({
         ...service,
-        category: normalizedCategory
+        category: normalizedCategory,
       }));
     } else {
-      const fetchPromises = Object.entries(serviceModels).map(async ([categoryName, Model]) => {
-        const count = await Model.countDocuments(searchQuery);
-        const query = Model.find(searchQuery).lean();
-        
-        if (fields) {
-          query.select(selectFields);
-        }
-        
-        const services = await query;
-        return {
-          services: services.map(service => ({
-            ...service,
-            category: categoryName
-          })),
-          count
-        };
-      });
+      const fetchPromises = Object.entries(serviceModels).map(
+        async ([categoryName, Model]) => {
+          const count = await Model.countDocuments(searchQuery);
+          const query = Model.find(searchQuery).lean();
+
+          if (fields) {
+            query.select(selectFields);
+          }
+
+          const services = await query;
+          return {
+            services: services.map((service) => ({
+              ...service,
+              category: categoryName,
+            })),
+            count,
+          };
+        },
+      );
 
       const results = await Promise.all(fetchPromises);
-      
-      const combinedServices = results.flatMap(r => r.services);
+
+      const combinedServices = results.flatMap((r) => r.services);
       totalCount = results.reduce((sum, r) => sum + r.count, 0);
-      
+
       let filteredServices = combinedServices;
       // if (search) {
 
-
-
-
-
-
-
-
-
-      
       filteredServices.sort((a, b) => {
-        const aVal = a[sortBy] || '';
-        const bVal = b[sortBy] || '';
-        if (typeof aVal === 'string') {
-          return sortOrder === 1 
+        const aVal = a[sortBy] || "";
+        const bVal = b[sortBy] || "";
+        if (typeof aVal === "string") {
+          return sortOrder === 1
             ? aVal.localeCompare(bVal)
             : bVal.localeCompare(aVal);
         }
         return sortOrder === 1 ? aVal - bVal : bVal - aVal;
       });
-      
+
       allServices = filteredServices.slice(skip, skip + limitNum);
     }
 
@@ -499,7 +537,7 @@ export const getAllServices = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      category: category || 'all',
+      category: category || "all",
       count: totalCount,
       pagination: {
         page: pageNum,
@@ -507,15 +545,15 @@ export const getAllServices = async (req, res) => {
         total: totalCount,
         totalPages,
         hasNextPage,
-        hasPreviousPage
+        hasPreviousPage,
       },
-      data: allServices
+      data: allServices,
     });
   } catch (error) {
     console.error("Error fetching all services:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "An error occurred while fetching services",
-      message: error.message 
+      message: error.message,
     });
   }
 };
