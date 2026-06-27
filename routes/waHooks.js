@@ -5,11 +5,11 @@ import {
   handlePromoResponse,
   getVendors,
   verifyWebhook,
-  verifyPromoResponseWebhook
+  verifyPromoResponseWebhook,
 } from "../controllers/waController.js";
 import {
   verifyWhatsappWebhook,
-  handleIncomingWhatsappMessage
+  handleIncomingWhatsappMessage,
 } from "../controllers/whatsappController.js";
 import { triggerInteraktSlackIntegration } from "../utils/slackLists.js";
 
@@ -155,8 +155,6 @@ waRoutes.post("/promo-response", handlePromoResponse);
  */
 waRoutes.get("/promo-response", verifyPromoResponseWebhook);
 
-
-
 /**
  * @swagger
  * /webhook/whatsapp:
@@ -185,7 +183,23 @@ waRoutes.post("/whatsapp", handleIncomingWhatsappMessage);
 waRoutes.post("/interakt-slack", async (req, res) => {
   console.log("========== INTERAKT WEBHOOK ==========");
   console.log(JSON.stringify(req.body, null, 2));
+  console.log(
+    `Received ${Object.keys(req.body || {}).length} fields from Interakt`,
+  );
   console.log("======================================");
+
+  const payload = req.body || {};
+  if (
+    payload.phone_number === undefined ||
+    payload.phone_number === null ||
+    String(payload.phone_number).trim() === ""
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required field: phone_number",
+    });
+  }
+
   try {
     const result = await triggerInteraktSlackIntegration(req.body);
     if (result.success) {
@@ -193,19 +207,19 @@ waRoutes.post("/interakt-slack", async (req, res) => {
         success: true,
         message: "Lead processed and Slack ticket created successfully.",
         ticket_id: result.ticket_id,
-        mock: result.mock
+        mock: result.mock,
       });
     } else {
       return res.status(500).json({
         success: false,
-        error: result.error || "Failed to process lead."
+        error: result.error || "Failed to process lead.",
       });
     }
   } catch (error) {
     console.error("Error handling interakt-slack webhook:", error);
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
