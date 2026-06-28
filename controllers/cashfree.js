@@ -1121,7 +1121,7 @@ const verifyCustomerPayment = async (req, res) => {
         ];
       } else if (payment_type) {
         updateData.$set["payment_breakdowns.$[elem].status"] = "Paid";
-        updateData.$set["payment_breakdowns.$[elem].paid_at"] = new Date();
+      updateData.$set["payment_breakdowns.$[elem].paid_at"] = new Date();
         updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].status"] = "Paid";
         updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].paid_at"] = new Date();
         updateOptions.arrayFilters = [
@@ -1131,6 +1131,21 @@ const verifyCustomerPayment = async (req, res) => {
       }
 
       await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
+
+      // Also ensure the FinalOrder gets the coupon details so Admin Panel hydration doesn't wipe them
+      if (couponCode || breakdownDiscount || couponDiscount) {
+        await Order.findOneAndUpdate(
+          { order_id: internalOrderId },
+          { 
+            $set: { 
+              "paymentDetails.customerPayable.couponCode": couponCode || existingEvent.payment_details?.customerPayable?.couponCode || null,
+              "paymentDetails.customerPayable.couponDiscount": N(couponDiscount) || N(existingEvent.payment_details?.customerPayable?.couponDiscount || 0),
+              "paymentDetails.customerPayable.breakdownDiscount": N(breakdownDiscount) || N(existingEvent.payment_details?.customerPayable?.breakdownDiscount || 0),
+              "paymentDetails.customerPayable.discountAmount": N(couponDiscount) + N(breakdownDiscount) || N(existingEvent.payment_details?.customerPayable?.discountAmount || 0)
+            } 
+          }
+        );
+      }
 
       // Also silently mark 0-amount Token as Paid unconditionally for Event
       await Events.updateMany(
@@ -1229,12 +1244,20 @@ const verifyCustomerPayment = async (req, res) => {
       await preBooking.save();
       console.log(`[VerifyPayment] Event ${event_id} successfully created.`);
 
-      // Link the new event back to the original order
+      // Link the new event back to the original order and sync coupon details
+      const orderUpdates = { event_id: event_id };
+      if (couponCode || breakdownDiscount || couponDiscount) {
+          orderUpdates["paymentDetails.customerPayable.couponCode"] = couponCode || finalOrder?.paymentDetails?.customerPayable?.couponCode || null;
+          orderUpdates["paymentDetails.customerPayable.couponDiscount"] = N(couponDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.couponDiscount);
+          orderUpdates["paymentDetails.customerPayable.breakdownDiscount"] = N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.breakdownDiscount);
+          orderUpdates["paymentDetails.customerPayable.discountAmount"] = N(couponDiscount) + N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.discountAmount);
+      }
+
       await Order.findOneAndUpdate(
         { order_id: internalOrderId },
-        { $set: { event_id: event_id } }
+        { $set: orderUpdates }
       );
-      console.log(`[VerifyPayment] Order ${internalOrderId} updated with event_id: ${event_id}`);
+      console.log(`[VerifyPayment] Order ${internalOrderId} updated with event_id: ${event_id} and coupon sync`);
 
       // Send Slack notification for new booking
       const { sendSlackBookingMessage } = await import("../utils/slackNotifier.js");

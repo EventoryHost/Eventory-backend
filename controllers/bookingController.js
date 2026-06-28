@@ -243,6 +243,10 @@ export const createBooking = async (req, res) => {
             baseAmount: asNumber(paymentDetails?.customerPayable?.baseAmount, 0),
             convenienceFee: asNumber(paymentDetails?.customerPayable?.convenienceFee, 0),
             taxOnConvenience: asNumber(paymentDetails?.customerPayable?.taxOnConvenience, 0),
+            couponCode: paymentDetails?.customerPayable?.couponCode || null,
+            couponDiscount: asNumber(paymentDetails?.customerPayable?.couponDiscount, 0),
+            breakdownDiscount: asNumber(paymentDetails?.customerPayable?.breakdownDiscount, 0),
+            discountAmount: asNumber(paymentDetails?.customerPayable?.discountAmount, 0),
           },
           vendorReceivable: {
             total: asNumber(paymentDetails?.vendorReceivable?.total, 0),

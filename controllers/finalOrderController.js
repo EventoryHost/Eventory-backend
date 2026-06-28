@@ -204,10 +204,18 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       if (updateFields.paymentDetails && updateFields.paymentDetails.customerPayable) {
         const cp = updateFields.paymentDetails.customerPayable;
         const platformCcfShare = (Number(cp.convenienceFee) || 0) + (Number(cp.taxOnConvenience) || 0);
-        if (platformCcfShare > 0 && mergedBreakdowns.length > 0) {
+        const couponDiscount = Number(cp.couponDiscount) || 0;
+        
+        if ((platformCcfShare > 0 || couponDiscount > 0) && mergedBreakdowns.length > 0) {
           let targetIdx = mergedBreakdowns.findIndex(b => b.name === 'Final Pay');
           if (targetIdx === -1) targetIdx = mergedBreakdowns.length - 1;
-          mergedBreakdowns[targetIdx].amount += platformCcfShare;
+          
+          if (platformCcfShare > 0) {
+            mergedBreakdowns[targetIdx].amount += platformCcfShare;
+          }
+          if (couponDiscount > 0) {
+            mergedBreakdowns[targetIdx].amount = Math.max(0, mergedBreakdowns[targetIdx].amount - couponDiscount);
+          }
         }
       }
 

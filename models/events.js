@@ -275,6 +275,8 @@ const eventsSchema = new mongoose.Schema({
       convenienceFeeBefore: { type: Number, default: 0 },
       taxOnConvenienceBefore: { type: Number, default: 0 },
       couponCode: { type: String, default: null },
+      couponDiscount: { type: Number, default: 0 },
+      breakdownDiscount: { type: Number, default: 0 },
       discountAmount: { type: Number, default: 0 }
     },
     vendorReceivable: {
