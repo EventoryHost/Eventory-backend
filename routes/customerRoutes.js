@@ -28,7 +28,7 @@ import {
   getActiveBooking,
   markNotificationAsRead,
   addCustomerInvoice,
-  updateCustomerBusinessDetails
+  updateCustomerBusinessDetails,
 } from "../controllers/customerController.js";
 
 const router = express.Router();
@@ -211,7 +211,10 @@ router.patch("/notifications/read/:notificationId", markNotificationAsRead);
  *     summary: Mark all customer notifications as read
  *     tags: [Notifications]
  */
-router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNotificationsAsRead);
+router.patch(
+  "/:customer_id/customerNotifications/read-all",
+  markAllCustomerNotificationsAsRead,
+);
 
 /**
  * @swagger
@@ -222,7 +225,7 @@ router.patch("/:customer_id/customerNotifications/read-all", markAllCustomerNoti
  */
 router.get("/:id", getCustomerById);
 
-//to be done 
+//to be done
 router.get("/get-active-booking/:customer_id", getActiveBooking);
 router.post("/add-customer-invoice", addCustomerInvoice);
 // router.delete("/remove/:customer_id/:quotation_id", removeQuotationFromCustomer);

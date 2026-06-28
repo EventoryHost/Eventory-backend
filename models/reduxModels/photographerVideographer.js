@@ -30,19 +30,27 @@ const ReduxPhotographerVideographerSchema = new mongoose.Schema(
     google_map_link: { type: String },
 
     // Service Details (flattened from service_details)
-    type_of_service: { type: String, enum: ["photography", "videography", "both"] },
+    type_of_service: {
+      type: String,
+      enum: ["photography", "videography", "both"],
+    },
     types_of_equipment_available: { type: [String] },
     types_of_styles_offered: { type: [String] },
     add_ons_upgrade_available: { type: [String] },
     final_delivery_methods: { type: [String] },
-    service_offering_type: { type: String, enum: ['Customize', 'Standard', 'Both'] },
+    service_offering_type: {
+      type: String,
+      enum: ["Customize", "Standard", "Both"],
+    },
     delivery_timeline: { type: String },
 
     // Additional Details (flattened from additional_details)
-    asset_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    asset_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     asset_videos: { type: [String] },
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },
@@ -51,12 +59,15 @@ const ReduxPhotographerVideographerSchema = new mongoose.Schema(
     web_social_link: { type: String },
 
     // Business Details (flattened from business_details)
-    service_type_business: { type: String, default: "Photographer-Videographer" },
+    service_type_business: {
+      type: String,
+      default: "Photographer-Videographer",
+    },
     category: { type: Number },
     business_registration_name: { type: String },
     gst: { type: String },
     pan: { type: String },
-    verification_type: { type: String, enum: ['GSTIN', 'PAN'] },
+    verification_type: { type: String, enum: ["GSTIN", "PAN"] },
     team_size: { type: Number },
     years_of_operation: { type: Number },
     business_address: { type: String },
@@ -86,11 +97,14 @@ const ReduxPhotographerVideographerSchema = new mongoose.Schema(
 
     // Timestamps
     pav_created_at: { type: Date },
-    pav_updated_at: { type: Date }
+    pav_updated_at: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-const ReduxPhotographerVideographerModel = mongoose.model("ReduxPhotographerVideographer", ReduxPhotographerVideographerSchema);
+const ReduxPhotographerVideographerModel = mongoose.model(
+  "ReduxPhotographerVideographer",
+  ReduxPhotographerVideographerSchema,
+);
 
 export { ReduxPhotographerVideographerModel };

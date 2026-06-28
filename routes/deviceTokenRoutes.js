@@ -14,6 +14,9 @@ deviceTokenRoutes.get("/:vendorId", deviceTokenController.getDeviceTokens);
 deviceTokenRoutes.get("/em/:emId", deviceTokenController.getDeviceTokens);
 
 // Remove all device tokens for a vendor or event manager (logout from all devices)
-deviceTokenRoutes.delete("/remove-all", deviceTokenController.removeAllDeviceTokens);
+deviceTokenRoutes.delete(
+  "/remove-all",
+  deviceTokenController.removeAllDeviceTokens,
+);
 
 export default deviceTokenRoutes;

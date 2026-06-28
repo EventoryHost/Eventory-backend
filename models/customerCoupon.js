@@ -72,14 +72,16 @@ customerCouponSchema.pre("save", function (next) {
   next();
 });
 
-customerCouponSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function (next) {
-  this.set({ coupon_updated_at: new Date() });
-  next();
-});
+customerCouponSchema.pre(
+  ["findOneAndUpdate", "updateOne", "updateMany"],
+  function (next) {
+    this.set({ coupon_updated_at: new Date() });
+    next();
+  },
+);
 
 const CustomerCoupon =
   mongoose.models.CustomerCoupon ||
   mongoose.model("CustomerCoupon", customerCouponSchema, "customer-coupons");
 
 export { CustomerCoupon, customerCouponUsageSchema };
-

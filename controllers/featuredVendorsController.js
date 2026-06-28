@@ -1,5 +1,5 @@
 import { Caterer } from "../models/caterer.js";
-import { Decorator }  from "../models/decorator.js";
+import { Decorator } from "../models/decorator.js";
 import VenueProvider from "../models/venueProvider.js";
 import PhotographerVideographer from "../models/photographerVideographer.js";
 import MakeupArtist from "../models/makeupArtist.js";
@@ -15,14 +15,13 @@ import MakeupArtist from "../models/makeupArtist.js";
 async function getFeaturedVendors(req, res) {
   var featuredVendors = [];
 
-  const [caterer, decorator, venue, pav, makeupArtist] =
-    await Promise.all([
-      getCaterer(),
-      getDecorator(),
-      getVenue(),
-      getPav(),
-      getMakeupArtist(),
-    ]);
+  const [caterer, decorator, venue, pav, makeupArtist] = await Promise.all([
+    getCaterer(),
+    getDecorator(),
+    getVenue(),
+    getPav(),
+    getMakeupArtist(),
+  ]);
 
   // caterer
   if (caterer)
@@ -30,12 +29,15 @@ async function getFeaturedVendors(req, res) {
       vendor_id: caterer.vendor_id,
       service_id: caterer.service_id,
       category_name: "Caterer",
-      name: caterer.business_details.business_registration_name || "Krishna Vendors",
+      name:
+        caterer.business_details.business_registration_name ||
+        "Krishna Vendors",
       rating: caterer.rating || "4.5",
       price: caterer.additional_details.prices_starts_from || "4000",
       category: caterer.service_type || ["Caterer"],
       img:
-        (caterer.additional_details.asset_images?.[0]?.original || caterer.additional_details.asset_images?.[0]?.preview) ||
+        caterer.additional_details.asset_images?.[0]?.original ||
+        caterer.additional_details.asset_images?.[0]?.preview ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -45,12 +47,15 @@ async function getFeaturedVendors(req, res) {
       vendor_id: decorator.vendor_id,
       service_id: decorator.service_id,
       category_name: "Decorator",
-      name: decorator.business_details.business_registration_name  || "Krishna Vendors",
+      name:
+        decorator.business_details.business_registration_name ||
+        "Krishna Vendors",
       rating: decorator.rating || "4.5",
-      price: decorator.additional_details.prices_starts_from  || "4000",
+      price: decorator.additional_details.prices_starts_from || "4000",
       category: decorator.service_type || ["Decorator"],
       img:
-        (decorator.additional_details.asset_images?.[0]?.original || decorator.additional_details.asset_images?.[0]?.preview) ||
+        decorator.additional_details.asset_images?.[0]?.original ||
+        decorator.additional_details.asset_images?.[0]?.preview ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -60,12 +65,14 @@ async function getFeaturedVendors(req, res) {
       vendor_id: venue.vendor_id,
       service_id: venue.service_id,
       category_name: "Venue Provider",
-      name: venue.business_details.business_registration_name || "Krishna Vendors",
+      name:
+        venue.business_details.business_registration_name || "Krishna Vendors",
       rating: venue.rating || "4.5",
       price: venue.additional_details.prices_starts_from || "4000",
       category: venue.service_type || ["Venue"],
       img:
-        (venue.additional_details.asset_images?.[0]?.original || venue.additional_details.asset_images?.[0]?.preview) ||
+        venue.additional_details.asset_images?.[0]?.original ||
+        venue.additional_details.asset_images?.[0]?.preview ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -77,12 +84,14 @@ async function getFeaturedVendors(req, res) {
       vendor_id: pav.vendor_id,
       service_id: pav.service_id,
       category_name: "Photographers & Videographers",
-      name: pav.business_details.business_registration_name || "Krishna Vendors",
+      name:
+        pav.business_details.business_registration_name || "Krishna Vendors",
       rating: pav.rating || "4.5",
       price: pav.additional_details.prices_starts_from || "4000",
       category: pav.service_type || ["Photography", "Videography"],
       img:
-        (pav.additional_details.asset_images?.[0]?.original || pav.additional_details.asset_images?.[0]?.preview) ||
+        pav.additional_details.asset_images?.[0]?.original ||
+        pav.additional_details.asset_images?.[0]?.preview ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 
@@ -92,12 +101,15 @@ async function getFeaturedVendors(req, res) {
       vendor_id: makeupArtist.vendor_id,
       service_id: makeupArtist.service_id,
       category_name: "Makeup Artist",
-      name: makeupArtist.business_details.business_registration_name || "Krishna Vendors",
+      name:
+        makeupArtist.business_details.business_registration_name ||
+        "Krishna Vendors",
       rating: "4.7",
       price: makeupArtist.additional_details.prices_starts_from || "4000",
       category: makeupArtist.service_type || ["Makeup Artist"],
       img:
-        (makeupArtist.additional_details.asset_images?.[0]?.original || makeupArtist.additional_details.asset_images?.[0]?.preview) ||
+        makeupArtist.additional_details.asset_images?.[0]?.original ||
+        makeupArtist.additional_details.asset_images?.[0]?.preview ||
         "https://d5b8uhuzdzhj3.cloudfront.net/assets/landing_page/featured_images/card_01.png",
     });
 

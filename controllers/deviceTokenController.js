@@ -10,7 +10,7 @@ const storeDeviceToken = async (req, res) => {
     // Validate required fields
     if ((!vendorId && !emId) || !deviceToken) {
       return res.status(400).json({
-        message: "vendorId or emId and deviceToken are required"
+        message: "vendorId or emId and deviceToken are required",
       });
     }
 
@@ -32,32 +32,34 @@ const storeDeviceToken = async (req, res) => {
 
     // Use upsert to either update existing token or create new one
     const result = await DeviceToken.findOneAndUpdate(
-      { [ownerField]: ownerField === "emId" ? emId : ownerDoc._id, deviceToken }, // Find by owner and token
+      {
+        [ownerField]: ownerField === "emId" ? emId : ownerDoc._id,
+        deviceToken,
+      }, // Find by owner and token
       {
         [ownerField]: ownerField === "emId" ? emId : ownerDoc._id,
         deviceToken,
         deviceType: deviceType || "android",
-        deviceId
+        deviceId,
       },
       {
         upsert: true, // Create if doesn't exist
         new: true, // Return updated document
-        setDefaultsOnInsert: true
-      }
+        setDefaultsOnInsert: true,
+      },
     );
 
     res.status(200).json({
       message: "Device token stored successfully",
-      data: result
+      data: result,
     });
-
   } catch (error) {
     console.error("Error storing device token:", error);
 
     // Handle duplicate key error
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Device token already exists for this user"
+        message: "Device token already exists for this user",
       });
     }
 
@@ -72,7 +74,7 @@ const removeDeviceToken = async (req, res) => {
 
     if (!deviceToken && !deviceId) {
       return res.status(400).json({
-        message: "Either deviceToken or deviceId is required"
+        message: "Either deviceToken or deviceId is required",
       });
     }
 
@@ -88,14 +90,13 @@ const removeDeviceToken = async (req, res) => {
 
     if (!deletedToken) {
       return res.status(404).json({
-        message: "Device token not found"
+        message: "Device token not found",
       });
     }
 
     res.status(200).json({
-      message: "Device token removed successfully"
+      message: "Device token removed successfully",
     });
-
   } catch (error) {
     console.error("Error removing device token:", error);
     res.status(500).json({ error: error.message });
@@ -109,7 +110,7 @@ const getDeviceTokens = async (req, res) => {
 
     if (!vendorId && !emId) {
       return res.status(400).json({
-        message: "vendorId or emId is required"
+        message: "vendorId or emId is required",
       });
     }
 
@@ -130,15 +131,13 @@ const getDeviceTokens = async (req, res) => {
     }
 
     const deviceTokens = await DeviceToken.find({
-      [ownerField]: ownerField === "emId" ? emId : ownerDoc._id
-    })
-      .sort({ createdAt: -1 });
+      [ownerField]: ownerField === "emId" ? emId : ownerDoc._id,
+    }).sort({ createdAt: -1 });
 
     res.status(200).json({
       message: "Device tokens retrieved successfully",
-      data: deviceTokens
+      data: deviceTokens,
     });
-
   } catch (error) {
     console.error("Error getting device tokens:", error);
     res.status(500).json({ error: error.message });
@@ -152,7 +151,7 @@ const removeAllDeviceTokens = async (req, res) => {
 
     if (!vendorId && !emId) {
       return res.status(400).json({
-        message: "vendorId or emId is required"
+        message: "vendorId or emId is required",
       });
     }
 
@@ -173,13 +172,12 @@ const removeAllDeviceTokens = async (req, res) => {
     }
 
     const result = await DeviceToken.deleteMany({
-      [ownerField]: ownerField === "emId" ? emId : ownerDoc._id
+      [ownerField]: ownerField === "emId" ? emId : ownerDoc._id,
     });
 
     res.status(200).json({
-      message: `${result.deletedCount} device tokens removed successfully`
+      message: `${result.deletedCount} device tokens removed successfully`,
     });
-
   } catch (error) {
     console.error("Error removing all device tokens:", error);
     res.status(500).json({ error: error.message });
@@ -190,5 +188,5 @@ export default {
   storeDeviceToken,
   removeDeviceToken,
   getDeviceTokens,
-  removeAllDeviceTokens
+  removeAllDeviceTokens,
 };

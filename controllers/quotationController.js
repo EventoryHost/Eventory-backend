@@ -39,7 +39,7 @@ const createQuotation = async (req, res, io) => {
     const existingQuotation = await Quotations.findOne({
       customer_id,
       service_id,
-      quote_status: { $ne: 'In_Booking' }
+      quote_status: { $ne: "In_Booking" },
     });
     if (existingQuotation) {
       return res.status(400).json({
@@ -70,7 +70,7 @@ const createQuotation = async (req, res, io) => {
 
     // Create both customer-admin and vendor-admin chats immediately
     const chatTypes = ["customer-admin", "vendor-admin"];
-    
+
     for (const chatType of chatTypes) {
       const existingChat = await Chat.findOne({
         chat_id: savedQuotation.quotation_id,
@@ -87,7 +87,10 @@ const createQuotation = async (req, res, io) => {
           chat_status: "ACTIVE",
           em_id: "admin-rm", // Default admin identifier
         });
-        console.log(`${chatType} chat created for quotation:`, savedQuotation.quotation_id);
+        console.log(
+          `${chatType} chat created for quotation:`,
+          savedQuotation.quotation_id,
+        );
       }
     }
 
@@ -97,7 +100,7 @@ const createQuotation = async (req, res, io) => {
       service_id: savedQuotation.service_id,
       chat_id: savedQuotation.quotation_id,
       message: `New quotation request from ${savedQuotation.customer_name}`,
-      notification_type: 'chat_message',
+      notification_type: "chat_message",
     });
 
     await newNotification.save();
@@ -105,7 +108,7 @@ const createQuotation = async (req, res, io) => {
     if (io) {
       io.to(`vendor-${savedQuotation.vendor_id}`).emit(
         "newQuotationNotification",
-        newNotification.toObject()
+        newNotification.toObject(),
       );
     }
 
@@ -115,20 +118,27 @@ const createQuotation = async (req, res, io) => {
       priority: "high",
       notification: {
         title: "New Quotation Request",
-        body: `New quotation from ${savedQuotation.customer_name}`
+        body: `New quotation from ${savedQuotation.customer_name}`,
       },
       data: {
         type: "quotation",
         quotation_id: savedQuotation.quotation_id,
         customer_name: savedQuotation.customer_name,
-        message: `New quotation request from ${savedQuotation.customer_name}`
-      }
-    }).then(result => {
-      console.log(`FCM notifications sent to vendor ${savedQuotation.vendor_id} for quotation ${savedQuotation.quotation_id}`, result);
-    }).catch(error => {
-      console.error("Failed to send FCM notification for new quotation:", error);
-    });
-
+        message: `New quotation request from ${savedQuotation.customer_name}`,
+      },
+    })
+      .then((result) => {
+        console.log(
+          `FCM notifications sent to vendor ${savedQuotation.vendor_id} for quotation ${savedQuotation.quotation_id}`,
+          result,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to send FCM notification for new quotation:",
+          error,
+        );
+      });
 
     res.status(201).json({
       message: "Quotation created successfully!",
@@ -141,25 +151,22 @@ const createQuotation = async (req, res, io) => {
         customer_name: savedQuotation.customer_name,
         id: savedQuotation.quotation_id,
       });
-
-      
     });
 
-    if (process.env.IS_DEV !== 'true') {
+    if (process.env.IS_DEV !== "true") {
       sendSlackMessage({
         id: savedQuotation.quotation_id,
         customer: savedQuotation.customer_name,
         service: savedQuotation.service_id,
         vendorId: savedQuotation.vendor_id,
         guests: savedQuotation.guest_count,
-        date: new Date(savedQuotation.event_start).toLocaleDateString('en-IN', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+        date: new Date(savedQuotation.event_start).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         }),
       });
     }
-
   } catch (error) {
     res.status(500).json({
       message: "Error creating quotation",
@@ -238,7 +245,7 @@ const updateQuotationStatus = async (req, res) => {
     const updatedQuotation = await Quotations.findOneAndUpdate(
       { quotation_id },
       { $set: { quote_status } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedQuotation) {
@@ -305,7 +312,7 @@ const updateQuotationStatus = async (req, res) => {
         await existingChat.updateLastMessage();
       } else {
         console.log(
-          "🕓 Instance method missing — manually updating timestamps..."
+          "🕓 Instance method missing — manually updating timestamps...",
         );
         await Chat.updateOne(
           { chat_id: existingChat.chat_id },
@@ -314,13 +321,13 @@ const updateQuotationStatus = async (req, res) => {
               last_message_updated_at: new Date(),
               chat_updated_at: new Date(),
             },
-          }
+          },
         );
       }
       console.log("✅ System message and timestamp updates complete.");
     } else {
       console.log(
-        "⚠️ No system message inserted (messageContent or chat missing)."
+        "⚠️ No system message inserted (messageContent or chat missing).",
       );
     }
 
@@ -354,7 +361,7 @@ const updateQuotationStatus = async (req, res) => {
     } else {
       console.log(
         "ℹ️ No customer notification needed for status:",
-        quote_status
+        quote_status,
       );
     }
 

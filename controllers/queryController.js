@@ -64,7 +64,11 @@ export const createQuery = async (req, res) => {
         </body></html>
       `;
 
-      if (process.env.RECEIVER_EMAIL && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      if (
+        process.env.RECEIVER_EMAIL &&
+        process.env.EMAIL_USER &&
+        process.env.EMAIL_PASS
+      ) {
         await transporter.sendMail({
           from: `"Eventory Notifications" <${process.env.EMAIL_USER}>`,
           to: process.env.RECEIVER_EMAIL,
@@ -98,10 +102,13 @@ export const createQuery = async (req, res) => {
 // POST /create-reachout-query -> business/partner reachout
 export const createreachoutQuery = async (req, res) => {
   try {
-    const { fullName, mobileno, message, email, company, services, city } = req.body;
+    const { fullName, mobileno, message, email, company, services, city } =
+      req.body;
 
     if (!fullName || !mobileno || !message) {
-      return res.status(400).json({ error: "fullName, mobileno and message are required" });
+      return res
+        .status(400)
+        .json({ error: "fullName, mobileno and message are required" });
     }
 
     // Basic mobile validation (10+ digits typical for India)

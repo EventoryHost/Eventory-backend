@@ -32,32 +32,32 @@ export const compressVideo = (fileBuffer) => {
 
       ffmpeg(inputPath)
         .outputOptions([
-          "-vf scale=1280:-1",   
-          "-c:v libx264",        
-          "-preset veryfast",    
-          "-crf 28",             
-          "-c:a aac",           
-          "-b:a 128k",           
+          "-vf scale=1280:-1",
+          "-c:v libx264",
+          "-preset veryfast",
+          "-crf 28",
+          "-c:a aac",
+          "-b:a 128k",
         ])
         .output(outputPath)
-        .on('end', () => {
+        .on("end", () => {
           try {
             // Read the compressed video back into a buffer
             const previewBuffer = fs.readFileSync(outputPath);
-            
+
             // Clean up temporary files
             fs.unlinkSync(inputPath);
             fs.unlinkSync(outputPath);
-            
+
             resolve({
               originalBuffer: fileBuffer,
-              previewBuffer: previewBuffer,  
+              previewBuffer: previewBuffer,
             });
           } catch (readError) {
             reject(readError);
           }
         })
-        .on('error', (err) => {
+        .on("error", (err) => {
           // Clean up temporary files on error
           try {
             if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);

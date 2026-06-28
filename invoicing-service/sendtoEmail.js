@@ -39,24 +39,26 @@ const generateEmailHtml = (name) => `
 
 export async function sendInvoiceEmail({ to, name, pdfBuffer, pdfFileName }) {
   const transporter = nodemailer.createTransport({
-    service : "gmail",
-    auth : {
-      user : process.env.EMAIL_USER ,
-      pass : process.env.INVOICING_EMAIL_PASS, 
-    }
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.INVOICING_EMAIL_PASS,
+    },
   });
 
-  const slackEmail = "event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com";
-  const ccEmails = to === slackEmail 
-    ? ["payments@eventory.in"] 
-    : [slackEmail, "payments@eventory.in"]; 
+  const slackEmail =
+    "event-vendor-onboardi-aaaaqhbbkgsagqwcg6mbxser4a@eventory-hq.slack.com";
+  const ccEmails =
+    to === slackEmail
+      ? ["payments@eventory.in"]
+      : [slackEmail, "payments@eventory.in"];
 
   const mailOptions = {
     from: "registrations@eventory.in",
     to,
     cc: ccEmails,
     subject: "Welcome to Eventory!",
-    html: generateEmailHtml(name), 
+    html: generateEmailHtml(name),
     attachments: [
       {
         filename: pdfFileName,

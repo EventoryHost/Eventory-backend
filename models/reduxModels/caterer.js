@@ -34,7 +34,7 @@ const ReduxCatererSchema = new mongoose.Schema(
     staff_provided: { type: [String] },
     equipment_provided: { type: [String] },
     menu: { type: [String] },
-    veg_or_nonveg: { type: String, enum: ['VEG', 'NON-VEG', 'BOTH'] },
+    veg_or_nonveg: { type: String, enum: ["VEG", "NON-VEG", "BOTH"] },
     appetizers: { type: [String] },
     main_course: { type: [String] },
     beverages: { type: [String] },
@@ -45,10 +45,12 @@ const ReduxCatererSchema = new mongoose.Schema(
     // Additional Details (flattened from additional_details)
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },
-    asset_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    asset_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     asset_videos: { type: [String] },
     is_tasting_session_provided: { type: Boolean },
     is_business_license_available: { type: Boolean, default: false },
@@ -61,7 +63,7 @@ const ReduxCatererSchema = new mongoose.Schema(
     business_registration_name: { type: String },
     gst: { type: String },
     pan: { type: String },
-    verification_type: { type: String, enum: ['GSTIN', 'PAN'] },
+    verification_type: { type: String, enum: ["GSTIN", "PAN"] },
     team_size: { type: Number },
     years_of_operation: { type: Number },
     business_address: { type: String },
@@ -91,9 +93,9 @@ const ReduxCatererSchema = new mongoose.Schema(
 
     // Timestamps
     caterer_created_at: { type: Date },
-    caterer_updated_at: { type: Date }
+    caterer_updated_at: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const ReduxCatererModel = mongoose.model("ReduxCaterer", ReduxCatererSchema);

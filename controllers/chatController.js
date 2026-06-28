@@ -30,32 +30,50 @@ export const handleSocketConnection = (socket, io) => {
       if (!chat) {
         // Special case: allow joining notification rooms for unread marker support
         if (chat_id.startsWith("notifications-")) {
-            socket.join(chat_id);
-            socket.emit("joined", `Joined notification room ${chat_id}`);
-            console.log(`🔔 Socket ${socket.id} joined notification room ${chat_id}`);
-            return;
+          socket.join(chat_id);
+          socket.emit("joined", `Joined notification room ${chat_id}`);
+          console.log(
+            `🔔 Socket ${socket.id} joined notification room ${chat_id}`,
+          );
+          return;
         }
         socket.emit("error", "Chat room does not exist");
         return;
       }
 
       // Validate user has permission to join this chat type
-      if (chat_type === "vendor-admin" && sender !== "vendor" && sender !== "em") {
+      if (
+        chat_type === "vendor-admin" &&
+        sender !== "vendor" &&
+        sender !== "em"
+      ) {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
 
-      if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+      if (
+        chat_type === "customer-admin" &&
+        sender !== "customer" &&
+        sender !== "em"
+      ) {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
 
-      if (chat_type === "vendor-enquiry" && sender !== "vendor" && sender !== "em") {
+      if (
+        chat_type === "vendor-enquiry" &&
+        sender !== "vendor" &&
+        sender !== "em"
+      ) {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
 
-      if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
+      if (
+        chat_type === "anon_customer-admin" &&
+        sender !== "anonymous_customer" &&
+        sender !== "em"
+      ) {
         socket.emit("error", "You don't have permission to join this chat");
         return;
       }
@@ -87,7 +105,7 @@ export const handleSocketConnection = (socket, io) => {
         parent_sender,
         client_message_id,
       },
-      callback
+      callback,
     ) => {
       try {
         // Validate chatType is provided
@@ -117,38 +135,66 @@ export const handleSocketConnection = (socket, io) => {
         }
 
         // Validate senderType matches chatType permissions
-        if (chat_type === "vendor-admin" && sender !== "vendor" && sender !== "em") {
+        if (
+          chat_type === "vendor-admin" &&
+          sender !== "vendor" &&
+          sender !== "em"
+        ) {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
+            socket.emit(
+              "error",
+              "You don't have permission to send messages in this chat",
+            );
           }
           return;
         }
 
-        if (chat_type === "customer-admin" && sender !== "customer" && sender !== "em") {
+        if (
+          chat_type === "customer-admin" &&
+          sender !== "customer" &&
+          sender !== "em"
+        ) {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
+            socket.emit(
+              "error",
+              "You don't have permission to send messages in this chat",
+            );
           }
           return;
         }
 
-        if (chat_type === "anon_customer-admin" && sender !== "anonymous_customer" && sender !== "em") {
+        if (
+          chat_type === "anon_customer-admin" &&
+          sender !== "anonymous_customer" &&
+          sender !== "em"
+        ) {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
+            socket.emit(
+              "error",
+              "You don't have permission to send messages in this chat",
+            );
           }
           return;
         }
 
-        if (chat_type === "vendor-enquiry" && sender !== "vendor" && sender !== "em") {
+        if (
+          chat_type === "vendor-enquiry" &&
+          sender !== "vendor" &&
+          sender !== "em"
+        ) {
           if (typeof callback === "function") {
             callback("You don't have permission to send messages in this chat");
           } else {
-            socket.emit("error", "You don't have permission to send messages in this chat");
+            socket.emit(
+              "error",
+              "You don't have permission to send messages in this chat",
+            );
           }
           return;
         }
@@ -161,28 +207,46 @@ export const handleSocketConnection = (socket, io) => {
           "file",
           "approval_request",
           "order",
-          "vendor_card",        
-          "system",             
-          "options",            
+          "vendor_card",
+          "system",
+          "options",
           "order_summary",
           "login_prompt",
-          "review_prompt"
+          "review_prompt",
         ];
         const final_message_type = validTypes.includes(message_type)
           ? message_type
           : "text";
 
-        const systemMessageTypes = ["vendor_card", "approval_request", "order", "system", "options", "order_summary", "login_prompt", "review_prompt"];
+        const systemMessageTypes = [
+          "vendor_card",
+          "approval_request",
+          "order",
+          "system",
+          "options",
+          "order_summary",
+          "login_prompt",
+          "review_prompt",
+        ];
 
         if (!systemMessageTypes.includes(message_type)) {
-          const isInteractiveChat = ["anon_customer-admin", "customer-admin"].includes(chat_type);
-          
-          if (!isInteractiveChat && (checkPhoneNumber(message_content) || checkEmails(message_content))) {
+          const isInteractiveChat = [
+            "anon_customer-admin",
+            "customer-admin",
+          ].includes(chat_type);
+
+          if (
+            !isInteractiveChat &&
+            (checkPhoneNumber(message_content) || checkEmails(message_content))
+          ) {
             console.log("Personal information detected:", message_content);
             if (typeof callback === "function") {
               callback("Please refrain from sharing personal information!");
             } else {
-              socket.emit("error", "Please refrain from sharing personal information!");
+              socket.emit(
+                "error",
+                "Please refrain from sharing personal information!",
+              );
             }
             return;
           }
@@ -200,7 +264,8 @@ export const handleSocketConnection = (socket, io) => {
 
         const chat = await Chat.findOne({ chat_id, chat_type });
         if (!chat) {
-          if (typeof callback === "function") callback("Invalid chat_id or chat_type");
+          if (typeof callback === "function")
+            callback("Invalid chat_id or chat_type");
           else socket.emit("error", "Invalid chat_id or chat_type");
           return;
         }
@@ -211,7 +276,7 @@ export const handleSocketConnection = (socket, io) => {
           } else {
             socket.emit(
               "error",
-              "This chat is blocked. You cannot send messages."
+              "This chat is blocked. You cannot send messages.",
             );
           }
           return;
@@ -268,7 +333,9 @@ export const handleSocketConnection = (socket, io) => {
               message_type: savedIntro.message_type,
               message_sent_at: savedIntro.message_sent_at,
             });
-            console.log(`📤 Sent intro message for first vendor card in chat ${chat_id}`);
+            console.log(
+              `📤 Sent intro message for first vendor card in chat ${chat_id}`,
+            );
           }
         }
 
@@ -276,19 +343,15 @@ export const handleSocketConnection = (socket, io) => {
 
         // ------------------- UPDATE VENDOR ENQUIRY IF APPLICABLE -------------------
         if (chat_type === "vendor-enquiry") {
-          await updateEnquiryWithMessage(
-            chat_id,
-            message_content,
-            sender
-          );
+          await updateEnquiryWithMessage(chat_id, message_content, sender);
         }
 
         // ------------------- AUTO-ASSIGN EM TO CHAT -------------------
         // If sender is EM and chat doesn't have an assigned EM, update it.
         if (sender === "em" && (!chat.em_id || chat.em_id === "")) {
-            chat.em_id = sender_id;
-            await chat.save();
-            console.log(`✅ Auto-assigned EM ${sender_id} to chat ${chat_id}`);
+          chat.em_id = sender_id;
+          await chat.save();
+          console.log(`✅ Auto-assigned EM ${sender_id} to chat ${chat_id}`);
         }
 
         // ------------------- EMIT TO ROOM -------------------
@@ -310,20 +373,23 @@ export const handleSocketConnection = (socket, io) => {
         });
 
         console.log(
-          `📤 ${savedMessage.sender} sent ${savedMessage.message_type} message in chat ${savedMessage.chat_id} (${chat_type})`
+          `📤 ${savedMessage.sender} sent ${savedMessage.message_type} message in chat ${savedMessage.chat_id} (${chat_type})`,
         );
 
         // ------------------- CUSTOMER NOTIFICATION -------------------
-        if ((sender === "em" || sender === "admin") && 
-            (chat_type === "customer-admin" || chat_type === "anon_customer-admin")) {
+        if (
+          (sender === "em" || sender === "admin") &&
+          (chat_type === "customer-admin" ||
+            chat_type === "anon_customer-admin")
+        ) {
           const customerId = chat.customer_id || chat.anon_customer_id;
           if (customerId) {
             try {
               const notification = new customerNotification({
                 customer_id: customerId,
                 chat_id: chat_id,
-                notification_type: 'chat_message',
-                message: `New message from Eventory: ${message_content.length > 50 ? message_content.substring(0, 47) + '...' : message_content}`,
+                notification_type: "chat_message",
+                message: `New message from Eventory: ${message_content.length > 50 ? message_content.substring(0, 47) + "..." : message_content}`,
                 read: false,
               });
               await notification.save();
@@ -331,15 +397,18 @@ export const handleSocketConnection = (socket, io) => {
               // Emit notification to customer room
               const customerRoom = `notifications-${customerId}`;
               io.to(customerRoom).emit("new_notification", {
-                type: 'chat_message',
+                type: "chat_message",
                 chat_id: chat_id,
                 message: notification.message,
                 timestamp: notification.createdAt,
               });
-              
+
               console.log(`🔔 Notification sent to customer ${customerId}`);
             } catch (notifErr) {
-              console.error("Failed to create customer notification:", notifErr);
+              console.error(
+                "Failed to create customer notification:",
+                notifErr,
+              );
             }
           }
         }
@@ -349,9 +418,18 @@ export const handleSocketConnection = (socket, io) => {
           callback(null, savedMessage);
         }
 
-        if (((chat_type === "anon_customer-admin" && sender === "anonymous_customer") || 
-            (chat_type === "customer-admin" && sender === "customer")) && !attachment_url) {
-            await handleInteractiveMessage(chat_id, sender_id, message_content?.trim(), io);
+        if (
+          ((chat_type === "anon_customer-admin" &&
+            sender === "anonymous_customer") ||
+            (chat_type === "customer-admin" && sender === "customer")) &&
+          !attachment_url
+        ) {
+          await handleInteractiveMessage(
+            chat_id,
+            sender_id,
+            message_content?.trim(),
+            io,
+          );
         }
       } catch (err) {
         console.error("send_message error:", err);
@@ -361,26 +439,32 @@ export const handleSocketConnection = (socket, io) => {
           socket.emit("error", "Error sending message");
         }
       }
-    }
+    },
   );
 
   // ------------------- EDIT MESSAGE -------------------
   socket.on(
     "edit_message",
     async (
-      {
-        message_id,
-        new_content,
-        chat_id,
-        chat_type,
-        sender_id,
-      },
-      callback
+      { message_id, new_content, chat_id, chat_type, sender_id },
+      callback,
     ) => {
       try {
         // Validate required fields
-        console.log("edit_message called with:", {message_id, new_content, chat_id, chat_type, sender_id});
-        if (!message_id || !new_content || !chat_id || !chat_type || !sender_id) {
+        console.log("edit_message called with:", {
+          message_id,
+          new_content,
+          chat_id,
+          chat_type,
+          sender_id,
+        });
+        if (
+          !message_id ||
+          !new_content ||
+          !chat_id ||
+          !chat_type ||
+          !sender_id
+        ) {
           if (typeof callback === "function") {
             callback("Missing required fields for edit");
           } else {
@@ -431,10 +515,7 @@ export const handleSocketConnection = (socket, io) => {
 
         // Find the message
         const message = await Message.findOne({
-            $or: [
-            { _id: message_id },
-            { message_id: message_id }
-        ],
+          $or: [{ _id: message_id }, { message_id: message_id }],
           chat_id,
           chat_type,
         });
@@ -464,7 +545,10 @@ export const handleSocketConnection = (socket, io) => {
           if (typeof callback === "function") {
             callback(`Cannot edit ${message.message_type} messages`);
           } else {
-            socket.emit("error", `Cannot edit ${message.message_type} messages`);
+            socket.emit(
+              "error",
+              `Cannot edit ${message.message_type} messages`,
+            );
           }
           return;
         }
@@ -477,7 +561,7 @@ export const handleSocketConnection = (socket, io) => {
           } else {
             socket.emit(
               "error",
-              "Please refrain from sharing personal information!"
+              "Please refrain from sharing personal information!",
             );
           }
           return;
@@ -515,7 +599,7 @@ export const handleSocketConnection = (socket, io) => {
         });
 
         console.log(
-          `✏️ Message ${message_id} edited by ${message.sender} in chat ${chat_id} (${chat_type})`
+          `✏️ Message ${message_id} edited by ${message.sender} in chat ${chat_id} (${chat_type})`,
         );
 
         // Send acknowledgment to sender
@@ -535,7 +619,7 @@ export const handleSocketConnection = (socket, io) => {
           socket.emit("error", "Error editing message");
         }
       }
-    }
+    },
   );
 
   // ------------------- DISCONNECT -------------------
@@ -551,24 +635,33 @@ export const getMessagesByChatId = async (req, res) => {
 
   try {
     // Prevent caching to ensure fresh messages
-    res.set('Cache-Control', 'no-store');
+    res.set("Cache-Control", "no-store");
 
     if (!chatType) {
       return res.status(400).json({ error: "chatType is required" });
     }
-    
+
     // Trim chatId to ensure lookup works
     const trimmedChatId = chatId.trim();
 
     // Validate chatType
-    if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
+    if (
+      ![
+        "vendor-admin",
+        "customer-admin",
+        "vendor-enquiry",
+        "anon_customer-admin",
+      ].includes(chatType)
+    ) {
       return res.status(400).json({ error: "Invalid chatType" });
     }
 
     // Verify the chat exists with this chatType
     const chatSearchQuery = { chat_id: trimmedChatId };
     if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
-      chatSearchQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+      chatSearchQuery.chat_type = {
+        $in: ["customer-admin", "anon_customer-admin"],
+      };
     } else {
       chatSearchQuery.chat_type = chatType;
     }
@@ -583,7 +676,10 @@ export const getMessagesByChatId = async (req, res) => {
 
     if (chatType === "vendor-admin") {
       query.chat_type = "vendor-admin";
-    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
+    } else if (
+      chatType === "customer-admin" ||
+      chatType === "anon_customer-admin"
+    ) {
       // Show both to maintain history across login/anonymous states
       query.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
     } else {
@@ -648,14 +744,23 @@ export const searchMessages = async (req, res) => {
     return res.status(400).json({ error: "chatType is required" });
   }
 
-  if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
+  if (
+    ![
+      "vendor-admin",
+      "customer-admin",
+      "vendor-enquiry",
+      "anon_customer-admin",
+    ].includes(chatType)
+  ) {
     return res.status(400).json({ error: "Invalid chatType" });
   }
 
   try {
     const chatSearchQuery = { chat_id };
     if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
-      chatSearchQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+      chatSearchQuery.chat_type = {
+        $in: ["customer-admin", "anon_customer-admin"],
+      };
     } else {
       chatSearchQuery.chat_type = chatType;
     }
@@ -672,8 +777,13 @@ export const searchMessages = async (req, res) => {
 
     if (chatType === "vendor-admin") {
       messageQuery.chat_type = "vendor-admin";
-    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
-      messageQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else if (
+      chatType === "customer-admin" ||
+      chatType === "anon_customer-admin"
+    ) {
+      messageQuery.chat_type = {
+        $in: ["customer-admin", "anon_customer-admin"],
+      };
     } else {
       messageQuery.chat_type = chatType;
     }
@@ -699,14 +809,23 @@ export const getMessageContext = async (req, res) => {
     return res.status(400).json({ error: "chatType is required" });
   }
 
-  if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chatType)) {
+  if (
+    ![
+      "vendor-admin",
+      "customer-admin",
+      "vendor-enquiry",
+      "anon_customer-admin",
+    ].includes(chatType)
+  ) {
     return res.status(400).json({ error: "Invalid chatType" });
   }
 
   try {
     const chatSearchQuery = { chat_id: chatId };
     if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
-      chatSearchQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+      chatSearchQuery.chat_type = {
+        $in: ["customer-admin", "anon_customer-admin"],
+      };
     } else {
       chatSearchQuery.chat_type = chatType;
     }
@@ -719,8 +838,13 @@ export const getMessageContext = async (req, res) => {
     const messageQuery = { _id: qId, chat_id: chatId };
     if (chatType === "vendor-admin") {
       messageQuery.chat_type = "vendor-admin";
-    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
-      messageQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else if (
+      chatType === "customer-admin" ||
+      chatType === "anon_customer-admin"
+    ) {
+      messageQuery.chat_type = {
+        $in: ["customer-admin", "anon_customer-admin"],
+      };
     } else {
       messageQuery.chat_type = chatType;
     }
@@ -737,8 +861,13 @@ export const getMessageContext = async (req, res) => {
     };
     if (chatType === "vendor-admin") {
       contextQuery.chat_type = "vendor-admin";
-    } else if (chatType === "customer-admin" || chatType === "anon_customer-admin") {
-      contextQuery.chat_type = { $in: ["customer-admin", "anon_customer-admin"] };
+    } else if (
+      chatType === "customer-admin" ||
+      chatType === "anon_customer-admin"
+    ) {
+      contextQuery.chat_type = {
+        $in: ["customer-admin", "anon_customer-admin"],
+      };
     } else {
       contextQuery.chat_type = chatType;
     }
@@ -797,11 +926,16 @@ export const uploadChatMedia = async (req, res) => {
           });
 
           await s3.send(command);
-          console.log(`Successfully uploaded file to S3 via PutObject. URL: ${fileKey}`);
+          console.log(
+            `Successfully uploaded file to S3 via PutObject. URL: ${fileKey}`,
+          );
 
           // Generate CloudFront URL using env var (required in prod) with clean fallback
           const timestamp = req.body.timestamp || Date.now();
-          const cfBase = (process.env.CLOUDFRONT_URL || "https://d1u34m45xfa3ar.cloudfront.net").replace(/\/$/, "");
+          const cfBase = (
+            process.env.CLOUDFRONT_URL ||
+            "https://d1u34m45xfa3ar.cloudfront.net"
+          ).replace(/\/$/, "");
           const cloudFrontUrl = `${cfBase}/${fileKey}?t=${timestamp}`;
 
           // Determine content type
@@ -815,7 +949,10 @@ export const uploadChatMedia = async (req, res) => {
           try {
             fs.unlinkSync(file.path);
           } catch (unlinkErr) {
-            console.error("Error deleting local file after S3 upload:", unlinkErr);
+            console.error(
+              "Error deleting local file after S3 upload:",
+              unlinkErr,
+            );
           }
 
           return {
@@ -825,10 +962,13 @@ export const uploadChatMedia = async (req, res) => {
             original_name: file.originalname,
           };
         } catch (fileErr) {
-          console.error(`Error uploading individual file ${file.originalname}:`, fileErr);
+          console.error(
+            `Error uploading individual file ${file.originalname}:`,
+            fileErr,
+          );
           throw fileErr;
         }
-      })
+      }),
     );
 
     // Provide backward compatible response if only one file was uploaded
@@ -836,7 +976,7 @@ export const uploadChatMedia = async (req, res) => {
       return res.status(200).json({
         message: "File uploaded successfully",
         ...results[0],
-        files: results
+        files: results,
       });
     }
 
@@ -846,11 +986,13 @@ export const uploadChatMedia = async (req, res) => {
       // Fallback for single file extractors using the first file
       attachment_url: results[0].attachment_url,
       message_type: results[0].message_type,
-      url: results[0].url
+      url: results[0].url,
     });
   } catch (error) {
     console.error("Error in uploadChatMedia:", error);
-    res.status(500).json({ error: "Error uploading media to S3", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Error uploading media to S3", details: error.message });
   }
 };
 export const pinMessageInChat = async (req, res) => {
@@ -922,7 +1064,7 @@ export const unpinMessageInChat = async (req, res) => {
 
     // Remove message_id (convert to string for reliable comparison)
     chat.pinned_chat_messages = chat.pinned_chat_messages.filter(
-      (id) => id.toString() !== message_id.toString()
+      (id) => id.toString() !== message_id.toString(),
     );
 
     await chat.save();
@@ -950,7 +1092,11 @@ export const blockChat = async (req, res) => {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if (!["vendor-admin", "customer-admin", "anon_customer-admin"].includes(chat_type)) {
+    if (
+      !["vendor-admin", "customer-admin", "anon_customer-admin"].includes(
+        chat_type,
+      )
+    ) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
@@ -987,7 +1133,14 @@ export const unblockChat = async (req, res) => {
       return res.status(400).json({ error: "chat_type is required" });
     }
 
-    if (!["vendor-admin", "customer-admin", "vendor-enquiry", "anon_customer-admin"].includes(chat_type)) {
+    if (
+      ![
+        "vendor-admin",
+        "customer-admin",
+        "vendor-enquiry",
+        "anon_customer-admin",
+      ].includes(chat_type)
+    ) {
       return res.status(400).json({ error: "Invalid chat_type" });
     }
 
@@ -1029,8 +1182,14 @@ export const getPinnedMessages = async (req, res) => {
 
     // Find messages using message_id (not _id)
     const pinnedMessages = await Message.find({
-      message_id: { $in: chat.pinned_chat_messages.map(id => new mongoose.Types.ObjectId(id)) },
-    }).select("message_content message_type sender attachment_url message_sent_at");
+      message_id: {
+        $in: chat.pinned_chat_messages.map(
+          (id) => new mongoose.Types.ObjectId(id),
+        ),
+      },
+    }).select(
+      "message_content message_type sender attachment_url message_sent_at",
+    );
 
     return res.status(200).json({ pinned_chat_messages: pinnedMessages });
   } catch (error) {
@@ -1039,12 +1198,12 @@ export const getPinnedMessages = async (req, res) => {
   }
 };
 
-
 // Api to get blocked chats
 export const getBlockedChats = async (req, res) => {
   try {
-    const blockedChats = await Chat.find({ chat_status: "BLOCKED" })
-      .sort({ updatedAt: -1 }); // Sort by most recently updated
+    const blockedChats = await Chat.find({ chat_status: "BLOCKED" }).sort({
+      updatedAt: -1,
+    }); // Sort by most recently updated
     return res.status(200).json({ blockedChats });
   } catch (error) {
     console.error("Error fetching blocked chats:", error);
@@ -1117,7 +1276,7 @@ export const markAllCustomerNotificationsAsRead = async (req, res) => {
 
     await customerNotification.updateMany(
       { customer_id, read: false },
-      { $set: { read: true } }
+      { $set: { read: true } },
     );
 
     return res
@@ -1136,12 +1295,13 @@ export const updateChatEmId = async (req, res) => {
   try {
     const { chat_id, em_id } = req.body;
 
-
-    console.log(`Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`);
+    console.log(
+      `Received request to update em_id for chat_id: ${chat_id} to em_id: ${em_id}`,
+    );
 
     if (!chat_id || !em_id) {
       return res.status(400).json({
-        message: "chat_id and em_id are required"
+        message: "chat_id and em_id are required",
       });
     }
 
@@ -1155,9 +1315,9 @@ export const updateChatEmId = async (req, res) => {
     // Check if em_id is already set (truthy value)
     // If em_id is null, undefined, or "", we allow update.
     if (chat.em_id) {
-       return res.status(200).json({
+      return res.status(200).json({
         message: "Chat already has an assigned EM",
-        data: chat
+        data: chat,
       });
     }
 
@@ -1167,13 +1327,13 @@ export const updateChatEmId = async (req, res) => {
 
     res.status(200).json({
       message: "Chat em_id updated successfully",
-      data: updatedChat
+      data: updatedChat,
     });
   } catch (error) {
     console.error("Error updating chat em_id:", error);
     res.status(500).json({
       message: "Error updating chat em_id",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -1362,7 +1522,7 @@ export const getChatDetails = async (req, res) => {
       chat_id: chat.chat_id,
       em_id: chat.em_id,
       chat_status: chat.chat_status,
-      chat_type: chat.chat_type
+      chat_type: chat.chat_type,
     });
   } catch (error) {
     console.error("Error fetching chat details:", error);

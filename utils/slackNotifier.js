@@ -187,7 +187,7 @@ export async function sendSlackAnonChatMessage({
               type: "mrkdwn",
               text: `*First Message:*\n${messageContent}`,
             },
-             {
+            {
               type: "mrkdwn",
               text: `*Source:*\n${metadata?.source || "N/A"}`,
             },
@@ -208,6 +208,9 @@ export async function sendSlackAnonChatMessage({
 
     console.log("Slack Anonymous Chat Notification Sent!");
   } catch (error) {
-    console.error("Slack Anonymous Chat Message Error:", error?.message || error);
+    console.error(
+      "Slack Anonymous Chat Message Error:",
+      error?.message || error,
+    );
   }
 }

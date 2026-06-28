@@ -15,11 +15,11 @@ function initializeFirebase() {
 
   const serviceAccountPath =
     process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
-    path.resolve(process.cwd(),  "firebase-service-account.json");
+    path.resolve(process.cwd(), "firebase-service-account.json");
 
   try {
     const serviceAccount = JSON.parse(
-      fs.readFileSync(serviceAccountPath, "utf8")
+      fs.readFileSync(serviceAccountPath, "utf8"),
     );
 
     admin.initializeApp({

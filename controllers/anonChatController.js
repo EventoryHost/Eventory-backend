@@ -34,7 +34,11 @@ export const initializeAnonymousChat = async (req, res) => {
     let chatType = "anon_customer-admin";
     let userId = anon_customer_id;
 
-    console.log("DEBUG [init]: Start", { anon_customer_id, customer_id, source });
+    console.log("DEBUG [init]: Start", {
+      anon_customer_id,
+      customer_id,
+      source,
+    });
 
     // Check for logged-in user
     const decodedUser = verifyAuth(req);
@@ -44,13 +48,19 @@ export const initializeAnonymousChat = async (req, res) => {
       if (decodedUser.id === customer_id) {
         chatType = "customer-admin";
         userId = customer_id;
-        console.log("DEBUG [init]: Switching to customer-admin due to matching customer_id");
+        console.log(
+          "DEBUG [init]: Switching to customer-admin due to matching customer_id",
+        );
       } else {
         console.warn("DEBUG [init]: Unauthorized customer_id mismatch");
-        return res.status(403).json({ error: "Unauthorized access to customer data" });
+        return res
+          .status(403)
+          .json({ error: "Unauthorized access to customer data" });
       }
     } else if (!anon_customer_id) {
-      return res.status(400).json({ error: "anon_customer_id or valid customer_id is required" });
+      return res
+        .status(400)
+        .json({ error: "anon_customer_id or valid customer_id is required" });
     }
 
     // Robust ID normalization
@@ -58,7 +68,7 @@ export const initializeAnonymousChat = async (req, res) => {
     console.log("DEBUG [init]: Resolved userId", userId, "ChatType", chatType);
 
     let query = {
-      chat_status: "ACTIVE"
+      chat_status: "ACTIVE",
     };
 
     if (chatType === "customer-admin") {
@@ -80,11 +90,13 @@ export const initializeAnonymousChat = async (req, res) => {
       const anonChat = await Chat.findOne({
         anon_customer_id: anon_customer_id.replace(/['"]/g, ""),
         chat_type: "anon_customer-admin",
-        chat_status: "ACTIVE"
+        chat_status: "ACTIVE",
       });
 
       if (anonChat) {
-        console.log(`Migrating anon chat ${anonChat.chat_id} to customer ${userId}`);
+        console.log(
+          `Migrating anon chat ${anonChat.chat_id} to customer ${userId}`,
+        );
         anonChat.customer_id = userId;
         anonChat.chat_type = "customer-admin";
         // We keep the chat_id same, just update attributes
@@ -112,16 +124,24 @@ export const initializeAnonymousChat = async (req, res) => {
     }
 
     // If source is provided and chat hasn't been auto-initialised yet
-    const normalizedSource = source ? source.toString().replace(/['"]/g, "") : null;
+    const normalizedSource = source
+      ? source.toString().replace(/['"]/g, "")
+      : null;
 
     // Automation Logic: Trigger greeting if it's a new chat OR a shared link that hasn't been initialised
     const isSharedLink = normalizedSource === "shared_link";
 
     // Check if chat already has messages to enforce idempotency
-    const messageCount = await Message.countDocuments({ chat_id: chat.chat_id });
+    const messageCount = await Message.countDocuments({
+      chat_id: chat.chat_id,
+    });
 
-    console.log(`[FLOW 1] Chat initiated: chat_id=${chat.chat_id}, userId=${userId}, type=${chatType}, source=${source}`);
-    console.log(`[DEBUG] init chat: userId=${userId}, type=${chatType}, isNew=${isNewChat}, source=${source}, messageCount=${messageCount}`);
+    console.log(
+      `[FLOW 1] Chat initiated: chat_id=${chat.chat_id}, userId=${userId}, type=${chatType}, source=${source}`,
+    );
+    console.log(
+      `[DEBUG] init chat: userId=${userId}, type=${chatType}, isNew=${isNewChat}, source=${source}, messageCount=${messageCount}`,
+    );
 
     // Trigger greeting flow if:
     // 1. It's a brand new chat (isNewChat)
@@ -131,7 +151,9 @@ export const initializeAnonymousChat = async (req, res) => {
     // Trigger greeting flow if chat hasn't been auto-initialised yet
     // We remove other checks to ensure this runs for any first-time initialization
     if (!chat.is_auto_initialised) {
-      console.log(`[DEBUG] Triggering automated greeting flow for chat_id=${chat.chat_id}`);
+      console.log(
+        `[DEBUG] Triggering automated greeting flow for chat_id=${chat.chat_id}`,
+      );
 
       // Mark as auto-initialised immediately to prevent duplicate flows
       chat.is_auto_initialised = true;
@@ -147,7 +169,7 @@ export const initializeAnonymousChat = async (req, res) => {
             chatId: chat.chat_id,
             anonCustomerId: userId,
             messageContent: greetingText,
-            metadata: { type: "auto_greeting" }
+            metadata: { type: "auto_greeting" },
           });
         } catch (slackErr) {
           console.error("Slack notification failed:", slackErr);
@@ -163,11 +185,13 @@ export const initializeAnonymousChat = async (req, res) => {
             notification_type: "chat_message",
             timestamp: new Date().toISOString(),
             read: false,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           }));
 
           await EMNotifications.insertMany(notifications);
-          console.log(`[NOTIFY] Admin notifications sent to ${allEMs.length} EMs.`);
+          console.log(
+            `[NOTIFY] Admin notifications sent to ${allEMs.length} EMs.`,
+          );
 
           const fcmResults = await Promise.allSettled(
             allEMs.map((em) =>
@@ -176,17 +200,17 @@ export const initializeAnonymousChat = async (req, res) => {
                 priority: "high",
                 notification: {
                   title: "New Chat Started",
-                  body: `New Chat Started [${userId}]: ${greetingText}...`
+                  body: `New Chat Started [${userId}]: ${greetingText}...`,
                 },
                 data: {
                   type: "anon_chat_message_em",
                   chat_id: chat.chat_id,
                   em_id: em.em_id,
                   anon_customer_id: userId,
-                  message: `New Chat Started [${userId}]: ${greetingText}...`
-                }
-              })
-            )
+                  message: `New Chat Started [${userId}]: ${greetingText}...`,
+                },
+              }),
+            ),
           );
 
           let successCount = 0;
@@ -199,15 +223,22 @@ export const initializeAnonymousChat = async (req, res) => {
               // console.log(`FCM notifications sent to em ${emId}`, result.value);
             } else {
               failureCount++;
-              console.error(`Failed to send FCM notification to em ${emId}:`, result.reason);
+              console.error(
+                `Failed to send FCM notification to em ${emId}:`,
+                result.reason,
+              );
             }
           });
 
-          console.log(`[FCM] Completed → Success: ${successCount}, Failed: ${failureCount}`);
-
+          console.log(
+            `[FCM] Completed → Success: ${successCount}, Failed: ${failureCount}`,
+          );
         }
       } catch (notifErr) {
-        console.error("Failed to send admin notification for new chat:", notifErr);
+        console.error(
+          "Failed to send admin notification for new chat:",
+          notifErr,
+        );
       }
 
       const io = req.io;
@@ -221,15 +252,21 @@ export const initializeAnonymousChat = async (req, res) => {
             chat_type: chatType,
             sender: "admin",
             sender_id: "admin",
-            message_content: "Hey there! Welcome to Eventory - your personal event planning companion. Let's get your dream event rolling. It'll only take 2 minutes!",
+            message_content:
+              "Hey there! Welcome to Eventory - your personal event planning companion. Let's get your dream event rolling. It'll only take 2 minutes!",
             message_type: "text",
           });
 
           console.log(`[FLOW 2] Greeting sent: chat_id=${chat.chat_id}`);
-          console.log(`[DEBUG] Sent first greeting message: ${greetingMsg._id}`);
+          console.log(
+            `[DEBUG] Sent first greeting message: ${greetingMsg._id}`,
+          );
 
           if (io) {
-            io.to(`${chat.chat_id}-${chatType}`).emit("new_message", greetingMsg.toObject());
+            io.to(`${chat.chat_id}-${chatType}`).emit(
+              "new_message",
+              greetingMsg.toObject(),
+            );
           }
         } catch (err) {
           console.error("Error sending first greeting message:", err);
@@ -255,11 +292,16 @@ export const initializeAnonymousChat = async (req, res) => {
             ],
           });
 
-          console.log(`[FLOW 3] Event type options sent: chat_id=${chat.chat_id}`);
+          console.log(
+            `[FLOW 3] Event type options sent: chat_id=${chat.chat_id}`,
+          );
           console.log(`[DEBUG] Sent second options message: ${optionsMsg._id}`);
 
           if (io) {
-            io.to(`${chat.chat_id}-${chatType}`).emit("new_message", optionsMsg.toObject());
+            io.to(`${chat.chat_id}-${chatType}`).emit(
+              "new_message",
+              optionsMsg.toObject(),
+            );
           }
         } catch (err) {
           console.error("Error sending delayed options message:", err);
@@ -278,7 +320,7 @@ export const initializeAnonymousChat = async (req, res) => {
       chat_id: chat.chat_id,
       is_new: isNewChat,
       chat_type: chat.chat_type,
-      customer_id: chat.customer_id || null
+      customer_id: chat.customer_id || null,
     });
   } catch (error) {
     console.error("Error initializing chat:", error);
@@ -320,7 +362,10 @@ export const sendAnonymousMessage = async (req, res) => {
     if (!sender_id || !message_content) {
       return res
         .status(400)
-        .json({ error: "sender_id (anon or customer) and message_content are required" });
+        .json({
+          error:
+            "sender_id (anon or customer) and message_content are required",
+        });
     }
 
     let chat;
@@ -334,7 +379,7 @@ export const sendAnonymousMessage = async (req, res) => {
     // 2. If no chat_id or chat not found, try to find ACTIVE chat
     if (!chat) {
       let query = {
-        chat_status: "ACTIVE"
+        chat_status: "ACTIVE",
       };
       if (sender === "customer") {
         query.chat_type = chatType;
@@ -394,7 +439,7 @@ export const sendAnonymousMessage = async (req, res) => {
         message_sent_at: newMessage.message_sent_at,
         attachment_url: newMessage.attachment_url,
         // Include card_data if available (though not in create payload above, robust to add)
-        card_data: newMessage.card_data
+        card_data: newMessage.card_data,
       };
 
       req.io.to(roomAnon).emit("new_message", socketPayload);
@@ -415,13 +460,17 @@ export const sendAnonymousMessage = async (req, res) => {
     const previousUserMsg = await Message.findOne({
       chat_id: chat.chat_id,
       sender: { $in: ["customer", "anonymous_customer"] },
-      _id: { $ne: newMessage._id } // Exclude the message we just created
-    }).select("_id").lean();
+      _id: { $ne: newMessage._id }, // Exclude the message we just created
+    })
+      .select("_id")
+      .lean();
 
     const shouldNotify = isNewChat || !previousUserMsg;
 
     if (shouldNotify) {
-      console.log(`[NOTIFY] Triggering admin notification for chat ${chat.chat_id} (New: ${isNewChat}, FirstUserMsg: ${!previousUserMsg})`);
+      console.log(
+        `[NOTIFY] Triggering admin notification for chat ${chat.chat_id} (New: ${isNewChat}, FirstUserMsg: ${!previousUserMsg})`,
+      );
       sendSlackAnonChatMessage({
         chatId: chat.chat_id,
         anonCustomerId: sender_id, // Use generic ID field name in slack util if possible, but keeping for now
@@ -450,17 +499,17 @@ export const sendAnonymousMessage = async (req, res) => {
                 priority: "high",
                 notification: {
                   title: "New Chat Message",
-                  body: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`
+                  body: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`,
                 },
                 data: {
                   type: "anon_chat_message_em",
                   chat_id: chat.chat_id,
                   em_id: em.em_id,
                   anon_customer_id: sender_id,
-                  message: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`
-                }
-              })
-            )
+                  message: `New Chat from [${sender_id}]: ${message_content.substring(0, 30)}...`,
+                },
+              }),
+            ),
           );
 
           let successCount = 0;
@@ -473,11 +522,16 @@ export const sendAnonymousMessage = async (req, res) => {
               // console.log(`FCM notifications sent to em ${emId}`, result.value);
             } else {
               failureCount++;
-              console.error(`Failed to send FCM notification to em ${emId}:`, result.reason);
+              console.error(
+                `Failed to send FCM notification to em ${emId}:`,
+                result.reason,
+              );
             }
           });
 
-          console.log(`[FCM] Completed → Success: ${successCount}, Failed: ${failureCount}`);
+          console.log(
+            `[FCM] Completed → Success: ${successCount}, Failed: ${failureCount}`,
+          );
         }
       } catch (err) {
         console.error("Failed to create EM notifications for new chat:", err);
@@ -491,7 +545,9 @@ export const sendAnonymousMessage = async (req, res) => {
     // --- INTERACTIVE FLOW LOGIC ---
     // Now applies to both anonymous and logged-in customers.
     if (chatType === "anon_customer-admin" || chatType === "customer-admin") {
-      console.log(`[STAB] Calling handleInteractiveMessage for chat: ${chat.chat_id}, sender: ${sender_id}`);
+      console.log(
+        `[STAB] Calling handleInteractiveMessage for chat: ${chat.chat_id}, sender: ${sender_id}`,
+      );
       await handleInteractiveMessage(
         chat.chat_id,
         sender_id,
@@ -537,7 +593,10 @@ export const getAnonymousMessages = async (req, res) => {
     // Auth Check
     const decodedUser = verifyAuth(req);
     // Only switch to customer-admin if it's NOT an explicit anonymous request
-    if (decodedUser && (!anon_customer_id || !anon_customer_id.startsWith("ANON"))) {
+    if (
+      decodedUser &&
+      (!anon_customer_id || !anon_customer_id.startsWith("ANON"))
+    ) {
       // If authenticated, we assume the ID passed in param IS the customer_id
       // OR we just use the ID from the token to be safe.
       // Let's trust the token.
@@ -555,7 +614,7 @@ export const getAnonymousMessages = async (req, res) => {
     // Find the ACTIVE chat for this user
     // Find the ACTIVE chat for this user
     let chatQuery = {
-      chat_status: "ACTIVE"
+      chat_status: "ACTIVE",
     };
 
     if (chatType === "customer-admin") {
@@ -566,7 +625,7 @@ export const getAnonymousMessages = async (req, res) => {
       chatQuery.anon_customer_id = userId;
     }
 
-    // Only get the current active chat. 
+    // Only get the current active chat.
     // If completed chats exist, we DO NOT show them to start fresh.
     const chat = await Chat.findOne(chatQuery).select("chat_id");
 
@@ -578,7 +637,7 @@ export const getAnonymousMessages = async (req, res) => {
 
     let query = {
       chat_id: { $in: chatIds },
-      chat_type: { $in: ["anon_customer-admin", "customer-admin"] } // Fetch all history
+      chat_type: { $in: ["anon_customer-admin", "customer-admin"] }, // Fetch all history
     };
 
     if (cursor) {
@@ -619,7 +678,10 @@ export const getAnonymousChatStatus = async (req, res) => {
     let chatType = "anon_customer-admin";
 
     // Only switch to customer-admin if it's NOT an explicit anonymous request
-    if (decodedUser && (!anon_customer_id || !anon_customer_id.startsWith("ANON"))) {
+    if (
+      decodedUser &&
+      (!anon_customer_id || !anon_customer_id.startsWith("ANON"))
+    ) {
       userId = decodedUser.id;
       chatType = "customer-admin";
     }
@@ -632,7 +694,7 @@ export const getAnonymousChatStatus = async (req, res) => {
     }
 
     let query = {
-      chat_status: "ACTIVE"
+      chat_status: "ACTIVE",
     };
     if (chatType === "customer-admin") {
       query.chat_type = chatType;
@@ -647,27 +709,32 @@ export const getAnonymousChatStatus = async (req, res) => {
     if (chat) {
       res
         .status(200)
-        .json({ status: "ACTIVE", chat_id: chat.chat_id, em_id: chat.em_id, chat_type: chat.chat_type });
+        .json({
+          status: "ACTIVE",
+          chat_id: chat.chat_id,
+          em_id: chat.em_id,
+          chat_type: chat.chat_type,
+        });
     } else {
       // Check if there was a finished chat
       let finishedQuery = {
         chat_status: "FINISHED",
-        chat_type: chatType
+        chat_type: chatType,
       };
       if (chatType === "customer-admin") finishedQuery.customer_id = userId;
       else finishedQuery.anon_customer_id = userId;
 
-      const finishedChat = await Chat.findOne(finishedQuery).sort({ updatedAt: -1 });
+      const finishedChat = await Chat.findOne(finishedQuery).sort({
+        updatedAt: -1,
+      });
 
       if (finishedChat) {
-        res
-          .status(200)
-          .json({
-            status: "FINISHED",
-            chat_id: finishedChat.chat_id,
-            em_id: finishedChat.em_id,
-            chat_type: finishedChat.chat_type
-          });
+        res.status(200).json({
+          status: "FINISHED",
+          chat_id: finishedChat.chat_id,
+          em_id: finishedChat.em_id,
+          chat_type: finishedChat.chat_type,
+        });
       } else {
         res.status(200).json({ status: "NONE" });
       }
@@ -684,12 +751,14 @@ export const getAllAnonymousChats = async (req, res) => {
     const { page = 1, limit = 10, search } = req.query;
     const skip = (page - 1) * limit;
 
-    let query = { chat_type: { $in: ["anon_customer-admin", "customer-admin"] } };
+    let query = {
+      chat_type: { $in: ["anon_customer-admin", "customer-admin"] },
+    };
 
     if (search) {
       query.$or = [
         { anon_customer_id: { $regex: search, $options: "i" } },
-        { customer_id: { $regex: search, $options: "i" } }
+        { customer_id: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -807,7 +876,7 @@ export const resetAnonymousChat = async (req, res) => {
 
     let query = {
       chat_type: chatType,
-      chat_status: "ACTIVE"
+      chat_status: "ACTIVE",
     };
 
     if (chatType === "customer-admin") {
@@ -836,8 +905,9 @@ export const resetAnonymousChat = async (req, res) => {
     await CustomerEnquiry.updateMany(enquiryQuery, { status: "CLOSED" });
     console.log(`[RESET] Closed active enquiries for user: ${userId}`);
 
-    res.status(200).json({ message: "Chat reset successfully", chat_id: chat.chat_id });
-
+    res
+      .status(200)
+      .json({ message: "Chat reset successfully", chat_id: chat.chat_id });
   } catch (error) {
     console.error("Error resetting chat:", error);
     res.status(500).json({ error: "Internal server error" });

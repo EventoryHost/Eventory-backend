@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const ReduxMakeupArtistSchema = new mongoose.Schema(
   {
     // Basic Service Information
-    service_id: { type: String},
+    service_id: { type: String },
     vendor_id: { type: String },
     service_type: { type: String, default: "Makeup-Artist" },
     pageNumber: { type: Number, default: 1 },
@@ -35,10 +35,12 @@ const ReduxMakeupArtistSchema = new mongoose.Schema(
     service_types: { type: [String] },
 
     // Additional Details (flattened from additional_details)
-    asset_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    asset_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     asset_videos: { type: [String] },
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },
@@ -52,7 +54,7 @@ const ReduxMakeupArtistSchema = new mongoose.Schema(
     business_registration_name: { type: String },
     gst: { type: String },
     pan: { type: String },
-    verification_type: { type: String, enum: ['GSTIN', 'PAN'] },
+    verification_type: { type: String, enum: ["GSTIN", "PAN"] },
     team_size: { type: Number },
     years_of_operation: { type: Number },
     business_address: { type: String },
@@ -83,14 +85,13 @@ const ReduxMakeupArtistSchema = new mongoose.Schema(
 
     // Timestamps
     makeup_artist_created_at: { type: Date },
-    makeup_artist_updated_at: { type: Date }
+    makeup_artist_updated_at: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const MakeupArtistModel =
   mongoose.models.ReduxMakeupArtists ||
   mongoose.model("ReduxMakeupArtists", ReduxMakeupArtistSchema);
-
 
 export { MakeupArtistModel };

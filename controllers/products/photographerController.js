@@ -29,9 +29,11 @@ export function normalizePhotos(input) {
         return normalizePhotos(parsed);
       } catch {
         // CSV of URLs fallback
-        return trimmed.split(",")
-          .map(s => s.trim()).filter(Boolean)
-          .map(u => ({ original: u, preview: u }));
+        return trimmed
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((u) => ({ original: u, preview: u }));
       }
     }
     // Single URL string
@@ -40,28 +42,32 @@ export function normalizePhotos(input) {
 
   // If already an array
   if (Array.isArray(input)) {
-    return input.map((item) => {
-      if (!item) return null;
+    return input
+      .map((item) => {
+        if (!item) return null;
 
-      // Plain URL string
-      if (typeof item === "string") return { original: item, preview: item };
+        // Plain URL string
+        if (typeof item === "string") return { original: item, preview: item };
 
-      // If original/preview are incorrectly json-stringified arrays, unwrap first entry
-      const safe = (v) => {
-        if (typeof v === "string" && v.trim().startsWith("[")) {
-          try {
-            const arr = JSON.parse(v);
-            const first = Array.isArray(arr) ? arr[0] : arr;
-            return first?.original || first?.preview || "";
-          } catch { return v; }
-        }
-        return v;
-      };
+        // If original/preview are incorrectly json-stringified arrays, unwrap first entry
+        const safe = (v) => {
+          if (typeof v === "string" && v.trim().startsWith("[")) {
+            try {
+              const arr = JSON.parse(v);
+              const first = Array.isArray(arr) ? arr[0] : arr;
+              return first?.original || first?.preview || "";
+            } catch {
+              return v;
+            }
+          }
+          return v;
+        };
 
-      const original = safe(item.original) || safe(item.url) || "";
-      const preview = safe(item.preview) || original;
-      return original ? { original, preview } : null;
-    }).filter(Boolean);
+        const original = safe(item.original) || safe(item.url) || "";
+        const preview = safe(item.preview) || original;
+        return original ? { original, preview } : null;
+      })
+      .filter(Boolean);
   }
 
   // If weird shape (e.g., object with 0,1,2 keys from bracket fields), try to flatten known patterns
@@ -75,11 +81,14 @@ export function normalizeVideos(input) {
       const parsed = JSON.parse(input);
       return normalizeVideos(parsed);
     } catch {
-      return input.split(",").map(s => s.trim()).filter(Boolean);
+      return input
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
   }
   if (Array.isArray(input)) {
-    return input.map(v => String(v)).filter(Boolean);
+    return input.map((v) => String(v)).filter(Boolean);
   }
   return [];
 }
@@ -112,53 +121,53 @@ const updateSectionCompletion = async (id) => {
 
     if (!photographer) {
       console.log(
-        `Photographer not found for vendor ID: ${id}. Throwing error.`
+        `Photographer not found for vendor ID: ${id}. Throwing error.`,
       );
       throw new Error("Photographer not found");
     }
 
     console.log(
-      `Found photographer with vendor ID: ${id}. Starting completion check.`
+      `Found photographer with vendor ID: ${id}. Starting completion check.`,
     );
 
     // Update completion status for each section - FIX: Use correct property names
     if (photographer.basic_details) {
       console.log("Checking basic_details completion...");
       photographer.basic_details.is_completed = checkCompletion(
-        photographer.basic_details || {}
+        photographer.basic_details || {},
       );
       console.log(
-        `basic_details completion status: ${photographer.basic_details.completed}`
+        `basic_details completion status: ${photographer.basic_details.completed}`,
       );
     }
 
     if (photographer.service_details) {
       console.log("Checking service_details completion...");
       photographer.service_details.is_completed = checkCompletion(
-        photographer.service_details || {}
+        photographer.service_details || {},
       );
       console.log(
-        `service_details completion status: ${photographer.service_details.completed}`
+        `service_details completion status: ${photographer.service_details.completed}`,
       );
     }
 
     if (photographer.additional_details) {
       console.log("Checking additional_details completion...");
       photographer.additional_details.is_completed = checkCompletion(
-        photographer.additional_details || {}
+        photographer.additional_details || {},
       );
       console.log(
-        `additional_details completion status: ${photographer.additional_details.completed}`
+        `additional_details completion status: ${photographer.additional_details.completed}`,
       );
     }
 
     if (photographer.policies) {
       console.log("Checking policies completion...");
       photographer.policies.is_completed = checkCompletion(
-        photographer.policies || {}
+        photographer.policies || {},
       );
       console.log(
-        `policies completion status: ${photographer.policies.completed}`
+        `policies completion status: ${photographer.policies.completed}`,
       );
     }
 
@@ -173,11 +182,20 @@ const updateSectionCompletion = async (id) => {
 const normalizeServiceName = (label) => {
   if (!label) return label;
   const s = String(label).trim().toLowerCase();
-  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
-  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s))
+    return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s))
+    return "Makeup-Artist";
   if (["caterer"].includes(s)) return "Caterer";
   if (["decorator"].includes(s)) return "Decorator";
-  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (
+    [
+      "photographer & videographer",
+      "photographer and videographer",
+      "pav",
+    ].includes(s)
+  )
+    return "Photographer & Videographer";
   return label;
 };
 
@@ -234,15 +252,23 @@ const createPhotographer = async (req, res) => {
     } = req.body;
 
     // Normalize media
-    const images = normalizePhotos(asset_images);     // [{ original, preview }]
-    const videos = normalizeVideos(asset_videos);     // string[]
+    const images = normalizePhotos(asset_images); // [{ original, preview }]
+    const videos = normalizeVideos(asset_videos); // string[]
 
     // Optional: guard
-    if (!images.length) return res.status(400).json({ message: "At least one photo is required" });
-    if (!videos.length) return res.status(400).json({ message: "At least one video is required" });
+    if (!images.length)
+      return res
+        .status(400)
+        .json({ message: "At least one photo is required" });
+    if (!videos.length)
+      return res
+        .status(400)
+        .json({ message: "At least one video is required" });
 
     // Agreement from redux temp
-    const tempPAVData = await ReduxPhotographerVideographerModel.findOne({ vendor_id: req.body.vendor_id });
+    const tempPAVData = await ReduxPhotographerVideographerModel.findOne({
+      vendor_id: req.body.vendor_id,
+    });
     const agreement_url = tempPAVData?.agreement_url || " ";
     const agreement_signed_at = tempPAVData?.agreement_signed_at || new Date();
 
@@ -251,7 +277,7 @@ const createPhotographer = async (req, res) => {
       console.log("Found agreement data for photographer:", agreement_url);
       console.log(
         "Found agreement data for photographer:",
-        agreement_signed_at
+        agreement_signed_at,
       );
     }
 
@@ -323,8 +349,8 @@ const createPhotographer = async (req, res) => {
         delivery_timeline,
       },
       additional_details: {
-        asset_images: images,          // [{ original, preview }]
-        asset_videos: videos,          // [string]
+        asset_images: images, // [{ original, preview }]
+        asset_videos: videos, // [string]
         min_booking_period,
         max_booking_period,
         prices_starts_from,
@@ -377,7 +403,8 @@ const createPhotographer = async (req, res) => {
     ];
 
     const completed = fieldsToCheck.filter(Boolean).length;
-    newPAV.profile_completion_score = Math.round((completed / fieldsToCheck.length) * 100) || 0;
+    newPAV.profile_completion_score =
+      Math.round((completed / fieldsToCheck.length) * 100) || 0;
 
     const savedPAV = await newPAV.save();
 
@@ -391,11 +418,12 @@ const createPhotographer = async (req, res) => {
     const normalizedLabel = normalizeServiceName("Photographer & Videographer");
 
     if (!Array.isArray(vendor.services)) vendor.services = [];
-    if (!vendor.services.includes(savedPAV.service_id)) vendor.services.push(savedPAV.service_id);
+    if (!vendor.services.includes(savedPAV.service_id))
+      vendor.services.push(savedPAV.service_id);
 
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
     const idx = vendor.service_types.findIndex(
-      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase(),
     );
 
     const updatedEntry = {
@@ -405,7 +433,10 @@ const createPhotographer = async (req, res) => {
     };
 
     if (idx >= 0) {
-      vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+      vendor.service_types[idx] = {
+        ...vendor.service_types[idx],
+        ...updatedEntry,
+      };
     } else {
       vendor.service_types.push(updatedEntry);
     }
@@ -436,10 +467,16 @@ const getAllPav = async (req, res) => {
     const { exclude_id, exclude } = req.query;
     let excludeIds = [];
     if (Array.isArray(exclude)) excludeIds = exclude;
-    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    else if (typeof exclude === "string")
+      excludeIds = exclude
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+    const filter = excludeIds.length
+      ? { service_id: { $nin: excludeIds } }
+      : {};
 
     const [pav, totalpav] = await Promise.all([
       PhotographerVideographer.find(filter).skip(skip).limit(itemsPerPage),
@@ -457,11 +494,12 @@ const getAllPav = async (req, res) => {
   }
 };
 
-
 const getPhotographerById = async (req, res) => {
   try {
     const { id } = req.params;
-    const photographer = await PhotographerVideographer.findOne({ service_id: id });
+    const photographer = await PhotographerVideographer.findOne({
+      service_id: id,
+    });
 
     if (!photographer) {
       return res.status(404).json({ message: "Photographer not found" });

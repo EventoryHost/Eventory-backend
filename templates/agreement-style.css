@@ -11,7 +11,7 @@ body {
   margin-bottom: 30px;
 }
 .header h2 {
-  color: #2E3192;
+  color: #2e3192;
   margin-bottom: 10px;
   font-size: 24px;
   font-weight: bold;
@@ -30,7 +30,8 @@ table {
   margin: 16px 0;
   border-collapse: collapse;
 }
-th, td {
+th,
+td {
   padding: 8px 16px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;

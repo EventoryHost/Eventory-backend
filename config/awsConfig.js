@@ -37,5 +37,4 @@ const sqs = new SQSClient({
   },
 });
 
-
 export { cognito, s3, ses, sqs };

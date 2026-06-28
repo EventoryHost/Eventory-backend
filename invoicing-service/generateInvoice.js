@@ -8,7 +8,11 @@ import { readFileSync } from "fs";
 import path from "path";
 import { chromium } from "playwright";
 import { sendInvoiceEmail } from "./sendtoEmail.js";
-import { sendCustomerEventBookingMessage, sendInvoiceToWhatsApp, sendVendorEventBookingMessage } from "./sendtoWA.js";
+import {
+  sendCustomerEventBookingMessage,
+  sendInvoiceToWhatsApp,
+  sendVendorEventBookingMessage,
+} from "./sendtoWA.js";
 import { uploadToS3 } from "./uploadToS3.js";
 import { getInvoiceCount } from "./getInvoiceCount.js";
 
@@ -17,7 +21,7 @@ function capitalizeWords(str) {
   if (!str) return "";
   return str.replace(
     /\w\S*/g,
-    (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(),
   );
 }
 
@@ -135,13 +139,16 @@ function getVendorType(serviceIds) {
     photographer: "Photographers & Videographers",
     makeupArtist: "Makeup Artist",
     "makeup-artist": "Makeup Artist",
-    "djArtist": "DJ Artist",
+    djArtist: "DJ Artist",
     djArtist: "DJ Artist",
   };
 
-
   if (serviceIds && serviceIds.length > 0) {
-    return typeMap[serviceIds[serviceIds.length - 1].serType] || typeMap[serviceIds[serviceIds.length].serType] || "Service Provider";
+    return (
+      typeMap[serviceIds[serviceIds.length - 1].serType] ||
+      typeMap[serviceIds[serviceIds.length].serType] ||
+      "Service Provider"
+    );
   }
 
   return "Service Provider";
@@ -152,7 +159,10 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   let page = null;
 
   try {
-    const templatePath = path.resolve("templates", "onboardInvoiceTemplate.html");
+    const templatePath = path.resolve(
+      "templates",
+      "onboardInvoiceTemplate.html",
+    );
     let html = readFileSync(templatePath, "utf8");
     let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
@@ -312,8 +322,7 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
     // Name and business details from serviceData + vendor
     const contactName =
       serviceData.point_of_contact || customer.name || "Valued Partner";
-    const businessName =
-      serviceData.business_registration_name || "Business";
+    const businessName = serviceData.business_registration_name || "Business";
 
     const addressLine =
       serviceData.business_address || serviceData.service_address || "";
@@ -380,7 +389,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
       `vendors/${customer.vendor_id || customer.id}/invoice-${paymentDetails.invoiceNumber}.pdf`,
     );
 
-
     // Create invoice record in new Invoices collection
     await axios.post(`${process.env.URL}/api/invoices`, {
       invoice_url: invoiceUrl,
@@ -396,7 +404,6 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
       event_id: null,
       transaction_id: paymentDetails.transaction_id || null,
     });
-
 
     await sendInvoiceEmail({
       to:
@@ -436,27 +443,42 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
   }
 }
 
-export async function generateBookingPaymentInvoice(customer, vendor, paymentDetails) {
+export async function generateBookingPaymentInvoice(
+  customer,
+  vendor,
+  paymentDetails,
+) {
   let browser = null;
   let page = null;
   let pdfPath = "";
 
   try {
-    const templatePath = path.resolve("templates", "bookingPaymentInvoice.html");
+    const templatePath = path.resolve(
+      "templates",
+      "bookingPaymentInvoice.html",
+    );
     let html = readFileSync(templatePath, "utf8");
     const css = readFileSync(path.resolve("templates", "style.css"), "utf8");
 
     const invoiceCount = await getInvoiceCount();
     const invoiceNumber = invoiceCount + 1;
 
-    const items = Array.isArray(paymentDetails.items) ? paymentDetails.items : [];
+    const items = Array.isArray(paymentDetails.items)
+      ? paymentDetails.items
+      : [];
     const totalAmount = Number(paymentDetails.amount) || 0;
     const discountAmount = Number(paymentDetails.discount) || 0;
-    const finalAmount = Math.max(0, paymentDetails.finalAmount || paymentDetails.amount);
+    const finalAmount = Math.max(
+      0,
+      paymentDetails.finalAmount || paymentDetails.amount,
+    );
     const convinienceFee = Number(paymentDetails.convinienceFee) || 0;
     const commissionFee = Number(paymentDetails.commissionFee) || 0;
-    const couponCode = (paymentDetails.couponCode || "").toString().toUpperCase();
-    const paymentId = paymentDetails.invoiceNumber || paymentDetails.paymentId || "-";
+    const couponCode = (paymentDetails.couponCode || "")
+      .toString()
+      .toUpperCase();
+    const paymentId =
+      paymentDetails.invoiceNumber || paymentDetails.paymentId || "-";
     const paymentMethod =
       discountAmount >= totalAmount
         ? "Eventory-Coupon-Code"
@@ -464,7 +486,11 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     const paymentType = paymentDetails.paymentType || null;
     const isConsolidated = (paymentType || "").toLowerCase() === "consolidated";
     // Clean "Advance 1" → "Advance" for display (strip trailing digit when only one advance)
-    const paymentTypeDisplay = isConsolidated ? "Full" : (paymentType ? paymentType.replace(/^(Advance)\s*\d*$/i, '$1') : null);
+    const paymentTypeDisplay = isConsolidated
+      ? "Full"
+      : paymentType
+        ? paymentType.replace(/^(Advance)\s*\d*$/i, "$1")
+        : null;
 
     // Generate a filename-friendly payment label from paymentType
     const paymentLabel = (() => {
@@ -497,9 +523,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     // Prefer GST-based Delhi detection (matching admin logic)
     const customerGst = customer.gstin || customer.gst || "";
     const vendorGst =
-      serviceData?.business_details?.gst
-      || vendor.businessDetails?.gstin
-      || "";
+      serviceData?.business_details?.gst || vendor.businessDetails?.gstin || "";
 
     let runningSerial = 1;
     let tableRows = "";
@@ -508,7 +532,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     // --- CUSTOMER INVOICE ---
     const hasCustomerGst = !!customerGst;
-    const isDelhiCustomer = !hasCustomerGst || String(customerGst).startsWith("07");
+    const isDelhiCustomer =
+      !hasCustomerGst || String(customerGst).startsWith("07");
 
     if (isDelhiCustomer) {
       tableHeader = `
@@ -541,10 +566,10 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     // Build a map for Vendor Serials to maintain anonymity
     const vendorSerialMap = new Map();
     let currentVendorSerial = 1;
-    items.forEach(item => {
-        if (item.vendor_id && !vendorSerialMap.has(item.vendor_id)) {
-            vendorSerialMap.set(item.vendor_id, currentVendorSerial++);
-        }
+    items.forEach((item) => {
+      if (item.vendor_id && !vendorSerialMap.has(item.vendor_id)) {
+        vendorSerialMap.set(item.vendor_id, currentVendorSerial++);
+      }
     });
 
     items.forEach((item) => {
@@ -558,7 +583,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
       let displayName = item.name || item.name_of_service || "Item";
       if (item.vendor_id && vendorSerialMap.has(item.vendor_id)) {
-          displayName = `Vendor ${vendorSerialMap.get(item.vendor_id)} - ${displayName}`;
+        displayName = `Vendor ${vendorSerialMap.get(item.vendor_id)} - ${displayName}`;
       }
 
       if (isDelhiCustomer) {
@@ -617,8 +642,6 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       `;
     }
 
-
-
     const discountTotalsRow =
       discountAmount > 0
         ? `
@@ -628,30 +651,40 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       </tr>`
         : "";
 
-    const alreadyPaidTotal = isConsolidated ? finalAmount : Number(paymentDetails.alreadyPaidAmount || paidAmountNum);
-    const balanceDue = isConsolidated ? 0 : Math.max(0, finalAmount - alreadyPaidTotal);
-    const balanceRow = balanceDue > 0
-      ? `
+    const alreadyPaidTotal = isConsolidated
+      ? finalAmount
+      : Number(paymentDetails.alreadyPaidAmount || paidAmountNum);
+    const balanceDue = isConsolidated
+      ? 0
+      : Math.max(0, finalAmount - alreadyPaidTotal);
+    const balanceRow =
+      balanceDue > 0
+        ? `
        <tr class="total-row">
          <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Balance Due:</td>
          <td style="font-weight:bold; text-align:center;">Rs ${balanceDue.toFixed(2)}</td>
        </tr>`
-      : "";
+        : "";
 
-    const previousPaymentsNum = isConsolidated ? 0
-      : ((paymentDetails.alreadyPaidAmount && Number(paymentDetails.alreadyPaidAmount) > paidAmountNum)
+    const previousPaymentsNum = isConsolidated
+      ? 0
+      : paymentDetails.alreadyPaidAmount &&
+          Number(paymentDetails.alreadyPaidAmount) > paidAmountNum
         ? Number(paymentDetails.alreadyPaidAmount) - paidAmountNum
-        : 0);
+        : 0;
 
-    const previousPaymentsRow = previousPaymentsNum > 0
-      ? `
+    const previousPaymentsRow =
+      previousPaymentsNum > 0
+        ? `
        <tr class="total-row">
          <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Previous Payments:</td>
          <td style="font-weight:bold; text-align:center;">Rs ${previousPaymentsNum.toFixed(2)}</td>
        </tr>`
-      : "";
+        : "";
 
-    const ccfTax = Number(paymentDetails.customerPayable?.taxOnConvenience) || (convinienceFee - (convinienceFee / 1.18));
+    const ccfTax =
+      Number(paymentDetails.customerPayable?.taxOnConvenience) ||
+      convinienceFee - convinienceFee / 1.18;
     const ccfBase = convinienceFee - ccfTax;
 
     let totalRow = `
@@ -670,7 +703,7 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
        </tr>
        ${previousPaymentsRow}
        <tr class="total-row">
-         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Paid (${(paymentTypeDisplay || 'Full').replace(/([a-z])(\d)/g, '$1 $2').toUpperCase()}):</td>
+         <td colspan="${colspan}" style="text-align:right;font-weight:bold;">Paid (${(paymentTypeDisplay || "Full").replace(/([a-z])(\d)/g, "$1 $2").toUpperCase()}):</td>
          <td style="font-weight:bold; text-align:center;">Rs ${paidAmountNum.toFixed(2)}</td>
        </tr>
        ${balanceRow}
@@ -693,20 +726,19 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     // NEW: prefer service business_details, fallback to vendor.businessDetails
     const vendorBusinessName =
-      serviceData?.business_details?.business_registration_name
-      || vendor.businessDetails?.businessName
-      || "";
+      serviceData?.business_details?.business_registration_name ||
+      vendor.businessDetails?.businessName ||
+      "";
     const vendorBusinessAddress =
-      serviceData?.business_details?.business_address
-      || vendor.businessDetails?.businessAddress
-      || "";
+      serviceData?.business_details?.business_address ||
+      vendor.businessDetails?.businessAddress ||
+      "";
     const vendorPincode =
-      serviceData?.business_details?.pincode
-      || vendor.businessDetails?.pinCode
-      || "";
+      serviceData?.business_details?.pincode ||
+      vendor.businessDetails?.pinCode ||
+      "";
     const vendorPan =
-      serviceData?.business_details?.pan
-      || vendor.businessDetails?.panNo;
+      serviceData?.business_details?.pan || vendor.businessDetails?.panNo;
 
     const vendorDetails = `
       <p><strong>${capitalizeWords(vendorBusinessName)}</strong></p>
@@ -757,8 +789,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     // For consolidated invoices, override the title
     if (isConsolidated) {
       html = html.replace(
-        '<h2><strong>INVOICE - {{invoiceCount}}</strong></h2>',
-        `<h2><strong>CONSOLIDATED INVOICE - {{invoiceCount}}</strong></h2>`
+        "<h2><strong>INVOICE - {{invoiceCount}}</strong></h2>",
+        `<h2><strong>CONSOLIDATED INVOICE - {{invoiceCount}}</strong></h2>`,
       );
     }
 
@@ -791,30 +823,36 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
 
     const custInvoiceUrl = await uploadToS3(
       pdfBuffer,
-      `bookings/${paymentDetails.event_id}/customers/${customer.id}/customer-${paymentLabel}.pdf`
+      `bookings/${paymentDetails.event_id}/customers/${customer.id}/customer-${paymentLabel}.pdf`,
     );
-
 
     // Decide invoice type for this payment
     const ptLower = (paymentType || "").toLowerCase();
-    const isFullOrFinal = ptLower === "full" || ptLower === "remaining" || ptLower.includes("final") || ptLower.includes("last") || ptLower === "consolidated";
+    const isFullOrFinal =
+      ptLower === "full" ||
+      ptLower === "remaining" ||
+      ptLower.includes("final") ||
+      ptLower.includes("last") ||
+      ptLower === "consolidated";
     const invoiceType = isFullOrFinal ? "booking" : "advance_booking";
 
     const customerId = customer.id; // from customerPayload
-    const vendorId = vendor.id;     // from vendorPayload
+    const vendorId = vendor.id; // from vendorPayload
     const serviceId =
-      paymentDetails.serviceData?.service_id ||  // from serviceSnapshot
-      paymentDetails.service_id ||               // fallback if you add it flat later
-      paymentDetails.serviceId ||                // old caller fallback
+      paymentDetails.serviceData?.service_id || // from serviceSnapshot
+      paymentDetails.service_id || // fallback if you add it flat later
+      paymentDetails.serviceId || // old caller fallback
       "BOOKING_SERVICE";
     const eventId = paymentDetails.event_id || paymentDetails.eventId || null;
 
     // Create CUSTOMER invoice record in new Invoices collection
-    const baseUrl = process.env.URL.startsWith('http') ? process.env.URL : `https://${process.env.URL}`;
+    const baseUrl = process.env.URL.startsWith("http")
+      ? process.env.URL
+      : `https://${process.env.URL}`;
     await axios.post(`${baseUrl}/api/invoices`, {
       invoice_url: custInvoiceUrl,
-      type: invoiceType,          // 'advance_booking' | 'booking' | 'payment'
-      invoice_for: 'customer',
+      type: invoiceType, // 'advance_booking' | 'booking' | 'payment'
+      invoice_for: "customer",
       payment_label: paymentLabel,
       vendor_id: vendorId,
       service_id: serviceId,
@@ -832,17 +870,26 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
     // }
 
     // ── VENDOR INVOICE PDF GENERATION (MULTI-VENDOR SUPPORT) ──
-    const vendorSegments = (paymentDetails.vendor_segments && paymentDetails.vendor_segments.length > 0)
-      ? paymentDetails.vendor_segments
-      : [{
-        vendor_id: vendor.id,
-        service_id: paymentDetails.service_id || paymentDetails.serviceId || "BOOKING_SERVICE",
-        vendor_name: vendor.businessDetails?.businessName || "Vendor",
-        paymentDetails: paymentDetails,
-        serviceData: paymentDetails.serviceData || {}
-      }];
+    const vendorSegments =
+      paymentDetails.vendor_segments &&
+      paymentDetails.vendor_segments.length > 0
+        ? paymentDetails.vendor_segments
+        : [
+            {
+              vendor_id: vendor.id,
+              service_id:
+                paymentDetails.service_id ||
+                paymentDetails.serviceId ||
+                "BOOKING_SERVICE",
+              vendor_name: vendor.businessDetails?.businessName || "Vendor",
+              paymentDetails: paymentDetails,
+              serviceData: paymentDetails.serviceData || {},
+            },
+          ];
 
-    console.log(`[Invoicing] Generating invoices for ${vendorSegments.length} vendor segment(s)`);
+    console.log(
+      `[Invoicing] Generating invoices for ${vendorSegments.length} vendor segment(s)`,
+    );
 
     for (const segment of vendorSegments) {
       const segVendorId = segment.vendor_id;
@@ -851,8 +898,12 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       const segServiceData = segment.serviceData || {};
 
       // Calculate segment-specific totals
-      const segCommission = Number(segment.paymentDetails?.vendorReceivable?.commission || 0);
-      const segTotalReceivable = Number(segment.paymentDetails?.vendorReceivable?.total || 0);
+      const segCommission = Number(
+        segment.paymentDetails?.vendorReceivable?.commission || 0,
+      );
+      const segTotalReceivable = Number(
+        segment.paymentDetails?.vendorReceivable?.total || 0,
+      );
 
       // Calculate share of paid amount for this vendor
       // If it's a full payment, they get their total share.
@@ -861,14 +912,18 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       if (isConsolidated || ptLower === "full" || ptLower === "remaining") {
         segPaidAmount = segTotalReceivable;
       } else {
-        const milestone = (segment.paymentBreakdowns || []).find(b => b.name === paymentType);
+        const milestone = (segment.paymentBreakdowns || []).find(
+          (b) => b.name === paymentType,
+        );
         segPaidAmount = milestone ? Number(milestone.amount || 0) : 0;
       }
 
       // If zero paid for this vendor in this milestone, skip their specific invoice for now?
       // Actually, we should probably generate it anyway if it's a booking event.
       if (segPaidAmount <= 0 && ptLower !== "full") {
-        console.log(`[Invoicing] Skipping vendor invoice for ${segVendorId} as paid amount is 0`);
+        console.log(
+          `[Invoicing] Skipping vendor invoice for ${segVendorId} as paid amount is 0`,
+        );
         continue;
       }
 
@@ -876,7 +931,10 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       runningSerial = 1;
 
       // Filter items for this vendor
-      const segItems = items.filter(item => item.vendor_id === segVendorId || item.service_id === segServiceId);
+      const segItems = items.filter(
+        (item) =>
+          item.vendor_id === segVendorId || item.service_id === segServiceId,
+      );
       // Fallback if no items matched (single vendor compatibility)
       const itemsToDisplay = segItems.length > 0 ? segItems : items;
 
@@ -937,8 +995,8 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
       // For consolidated invoices, override the vendor invoice title too
       if (isConsolidated) {
         html = html.replace(
-          '<h2><strong>INVOICE - {{invoiceCount}}</strong></h2>',
-          `<h2><strong>CONSOLIDATED INVOICE - {{invoiceCount}}</strong></h2>`
+          "<h2><strong>INVOICE - {{invoiceCount}}</strong></h2>",
+          `<h2><strong>CONSOLIDATED INVOICE - {{invoiceCount}}</strong></h2>`,
         );
       }
       html = html
@@ -948,48 +1006,62 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         .replace("{{invoiceDate}}", invoiceDate)
         .replace("{{amount}}", `Rs ${segPaidAmount.toFixed(2)}`)
         .replace("{{userId}}", segIdHtml)
-        .replace("{{vendorBlock}}", `
+        .replace(
+          "{{vendorBlock}}",
+          `
           <div class="billed-to">
             <h3><strong>Issued to:</strong></h3>
             <div class="customer-info">
               ${segVendorDetails}
             </div>
           </div>
-        `)
+        `,
+        )
         .replace("{{customerBlock}}", "")
-        .replace("{{tableHeader}}", `
+        .replace(
+          "{{tableHeader}}",
+          `
           <th>S.No.</th>
           <th>Item Details</th>
           <th>Net Amount</th>
           <th>GST %</th>
           <th>GST</th>
           <th>Total Amount</th>
-        `)
+        `,
+        )
         .replace("{{tableRows}}", tableRows)
         .replace("{{totalRow}}", segVendorTotalRow)
         .replace("{{amountInWordsRow}}", segAmountWordsRow)
         .replace("{{signatureRow}}", signatureRow);
 
-      browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+      browser = await chromium.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
       page = await browser.newPage();
       await page.setContent(html, { waitUntil: "load" });
       await page.addStyleTag({ content: css });
-      const segPdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+      const segPdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+      });
 
       if (page && !page.isClosed()) await page.close();
       if (browser) await browser.close();
 
       const venInvoiceUrl = await uploadToS3(
         segPdfBuffer,
-        `bookings/${eventId}/vendors/${segVendorId}/vendor-${paymentLabel}.pdf`
+        `bookings/${eventId}/vendors/${segVendorId}/vendor-${paymentLabel}.pdf`,
       );
 
       // Create VENDOR invoice record in database
-      const vBaseUrl = process.env.URL.startsWith('http') ? process.env.URL : `https://${process.env.URL}`;
+      const vBaseUrl = process.env.URL.startsWith("http")
+        ? process.env.URL
+        : `https://${process.env.URL}`;
       await axios.post(`${vBaseUrl}/api/invoices`, {
         invoice_url: venInvoiceUrl,
         type: isFullOrFinal ? "booking" : "advance_booking",
-        invoice_for: 'vendor',
+        invoice_for: "vendor",
         payment_label: paymentLabel,
         vendor_id: segVendorId,
         service_id: segServiceId,
@@ -998,15 +1070,21 @@ export async function generateBookingPaymentInvoice(customer, vendor, paymentDet
         transaction_id: paymentDetails.transaction_id || null,
       });
 
-      console.log(`[Invoicing] Generated vendor invoice for ${segVendorId}: ${venInvoiceUrl}`);
+      console.log(
+        `[Invoicing] Generated vendor invoice for ${segVendorId}: ${venInvoiceUrl}`,
+      );
     }
   } catch (err) {
     console.error("[Invoicing] ERROR generating booking invoice:", err.message);
-    if (err.response) console.error("[Invoicing] API Error Details:", JSON.stringify(err.response.data));
+    if (err.response)
+      console.error(
+        "[Invoicing] API Error Details:",
+        JSON.stringify(err.response.data),
+      );
     try {
       if (page && !page.isClosed()) await page.close();
       if (browser) await browser.close();
-    } catch { }
+    } catch {}
   }
 
   return pdfPath;

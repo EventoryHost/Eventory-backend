@@ -9,12 +9,13 @@ export const getCustomerNotifications = async (req, res) => {
       return res.status(400).json({ message: "customer_id is required" });
     }
 
-    const notifications = await CustomerNotification.find({ customer_id })
-      .sort({ updated_at: -1, createdAt: -1 });
-    
-    const unreadCount = await CustomerNotification.countDocuments({ 
-      customer_id, 
-      read: false 
+    const notifications = await CustomerNotification.find({ customer_id }).sort(
+      { updated_at: -1, createdAt: -1 },
+    );
+
+    const unreadCount = await CustomerNotification.countDocuments({
+      customer_id,
+      read: false,
     });
 
     res.status(200).json({
@@ -42,7 +43,7 @@ export const markCustomerNotificationsAsRead = async (req, res) => {
 
     const result = await CustomerNotification.updateMany(
       { customer_id, read: false },
-      { $set: { read: true, updated_at: new Date().toISOString() } }
+      { $set: { read: true, updated_at: new Date().toISOString() } },
     );
 
     res.status(200).json({
@@ -70,7 +71,7 @@ export const markNotificationAsRead = async (req, res) => {
     const notification = await CustomerNotification.findByIdAndUpdate(
       notification_id,
       { $set: { read: true, updated_at: new Date().toISOString() } },
-      { new: true }
+      { new: true },
     );
 
     if (!notification) {
@@ -116,4 +117,3 @@ export const getUnreadCount = async (req, res) => {
     });
   }
 };
-

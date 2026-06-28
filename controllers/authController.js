@@ -24,11 +24,20 @@ import AnonymousUser from "../models/anonymousUser.js";
 const normalizeServiceName = (label) => {
   if (!label) return label;
   const s = String(label).trim().toLowerCase();
-  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
-  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s))
+    return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s))
+    return "Makeup-Artist";
   if (["caterer"].includes(s)) return "Caterer";
   if (["decorator"].includes(s)) return "Decorator";
-  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (
+    [
+      "photographer & videographer",
+      "photographer and videographer",
+      "pav",
+    ].includes(s)
+  )
+    return "Photographer & Videographer";
   if (["dj-artist", "dj artist", "dj"].includes(s)) return "DJ-Artist";
   return label;
 };
@@ -125,11 +134,12 @@ const updateVendor = async (req, res) => {
 
 const getVendor = async (req, res) => {
   try {
-
     let { email, vendorId, mobile } = req.body;
 
     if (!email && !mobile && !vendorId) {
-      return res.status(400).json({ message: "Please provide at least one detail to get vendor." });
+      return res
+        .status(400)
+        .json({ message: "Please provide at least one detail to get vendor." });
     }
 
     let vendor;
@@ -147,7 +157,6 @@ const getVendor = async (req, res) => {
     }
 
     res.status(200).json(vendor);
-
   } catch (error) {
     console.error("🔥 Error in getVendor:", error);
     res.status(500).json({ error: error.message });
@@ -377,7 +386,7 @@ const verifyLoginOtp = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.vendor_id, mobile: user.vendor_mobile },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
     ); // Return the user object, which contains the service_types array
 
     res.status(200).json({ message: "Login successful", token, user });
@@ -387,7 +396,8 @@ const verifyLoginOtp = async (req, res) => {
   }
 };
 const verifyCustomerLoginOtp = async (req, res) => {
-  const { mobile, code, session, name, anonId, is_business, gst_number } = req.body;
+  const { mobile, code, session, name, anonId, is_business, gst_number } =
+    req.body;
 
   const params = {
     ChallengeName: "CUSTOM_CHALLENGE",
@@ -415,7 +425,8 @@ const verifyCustomerLoginOtp = async (req, res) => {
         contact_number: `+91${mobile}`,
       });
 
-      if (is_business !== undefined) customer.is_business = is_business === true || is_business === 'true';
+      if (is_business !== undefined)
+        customer.is_business = is_business === true || is_business === "true";
       if (gst_number) customer.gst_number = gst_number.toUpperCase();
 
       await customer.save();
@@ -425,7 +436,7 @@ const verifyCustomerLoginOtp = async (req, res) => {
         try {
           await AnonymousUser.findOneAndUpdate(
             { anon_id: anonId },
-            { converted_user_id: customer.customer_id }
+            { converted_user_id: customer.customer_id },
           );
         } catch (err) {
           console.error("Failed to link anonymous user:", err);
@@ -451,15 +462,18 @@ const verifyCustomerLoginOtp = async (req, res) => {
     // --- CASE 2: Existing customer ---
     // Update GST info if provided during login
     let detailsUpdated = false;
-    if (is_business !== undefined && user.is_business !== (is_business === true || is_business === 'true')) {
-      user.is_business = is_business === true || is_business === 'true';
+    if (
+      is_business !== undefined &&
+      user.is_business !== (is_business === true || is_business === "true")
+    ) {
+      user.is_business = is_business === true || is_business === "true";
       detailsUpdated = true;
     }
     if (gst_number && user.gst_number !== gst_number.toUpperCase()) {
       user.gst_number = gst_number.toUpperCase();
       detailsUpdated = true;
     }
-    
+
     if (detailsUpdated) {
       await user.save();
     }
@@ -467,13 +481,18 @@ const verifyCustomerLoginOtp = async (req, res) => {
     // LINK ANONYMOUS USER IF EXISTS
     if (anonId) {
       try {
-        console.log(`[Auth] Linking existing customer ${user.customer_id} to anonId: ${anonId}`);
+        console.log(
+          `[Auth] Linking existing customer ${user.customer_id} to anonId: ${anonId}`,
+        );
         await AnonymousUser.findOneAndUpdate(
           { anon_id: anonId },
-          { converted_user_id: user.customer_id }
+          { converted_user_id: user.customer_id },
         );
       } catch (err) {
-        console.error("Failed to link anonymous user to existing customer:", err);
+        console.error(
+          "Failed to link anonymous user to existing customer:",
+          err,
+        );
       }
     }
 
@@ -490,7 +509,6 @@ const verifyCustomerLoginOtp = async (req, res) => {
       token,
       user,
     });
-
   } catch (error) {
     console.log(error);
     return res.status(400).json({ error: error.message });
@@ -550,11 +568,11 @@ const googleCallback = async (req, res) => {
     // Create session token
     const sessionToken = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
     );
 
     res.redirect(
-      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`
+      `${process.env.GOOGLE_POST_REDIRECT}?session_token=${sessionToken}`,
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -633,7 +651,7 @@ const updateProfilePic = async (req, res) => {
     const updatedVendor = await Vendor.findOneAndUpdate(
       { vendor_id: vendorId }, // Query by the custom vendor_id field
       { profile_picture: req.file.location }, // Store the path of the uploaded file
-      { new: true } // Return the updated document
+      { new: true }, // Return the updated document
     );
 
     if (!updatedVendor) {

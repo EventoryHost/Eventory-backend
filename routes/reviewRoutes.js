@@ -111,7 +111,4 @@ reviewRoutes.put("/:id", updateReview);
  */
 reviewRoutes.delete("/:id", deleteReview);
 
-
-
-
 export default reviewRoutes;

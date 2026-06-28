@@ -112,7 +112,10 @@ export const sendWhatsappMessage = async (req, res) => {
 
     return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
-    console.error("Error sending WhatsApp message:", error.response?.data || error.message);
+    console.error(
+      "Error sending WhatsApp message:",
+      error.response?.data || error.message,
+    );
     return res.status(500).json({
       error: "Failed to send message",
       details: error.response?.data || error.message,

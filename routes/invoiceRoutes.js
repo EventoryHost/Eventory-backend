@@ -10,7 +10,7 @@ import {
   updateInvoice,
   deleteInvoice,
   getInvoiceStats,
-  getRecentInvoices
+  getRecentInvoices,
 } from "../controllers/invoiceController.js";
 
 const router = express.Router();

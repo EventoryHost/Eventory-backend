@@ -16,7 +16,7 @@ import {
   addBookingInvoice,
   updateEventPaymentDetails,
   cancelBooking,
-  getTransactionsByEventId
+  getTransactionsByEventId,
 } from "../controllers/bookingController.js";
 
 const router = express.Router();
@@ -60,7 +60,7 @@ router.delete("/delete-offline-booking", deleteOfflineEvent);
  *       200:
  *         description: Booking details
  */
-router.get('/get-by-id/:event_id', getBookingById);
+router.get("/get-by-id/:event_id", getBookingById);
 
 /**
  * @swagger
@@ -207,8 +207,6 @@ router.get("/all", getAllBookings);
  */
 router.post("/add-offline-booking", addOfflineEvent);
 
-
-
 /**
  * @swagger
  * /api/bookings/edit-offline-booking:
@@ -245,8 +243,6 @@ router.patch("/edit-offline-booking", editOfflineEvent);
  *         description: Vendor bookings retrieved
  */
 router.get("/get-vendor-bookings", getVendorBookings);
-
-
 
 /**
  * @swagger
@@ -289,7 +285,7 @@ router.get("/customer/:customer_id", getBookingsByCustomer);
  */
 router.post("/vendor/all-schedules", getAllVendorServiceSchedules);
 
-//Needs to be done 
+//Needs to be done
 router.post("/add-booking-invoice", addBookingInvoice);
 
 /**

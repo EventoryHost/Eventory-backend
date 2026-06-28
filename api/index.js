@@ -40,15 +40,17 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
   },
-  transports: ['polling', 'websocket'],
+  transports: ["polling", "websocket"],
   pingTimeout: 60000,
   pingInterval: 25000,
   connectTimeout: 45000,
-  allowEIO3: true
+  allowEIO3: true,
 });
 
 io.on("connection", (socket) => {
-  console.log(`🧠 Socket connected: ${socket.id} (Transport: ${socket.conn.transport.name})`);
+  console.log(
+    `🧠 Socket connected: ${socket.id} (Transport: ${socket.conn.transport.name})`,
+  );
   handleSocketConnection(socket, io);
 });
 
@@ -85,7 +87,6 @@ app.use("/", router);
 app.use("/api", MainRoutes(io));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-
 app.get("/", (req, res) => {
   res.status(201).send("Eventory APIs are running...");
 });
@@ -95,7 +96,7 @@ app.get("/api/health", (req, res) => {
     status: "success",
     message: "API is healthy",
     timestamp: new Date().toISOString(),
-    version: "2.0.0"
+    version: "2.0.0",
   });
 });
 
@@ -103,9 +104,7 @@ server.listen(port, () => {
   console.log(
     "🚀 Server listening on " + chalk.blueBright(`http://localhost:${port}`),
   );
-  console.log(
-    "📊 Database: " + chalk.yellowBright("Connected"),
-  );
+  console.log("📊 Database: " + chalk.yellowBright("Connected"));
 });
 
 export default app;

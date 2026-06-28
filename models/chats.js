@@ -4,85 +4,93 @@ import generateUniqueId from "../utils/generateId.js";
 const Schema = mongoose.Schema;
 
 // Chat Schema
-const chatSchema = new Schema({
-  chat_id: {
-    type: String,
-    required: true,
-    default: () => generateUniqueId("CHAT")
+const chatSchema = new Schema(
+  {
+    chat_id: {
+      type: String,
+      required: true,
+      default: () => generateUniqueId("CHAT"),
+    },
+    anon_customer_id: {
+      type: String,
+      required: false,
+    },
+    service_id: {
+      type: String,
+      required: false,
+    },
+    customer_id: {
+      type: String,
+      required: false,
+    },
+    vendor_id: {
+      type: String,
+      required: false,
+    },
+    em_id: {
+      type: String,
+    },
+    chat_type: {
+      type: String,
+      required: true,
+      enum: [
+        "vendor-admin",
+        "customer-admin",
+        "anon_customer-admin",
+        "vendor-enquiry",
+      ],
+    },
+    chat_status: {
+      type: String,
+      enum: ["ACTIVE", "BLOCKED", "FINISHED"],
+      default: "ACTIVE",
+      required: true,
+    },
+    pinned_chat_messages: {
+      type: [String], // Array of Message Object IDs
+      default: [],
+    },
+    last_message_updated_at: {
+      type: Date,
+      default: () => new Date(),
+    },
+    chat_started_at: {
+      type: Date,
+      default: () => new Date(),
+    },
+    chat_created_at: {
+      type: Date,
+      default: () => new Date(),
+    },
+    chat_updated_at: {
+      type: Date,
+      default: () => {
+        // Convert to IST (UTC+5:30)
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        return new Date(now.getTime() + istOffset);
+      },
+    },
+    link_source: {
+      type: String,
+      required: false,
+    },
+    is_auto_initialised: {
+      type: Boolean,
+      default: false,
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
-  anon_customer_id: {
-    type: String,
-    required: false
+  {
+    collection: "chat2",
   },
-  service_id: {
-    type: String,
-    required: false
-  },
-  customer_id: {
-    type: String,
-    required: false
-  },
-  vendor_id: {
-    type: String,
-    required: false
-  },
-  em_id: {
-    type: String
-  },
-  chat_type: {
-    type: String,
-    required: true,
-    enum: ["vendor-admin", "customer-admin", "anon_customer-admin", "vendor-enquiry"]
-  },
-  chat_status: {
-    type: String,
-    enum: ['ACTIVE', 'BLOCKED', 'FINISHED'],
-    default: 'ACTIVE',
-    required: true
-  },
-  pinned_chat_messages: {
-    type: [String], // Array of Message Object IDs
-    default: []
-  },
-  last_message_updated_at: {
-    type: Date,
-    default: () => new Date()
-  },
-  chat_started_at: {
-    type: Date,
-    default: () => new Date()
-  },
-  chat_created_at: {
-    type: Date,
-    default: () => new Date()
-  },
-  chat_updated_at: {
-    type: Date,
-    default: () => {
-      // Convert to IST (UTC+5:30)
-      const now = new Date();
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      return new Date(now.getTime() + istOffset);
-    }
-  },
-  link_source: {
-    type: String,
-    required: false
-  },
-  is_auto_initialised: {
-    type: Boolean,
-    default: false
-  },
-  metadata: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
-}, {
-  collection: 'chat2'
-});
+);
 
 // Pre-save middleware to update chat_updated_at and last_message_updated_at on every save
-chatSchema.pre('save', function (next) {
+chatSchema.pre("save", function (next) {
   const now = new Date();
 
   if (!this.isNew) {
@@ -98,16 +106,19 @@ chatSchema.pre('save', function (next) {
 });
 
 // Pre-update middleware to update chat_updated_at on updates
-chatSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
-  const now = new Date();
+chatSchema.pre(
+  ["findOneAndUpdate", "updateOne", "updateMany"],
+  function (next) {
+    const now = new Date();
 
-  this.set({ chat_updated_at: now });
+    this.set({ chat_updated_at: now });
 
-  // Also update last_message_updated_at for update operations
-  this.set({ last_message_updated_at: now });
+    // Also update last_message_updated_at for update operations
+    this.set({ last_message_updated_at: now });
 
-  next();
-});
+    next();
+  },
+);
 
 // Method to update last_message_updated_at when a new message is added
 chatSchema.methods.updateLastMessage = function () {
@@ -128,6 +139,6 @@ chatSchema.index({ chat_updated_at: -1 });
 chatSchema.index({ chat_started_at: -1 });
 
 // Check if model already exists to prevent OverwriteModelError
-const Chat = mongoose.models.Chat || mongoose.model('Chat', chatSchema);
+const Chat = mongoose.models.Chat || mongoose.model("Chat", chatSchema);
 
 export default Chat;

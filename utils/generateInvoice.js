@@ -21,7 +21,7 @@ function capitalizeWords(str) {
   if (!str) return "";
   return str.replace(
     /\w\S*/g,
-    (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(),
   );
 }
 
@@ -190,17 +190,19 @@ async function generateInvoice(customer, paymentDetails) {
     }
 
     // Check if customer is in Delhi (pincode starts with "1")
-    const isDelhiPincode = customer.businessDetails.pinCode.toString().startsWith("1");
+    const isDelhiPincode = customer.businessDetails.pinCode
+      .toString()
+      .startsWith("1");
 
     // Create table rows with tax logic
     let tableRows = "";
 
-if (isDelhiPincode) {
-  // Split into CGST and SGST rows for Delhi
-  const cgstAmount = originalTaxAmount / 2;
-  const sgstAmount = originalTaxAmount / 2;
-  
-  tableRows = `
+    if (isDelhiPincode) {
+      // Split into CGST and SGST rows for Delhi
+      const cgstAmount = originalTaxAmount / 2;
+      const sgstAmount = originalTaxAmount / 2;
+
+      tableRows = `
     <tr>
       <td style="text-align: center;">1</td>
       <td>Eventory Vendor Registration</td>
@@ -221,9 +223,9 @@ if (isDelhiPincode) {
       <td style="text-align: center;">Rs ${sgstAmount.toFixed(2)}</td>
     </tr>
   `;
-} else {
-  // Single IGST row for other states
-  tableRows = `
+    } else {
+      // Single IGST row for other states
+      tableRows = `
     <tr>
       <td style="text-align: center;">1</td>
       <td>Eventory Vendor Registration</td>
@@ -235,19 +237,19 @@ if (isDelhiPincode) {
       <td style="text-align: center;">Rs ${totalAmount.toFixed(2)}</td>
     </tr>
   `;
-}
+    }
 
-// Apply the same logic to discount rows
-if (discountAmount > 0) {
-  const discountNetAmount = discountAmount / 1.18;
-  const discountTaxAmount = discountAmount - discountNetAmount;
-  
-  if (isDelhiPincode) {
-    // Split discount into CGST and SGST for Delhi
-    const discountCgstAmount = discountTaxAmount / 2;
-    const discountSgstAmount = discountTaxAmount / 2;
-    
-    tableRows += `
+    // Apply the same logic to discount rows
+    if (discountAmount > 0) {
+      const discountNetAmount = discountAmount / 1.18;
+      const discountTaxAmount = discountAmount - discountNetAmount;
+
+      if (isDelhiPincode) {
+        // Split discount into CGST and SGST for Delhi
+        const discountCgstAmount = discountTaxAmount / 2;
+        const discountSgstAmount = discountTaxAmount / 2;
+
+        tableRows += `
       <tr>
         <td style="text-align: center;">2</td>
         <td>Eventory Discount</td>
@@ -268,9 +270,9 @@ if (discountAmount > 0) {
         <td style="text-align: center;">Rs ${discountSgstAmount.toFixed(2)}</td>
       </tr>
     `;
-  } else {
-    // Single IGST discount row for other states
-    tableRows += `
+      } else {
+        // Single IGST discount row for other states
+        tableRows += `
       <tr>
         <td style="text-align: center;">2</td>
         <td>Eventory Discount</td>
@@ -282,8 +284,8 @@ if (discountAmount > 0) {
         <td style="text-align: center;">Rs ${discountAmount.toFixed(2)}</td>
       </tr>
     `;
-  }
-}
+      }
+    }
 
     // Create total row
     const totalRow = `
@@ -309,7 +311,7 @@ if (discountAmount > 0) {
     html = html.replace("{{customerName}}", capitalizeWords(customer.name));
     html = html.replace(
       "{{customerBusinessName}}",
-      capitalizeWords(customer.businessDetails.businessName)
+      capitalizeWords(customer.businessDetails.businessName),
     );
 
     // Handle address with pincode
@@ -361,7 +363,7 @@ if (discountAmount > 0) {
 
     const invoiceUrl = await uploadInvoiceToS3(
       pdfBuffer,
-      `vendors/${customer.id}/invoice-${invoiceNumber}.pdf`
+      `vendors/${customer.id}/invoice-${invoiceNumber}.pdf`,
     );
     console.log("Invoice uploaded to S3:", invoiceUrl);
     const vendor = await Vendor.findOne({ id: customer.id });
