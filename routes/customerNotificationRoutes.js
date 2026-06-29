@@ -98,8 +98,9 @@ router.patch("/:customer_id/mark-all-read", markCustomerNotificationsAsRead);
  *       500:
  *         description: Server error
  */
-router.patch("/notification/:notification_id/mark-read", markNotificationAsRead);
+router.patch(
+  "/notification/:notification_id/mark-read",
+  markNotificationAsRead,
+);
 
 export default router;
-
-

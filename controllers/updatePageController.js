@@ -42,7 +42,7 @@ export const updatePageNumber = async (req, res) => {
     "Received page number to update:",
     pageNumber,
     flowType,
-    vendor_id
+    vendor_id,
   );
 
   if (!pageNumber) {
@@ -56,7 +56,7 @@ export const updatePageNumber = async (req, res) => {
     const updatedVendor = await Model.findOneAndUpdate(
       { vendor_id },
       { pageNumber },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
 
     res.json({

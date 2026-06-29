@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { generateAndStoreAgreement, addVendorAgreement } from "../controllers/agreementController.js";
+import {
+  generateAndStoreAgreement,
+  addVendorAgreement,
+} from "../controllers/agreementController.js";
 
 const router = Router();
 

@@ -21,9 +21,7 @@ const verifyGSTIN = async (req, res) => {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
 
-
     const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
-
 
     const timestamp = Math.floor(Date.now() / 1000);
 
@@ -34,23 +32,23 @@ const verifyGSTIN = async (req, res) => {
       ? (url = `https://sandbox.cashfree.com/verification/gstin`)
       : (url = `https://api.cashfree.com/verification/gstin`);
 
-    var headers = {}
-    process.env.IS_DEV === "true" ?
-      headers = {
-        "x-client-id": clientId,
-        "x-client-secret": clientSecret,
-        "X-Cf-Signature": signature,
-        "X-Timestamp": timestamp.toString(),
-        "x-environment": "sandbox",
-        "Content-Type": "application/json",
-      } :
-      headers = {
-        "x-client-id": clientId,
-        "x-client-secret": clientSecret,
-        "X-Cf-Signature": signature,
-        "X-Timestamp": timestamp.toString(),
-        "Content-Type": "application/json",
-      };
+    var headers = {};
+    process.env.IS_DEV === "true"
+      ? (headers = {
+          "x-client-id": clientId,
+          "x-client-secret": clientSecret,
+          "X-Cf-Signature": signature,
+          "X-Timestamp": timestamp.toString(),
+          "x-environment": "sandbox",
+          "Content-Type": "application/json",
+        })
+      : (headers = {
+          "x-client-id": clientId,
+          "x-client-secret": clientSecret,
+          "X-Cf-Signature": signature,
+          "X-Timestamp": timestamp.toString(),
+          "Content-Type": "application/json",
+        });
 
     const response = await axios.post(url, { gstin: gstIn }, { headers });
 
@@ -143,9 +141,7 @@ const verifyPAN = async (req, res) => {
     const clientId = process.env.CASHFREE_CLIENT_ID;
     const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
 
-
     const publicKey = `-----BEGIN PUBLIC KEY-----\n${process.env.CASHFREE_PUBLIC_KEY}\n-----END PUBLIC KEY-----`;
-
 
     const timestamp = Math.floor(Date.now() / 1000);
 
@@ -187,7 +183,7 @@ const verifyPAN = async (req, res) => {
           pan: panNo,
           verification_id: verification_id,
         },
-        { headers }
+        { headers },
       );
 
       console.log("GSTIN from PAN response:", gstinResponse.data);
@@ -218,7 +214,7 @@ const verifyPAN = async (req, res) => {
                 // Save the changes
                 await vendor.save();
                 console.log(
-                  `Updated Vendor ${vendor_id} with GSTIN ${activeGstin.gstin} from PAN verification`
+                  `Updated Vendor ${vendor_id} with GSTIN ${activeGstin.gstin} from PAN verification`,
                 );
               }
             } else {
@@ -374,7 +370,7 @@ export const verifyBankDetails = async (req, res) => {
   } catch (error) {
     console.error(
       " Bank verification error:",
-      error?.response?.data || error.message
+      error?.response?.data || error.message,
     );
     return res.status(500).json({
       message: "Bank verification failed",

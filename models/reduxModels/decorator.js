@@ -33,17 +33,21 @@ const ReduxDecoratorSchema = new mongoose.Schema(
     is_theme_customization_allowed: { type: Boolean },
     is_venue_adaptability: { type: Boolean },
     theme_elements_available: { type: [String] },
-    theme_portfolio_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    theme_portfolio_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     theme_portfolio_videos: { type: [String] },
 
     // Additional Details (flattened from additional_details)
-    asset_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    asset_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     asset_videos: { type: [String] },
     min_booking_period: { type: Number },
     max_booking_period: { type: Number },
@@ -59,7 +63,7 @@ const ReduxDecoratorSchema = new mongoose.Schema(
     business_registration_name: { type: String },
     gst: { type: String },
     pan: { type: String },
-    verification_type: { type: String, enum: ['GSTIN', 'PAN'] },
+    verification_type: { type: String, enum: ["GSTIN", "PAN"] },
     team_size: { type: Number },
     years_of_operation: { type: Number },
     business_address: { type: String },
@@ -89,11 +93,14 @@ const ReduxDecoratorSchema = new mongoose.Schema(
 
     // Timestamps
     decorator_created_at: { type: Date },
-    decorator_updated_at: { type: Date }
+    decorator_updated_at: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-const ReduxDecoratorModel = mongoose.model("ReduxDecorators", ReduxDecoratorSchema);
+const ReduxDecoratorModel = mongoose.model(
+  "ReduxDecorators",
+  ReduxDecoratorSchema,
+);
 
 export { ReduxDecoratorModel };

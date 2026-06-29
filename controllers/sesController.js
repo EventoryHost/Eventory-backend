@@ -5,7 +5,6 @@ import mime from "mime-types";
 dotenv.config();
 
 const sendEmailInvoice = async (email, pdfBuffer, fileName) => {
-
   try {
     const fileType = mime.lookup(fileName);
 
@@ -76,8 +75,6 @@ const sendEmailToSlack = async (service) => {
   } catch (error) {
     return error.message;
   }
-}
-
-
+};
 
 export { sendEmailInvoice, sendEmailToSlack };

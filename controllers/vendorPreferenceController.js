@@ -14,11 +14,12 @@ export const setVendorPreference = async (req, res) => {
     if (!customer_id || !vendor_id || !service_id || !preference_type) {
       return res.status(400).json({
         success: false,
-        message: "customer_id, vendor_id, service_id, and preference_type are required",
+        message:
+          "customer_id, vendor_id, service_id, and preference_type are required",
       });
     }
 
-    if (!['liked', 'rejected'].includes(preference_type)) {
+    if (!["liked", "rejected"].includes(preference_type)) {
       return res.status(400).json({
         success: false,
         message: "preference_type must be either 'liked' or 'rejected'",
@@ -28,7 +29,7 @@ export const setVendorPreference = async (req, res) => {
     const preference = await VendorPreference.findOneAndUpdate(
       { customer_id, vendor_id, service_id },
       { preference_type, updated_at: new Date() },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     // Notify EM if there is an active chat
@@ -36,13 +37,14 @@ export const setVendorPreference = async (req, res) => {
       const activeChat = await Chat.findOne({
         anon_customer_id: customer_id,
         chat_status: "ACTIVE",
-        chat_type: "anon_customer-admin"
+        chat_type: "anon_customer-admin",
       });
 
       if (activeChat && activeChat.em_id) {
-        const message = preference_type === 'liked'
-          ? "Customer liked a vendor card"
-          : "Customer rejected a vendor card";
+        const message =
+          preference_type === "liked"
+            ? "Customer liked a vendor card"
+            : "Customer rejected a vendor card";
 
         await EMNotifications.create({
           em_id: activeChat.em_id,
@@ -50,7 +52,7 @@ export const setVendorPreference = async (req, res) => {
           message: message,
           notification_type: "chat_message",
           timestamp: new Date().toISOString(),
-          read: false
+          read: false,
         });
 
         //Trigger for fcm notification for em
@@ -59,22 +61,33 @@ export const setVendorPreference = async (req, res) => {
           priority: "high",
           notification: {
             title: "Vendor Preference Updated",
-            body: message
+            body: message,
           },
           data: {
             type: "vendor_preference_updated",
             chat_id: activeChat.chat_id,
             em_id: activeChat.em_id,
-            message: message
-          }
-        }).then(result => {
-          console.log(`FCM notifications sent to em ${activeChat.em_id} for vendor preference update`, result);
-        }).catch(error => {
-          console.error("Failed to send FCM notification for payment:", error);
-        });
+            message: message,
+          },
+        })
+          .then((result) => {
+            console.log(
+              `FCM notifications sent to em ${activeChat.em_id} for vendor preference update`,
+              result,
+            );
+          })
+          .catch((error) => {
+            console.error(
+              "Failed to send FCM notification for payment:",
+              error,
+            );
+          });
       }
     } catch (notifyError) {
-      console.error("Error creating EM notification for preference:", notifyError);
+      console.error(
+        "Error creating EM notification for preference:",
+        notifyError,
+      );
       // Don't fail the request if notification fails
     }
 
@@ -223,7 +236,7 @@ export const getLikedVendors = async (req, res) => {
       });
     }
 
-    const filter = { customer_id, preference_type: 'liked' };
+    const filter = { customer_id, preference_type: "liked" };
     if (service_id) {
       filter.service_id = service_id;
     }

@@ -9,7 +9,7 @@ const router = Router();
  *   post:
  *     summary: Get file name and size from a given file URL
  *     tags: [Files]
- *     description: Returns the file name and size (in bytes) for a given URL.  
+ *     description: Returns the file name and size (in bytes) for a given URL.
  *                  Works for publicly accessible URLs.
  *     requestBody:
  *       required: true

@@ -654,19 +654,6 @@ export const triggerInteraktSlackIntegration = async (data) => {
       }
     }
 
-    // Map Event Date datepicker field safely (only if it is a parseable date)
-    const rawEventDate = payload.event_date;
-    if (rawEventDate) {
-      const parsedTime = Date.parse(rawEventDate);
-      if (!isNaN(parsedTime)) {
-        const dateStr = new Date(parsedTime).toISOString().split("T")[0];
-        initialFields.push({
-          column_id: "Col0AD8JDTHTJ",
-          date: [dateStr],
-        });
-      }
-    }
-
 
     // Map Vendor Services multi-select dropdown if present
     const rawServices = payload.services_needed;
@@ -732,11 +719,12 @@ export const triggerInteraktSlackIntegration = async (data) => {
       customer_name: customerName,
       phone_number: phoneNumber,
       ticket_id: slack_item_id,
-      trigger_message: `New WhatsApp (Interakt) Lead: ${customerName}`,
+      trigger_message: slackMessage,
+      text: slackMessage,
       event_type: eventType,
       event_details: `${payload.event_date || ""} ${city}`.trim(),
       event_venue: payload.venue_setting || "",
-      requirements: "See Slack List ticket for complete requirements.",
+      requirements: slackMessage,
     };
 
     console.log(

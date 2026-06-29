@@ -28,7 +28,7 @@ import { getServiceModel } from "../utils/serviceMapper.js";
 // Normalize photos to {original, preview} format
 const normalizePhotos = (photos) => {
   if (!photos) return [];
-  
+
   if (Array.isArray(photos)) {
     return photos.map((photo) => {
       if (typeof photo === "object" && photo.original) {
@@ -60,15 +60,17 @@ const normalizePhotos = (photos) => {
       return { original: String(photo), preview: String(photo) };
     });
   }
-  
+
   if (typeof photos === "string") {
     try {
       const parsed = JSON.parse(photos);
       if (parsed.original || parsed.preview) {
-        return [{
-          original: parsed.original || parsed.preview,
-          preview: parsed.preview || parsed.original,
-        }];
+        return [
+          {
+            original: parsed.original || parsed.preview,
+            preview: parsed.preview || parsed.original,
+          },
+        ];
       }
     } catch (e) {
       // Not JSON, treat as plain string
@@ -81,7 +83,7 @@ const normalizePhotos = (photos) => {
     }
     return [{ original: photos, preview: previewUrl }];
   }
-  
+
   return [];
 };
 
@@ -92,8 +94,8 @@ export const updateVendorAndService = async (req, res) => {
 
   console.log(
     `API received update for serviceId=${serviceId}, payload=${JSON.stringify(
-      updateData
-    )}`
+      updateData,
+    )}`,
   );
 
   try {
@@ -173,19 +175,19 @@ export const updateDetails = async (req, res) => {
       MAK: MakeupArtist,
       MKA: MakeupArtist,
       DJA: DjArtist,
-      DJS: DjArtist,  // DJ Artist service ID prefix
+      DJS: DjArtist, // DJ Artist service ID prefix
     };
 
     // Try 4-character prefix first, then fallback to 3-character
     let prefix = service.substring(0, 4).toUpperCase();
     let Model = modelMap[prefix];
-    
+
     if (!Model) {
       // Fallback to 3-character prefix
       prefix = service.substring(0, 3).toUpperCase();
       Model = modelMap[prefix];
     }
-    
+
     if (!Model) {
       return res.status(400).json({ message: "Invalid service type" });
     }
@@ -209,7 +211,7 @@ export const updateDetails = async (req, res) => {
     const updatedServiceDoc = await serviceDoc.constructor.findOneAndUpdate(
       { _id: serviceDoc._id },
       { $set: updateFields },
-      { new: true, runValidators: false }
+      { new: true, runValidators: false },
     );
 
     return res.status(200).json({
@@ -229,21 +231,29 @@ export const updateServiceDetails = async (req, res) => {
   const updateData = req.body;
 
   console.log(
-    `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`
+    `3..API  Data recieved from the frontend is ${JSON.stringify(updateData)}`,
   );
 
   // Normalize photos in updateData if present
   if (updateData["additional_details.asset_images"]) {
-    updateData["additional_details.asset_images"] = normalizePhotos(updateData["additional_details.asset_images"]);
+    updateData["additional_details.asset_images"] = normalizePhotos(
+      updateData["additional_details.asset_images"],
+    );
   }
   if (updateData["theme_details.theme_portfolio_images"]) {
-    updateData["theme_details.theme_portfolio_images"] = normalizePhotos(updateData["theme_details.theme_portfolio_images"]);
+    updateData["theme_details.theme_portfolio_images"] = normalizePhotos(
+      updateData["theme_details.theme_portfolio_images"],
+    );
   }
   if (updateData.additional_details?.asset_images) {
-    updateData.additional_details.asset_images = normalizePhotos(updateData.additional_details.asset_images);
+    updateData.additional_details.asset_images = normalizePhotos(
+      updateData.additional_details.asset_images,
+    );
   }
   if (updateData.theme_details?.theme_portfolio_images) {
-    updateData.theme_details.theme_portfolio_images = normalizePhotos(updateData.theme_details.theme_portfolio_images);
+    updateData.theme_details.theme_portfolio_images = normalizePhotos(
+      updateData.theme_details.theme_portfolio_images,
+    );
   }
 
   try {
@@ -274,9 +284,9 @@ export const updateServiceDetails = async (req, res) => {
     // New schema: services and service_types are parallel arrays
     // IMPORTANT: Always find by service_id match, not by index, since arrays can be misaligned
     let serviceObj = vendor.service_types?.find(
-      (st) => st?.service_id === serId
+      (st) => st?.service_id === serId,
     );
-    
+
     // If not found by service_id, try index-based lookup as fallback
     if (!serviceObj) {
       const serviceIndex = vendor.services.indexOf(serId);
@@ -284,135 +294,165 @@ export const updateServiceDetails = async (req, res) => {
         serviceObj = vendor.service_types[serviceIndex];
         // Validate that service_id matches
         if (serviceObj.service_id !== serId) {
-          console.warn(`Service ID mismatch at index ${serviceIndex}! Expected: ${serId}, Found: ${serviceObj.service_id}`);
+          console.warn(
+            `Service ID mismatch at index ${serviceIndex}! Expected: ${serId}, Found: ${serviceObj.service_id}`,
+          );
           // Service IDs don't match, so we'll use prefix-based detection instead
           serviceObj = null;
         }
       }
     }
-    
+
     // If still not found, detect from service ID prefix
     if (!serviceObj) {
       const prefix = serId.substring(0, 3).toUpperCase();
-      console.log(`Service not found in service_types, detecting from prefix: ${prefix}`);
-      
-      if (prefix === 'DJS' || prefix === 'DJA') {
+      console.log(
+        `Service not found in service_types, detecting from prefix: ${prefix}`,
+      );
+
+      if (prefix === "DJS" || prefix === "DJA") {
         console.log(`Detecting DJ Artist from prefix ${prefix}`);
         // Directly update DJ Artist without relying on service_types
         try {
           const updatedService = await DjArtist.findOneAndUpdate(
             { service_id: serId },
             { $set: updateData },
-            { new: true, runValidators: false }
+            { new: true, runValidators: false },
           );
           if (updatedService) {
             await checkDjArtistProfileCompletion(serId);
-            const isVerified = checkVerification(updatedService, 'dj-artist');
+            const isVerified = checkVerification(updatedService, "dj-artist");
             await updatedService.updateOne({ is_active: isVerified });
-            const profileCompletion = calculateProfileCompletion(updatedService, 'dj-artist');
-            await updatedService.updateOne({ profile_completion_score: profileCompletion });
-            return res.status(200).json({ 
-              message: "Details updated successfully (prefix-based detection)", 
-              updatedService 
+            const profileCompletion = calculateProfileCompletion(
+              updatedService,
+              "dj-artist",
+            );
+            await updatedService.updateOne({
+              profile_completion_score: profileCompletion,
+            });
+            return res.status(200).json({
+              message: "Details updated successfully (prefix-based detection)",
+              updatedService,
             });
           } else {
-            return res.status(404).json({ error: "DJ Artist service not found" });
+            return res
+              .status(404)
+              .json({ error: "DJ Artist service not found" });
           }
         } catch (updateError) {
           console.error(`Error updating DJ Artist:`, updateError);
-          return res.status(500).json({ 
+          return res.status(500).json({
             error: "Failed to update DJ Artist",
-            details: updateError.message 
+            details: updateError.message,
           });
         }
       }
-      
-      return res.status(404).json({ 
+
+      return res.status(404).json({
         error: "Service not found in vendor's service_types",
         serviceId: serId,
-        suggestion: "Service may not be linked to this vendor properly"
+        suggestion: "Service may not be linked to this vendor properly",
       });
     }
-    
+
     // Found service object - proceed with update
     console.log(`Found service:`, serviceObj);
     const serType = serviceObj.service_name;
     console.log(`Service type from DB: ${serType}, Service ID: ${serId}`);
-    
+
     // Validate that service_id matches (extra safety check)
     if (serviceObj.service_id !== serId) {
-      console.warn(`Service ID mismatch! Expected: ${serId}, Found: ${serviceObj.service_id}`);
+      console.warn(
+        `Service ID mismatch! Expected: ${serId}, Found: ${serviceObj.service_id}`,
+      );
       // Use prefix-based detection instead
       const prefix = serId.substring(0, 3).toUpperCase();
-      if (prefix === 'DJS' || prefix === 'DJA') {
-        console.log(`Service ID mismatch, but detecting DJ Artist from prefix ${prefix}`);
+      if (prefix === "DJS" || prefix === "DJA") {
+        console.log(
+          `Service ID mismatch, but detecting DJ Artist from prefix ${prefix}`,
+        );
         const updatedService = await DjArtist.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
-          { new: true, runValidators: false }
+          { new: true, runValidators: false },
         );
         if (updatedService) {
           await checkDjArtistProfileCompletion(serId);
-          const isVerified = checkVerification(updatedService, 'dj-artist');
+          const isVerified = checkVerification(updatedService, "dj-artist");
           await updatedService.updateOne({ is_active: isVerified });
-          const profileCompletion = calculateProfileCompletion(updatedService, 'dj-artist');
-          await updatedService.updateOne({ profile_completion_score: profileCompletion });
-          return res.status(200).json({ 
-            message: "Details updated successfully (prefix-based detection due to mismatch)", 
-            updatedService 
+          const profileCompletion = calculateProfileCompletion(
+            updatedService,
+            "dj-artist",
+          );
+          await updatedService.updateOne({
+            profile_completion_score: profileCompletion,
+          });
+          return res.status(200).json({
+            message:
+              "Details updated successfully (prefix-based detection due to mismatch)",
+            updatedService,
           });
         }
       }
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: "Service ID mismatch",
         expected: serId,
-        found: serviceObj.service_id
+        found: serviceObj.service_id,
       });
     }
-    
+
     // Normalize service type: handle variations and extract prefix as fallback
     let normalizedServiceType = serType?.toLowerCase().trim();
-    
+
     // If service_type is not found or unclear, detect from service_id prefix as fallback
     if (!normalizedServiceType || normalizedServiceType === "unknown") {
       const prefix = serId.substring(0, 3).toUpperCase();
       const prefixMap = {
-        'CAT': 'caterer',
-        'DEC': 'decorator',
-        'PAV': 'photographer-videographer',
-        'VNP': 'venue-provider',
-        'VEN': 'venue-provider',
-        'MKA': 'makeup-artist',
-        'MAK': 'makeup-artist',
-        'DJS': 'dj-artist',
-        'DJA': 'dj-artist',
+        CAT: "caterer",
+        DEC: "decorator",
+        PAV: "photographer-videographer",
+        VNP: "venue-provider",
+        VEN: "venue-provider",
+        MKA: "makeup-artist",
+        MAK: "makeup-artist",
+        DJS: "dj-artist",
+        DJA: "dj-artist",
       };
       normalizedServiceType = prefixMap[prefix] || normalizedServiceType;
-      console.log(`Service type detected from prefix ${prefix}: ${normalizedServiceType}`);
+      console.log(
+        `Service type detected from prefix ${prefix}: ${normalizedServiceType}`,
+      );
     }
-    
+
     // Normalize DJ variations to 'dj-artist'
-    if (normalizedServiceType && (
-      normalizedServiceType === 'dj-artist' ||
-      normalizedServiceType === 'dj artist' ||
-      normalizedServiceType === 'djartist' ||
-      normalizedServiceType === 'dj' ||
-      (normalizedServiceType.includes('dj') && normalizedServiceType.includes('artist'))
-    )) {
-      normalizedServiceType = 'dj-artist';
-      console.log(`DJ Artist detected, normalized to: ${normalizedServiceType}`);
+    if (
+      normalizedServiceType &&
+      (normalizedServiceType === "dj-artist" ||
+        normalizedServiceType === "dj artist" ||
+        normalizedServiceType === "djartist" ||
+        normalizedServiceType === "dj" ||
+        (normalizedServiceType.includes("dj") &&
+          normalizedServiceType.includes("artist")))
+    ) {
+      normalizedServiceType = "dj-artist";
+      console.log(
+        `DJ Artist detected, normalized to: ${normalizedServiceType}`,
+      );
     }
 
     // Normalize venue provider variations to 'venue-provider'
-    if (normalizedServiceType && (
-      normalizedServiceType === 'venue provider' ||
-      normalizedServiceType === 'venueprovider' ||
-      normalizedServiceType === 'venue-provider'
-    )) {
-      normalizedServiceType = 'venue-provider';
-      console.log(`Venue Provider detected, normalized to: ${normalizedServiceType}`);
+    if (
+      normalizedServiceType &&
+      (normalizedServiceType === "venue provider" ||
+        normalizedServiceType === "venueprovider" ||
+        normalizedServiceType === "venue-provider")
+    ) {
+      normalizedServiceType = "venue-provider";
+      console.log(
+        `Venue Provider detected, normalized to: ${normalizedServiceType}`,
+      );
     }
-    
+
     console.log(`Normalized service type: ${normalizedServiceType}`);
     let updatedService;
 
@@ -422,7 +462,7 @@ export const updateServiceDetails = async (req, res) => {
         updatedService = await Caterer.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkCatererProfileCompletion(serId);
         break;
@@ -430,19 +470,19 @@ export const updateServiceDetails = async (req, res) => {
         updatedService = await Decorator.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkDecoratorProfileCompletion(serId);
         break;
       case "pav":
       case "photographer-videographer":
       case "photographer videographer":
-      case "photographer & videographer":     
-      case "photographer&videographer":  
+      case "photographer & videographer":
+      case "photographer&videographer":
         updatedService = await Photographer.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkPhotographerProfileCompletion(serId);
         break;
@@ -450,20 +490,25 @@ export const updateServiceDetails = async (req, res) => {
         updatedService = await VenueProvider.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkVenueProfileCompletion(serId);
         break;
       case "prop-rental":
         // Prop rental service not implemented
-        return res.status(400).json({ success: false, message: "Prop rental service is not available" });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Prop rental service is not available",
+          });
         break;
       case "makeup-artist":
       case "makeupArtist":
         updatedService = await MakeupArtist.findOneAndUpdate(
           { service_id: serId },
           { $set: updateData },
-          { new: true }
+          { new: true },
         );
         await checkMakeupArtistProfileCompletion(serId);
         break;
@@ -473,24 +518,31 @@ export const updateServiceDetails = async (req, res) => {
       case "dj":
       case "dj artist": // Handle space-separated variation
         console.log(`Updating DJ Artist with service_id: ${serId}`);
-        console.log(`Update data received: ${JSON.stringify(updateData, null, 2)}`);
+        console.log(
+          `Update data received: ${JSON.stringify(updateData, null, 2)}`,
+        );
         try {
           updatedService = await DjArtist.findOneAndUpdate(
             { service_id: serId },
             { $set: updateData },
-            { new: true, runValidators: false }
+            { new: true, runValidators: false },
           );
           if (!updatedService) {
             console.error(`DJ Artist not found with service_id: ${serId}`);
-            return res.status(404).json({ error: "DJ Artist service not found" });
+            return res
+              .status(404)
+              .json({ error: "DJ Artist service not found" });
           }
-          console.log(`DJ Artist updated successfully. Updated service:`, updatedService);
+          console.log(
+            `DJ Artist updated successfully. Updated service:`,
+            updatedService,
+          );
           await checkDjArtistProfileCompletion(serId);
         } catch (updateError) {
           console.error(`Error updating DJ Artist:`, updateError);
-          return res.status(500).json({ 
+          return res.status(500).json({
             error: "Failed to update DJ Artist",
-            details: updateError.message 
+            details: updateError.message,
           });
         }
         break;
@@ -501,12 +553,14 @@ export const updateServiceDetails = async (req, res) => {
         console.log("Normalized service type:", normalizedServiceType);
         // Fallback: try to detect from service ID prefix
         const fallbackPrefix = serId.substring(0, 3).toUpperCase();
-        if (fallbackPrefix === 'DJS' || fallbackPrefix === 'DJA') {
-          console.log(`Fallback: Detected DJ Artist from prefix ${fallbackPrefix}`);
+        if (fallbackPrefix === "DJS" || fallbackPrefix === "DJA") {
+          console.log(
+            `Fallback: Detected DJ Artist from prefix ${fallbackPrefix}`,
+          );
           updatedService = await DjArtist.findOneAndUpdate(
             { service_id: serId },
             { $set: updateData },
-            { new: true }
+            { new: true },
           );
           if (updatedService) {
             await checkDjArtistProfileCompletion(serId);
@@ -528,15 +582,18 @@ export const updateServiceDetails = async (req, res) => {
     }
 
     // Use normalized service type for verification and completion calculation
-    const serviceTypeForChecks = normalizedServiceType || serType?.toLowerCase() || 'dj-artist';
+    const serviceTypeForChecks =
+      normalizedServiceType || serType?.toLowerCase() || "dj-artist";
     const isVerified = checkVerification(updatedService, serviceTypeForChecks);
-    console.log(`Verification status for ${serviceTypeForChecks}: ${isVerified}`);
+    console.log(
+      `Verification status for ${serviceTypeForChecks}: ${isVerified}`,
+    );
     await updatedService.updateOne({ is_active: isVerified });
 
     // Step 3: Calculate and update profile completion percentage
     const profileCompletion = calculateProfileCompletion(
       updatedService,
-      serviceTypeForChecks
+      serviceTypeForChecks,
     );
 
     await updatedService.updateOne({
@@ -899,8 +956,8 @@ const checkVerification = (service, serType) => {
     case "pav":
     case "photographer-videographer":
     case "photographer videographer":
-    case "photographer & videographer":     
-    case "photographer&videographer":  
+    case "photographer & videographer":
+    case "photographer&videographer":
       fieldsToCheck = [
         // business_details field
         // { path: "business_details.business_name", label: "Business Name" },
@@ -1173,7 +1230,7 @@ export const addVendorInvoice = async (req, res) => {
     req.body;
 
   console.log(
-    `Received request to add invoice for vendor ${vendor_id} with URL ${invoice_url}`
+    `Received request to add invoice for vendor ${vendor_id} with URL ${invoice_url}`,
   );
 
   try {
@@ -1235,7 +1292,7 @@ export const deleteServiceProfile = async (req, res) => {
     // Crucial check: ensures the vendorId matches the service profile
     const deleteServiceProfileResult = await ServiceModel.deleteOne(
       { service_id: serviceId, vendor_id: vendorId }, // 👈 Using vendorId from request body/frontend
-      { session }
+      { session },
     );
 
     if (deleteServiceProfileResult.deletedCount === 0) {
@@ -1270,30 +1327,30 @@ export const deleteServiceProfile = async (req, res) => {
     // Delete all vendor notifications linked to this service
     await VendorNotifications.deleteMany(
       { service_id: serviceId },
-      { session }
+      { session },
     );
 
     // --- 3. UPDATE CUSTOMER WISHLISTS (Remove serviceId) ---
     await Customer.updateMany(
       { wishlisted_services: serviceId },
       { $pull: { wishlisted_services: serviceId } },
-      { session }
+      { session },
     );
 
     // --- 4. UPDATE THE VENDOR MASTER PROFILE (Remove service entry) ---
     const updateVendorResult = await Vendor.updateOne(
       { vendor_id: vendorId },
       {
-          $pull: {
-              // 🛑 CORRECTED: Pull the serviceId string from the 'services' array
-              services: serviceId, 
-              
-              // This remains correct, targeting the object in service_types array
-              service_types: { service_id: serviceId }
-          }
+        $pull: {
+          // 🛑 CORRECTED: Pull the serviceId string from the 'services' array
+          services: serviceId,
+
+          // This remains correct, targeting the object in service_types array
+          service_types: { service_id: serviceId },
+        },
       },
-      { session }
-  );
+      { session },
+    );
 
     await session.commitTransaction();
 

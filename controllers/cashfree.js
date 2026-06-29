@@ -552,7 +552,7 @@ const verifyCustomerPayment = async (req, res) => {
 
     let customerDoc = null;
     if (finalCustomerId && !finalCustomerId.startsWith("ANON")) {
-       customerDoc = await Customer.findOne({ customer_id: finalCustomerId }).lean();
+      customerDoc = await Customer.findOne({ customer_id: finalCustomerId }).lean();
     }
     const customerEmail = customerDoc?.email_address || customerDoc?.email || finalOrder?.customer_email || payment?.customer_details?.customer_email || "";
     const customerPhone = customerDoc?.mobile_number || customerDoc?.customer_contact_number || finalOrder?.customer_contact_number || payment?.customer_details?.customer_phone || "0000000000";
@@ -667,12 +667,12 @@ const verifyCustomerPayment = async (req, res) => {
     const vendorSegments = (finalOrder.vendor_segments && finalOrder.vendor_segments.length > 0)
       ? finalOrder.vendor_segments
       : [{
-          vendor_id: vendor_id,
-          service_id: service_id,
-          vendor_name: vendorDoc?.vendor_name || "Vendor",
-          paymentDetails: finalOrder.paymentDetails,
-          paymentBreakdowns: finalOrder.paymentBreakdowns
-        }];
+        vendor_id: vendor_id,
+        service_id: service_id,
+        vendor_name: vendorDoc?.vendor_name || "Vendor",
+        paymentDetails: finalOrder.paymentDetails,
+        paymentBreakdowns: finalOrder.paymentBreakdowns
+      }];
 
 
     console.log(`[VerifyPayment] Distributing payout across ${vendorSegments.length} segment(s) for milestone: ${payment_type}`);
@@ -684,18 +684,18 @@ const verifyCustomerPayment = async (req, res) => {
       for (const sb of selected_breakdowns) {
         const sid = sb.service_id;
         if (!selectedPayoutsMap.has(sid)) selectedPayoutsMap.set(sid, 0);
-        
+
         // Find the segment and its breakdown to get the accurate net payout
         const matchSeg = vendorSegments.find(s => s.service_id === sid);
         const matchBreakdown = matchSeg?.paymentBreakdowns?.find(b => b.name === sb.name);
-        
+
         let netBreakdownAmount = sb.amount;
         if (matchBreakdown) {
-           const base = Number(matchBreakdown.vendor_base_amount || matchBreakdown.amount || 0);
-           const comm = Number(matchBreakdown.vendor_commission || 0);
-           netBreakdownAmount = Math.max(0, base - comm);
+          const base = Number(matchBreakdown.vendor_base_amount || matchBreakdown.amount || 0);
+          const comm = Number(matchBreakdown.vendor_commission || 0);
+          netBreakdownAmount = Math.max(0, base - comm);
         }
-        
+
         selectedPayoutsMap.set(sid, selectedPayoutsMap.get(sid) + netBreakdownAmount);
       }
     }
@@ -706,7 +706,7 @@ const verifyCustomerPayment = async (req, res) => {
       const segVendorName = segment.vendor_name || "Vendor";
 
       const segReceivable = Number(segment.paymentDetails?.vendorReceivable?.total ?? 0);
-      
+
       const segPreviousPayouts = await Transaction.find({
         quotation_id: quotation_id,
         service_id: segServiceId,
@@ -774,7 +774,7 @@ const verifyCustomerPayment = async (req, res) => {
         } catch (e) {
           if (e?.response?.status === 404) {
             try {
-              const inst = segHasBank 
+              const inst = segHasBank
                 ? { bank_account_number: segBank.account_number, bank_ifsc: segBank.ifsc }
                 : { vpa: segBank.upi_id };
               await axios.post(`${pBase}/beneficiary`, {
@@ -796,7 +796,7 @@ const verifyCustomerPayment = async (req, res) => {
       }
 
       const segTransferId = generateUniqueId("TRN");
-      
+
       // 1. Transaction INIT record
       await Transaction.create({
         quotation_id,
@@ -827,16 +827,17 @@ const verifyCustomerPayment = async (req, res) => {
             beneficiary_details: { beneficiary_id: segBeneficiaryId },
             transfer_mode: segPayoutMode
           }, { headers: pHeaders });
-          
+
           const tData = tResp?.data || {};
           await Transaction.findOneAndUpdate(
             { transfer_id: segTransferId },
-            { $set: { 
+            {
+              $set: {
                 cf_transfer_id: tData.cf_transfer_id || null,
                 status: tData.status || "SUCCESS",
                 transfer_utr: tData.transfer_utr || null,
                 updated_on: new Date()
-              } 
+              }
             }
           );
           console.log(`[VerifyPayment] Payout initiated for ${segServiceId}: ${segPayoutAmount}`);
@@ -868,10 +869,10 @@ const verifyCustomerPayment = async (req, res) => {
     console.log(`[VerifyPayment] Updating order ${internalOrderId} with transactionId: ${order_id}`);
     const updatedOrder = await Order.findOneAndUpdate(
       { order_id: internalOrderId },
-      { 
-        $set: { 
+      {
+        $set: {
           paymentDetails: paymentDetailsUpdate
-        } 
+        }
       },
       { new: true }
     );
@@ -882,44 +883,44 @@ const verifyCustomerPayment = async (req, res) => {
       console.log(`[VerifyPayment] Updating granular breakdowns based on selected_breakdowns array.`);
       const orderDocForSave = await Order.findOne({ order_id: internalOrderId });
       if (orderDocForSave && orderDocForSave.vendor_segments) {
-         for (const sb of selected_breakdowns) {
-            const seg = orderDocForSave.vendor_segments.find(s => s.service_id === sb.service_id);
-            if (seg && seg.paymentBreakdowns) {
-               const bk = seg.paymentBreakdowns.find(b => b.name === sb.name);
-               if (bk) {
-                  bk.status = "Paid";
-                  bk.paid_at = new Date();
-                  bk.transaction_id = order_id;
-                  bk.payout_status = "Processing"; 
-               }
+        for (const sb of selected_breakdowns) {
+          const seg = orderDocForSave.vendor_segments.find(s => s.service_id === sb.service_id);
+          if (seg && seg.paymentBreakdowns) {
+            const bk = seg.paymentBreakdowns.find(b => b.name === sb.name);
+            if (bk) {
+              bk.status = "Paid";
+              bk.paid_at = new Date();
+              bk.transaction_id = order_id;
+              bk.payout_status = "Processing";
             }
-         }
-         if (orderDocForSave.paymentBreakdowns) {
-            for (const sb of selected_breakdowns) {
-               const bk = orderDocForSave.paymentBreakdowns.find(b => b.name === sb.name);
-               if (bk && bk.status !== "Paid") {
-                  bk.status = "Paid";
-                  bk.paid_at = new Date();
-                  bk.transaction_id = order_id;
-               }
+          }
+        }
+        if (orderDocForSave.paymentBreakdowns) {
+          for (const sb of selected_breakdowns) {
+            const bk = orderDocForSave.paymentBreakdowns.find(b => b.name === sb.name);
+            if (bk && bk.status !== "Paid") {
+              bk.status = "Paid";
+              bk.paid_at = new Date();
+              bk.transaction_id = order_id;
             }
-         }
-         await orderDocForSave.save();
+          }
+        }
+        await orderDocForSave.save();
       }
     } else if (payment_type && payment_type !== "full" && payment_type !== "remaining") {
       await Order.findOneAndUpdate(
         { order_id: internalOrderId },
         {
-          $set: { 
+          $set: {
             "paymentBreakdowns.$[elem].status": "Paid",
             "paymentBreakdowns.$[elem].paid_at": new Date(),
             "vendor_segments.$[].paymentBreakdowns.$[elem].status": "Paid",
             "vendor_segments.$[].paymentBreakdowns.$[elem].paid_at": new Date()
           },
         },
-        { 
+        {
           arrayFilters: [{ "elem.name": payment_type }],
-          new: true 
+          new: true
         }
       );
       console.log(`[VerifyPayment] Marked breakdown "${payment_type}" as Paid for order ${internalOrderId} and all segments`);
@@ -933,7 +934,7 @@ const verifyCustomerPayment = async (req, res) => {
             "paymentBreakdowns.$[].paid_at": new Date(),
             "vendor_segments.$[].paymentBreakdowns.$[].status": "Paid",
             "vendor_segments.$[].paymentBreakdowns.$[].paid_at": new Date()
-          } 
+          }
         }
       );
     }
@@ -1116,8 +1117,8 @@ const verifyCustomerPayment = async (req, res) => {
         updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[b].status"] = "Paid";
         updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[b].paid_at"] = new Date();
         updateOptions.arrayFilters = [
-           { "seg": { $exists: true } }, 
-           { "b": { $exists: true } }
+          { "seg": { $exists: true } },
+          { "b": { $exists: true } }
         ];
       } else if (payment_type) {
         updateData.$set["payment_breakdowns.$[elem].status"] = "Paid";
@@ -1125,12 +1126,27 @@ const verifyCustomerPayment = async (req, res) => {
         updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].status"] = "Paid";
         updateData.$set["vendor_segments.$[seg].paymentBreakdowns.$[elem].paid_at"] = new Date();
         updateOptions.arrayFilters = [
-           { "elem.name": payment_type },
-           { "seg": { $exists: true } }
+          { "elem.name": payment_type },
+          { "seg": { $exists: true } }
         ];
       }
 
       await Events.findOneAndUpdate({ event_id }, updateData, updateOptions);
+
+      // Also ensure the FinalOrder gets the coupon details so Admin Panel hydration doesn't wipe them
+      if (couponCode || breakdownDiscount || couponDiscount) {
+        await Order.findOneAndUpdate(
+          { order_id: internalOrderId },
+          {
+            $set: {
+              "paymentDetails.customerPayable.couponCode": couponCode || existingEvent.payment_details?.customerPayable?.couponCode || null,
+              "paymentDetails.customerPayable.couponDiscount": N(couponDiscount) || N(existingEvent.payment_details?.customerPayable?.couponDiscount || 0),
+              "paymentDetails.customerPayable.breakdownDiscount": N(breakdownDiscount) || N(existingEvent.payment_details?.customerPayable?.breakdownDiscount || 0),
+              "paymentDetails.customerPayable.discountAmount": N(couponDiscount) + N(breakdownDiscount) || N(existingEvent.payment_details?.customerPayable?.discountAmount || 0)
+            }
+          }
+        );
+      }
 
       // Also silently mark 0-amount Token as Paid unconditionally for Event
       await Events.updateMany(
@@ -1213,15 +1229,15 @@ const verifyCustomerPayment = async (req, res) => {
           return b;
         }),
         vendor_segments: (finalOrder?.vendor_segments || []).map(seg => {
-            const updatedBreakdowns = (seg.paymentBreakdowns || []).map(b => {
-                const isMatching = payment_type === "full" || payment_type === "remaining" || (b.name && b.name === payment_type);
-                const isZeroToken = (b.name && b.name.toLowerCase().includes("token") && Number(b.amount) === 0);
-                if (isMatching || isZeroToken) {
-                    return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
-                }
-                return b;
-            });
-            return { ...seg, paymentBreakdowns: updatedBreakdowns };
+          const updatedBreakdowns = (seg.paymentBreakdowns || []).map(b => {
+            const isMatching = payment_type === "full" || payment_type === "remaining" || (b.name && b.name === payment_type);
+            const isZeroToken = (b.name && b.name.toLowerCase().includes("token") && Number(b.amount) === 0);
+            if (isMatching || isZeroToken) {
+              return { ...(b.toObject ? b.toObject() : b), status: "Paid" };
+            }
+            return b;
+          });
+          return { ...seg, paymentBreakdowns: updatedBreakdowns };
         }),
         order_id: internalOrderId,
       });
@@ -1229,12 +1245,20 @@ const verifyCustomerPayment = async (req, res) => {
       await preBooking.save();
       console.log(`[VerifyPayment] Event ${event_id} successfully created.`);
 
-      // Link the new event back to the original order
+      // Link the new event back to the original order and sync coupon details
+      const orderUpdates = { event_id: event_id };
+      if (couponCode || breakdownDiscount || couponDiscount) {
+        orderUpdates["paymentDetails.customerPayable.couponCode"] = couponCode || finalOrder?.paymentDetails?.customerPayable?.couponCode || null;
+        orderUpdates["paymentDetails.customerPayable.couponDiscount"] = N(couponDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.couponDiscount);
+        orderUpdates["paymentDetails.customerPayable.breakdownDiscount"] = N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.breakdownDiscount);
+        orderUpdates["paymentDetails.customerPayable.discountAmount"] = N(couponDiscount) + N(breakdownDiscount) || N(finalOrder?.paymentDetails?.customerPayable?.discountAmount);
+      }
+
       await Order.findOneAndUpdate(
         { order_id: internalOrderId },
-        { $set: { event_id: event_id } }
+        { $set: orderUpdates }
       );
-      console.log(`[VerifyPayment] Order ${internalOrderId} updated with event_id: ${event_id}`);
+      console.log(`[VerifyPayment] Order ${internalOrderId} updated with event_id: ${event_id} and coupon sync`);
 
       // Send Slack notification for new booking
       const { sendSlackBookingMessage } = await import("../utils/slackNotifier.js");

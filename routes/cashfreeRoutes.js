@@ -13,10 +13,19 @@ const cashfreeRoutes = (io) => {
   router.post("/create-order", cashfreeController.createOrder);
   router.post("/verify-payment", cashfreeController.verifyPayment);
   router.post("/generate-invoice", cashfreeController.sendInvoice);
-  router.get("/payment-session/:order_id", cashfreeController.getPaymentSession);
+  router.get(
+    "/payment-session/:order_id",
+    cashfreeController.getPaymentSession,
+  );
   router.post("/webhook", cashfreeController.handleWebhook);
-  router.post("/verify-customer-payment", cashfreeController.verifyCustomerPayment);
-  router.post("/get-payment-by-order-id", cashfreeController.getPaymentByOrderId);
+  router.post(
+    "/verify-customer-payment",
+    cashfreeController.verifyCustomerPayment,
+  );
+  router.post(
+    "/get-payment-by-order-id",
+    cashfreeController.getPaymentByOrderId,
+  );
 
   return router;
 };

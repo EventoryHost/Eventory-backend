@@ -30,7 +30,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
 
     await MakeupArtist.findOneAndUpdate(
       { service_id: artistId },
-      { "basic_details.is_completed": basicDetailsComplete }
+      { "basic_details.is_completed": basicDetailsComplete },
     );
 
     // Check if service_details are complete
@@ -45,7 +45,7 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     console.log(`Service details check: ----- ${serviceDetailsComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { service_id: artistId },
-      { "service_details.is_completed": serviceDetailsComplete }
+      { "service_details.is_completed": serviceDetailsComplete },
     );
 
     // Check if additional details are complete
@@ -57,12 +57,12 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
       !!artist.additional_details.min_booking_period &&
       !!artist.additional_details.max_booking_period &&
       !!artist.additional_details.prices_starts_from;
-      // Note: ig_socials_link and web_social_link are OPTIONAL fields
+    // Note: ig_socials_link and web_social_link are OPTIONAL fields
 
     console.log(`Additional details check: ----- ${additionalDetailsComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { service_id: artistId },
-      { "additional_details.is_completed": additionalDetailsComplete }
+      { "additional_details.is_completed": additionalDetailsComplete },
     );
 
     // Check if policies are complete
@@ -73,23 +73,25 @@ export const checkMakeupArtistProfileCompletion = async (artistId) => {
     console.log(`Policies check: ----- ${policiesComplete}`);
     await MakeupArtist.findOneAndUpdate(
       { service_id: artistId },
-      { "policies.is_completed": policiesComplete }
+      { "policies.is_completed": policiesComplete },
     );
 
     // Calculate overall profile completion score
     const totalSections = 4; // basic, service, additional, policies
     let completedSections = 0;
-    
+
     if (basicDetailsComplete) completedSections++;
     if (serviceDetailsComplete) completedSections++;
     if (additionalDetailsComplete) completedSections++;
     if (policiesComplete) completedSections++;
-    
-    const profileCompletionScore = Math.round((completedSections / totalSections) * 100);
-    
+
+    const profileCompletionScore = Math.round(
+      (completedSections / totalSections) * 100,
+    );
+
     await MakeupArtist.findOneAndUpdate(
       { service_id: artistId },
-      { profile_completion_score: profileCompletionScore }
+      { profile_completion_score: profileCompletionScore },
     );
 
     console.log(`Overall profile completion score: ${profileCompletionScore}%`);

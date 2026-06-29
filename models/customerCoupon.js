@@ -22,7 +22,6 @@ const customerCouponSchema = new Schema(
     discount_percentage: {
       type: Number,
       required: true,
-      enum: [25, 50, 100],
     },
     is_active: {
       type: Boolean,
@@ -73,14 +72,16 @@ customerCouponSchema.pre("save", function (next) {
   next();
 });
 
-customerCouponSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function (next) {
-  this.set({ coupon_updated_at: new Date() });
-  next();
-});
+customerCouponSchema.pre(
+  ["findOneAndUpdate", "updateOne", "updateMany"],
+  function (next) {
+    this.set({ coupon_updated_at: new Date() });
+    next();
+  },
+);
 
 const CustomerCoupon =
   mongoose.models.CustomerCoupon ||
   mongoose.model("CustomerCoupon", customerCouponSchema, "customer-coupons");
 
 export { CustomerCoupon, customerCouponUsageSchema };
-

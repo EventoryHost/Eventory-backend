@@ -3,7 +3,7 @@ import { Vendor } from "../models/vendor.js";
 import { Caterer } from "../models/caterer.js";
 import { Decorator } from "../models/decorator.js";
 import Photographer from "../models/photographerVideographer.js";
-import  VenueProvider  from "../models/venueProvider.js";
+import VenueProvider from "../models/venueProvider.js";
 import MakeupArtist from "../models/makeupArtist.js";
 import DjArtist from "../models/djArtist.js";
 import {
@@ -13,7 +13,6 @@ import {
   serviceFields,
   addVendorInvoice,
   deleteServiceProfile,
-
 } from "../controllers/vendorEditController.js";
 
 const router = express.Router();
@@ -29,7 +28,7 @@ router.put("/updateService/:serId", updateServiceDetails);
 
 // 🛑 4. API endpoint to delete a service profile
 // example call http://localhost:4000/api/vendor-edit/delete-service/CAT17102025213247194
-router.delete("/delete-service/:service_id", deleteServiceProfile); 
+router.delete("/delete-service/:service_id", deleteServiceProfile);
 
 // 5. Get service fields
 router.post("/add-vendor-invoice", addVendorInvoice);

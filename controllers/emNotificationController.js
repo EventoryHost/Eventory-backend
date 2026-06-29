@@ -9,7 +9,9 @@ export const getEMNotifications = async (req, res) => {
       return res.status(400).json({ message: "EM ID is required" });
     }
 
-    const notifications = await adminNotification.find({ em_id }).sort({ updated_at: -1 });
+    const notifications = await adminNotification
+      .find({ em_id })
+      .sort({ updated_at: -1 });
 
     const unreadCount = await adminNotification.countDocuments({
       em_id,
@@ -42,7 +44,7 @@ export const markEMNotificationAsRead = async (req, res) => {
     const updated = await adminNotification.findByIdAndUpdate(
       notificationId,
       { read: true },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
@@ -57,7 +59,10 @@ export const markEMNotificationAsRead = async (req, res) => {
     console.error("❌ Error marking EM notification as read:", error);
     return res
       .status(500)
-      .json({ message: "Failed to mark notification as read", error: error.message });
+      .json({
+        message: "Failed to mark notification as read",
+        error: error.message,
+      });
   }
 };
 
@@ -72,7 +77,7 @@ export const markAllEMNotificationsAsRead = async (req, res) => {
 
     const updated = await adminNotification.updateMany(
       { em_id, read: false },
-      { read: true }
+      { read: true },
     );
 
     return res.status(200).json({
@@ -83,6 +88,9 @@ export const markAllEMNotificationsAsRead = async (req, res) => {
     console.error("❌ Error marking all EM notifications as read:", error);
     return res
       .status(500)
-      .json({ message: "Failed to mark notifications as read", error: error.message });
+      .json({
+        message: "Failed to mark notifications as read",
+        error: error.message,
+      });
   }
 };

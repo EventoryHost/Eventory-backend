@@ -1,5 +1,5 @@
 body {
-  font-family: 'Noto Sans', Arial, sans-serif;
+  font-family: "Noto Sans", Arial, sans-serif;
   margin: 0;
   padding: 0;
   background: #f5f5f5;
@@ -69,11 +69,13 @@ header {
   line-height: 1.4;
 }
 
-.payment-info, .invoice-info {
+.payment-info,
+.invoice-info {
   margin-bottom: 15px;
 }
 
-.payment-info p, .invoice-info p {
+.payment-info p,
+.invoice-info p {
   margin: 3px 0;
   line-height: 1.3;
 }

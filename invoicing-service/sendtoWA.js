@@ -1,6 +1,10 @@
 import axios from "axios";
 
-export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor") {
+export async function sendInvoiceToWhatsApp(
+  link,
+  mobile,
+  vendorName = "Vendor",
+) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v22.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -45,7 +49,7 @@ export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor")
           ],
         },
       },
-      { headers }
+      { headers },
     );
 
     const secondMessageResponse = await axios.post(
@@ -61,21 +65,28 @@ export async function sendInvoiceToWhatsApp(link, mobile, vendorName = "Vendor")
           },
         },
       },
-      { headers }
+      { headers },
     );
 
     return {
       firstMessage: messageResponse.data,
       secondMessage: secondMessageResponse.data,
-    }
+    };
   } catch (error) {
-    console.error("Error sending invoice:", error.response?.data || error.message);
+    console.error(
+      "Error sending invoice:",
+      error.response?.data || error.message,
+    );
     throw error;
   }
 }
 
-export async function sendVendorEventBookingMessage(invoice_link, filename, vendor_mobile, date) {
-
+export async function sendVendorEventBookingMessage(
+  invoice_link,
+  filename,
+  vendor_mobile,
+  date,
+) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v23.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -100,31 +111,37 @@ export async function sendVendorEventBookingMessage(invoice_link, filename, vend
             {
               type: "header",
               parameters: [
-                { type: "document", document: { link: invoice_link, filename: filename } },
+                {
+                  type: "document",
+                  document: { link: invoice_link, filename: filename },
+                },
               ],
             },
             {
-
               type: "body",
-              parameters: [
-                { type: "text", text: date },
-              ],
+              parameters: [{ type: "text", text: date }],
             },
           ],
         },
       },
-      { headers }
+      { headers },
     );
 
     return messageResponse.data;
   } catch (error) {
-    console.error("Error sending vendor event booking message:", error.response?.data || error.message);
+    console.error(
+      "Error sending vendor event booking message:",
+      error.response?.data || error.message,
+    );
     throw error;
   }
 }
 
-export async function sendCustomerEventBookingMessage(invoice_link, customer_mobile, date) {
-
+export async function sendCustomerEventBookingMessage(
+  invoice_link,
+  customer_mobile,
+  date,
+) {
   const WHATSAPP_API_URL = `https://graph.facebook.com/v23.0/${process.env.WA_PHONE_NUMBER_ID}/messages`;
 
   const headers = {
@@ -159,22 +176,24 @@ export async function sendCustomerEventBookingMessage(invoice_link, customer_mob
               ],
             },
             {
-
               type: "body",
-              parameters: [
-                { type: "text", text: date },
-              ],
+              parameters: [{ type: "text", text: date }],
             },
           ],
         },
       },
-      { headers }
+      { headers },
     );
 
-
-    console.log("Customer event booking message sent successfully", messageResponse.data);
+    console.log(
+      "Customer event booking message sent successfully",
+      messageResponse.data,
+    );
   } catch (error) {
-    console.error("Error sending customer event booking message:", error.response?.data || error.message);
+    console.error(
+      "Error sending customer event booking message:",
+      error.response?.data || error.message,
+    );
 
     throw error;
   }

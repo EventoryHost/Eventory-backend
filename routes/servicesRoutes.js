@@ -6,7 +6,7 @@ import {
   getServiceByServiceId,
   getVendorLimit,
   handleSearch,
-  updateScheduleColor
+  updateScheduleColor,
 } from "../controllers/servicesController.js";
 
 const serviceRouter = Router();
@@ -222,8 +222,14 @@ serviceRouter.post("/review", addReviews);
  *         description: Missing or invalid query
  */
 serviceRouter.get("/search", handleSearch);
-serviceRouter.get("/get-service/:service_type/:service_id", getServiceByServiceId);
+serviceRouter.get(
+  "/get-service/:service_type/:service_id",
+  getServiceByServiceId,
+);
 
-//to be done 
-serviceRouter.put("/update-schedule-color/:serviceId/:eventId", updateScheduleColor);
+//to be done
+serviceRouter.put(
+  "/update-schedule-color/:serviceId/:eventId",
+  updateScheduleColor,
+);
 export default serviceRouter;

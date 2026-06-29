@@ -9,7 +9,9 @@ export const getVendorNotifications = async (req, res) => {
       return res.status(400).json({ message: "Vendor ID is required" });
     }
 
-    const notifications = await vendorNotification.find({ vendor_id }).sort({ updated_at: -1 });
+    const notifications = await vendorNotification
+      .find({ vendor_id })
+      .sort({ updated_at: -1 });
 
     const unreadCount = await vendorNotification.countDocuments({
       vendor_id,
@@ -35,15 +37,19 @@ export const getVendorNotificationsByService = async (req, res) => {
 
   try {
     if (!vendor_id || !service_id) {
-      return res.status(400).json({ message: "Vendor ID and Service ID are required" });
+      return res
+        .status(400)
+        .json({ message: "Vendor ID and Service ID are required" });
     }
 
     console.log("Vendor ID and Service ID received:", vendor_id, service_id);
 
-    const notifications = await vendorNotification.find({
-      vendor_id,
-      service_id,
-    }).sort({ updated_at: -1 });
+    const notifications = await vendorNotification
+      .find({
+        vendor_id,
+        service_id,
+      })
+      .sort({ updated_at: -1 });
 
     const unreadCount = await vendorNotification.countDocuments({
       vendor_id,
@@ -64,7 +70,6 @@ export const getVendorNotificationsByService = async (req, res) => {
   }
 };
 
-
 // ---------------------- MARK VENDOR NOTIFICATION AS READ ----------------------
 export const markVendorNotificationAsRead = async (req, res) => {
   const { notificationId } = req.params;
@@ -77,7 +82,7 @@ export const markVendorNotificationAsRead = async (req, res) => {
     const updated = await vendorNotification.findByIdAndUpdate(
       notificationId,
       { read: true },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
@@ -92,7 +97,10 @@ export const markVendorNotificationAsRead = async (req, res) => {
     console.error("❌ Error marking vendor notification as read:", error);
     return res
       .status(500)
-      .json({ message: "Failed to mark notification as read", error: error.message });
+      .json({
+        message: "Failed to mark notification as read",
+        error: error.message,
+      });
   }
 };
 
@@ -107,7 +115,7 @@ export const markAllVendorNotificationsAsRead = async (req, res) => {
 
     const updated = await vendorNotification.updateMany(
       { vendor_id, read: false },
-      { read: true }
+      { read: true },
     );
 
     return res.status(200).json({
@@ -118,6 +126,9 @@ export const markAllVendorNotificationsAsRead = async (req, res) => {
     console.error("❌ Error marking all vendor notifications as read:", error);
     return res
       .status(500)
-      .json({ message: "Failed to mark notifications as read", error: error.message });
+      .json({
+        message: "Failed to mark notifications as read",
+        error: error.message,
+      });
   }
 };

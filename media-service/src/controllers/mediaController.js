@@ -1,11 +1,16 @@
 import path from "path";
-import { compressImage, compressVideo } from "../services/compressionService.js";
+import {
+  compressImage,
+  compressVideo,
+} from "../services/compressionService.js";
 import { uploadToS3 } from "../services/s3Service.js";
 
 export const uploadMedia = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, error: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, error: "No file uploaded" });
     }
 
     const { serviceType, vendorId } = req.body;
@@ -14,7 +19,7 @@ export const uploadMedia = async (req, res) => {
       file: {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
-        size: req.file.size
+        size: req.file.size,
       },
       serviceType,
       vendorId,
@@ -56,7 +61,7 @@ export const uploadMedia = async (req, res) => {
       previewBuffer,
       serviceType,
       vendorId,
-      originalFile: req.file
+      originalFile: req.file,
     });
 
     res.json({

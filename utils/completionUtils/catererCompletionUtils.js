@@ -4,7 +4,7 @@ import { Caterer } from "../../models/caterer.js";
 export const checkCatererProfileCompletion = async (catererId) => {
   try {
     console.log(
-      `Checking profile completion for caterer with ID: ${catererId}`
+      `Checking profile completion for caterer with ID: ${catererId}`,
     );
 
     const caterer = await Caterer.findOne({ service_id: catererId });
@@ -32,7 +32,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { service_id: catererId },
       {
         "basic_details.is_completed": basicDetailsComplete,
-      }
+      },
     );
     // Check if menu details are complete
     console.log("Checking Event details...");
@@ -57,7 +57,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { service_id: catererId },
       {
         "event_details.is_completed": eventDetailsComplete,
-      }
+      },
     );
 
     // Check if additional details are complete
@@ -81,7 +81,7 @@ export const checkCatererProfileCompletion = async (catererId) => {
       { service_id: catererId },
       {
         "additional_details.is_completed": additionalDetailsComplete,
-      }
+      },
     );
 
     // Check if termsAndConditions is filled (Ensure it's a URL or any non-empty string)
@@ -109,15 +109,15 @@ export const checkCatererProfileCompletion = async (catererId) => {
     console.log(`Cancellation Policy Complete: ${cancellationComplete}`);
 
     // If all of the fields are filled, mark policies as completed
-    if (termsComplete  && cancellationComplete) {
+    if (termsComplete && cancellationComplete) {
       await Caterer.findOneAndUpdate(
         { service_id: catererId },
-        { "policies.is_completed": true }
+        { "policies.is_completed": true },
       );
     }
 
     console.log(
-      `Profile completion check completed for caterer with ID: ${catererId}`
+      `Profile completion check completed for caterer with ID: ${catererId}`,
     );
     return true;
   } catch (error) {

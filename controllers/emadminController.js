@@ -22,8 +22,8 @@ export const authenticateEMAdmin = async (req, res) => {
 
   try {
     // 1️⃣ Find user by username (case-insensitive)
-    const user = await EventManager.findOne({ 
-      user_name: { $regex: new RegExp(`^${user_name}$`, 'i') } 
+    const user = await EventManager.findOne({
+      user_name: { $regex: new RegExp(`^${user_name}$`, "i") },
     });
 
     if (!user) {
@@ -51,7 +51,7 @@ export const authenticateEMAdmin = async (req, res) => {
         contact_name: user.contact_name,
         role: "rmadmin",
       },
-      JWT_SECRET
+      JWT_SECRET,
     );
 
     // 4️⃣ Return token + user info
@@ -91,10 +91,12 @@ export const authenticateSalesAdmin = async (req, res) => {
     // 0️⃣ Check if SalesExecutive collection is empty and create default user if so
     const count = await SalesExecutive.countDocuments();
     if (count === 0) {
-      console.log("SalesExecutive collection is empty. Creating default user...");
+      console.log(
+        "SalesExecutive collection is empty. Creating default user...",
+      );
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash("sales", salt);
-      
+
       await SalesExecutive.create({
         user_name: "sales",
         password: hashedPassword,
@@ -132,7 +134,7 @@ export const authenticateSalesAdmin = async (req, res) => {
         contact_name: user.contact_name,
         role: "sales_admin",
       },
-      JWT_SECRET
+      JWT_SECRET,
     );
 
     // 4️⃣ Return token + user info
@@ -169,16 +171,20 @@ export const authenticateBusinessAdmin = async (req, res) => {
 
   try {
     const user = await BusinessAdmin.findOne({
-      user_name: { $regex: new RegExp(`^${user_name}$`, 'i') }
+      user_name: { $regex: new RegExp(`^${user_name}$`, "i") },
     });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // Plain-text comparison
     if (user.password !== password) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     const token = jwt.sign(
@@ -188,7 +194,7 @@ export const authenticateBusinessAdmin = async (req, res) => {
         contact_name: user.contact_name,
         role: "business",
       },
-      JWT_SECRET
+      JWT_SECRET,
     );
 
     return res.status(200).json({
@@ -204,7 +210,9 @@ export const authenticateBusinessAdmin = async (req, res) => {
     });
   } catch (err) {
     console.error("Business Admin Auth error:", err);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -252,7 +260,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
   try {
     await EMNotifications.updateMany(
       { em_id: em_id, read: false },
-      { $set: { read: true } }
+      { $set: { read: true } },
     );
 
     return res.status(200).json({ success: true, message: "Marked as read" });
@@ -269,12 +277,16 @@ export const getEMProfile = async (req, res) => {
   try {
     const { em_id } = req.params;
     if (!em_id) {
-      return res.status(400).json({ success: false, message: "em_id required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "em_id required" });
     }
 
     const profile = await EventManager.findOne({ em_id }).select("-password");
     if (!profile) {
-      return res.status(404).json({ success: false, message: "Profile not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
     }
 
     return res.status(200).json({
@@ -299,7 +311,9 @@ export const updateEMProfile = async (req, res) => {
     const updates = req.body;
 
     if (!em_id) {
-      return res.status(400).json({ success: false, message: "em_id required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "em_id required" });
     }
 
     // Prevent password or em_id modification
@@ -309,11 +323,13 @@ export const updateEMProfile = async (req, res) => {
     const updatedProfile = await EventManager.findOneAndUpdate(
       { em_id },
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("-password");
 
     if (!updatedProfile) {
-      return res.status(404).json({ success: false, message: "Profile not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
     }
 
     return res.status(200).json({
@@ -329,4 +345,3 @@ export const updateEMProfile = async (req, res) => {
     });
   }
 };
-

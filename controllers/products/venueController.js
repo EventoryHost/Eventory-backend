@@ -25,28 +25,38 @@ export function normalizePhotos(input) {
   if (typeof input === "string") {
     const s = input.trim();
     if (s.startsWith("[") || s.startsWith("{")) {
-      try { return normalizePhotos(JSON.parse(s)); } catch { }
+      try {
+        return normalizePhotos(JSON.parse(s));
+      } catch {}
     }
-    return s.split(",").map(t => t.trim()).filter(Boolean).map(u => ({ original: u, preview: u }));
+    return s
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((u) => ({ original: u, preview: u }));
   }
   if (Array.isArray(input)) {
-    return input.map((it) => {
-      if (!it) return null;
-      if (typeof it === "string") return { original: it, preview: it };
-      const unwrap = (v) => {
-        if (typeof v === "string" && v.trim().startsWith("[")) {
-          try {
-            const arr = JSON.parse(v);
-            const first = Array.isArray(arr) ? arr[0] : arr;
-            return first?.original || first?.preview || "";
-          } catch { return v; }
-        }
-        return v;
-      };
-      const original = unwrap(it.original) || unwrap(it.url) || "";
-      const preview = unwrap(it.preview) || original;
-      return original ? { original, preview } : null;
-    }).filter(Boolean);
+    return input
+      .map((it) => {
+        if (!it) return null;
+        if (typeof it === "string") return { original: it, preview: it };
+        const unwrap = (v) => {
+          if (typeof v === "string" && v.trim().startsWith("[")) {
+            try {
+              const arr = JSON.parse(v);
+              const first = Array.isArray(arr) ? arr[0] : arr;
+              return first?.original || first?.preview || "";
+            } catch {
+              return v;
+            }
+          }
+          return v;
+        };
+        const original = unwrap(it.original) || unwrap(it.url) || "";
+        const preview = unwrap(it.preview) || original;
+        return original ? { original, preview } : null;
+      })
+      .filter(Boolean);
   }
   return [];
 }
@@ -54,11 +64,16 @@ export function normalizePhotos(input) {
 export function normalizeVideos(input) {
   if (!input) return [];
   if (typeof input === "string") {
-    try { return normalizeVideos(JSON.parse(input)); } catch {
-      return input.split(",").map(s => s.trim()).filter(Boolean);
+    try {
+      return normalizeVideos(JSON.parse(input));
+    } catch {
+      return input
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
   }
-  if (Array.isArray(input)) return input.map(v => String(v)).filter(Boolean);
+  if (Array.isArray(input)) return input.map((v) => String(v)).filter(Boolean);
   return [];
 }
 
@@ -88,12 +103,14 @@ const updateSectionCompletion = async (venId) => {
       throw new Error("Venue not found");
     }
 
-    venue.basic_details.is_completed = checkCompletion(venue.basic_details || {});
+    venue.basic_details.is_completed = checkCompletion(
+      venue.basic_details || {},
+    );
     venue.feature_details.is_completed = checkCompletion(
-      venue.feature_details || {}
+      venue.feature_details || {},
     );
     venue.additional_details.is_completed = checkCompletion(
-      venue.additional_details || {}
+      venue.additional_details || {},
     );
     venue.policies.is_completed = checkCompletion(venue.policies || {});
 
@@ -107,11 +124,20 @@ const updateSectionCompletion = async (venId) => {
 const normalizeServiceName = (label) => {
   if (!label) return label;
   const s = String(label).trim().toLowerCase();
-  if (["venue provider", "venue-provider", "venueprovider"].includes(s)) return "Venue Provider";
-  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s)) return "Makeup-Artist";
+  if (["venue provider", "venue-provider", "venueprovider"].includes(s))
+    return "Venue Provider";
+  if (["makeup-artist", "makeup artist", "makeupartist"].includes(s))
+    return "Makeup-Artist";
   if (["caterer"].includes(s)) return "Caterer";
   if (["decorator"].includes(s)) return "Decorator";
-  if (["photographer & videographer", "photographer and videographer", "pav"].includes(s)) return "Photographer & Videographer";
+  if (
+    [
+      "photographer & videographer",
+      "photographer and videographer",
+      "pav",
+    ].includes(s)
+  )
+    return "Photographer & Videographer";
   return label;
 };
 
@@ -125,20 +151,27 @@ const createVenue = async (req, res) => {
       vendor_id: req.body.vendor_id,
       point_of_contact: req.body.point_of_contact,
     });
-    if (dup) return res.status(400).json({ message: "Venue already exists for this vendor" });
+    if (dup)
+      return res
+        .status(400)
+        .json({ message: "Venue already exists for this vendor" });
 
     const service_id = generateUniqueId("VNP");
     // Agreements from temp redux model
-    const tempVenueData = await ReduxVenueProviderModel.findOne({ vendor_id: req.body.vendor_id });
+    const tempVenueData = await ReduxVenueProviderModel.findOne({
+      vendor_id: req.body.vendor_id,
+    });
     const agreementUrl = tempVenueData?.agreement_url || null;
     const agreementSignedAt = tempVenueData?.agreement_signed_at || null;
 
     // Normalize media from either top-level or nested additional_details
-    const rawImages = req.body.asset_images ?? req.body.additional_details?.asset_images;
-    const rawVideos = req.body.asset_videos ?? req.body.additional_details?.asset_videos;
+    const rawImages =
+      req.body.asset_images ?? req.body.additional_details?.asset_images;
+    const rawVideos =
+      req.body.asset_videos ?? req.body.additional_details?.asset_videos;
 
-    const asset_images = normalizePhotos(rawImages);   // [{ original, preview }]
-    const asset_videos = normalizeVideos(rawVideos);   // [string]
+    const asset_images = normalizePhotos(rawImages); // [{ original, preview }]
+    const asset_videos = normalizeVideos(rawVideos); // [string]
 
     const fieldsToCheck = [
       req.body.business_name,
@@ -263,15 +296,17 @@ const createVenue = async (req, res) => {
         in_house_decoration: req.body.in_house_decoration,
         venue_types_available: req.body.venue_types_available || [],
         av_eqp_available_at_venue: req.body.av_eqp_available_at_venue || [],
-        accessibility_features_of_venue: req.body.accessibility_features_of_venue || [],
-        restriction_policies_on_venue: req.body.restriction_policies_on_venue || [],
+        accessibility_features_of_venue:
+          req.body.accessibility_features_of_venue || [],
+        restriction_policies_on_venue:
+          req.body.restriction_policies_on_venue || [],
         special_features_in_venue: req.body.special_features_in_venue || [],
         fascilities_at_venue: req.body.fascilities_at_venue || [],
       },
 
       additional_details: {
-        asset_images,                                  // normalized [{original, preview}]
-        asset_videos,                                  // normalized [string]
+        asset_images, // normalized [{original, preview}]
+        asset_videos, // normalized [string]
         min_booking_period: req.body.min_booking_period,
         max_booking_period: req.body.max_booking_period,
         prices_starts_from: req.body.prices_starts_from,
@@ -302,21 +337,33 @@ const createVenue = async (req, res) => {
     const normalizedLabel = normalizeServiceName(serviceTypeLabel);
 
     if (!Array.isArray(vendor.services)) vendor.services = [];
-    if (!vendor.services.includes(savedVenue.service_id)) vendor.services.push(savedVenue.service_id);
+    if (!vendor.services.includes(savedVenue.service_id))
+      vendor.services.push(savedVenue.service_id);
 
     if (!Array.isArray(vendor.service_types)) vendor.service_types = [];
     const idx = vendor.service_types.findIndex(
-      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase()
+      (st) => st?.service_name?.toLowerCase() === normalizedLabel.toLowerCase(),
     );
-    const updatedEntry = { service_name: normalizedLabel, service_status: "Inactive", service_id: savedVenue.service_id };
-    if (idx >= 0) vendor.service_types[idx] = { ...vendor.service_types[idx], ...updatedEntry };
+    const updatedEntry = {
+      service_name: normalizedLabel,
+      service_status: "Inactive",
+      service_id: savedVenue.service_id,
+    };
+    if (idx >= 0)
+      vendor.service_types[idx] = {
+        ...vendor.service_types[idx],
+        ...updatedEntry,
+      };
     else vendor.service_types.push(updatedEntry);
 
     await vendor.save();
     await updateSectionCompletion(savedVenue.vendor_id);
 
     if (process.env.IS_DEV !== "true") {
-      await sendEmailToSlack({ name: savedVenue.basic_details.venue_name, type: savedVenue.service_type });
+      await sendEmailToSlack({
+        name: savedVenue.basic_details.venue_name,
+        type: savedVenue.service_type,
+      });
     }
 
     res.status(201).json(savedVenue);
@@ -335,13 +382,21 @@ export const getAllVenues = async (req, res) => {
     const { exclude_id, exclude } = req.query;
     let excludeIds = [];
     if (Array.isArray(exclude)) excludeIds = exclude;
-    else if (typeof exclude === "string") excludeIds = exclude.split(",").map(s => s.trim()).filter(Boolean);
+    else if (typeof exclude === "string")
+      excludeIds = exclude
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     if (exclude_id) excludeIds.push(String(exclude_id));
 
-    const filter = excludeIds.length ? { service_id: { $nin: excludeIds } } : {};
+    const filter = excludeIds.length
+      ? { service_id: { $nin: excludeIds } }
+      : {};
 
     const [venues, totalvenues] = await Promise.all([
-      page == -1 ? VenueProvider.find(filter) : VenueProvider.find(filter).skip(skip).limit(itemsPerPage),
+      page == -1
+        ? VenueProvider.find(filter)
+        : VenueProvider.find(filter).skip(skip).limit(itemsPerPage),
       VenueProvider.countDocuments(filter),
     ]);
 
@@ -355,7 +410,6 @@ export const getAllVenues = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
-
 
 export const getVenueImages = async (req, res) => {
   try {
@@ -461,7 +515,9 @@ export const addReviews = async (req, res) => {
       await photographer.save();
       res.status(200).json(photographer);
     } else if (type === "propRental") {
-      return res.status(400).json({ message: "Prop rental service is not available" });
+      return res
+        .status(400)
+        .json({ message: "Prop rental service is not available" });
       if (!prop.reviews) {
         prop.reviews = [];
       }
@@ -498,7 +554,9 @@ export const getVenueById = async (req, res) => {
     const { id } = req.params;
 
     // Calculate completion before fetching
-    const { checkVenueProfileCompletion } = await import("../../utils/completionUtils/venueCompletionUtils.js");
+    const { checkVenueProfileCompletion } = await import(
+      "../../utils/completionUtils/venueCompletionUtils.js"
+    );
     try {
       await checkVenueProfileCompletion(id);
     } catch (completionError) {

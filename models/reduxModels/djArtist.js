@@ -30,10 +30,12 @@ const ReduxDjArtistSchema = new mongoose.Schema(
     services_offered: { type: [String] },
 
     // Additional Details (flattened from additional_details)
-    asset_images: [{
-      original: { type: String },
-      preview: { type: String }
-    }],
+    asset_images: [
+      {
+        original: { type: String },
+        preview: { type: String },
+      },
+    ],
     asset_videos: { type: [String] },
     ig_socials_link: { type: String },
     web_social_link: { type: String },
@@ -77,11 +79,12 @@ const ReduxDjArtistSchema = new mongoose.Schema(
     dj_artist_created_at: { type: Date },
     dj_artist_updated_at: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const DjArtistReduxModel =
-  mongoose.models.ReduxDjArtist || mongoose.model("ReduxDjArtist", ReduxDjArtistSchema);
+  mongoose.models.ReduxDjArtist ||
+  mongoose.model("ReduxDjArtist", ReduxDjArtistSchema);
 
 export { DjArtistReduxModel };
 export default DjArtistReduxModel;

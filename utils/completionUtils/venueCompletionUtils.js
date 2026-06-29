@@ -31,7 +31,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
       { service_id: venueId },
       {
         "basic_details.is_completed": basicDetailsComplete,
-      }
+      },
     );
 
     // Check if feature details are complete
@@ -59,7 +59,7 @@ export const checkVenueProfileCompletion = async (venueId) => {
       { service_id: venueId },
       {
         "feature_details.is_completed": featureDetailsComplete,
-      }
+      },
     );
 
     // Check if additional details are complete (social links are optional)
@@ -73,14 +73,14 @@ export const checkVenueProfileCompletion = async (venueId) => {
       !!venue.additional_details.prices_starts_from;
 
     console.log(
-      `Additional details check: ------- ${additionalDetailsComplete}`
+      `Additional details check: ------- ${additionalDetailsComplete}`,
     );
 
     await VenueProvider.findOneAndUpdate(
       { service_id: venueId },
       {
         "additional_details.is_completed": additionalDetailsComplete,
-      }
+      },
     );
 
     // Check if policies are complete
@@ -95,23 +95,25 @@ export const checkVenueProfileCompletion = async (venueId) => {
       { service_id: venueId },
       {
         "policies.is_completed": policiesComplete,
-      }
+      },
     );
 
     // Calculate overall profile completion score
     const totalSections = 4; // basic, feature, additional, policies
     let completedSections = 0;
-    
+
     if (basicDetailsComplete) completedSections++;
     if (featureDetailsComplete) completedSections++;
     if (additionalDetailsComplete) completedSections++;
     if (policiesComplete) completedSections++;
-    
-    const profileCompletionScore = Math.round((completedSections / totalSections) * 100);
-    
+
+    const profileCompletionScore = Math.round(
+      (completedSections / totalSections) * 100,
+    );
+
     await VenueProvider.findOneAndUpdate(
       { service_id: venueId },
-      { profile_completion_score: profileCompletionScore }
+      { profile_completion_score: profileCompletionScore },
     );
 
     console.log(`Overall profile completion score: ${profileCompletionScore}%`);

@@ -106,8 +106,28 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (specificTerms) updateFields.specificTerms = specificTerms;
     if (em_id) updateFields.em_id = em_id;
 
-    // ── MULTI-VENDOR SEGMENT PROCESSING ──
     const vendor_segments = incomingData.vendor_segments;
+    // ── VALIDATE MILESTONES ──
+    if (Array.isArray(vendor_segments) && vendor_segments.length > 0) {
+      for (const seg of vendor_segments) {
+        if (!seg.paymentBreakdowns || seg.paymentBreakdowns.length === 0) {
+          return res.status(400).json({ message: `Segment for vendor ${seg.vendor_name || ''} must have at least one payment milestone.` });
+        }
+        if (!seg.paymentBreakdowns.some(b => b.name === "Final Pay")) {
+          return res.status(400).json({ message: `Segment for vendor ${seg.vendor_name || ''} must have a 'Final Pay' milestone.` });
+        }
+      }
+    } else {
+      // Single vendor mode
+      if (!paymentBreakdowns || paymentBreakdowns.length === 0) {
+        return res.status(400).json({ message: "At least one payment milestone is required." });
+      }
+      if (!paymentBreakdowns.some(b => b.name === "Final Pay")) {
+        return res.status(400).json({ message: "A 'Final Pay' milestone is required." });
+      }
+    }
+
+    // ── MULTI-VENDOR SEGMENT PROCESSING ──
     if (Array.isArray(vendor_segments) && vendor_segments.length > 0) {
       console.log(`📦 Processing ${vendor_segments.length} vendor segment(s)`);
 
@@ -116,21 +136,21 @@ export const createOrUpdateFinalOrder = async (req, res) => {
 
       // 2. Derive compat mirrors from segment[0]
       const s0 = vendor_segments[0];
-      if (!updateFields.vendor_id)          updateFields.vendor_id          = s0.vendor_id;
-      if (!updateFields.service_id)         updateFields.service_id         = s0.service_id;
-      if (!updateFields.vendor_name)        updateFields.vendor_name        = s0.vendor_name;
+      if (!updateFields.vendor_id) updateFields.vendor_id = s0.vendor_id;
+      if (!updateFields.service_id) updateFields.service_id = s0.service_id;
+      if (!updateFields.vendor_name) updateFields.vendor_name = s0.vendor_name;
       if (!updateFields.vendor_manager_name) updateFields.vendor_manager_name = s0.vendor_manager_name;
       if (!updateFields.vendor_manager_contact_number)
         updateFields.vendor_manager_contact_number = s0.vendor_manager_contact_number;
       if (!updateFields.vendor_manager_contact_email)
-        updateFields.vendor_manager_contact_email  = s0.vendor_manager_contact_email;
-      if (!updateFields.event_type)         updateFields.event_type     = s0.event_type;
-      if (!updateFields.event_start)        updateFields.event_start    = s0.event_start;
-      if (!updateFields.event_end)          updateFields.event_end      = s0.event_end;
-      if (!updateFields.event_location)     updateFields.event_location = s0.event_location;
-      if (!updateFields.vendor_location)    updateFields.vendor_location = s0.vendor_location;
-      if (!updateFields.location_type)      updateFields.location_type  = s0.location_type;
-      if (!updateFields.final_guest_count)  updateFields.final_guest_count = s0.final_guest_count;
+        updateFields.vendor_manager_contact_email = s0.vendor_manager_contact_email;
+      if (!updateFields.event_type) updateFields.event_type = s0.event_type;
+      if (!updateFields.event_start) updateFields.event_start = s0.event_start;
+      if (!updateFields.event_end) updateFields.event_end = s0.event_end;
+      if (!updateFields.event_location) updateFields.event_location = s0.event_location;
+      if (!updateFields.vendor_location) updateFields.vendor_location = s0.vendor_location;
+      if (!updateFields.location_type) updateFields.location_type = s0.location_type;
+      if (!updateFields.final_guest_count) updateFields.final_guest_count = s0.final_guest_count;
 
       // 3. Build flat final_order_items (tagged per vendor)
       const flatItems = [];
@@ -138,8 +158,8 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         for (const item of (seg.segment_final_order_items || [])) {
           flatItems.push({
             ...item,
-            vendor_id:   seg.vendor_id,
-            service_id:  seg.service_id,
+            vendor_id: seg.vendor_id,
+            service_id: seg.service_id,
             vendor_name: seg.vendor_name
           });
         }
@@ -158,15 +178,15 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       for (const seg of vendor_segments) {
         const segBreakdowns = seg.paymentBreakdowns || [];
         const validBreakdowns = segBreakdowns.filter(b => b.name !== 'Discount');
-        
+
         const overallCommission = Number(seg.paymentDetails?.vendorReceivable?.commission) || 0;
         const overallTaxOnCommission = Number(seg.paymentDetails?.vendorReceivable?.taxOnCommission) || 0;
         const totalCommission = overallCommission + overallTaxOnCommission;
-        
+
         // Find the last milestone (Final Pay preferred, otherwise the actual last one)
         const finalIdx = validBreakdowns.findIndex(b => b.name === 'Final Pay');
         const lastIdx = finalIdx !== -1 ? finalIdx : validBreakdowns.length - 1;
-        
+
         for (let i = 0; i < validBreakdowns.length; i++) {
           const b = validBreakdowns[i];
           const amt = Number(b.amount) || 0;
@@ -181,7 +201,7 @@ export const createOrUpdateFinalOrder = async (req, res) => {
 
       // 5. Build COMBINED customer payment schedule
       //    Sum amounts for same-name milestones across all segments
-      const milestoneOrder = ['Token','Advance 1','Advance 2','Advance 3','Advance 4','Final Pay','Last Pay','Discount'];
+      const milestoneOrder = ['Token', 'Advance 1', 'Advance 2', 'Advance 3', 'Advance 4', 'Final Pay', 'Last Pay', 'Discount'];
       const milestoneMap = new Map();
       for (const seg of vendor_segments) {
         for (const b of (seg.paymentBreakdowns || [])) {
@@ -199,6 +219,26 @@ export const createOrUpdateFinalOrder = async (req, res) => {
       }
       const mergedBreakdowns = [...milestoneMap.values()]
         .sort((a, b) => milestoneOrder.indexOf(a.name) - milestoneOrder.indexOf(b.name));
+
+      // 5.5 Inject platform margin (Convenience Fee + Taxes) into the Final Pay checkout milestone
+      if (updateFields.paymentDetails && updateFields.paymentDetails.customerPayable) {
+        const cp = updateFields.paymentDetails.customerPayable;
+        const platformCcfShare = (Number(cp.convenienceFee) || 0) + (Number(cp.taxOnConvenience) || 0);
+        const couponDiscount = Number(cp.couponDiscount) || 0;
+
+        if ((platformCcfShare > 0 || couponDiscount > 0) && mergedBreakdowns.length > 0) {
+          let targetIdx = mergedBreakdowns.findIndex(b => b.name === 'Final Pay');
+          if (targetIdx === -1) targetIdx = mergedBreakdowns.length - 1;
+
+          if (platformCcfShare > 0) {
+            mergedBreakdowns[targetIdx].amount += platformCcfShare;
+          }
+          if (couponDiscount > 0) {
+            mergedBreakdowns[targetIdx].amount = Math.max(0, mergedBreakdowns[targetIdx].amount - couponDiscount);
+          }
+        }
+      }
+
       updateFields.paymentBreakdowns = mergedBreakdowns;
 
       // 6. Aggregate vendor receivable total across segments
@@ -803,6 +843,12 @@ export const updateFinalOrder = async (req, res) => {
       updateFields.paymentDetails = paymentDetails;
     }
     if (paymentBreakdowns) {
+      if (paymentBreakdowns.length === 0) {
+        return res.status(400).json({ message: "At least one payment milestone is required." });
+      }
+      if (!paymentBreakdowns.some(b => b.name === "Final Pay")) {
+        return res.status(400).json({ message: "A 'Final Pay' milestone is required." });
+      }
       updateFields.paymentBreakdowns = paymentBreakdowns;
     }
     if (specificTerms) {
