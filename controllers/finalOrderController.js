@@ -106,8 +106,28 @@ export const createOrUpdateFinalOrder = async (req, res) => {
     if (specificTerms) updateFields.specificTerms = specificTerms;
     if (em_id) updateFields.em_id = em_id;
 
-    // ── MULTI-VENDOR SEGMENT PROCESSING ──
     const vendor_segments = incomingData.vendor_segments;
+    // ── VALIDATE MILESTONES ──
+    if (Array.isArray(vendor_segments) && vendor_segments.length > 0) {
+      for (const seg of vendor_segments) {
+        if (!seg.paymentBreakdowns || seg.paymentBreakdowns.length === 0) {
+          return res.status(400).json({ message: `Segment for vendor ${seg.vendor_name || ''} must have at least one payment milestone.` });
+        }
+        if (!seg.paymentBreakdowns.some(b => b.name === "Final Pay")) {
+          return res.status(400).json({ message: `Segment for vendor ${seg.vendor_name || ''} must have a 'Final Pay' milestone.` });
+        }
+      }
+    } else {
+      // Single vendor mode
+      if (!paymentBreakdowns || paymentBreakdowns.length === 0) {
+        return res.status(400).json({ message: "At least one payment milestone is required." });
+      }
+      if (!paymentBreakdowns.some(b => b.name === "Final Pay")) {
+        return res.status(400).json({ message: "A 'Final Pay' milestone is required." });
+      }
+    }
+
+    // ── MULTI-VENDOR SEGMENT PROCESSING ──
     if (Array.isArray(vendor_segments) && vendor_segments.length > 0) {
       console.log(`📦 Processing ${vendor_segments.length} vendor segment(s)`);
 
@@ -823,6 +843,12 @@ export const updateFinalOrder = async (req, res) => {
       updateFields.paymentDetails = paymentDetails;
     }
     if (paymentBreakdowns) {
+      if (paymentBreakdowns.length === 0) {
+        return res.status(400).json({ message: "At least one payment milestone is required." });
+      }
+      if (!paymentBreakdowns.some(b => b.name === "Final Pay")) {
+        return res.status(400).json({ message: "A 'Final Pay' milestone is required." });
+      }
       updateFields.paymentBreakdowns = paymentBreakdowns;
     }
     if (specificTerms) {
