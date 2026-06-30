@@ -451,17 +451,28 @@ export const triggerSlackListAndWebhookNotification = async (
 /**
  * Processes the complete lead data from Interakt, maps the strings to Slack Option IDs,
  * creates a Slack List ticket, and fires the channel webhook notification.
+ *
+ * KEY BEHAVIORS:
+ * - Deduplication: If the same phone number sent a lead within the last 5 minutes,
+ *   we return 200 immediately without creating a new ticket. This prevents Interakt
+ *   retry storms from flooding Slack.
+ * - Graceful webhook: Webhook failure does NOT bubble up as 500 — ticket creation
+ *   is the source of truth.
+ *
  * @param {Object} data - Plain text lead details from Interakt
  */
 export const triggerInteraktSlackIntegration = async (data) => {
+  const LOG = "[INTERAKT_SLACK]";
+
+  console.log(`${LOG} ============================================================`);
+  console.log(`${LOG} Request received at ${new Date().toISOString()}`);
+
   try {
     const token = process.env.SLACK_LISTS_BEARER_TOKEN;
     const webhookUrl = process.env.SLACK_TRIGGER_WEBHOOK_URL;
 
     if (!token || !webhookUrl) {
-      console.warn(
-        "[SLACK_INTEGRATION] Missing SLACK_LISTS_BEARER_TOKEN or SLACK_TRIGGER_WEBHOOK_URL in environment. Skipping.",
-      );
+      console.error(`${LOG} [ABORT] Missing SLACK_LISTS_BEARER_TOKEN or SLACK_TRIGGER_WEBHOOK_URL.`);
       return { success: false, error: "Missing Slack environment variables." };
     }
 
@@ -471,21 +482,63 @@ export const triggerInteraktSlackIntegration = async (data) => {
 
     const payload = data || {};
 
-    // Extract indexing fields
+    // Extract core fields
     const customerName = payload.customer_name ?? "Unknown";
-    const phoneNumber = payload.phone_number ?? "";
+    const phoneNumber = String(payload.phone_number ?? "").trim();
     const eventType = payload.event_type ?? "";
     const city = payload.city ?? "";
 
-    // Format function for snake_case keys to Title Case
-    const formatKey = (key) => {
-      return key
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-    };
+    console.log(`${LOG} Customer: "${customerName}" | Phone: ${phoneNumber} | Event: ${eventType} | City: ${city}`);
+    console.log(`${LOG} isLocal=${isLocal} | isDev=${isDev} | forceLive=${forceLive}`);
 
-    // Construct dynamic formData
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 1: DEDUPLICATION GUARD
+    // Check DB for any FLOW_COMPLETE enquiry from this phone in last 5 mins.
+    // Return 200 immediately if duplicate found — prevents Interakt retries.
+    // ─────────────────────────────────────────────────────────────────────
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+      const cutoff = new Date(Date.now() - DEDUP_WINDOW_MS);
+
+      const existingEnquiry = await CustomerEnquiry.findOne({
+        phone_number: phoneNumber,
+        source: "interakt",
+        status: "FLOW_COMPLETE",
+        created_at: { $gte: cutoff },
+      }).sort({ created_at: -1 });
+
+      if (existingEnquiry) {
+        console.warn(
+          `${LOG} [DUPLICATE DETECTED] Lead for phone ${phoneNumber} was already processed at ` +
+          `${existingEnquiry.created_at?.toISOString()} (enquiry_id: ${existingEnquiry.enquiry_id}). ` +
+          `Returning 200 to prevent Interakt retry loop.`
+        );
+        console.log(`${LOG} ============================================================`);
+        return { success: true, duplicate: true, existing_enquiry_id: existingEnquiry.enquiry_id };
+      }
+
+      console.log(`${LOG} [DEDUP] No duplicate found for phone ${phoneNumber} in last 5 mins. Proceeding.`);
+    } else {
+      console.warn(`${LOG} [DEDUP] MongoDB not connected (readyState=${mongoose.connection?.readyState}). Skipping dedup check.`);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 2: MOCK MODE
+    // ─────────────────────────────────────────────────────────────────────
+    if ((isLocal || isDev) && !forceLive) {
+      console.log(`${LOG} [MOCK] Local/dev env detected — not hitting Slack APIs.`);
+      console.log(`${LOG} [MOCK] Would create ticket for: ${customerName} (${phoneNumber})`);
+      console.log(`${LOG} ============================================================`);
+      return { success: true, mock: true };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 3: BUILD FORMATTED REQUIREMENTS
+    // ─────────────────────────────────────────────────────────────────────
+    const formatKey = (key) =>
+      key.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+
+    // Build formData excluding empty values
     const formData = {};
     for (const [key, value] of Object.entries(payload)) {
       if (value !== undefined && value !== null && value !== "") {
@@ -493,20 +546,19 @@ export const triggerInteraktSlackIntegration = async (data) => {
       }
     }
 
-    // Dynamically build Requirements Notes and Slack Message
-    const reqParts = [`• Lead Source: WhatsApp (Interakt)`];
-    let slackMessage = "📩 New Eventory Lead\n\n";
-
+    // Bulleted requirements list — goes into the Slack ticket description field
+    const reqParts = ["• Lead Source: WhatsApp (Interakt)"];
     for (const [key, value] of Object.entries(formData)) {
-      const formattedKey = formatKey(key);
-      reqParts.push(`• ${formattedKey}: ${value}`);
-      slackMessage += `${formattedKey}: ${value}\n\n`;
+      reqParts.push(`• ${formatKey(key)}: ${value}`);
     }
-
     const formattedRequirements = reqParts.join("\n");
-    slackMessage = slackMessage.trim();
 
-    // Create Mongoose db record for audit/fallback tracking
+    console.log(`${LOG} [DATA] Payload keys: ${Object.keys(formData).join(", ")}`);
+    console.log(`${LOG} [DATA] Requirements:\n${formattedRequirements}`);
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 4: SAVE ENQUIRY TO DB (creates the record that dedup checks against)
+    // ─────────────────────────────────────────────────────────────────────
     let savedEnquiry = null;
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
@@ -519,143 +571,53 @@ export const triggerInteraktSlackIntegration = async (data) => {
           formData,
           status: "FLOW_COMPLETE",
         });
-        console.log(
-          `[SLACK_INTEGRATION_INTERAKT] Saved enquiry to DB with ID: ${savedEnquiry.enquiry_id}`,
-        );
+        console.log(`${LOG} [DB] Enquiry saved. enquiry_id=${savedEnquiry.enquiry_id}`);
       } catch (dbErr) {
-        console.error(
-          "[SLACK_INTEGRATION_INTERAKT] Failed to save enquiry to MongoDB:",
-          dbErr,
-        );
+        console.error(`${LOG} [DB] Failed to save enquiry (non-blocking):`, dbErr.message);
       }
+    } else {
+      console.warn(`${LOG} [DB] MongoDB not connected — skipping DB save.`);
     }
 
-    if ((isLocal || isDev) && !forceLive) {
-      console.log(
-        "--------------------------------------------------------------------------------",
-      );
-      console.log(`[SLACK_INTEGRATION] [INTERAKT MOCK RUN]`);
-      console.log(
-        `[SLACK_INTEGRATION] Customer Name: ${customerName}, Phone: ${phoneNumber}`,
-      );
-      console.log(
-        `[SLACK_INTEGRATION] Event Type: ${eventType}, City: ${city}`,
-      );
-      console.log(
-        "--------------------------------------------------------------------------------",
-      );
-      return { success: true, mock: true };
-    }
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 5: CREATE SLACK LIST TICKET
+    // ─────────────────────────────────────────────────────────────────────
+    const rtBlock = (text) => ({
+      type: "rich_text",
+      elements: [{ type: "rich_text_section", elements: [{ type: "text", text }] }],
+    });
 
-    // Build list item payload
     const initialFields = [
-      {
-        column_id: "Col09RF5UT17H", // Name
-        rich_text: [
-          {
-            type: "rich_text",
-            elements: [
-              {
-                type: "rich_text_section",
-                elements: [
-                  {
-                    type: "text",
-                    text: customerName,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        column_id: "Col09RT7905KP", // Contact
-        phone: [phoneNumber],
-      },
-      {
-        column_id: "Col09RT68ATPX", // Status: Interested
-        select: ["OptU8ED23MH"],
-      },
-      {
-        column_id: "Col09RWKYMG74", // Sales-exec: Shubhi
-        user: ["U0B7QRK29HA"],
-      },
-      {
-        column_id: "Col09RWLBV0TC", // Lead Source
-        rich_text: [
-          {
-            type: "rich_text",
-            elements: [
-              {
-                type: "rich_text_section",
-                elements: [
-                  {
-                    type: "text",
-                    text: "WhatsApp (Interakt)",
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        column_id: "Col0AER5B6P5J", // Requirements Notes
-        rich_text: [
-          {
-            type: "rich_text",
-            elements: [
-              {
-                type: "rich_text_section",
-                elements: [
-                  {
-                    type: "text",
-                    text: formattedRequirements,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
+      { column_id: "Col09RF5UT17H", rich_text: [rtBlock(customerName)] },           // Name
+      { column_id: "Col09RT7905KP", phone: [phoneNumber] },                          // Contact
+      { column_id: "Col09RT68ATPX", select: ["OptU8ED23MH"] },                       // Status: Interested
+      { column_id: "Col09RWKYMG74", user: ["U0B7QRK29HA"] },                         // Sales-exec: Shubhi
+      { column_id: "Col09RWLBV0TC", rich_text: [rtBlock("WhatsApp (Interakt)")] },   // Lead Source
+      { column_id: "Col0AER5B6P5J", rich_text: [rtBlock(formattedRequirements)] },   // Requirements Notes
     ];
 
-    // Address/City Column
     if (city) {
-      initialFields.push({
-        column_id: "Col09S07W0UUC", // Address/City
-        rich_text: [
-          {
-            type: "rich_text",
-            elements: [
-              {
-                type: "rich_text_section",
-                elements: [
-                  {
-                    type: "text",
-                    text: city,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      });
+      initialFields.push({ column_id: "Col09S07W0UUC", rich_text: [rtBlock(city)] });
     }
 
-    // Map Event Type select dropdown
     if (eventType) {
       const eventTypeOption = mapEventTypeToOption(eventType);
       if (eventTypeOption) {
+        initialFields.push({ column_id: "Col09S07MSP6Y", select: [eventTypeOption] });
+      }
+    }
+
+    const rawEventDate = payload.event_date;
+    if (rawEventDate) {
+      const parsedTime = Date.parse(rawEventDate);
+      if (!isNaN(parsedTime)) {
         initialFields.push({
-          column_id: "Col09S07MSP6Y",
-          select: [eventTypeOption],
+          column_id: "Col0AD8JDTHTJ",
+          date: [new Date(parsedTime).toISOString().split("T")[0]],
         });
       }
     }
 
-
-    // Map Vendor Services multi-select dropdown if present
     const rawServices = payload.services_needed;
     if (rawServices) {
       const servicesArray = Array.isArray(rawServices)
@@ -666,55 +628,48 @@ export const triggerInteraktSlackIntegration = async (data) => {
       if (servicesArray.length > 0) {
         const servicesOptions = mapServicesToOptions(servicesArray);
         if (servicesOptions.length > 0) {
-          initialFields.push({
-            column_id: "Col0AMM0VJXR8",
-            select: servicesOptions,
-          });
+          initialFields.push({ column_id: "Col0AMM0VJXR8", select: servicesOptions });
         }
       }
     }
 
-    console.log(
-      `[SLACK_INTEGRATION_INTERAKT] Creating Slack List ticket for Interakt lead...`,
-    );
-    const slackPayload = {
-      list_id: "F09RT5WG6Q5",
-      initial_fields: initialFields,
-    };
+    console.log(`${LOG} [SLACK] Calling slackLists.items.create...`);
 
     const listResponse = await axios.post(
       "https://slack.com/api/slackLists.items.create",
-      slackPayload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
+      { list_id: "F09RT5WG6Q5", initial_fields: initialFields },
+      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } },
     );
 
+    console.log(`${LOG} [SLACK] slackLists.items.create response: ok=${listResponse.data?.ok}`);
+
     if (!listResponse.data || !listResponse.data.ok) {
-      console.error(
-        "[SLACK_INTEGRATION_INTERAKT] Failed to create Slack List item. Response:",
-        listResponse.data,
-      );
+      console.error(`${LOG} [SLACK] Ticket creation failed. Response:`, JSON.stringify(listResponse.data));
       return { success: false, error: "Failed to create Slack List ticket." };
     }
 
     const slack_item_id = listResponse.data.item?.id || "";
-    console.log(
-      `[SLACK_INTEGRATION_INTERAKT] Slack List ticket created with ID: ${slack_item_id}`,
-    );
+    console.log(`${LOG} [SLACK] Ticket created. slack_item_id=${slack_item_id}`);
 
-    // Update MongoDB enquiry record with the slack_ticket_id
+    // Update DB record with slack_ticket_id
     if (savedEnquiry) {
-      await CustomerEnquiry.updateOne(
-        { enquiry_id: savedEnquiry.enquiry_id },
-        { $set: { slack_ticket_id: slack_item_id } },
-      );
+      try {
+        await CustomerEnquiry.updateOne(
+          { enquiry_id: savedEnquiry.enquiry_id },
+          { $set: { slack_ticket_id: slack_item_id } },
+        );
+        console.log(`${LOG} [DB] Updated enquiry ${savedEnquiry.enquiry_id} with slack_ticket_id=${slack_item_id}`);
+      } catch (updateErr) {
+        console.error(`${LOG} [DB] Failed to update slack_ticket_id (non-blocking):`, updateErr.message);
+      }
     }
 
-    // Send channel notification webhook
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 6: FIRE CHANNEL NOTIFICATION (isolated try/catch)
+    // Notification title is clean and short.
+    // Full details are inside the Slack ticket (requirements field).
+    // A failure here MUST NOT propagate as 500 to Interakt.
+    // ─────────────────────────────────────────────────────────────────────
     const webhookPayload = {
       customer_name: customerName,
       phone_number: phoneNumber,
@@ -727,27 +682,24 @@ export const triggerInteraktSlackIntegration = async (data) => {
       requirements: formattedRequirements,
     };
 
+    console.log(`${LOG} [WEBHOOK] Firing channel notification. trigger_message="${webhookPayload.trigger_message}"`);
+
     try {
-      console.log(
-        "[SLACK_INTEGRATION_INTERAKT] Triggering channel notification webhook...",
-      );
       const webhookResponse = await axios.post(webhookUrl, webhookPayload);
-      console.log(
-        `[SLACK_INTEGRATION_INTERAKT] Webhook triggered successfully. Status: ${webhookResponse.status}`,
-      );
+      console.log(`${LOG} [WEBHOOK] Notification sent. HTTP ${webhookResponse.status}`);
     } catch (webhookError) {
       console.error(
-        "[SLACK_INTEGRATION_INTERAKT] Webhook notification failed, but ticket was created.",
+        `${LOG} [WEBHOOK] Notification failed (ticket still created — non-blocking). Error:`,
         webhookError.response?.data || webhookError.message,
       );
     }
 
+    console.log(`${LOG} [DONE] ticket_id=${slack_item_id} | enquiry_id=${savedEnquiry?.enquiry_id}`);
+    console.log(`${LOG} ============================================================`);
+
     return { success: true, ticket_id: slack_item_id };
   } catch (error) {
-    console.error(
-      "[SLACK_INTEGRATION_INTERAKT] Error in Interakt Slack integration flow:",
-      error.response?.data || error.message,
-    );
+    console.error(`${LOG} [FATAL] Unhandled error:`, error.response?.data || error.message);
     return { success: false, error: error.message };
   }
 };
