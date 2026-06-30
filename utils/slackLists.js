@@ -719,21 +719,28 @@ export const triggerInteraktSlackIntegration = async (data) => {
       customer_name: customerName,
       phone_number: phoneNumber,
       ticket_id: slack_item_id,
-      trigger_message: slackMessage,
-      text: slackMessage,
+      trigger_message: `📩 New Eventory Lead: ${customerName}`,
+      text: `📩 New Eventory Lead: ${customerName}`,
       event_type: eventType,
       event_details: `${payload.event_date || ""} ${city}`.trim(),
       event_venue: payload.venue_setting || "",
-      requirements: slackMessage,
+      requirements: formattedRequirements,
     };
 
-    console.log(
-      "[SLACK_INTEGRATION_INTERAKT] Triggering channel notification webhook...",
-    );
-    const webhookResponse = await axios.post(webhookUrl, webhookPayload);
-    console.log(
-      `[SLACK_INTEGRATION_INTERAKT] Webhook triggered successfully. Status: ${webhookResponse.status}`,
-    );
+    try {
+      console.log(
+        "[SLACK_INTEGRATION_INTERAKT] Triggering channel notification webhook...",
+      );
+      const webhookResponse = await axios.post(webhookUrl, webhookPayload);
+      console.log(
+        `[SLACK_INTEGRATION_INTERAKT] Webhook triggered successfully. Status: ${webhookResponse.status}`,
+      );
+    } catch (webhookError) {
+      console.error(
+        "[SLACK_INTEGRATION_INTERAKT] Webhook notification failed, but ticket was created.",
+        webhookError.response?.data || webhookError.message,
+      );
+    }
 
     return { success: true, ticket_id: slack_item_id };
   } catch (error) {
