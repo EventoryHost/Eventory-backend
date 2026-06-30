@@ -7,7 +7,8 @@ dotenv.config();
 
 const mapEventTypeToOption = (typeStr) => {
   if (!typeStr) return null;
-  const normalized = typeStr.toLowerCase().trim();
+  // Strip emojis and extra whitespace before matching
+  const normalized = typeStr.replace(/[^\p{L}\p{N}\s]/gu, "").toLowerCase().trim();
   if (normalized.includes("birthday")) return "OptJUWLBAPN";
   if (normalized.includes("anniversary")) return "OptTEABQGD0";
   if (normalized.includes("wedding")) return "OptRQD1G7FN";
@@ -18,15 +19,44 @@ const mapEventTypeToOption = (typeStr) => {
     return "Opt5MLDOI8H";
   if (normalized.includes("corporate")) return "OptSYCRPMD9";
   if (normalized.includes("engagement")) return "OptG2T1T02L";
+  if (normalized.includes("reception")) return "OptKP6ZUE08";
+  if (normalized.includes("proposal")) return "OptWEJ8HPHZ";
+  if (normalized.includes("religious") || normalized.includes("puja") || normalized.includes("pooja"))
+    return "OptLN3OHB18"; // maps to general celebration/gathering
   if (
     normalized.includes("party") ||
     normalized.includes("gathering") ||
-    normalized.includes("celebration")
+    normalized.includes("celebration") ||
+    normalized.includes("kitty") ||
+    normalized.includes("house party")
   )
     return "OptLN3OHB18";
-  if (normalized.includes("reception")) return "OptKP6ZUE08";
-  if (normalized.includes("proposal")) return "OptWEJ8HPHZ";
   return null;
+};
+
+/**
+ * Attempt to parse a date string from Interakt into YYYY-MM-DD.
+ * Handles ISO format, DD/MM/YYYY, DD-MM-YYYY, and human-readable like "15 July 2026".
+ */
+const parseInteraktDate = (rawDate) => {
+  if (!rawDate || typeof rawDate !== "string") return null;
+  const cleaned = rawDate.trim();
+
+  // Try native parse first (handles ISO 8601 and many standard formats)
+  const nativeParsed = Date.parse(cleaned);
+  if (!isNaN(nativeParsed)) {
+    return new Date(nativeParsed).toISOString().split("T")[0];
+  }
+
+  // Try DD/MM/YYYY or DD-MM-YYYY
+  const dmyMatch = cleaned.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    const attempt = Date.parse(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+    if (!isNaN(attempt)) return new Date(attempt).toISOString().split("T")[0];
+  }
+
+  return null; // unparseable — field will be skipped
 };
 
 const mapServicesToOptions = (services) => {
@@ -604,17 +634,20 @@ export const triggerInteraktSlackIntegration = async (data) => {
       const eventTypeOption = mapEventTypeToOption(eventType);
       if (eventTypeOption) {
         initialFields.push({ column_id: "Col09S07MSP6Y", select: [eventTypeOption] });
+        console.log(`${LOG} [TICKET] Event type mapped: "${eventType}" → ${eventTypeOption}`);
+      } else {
+        console.warn(`${LOG} [TICKET] Event type not mapped to a Slack option: "${eventType}" — skipping dropdown`);
       }
     }
 
     const rawEventDate = payload.event_date;
     if (rawEventDate) {
-      const parsedTime = Date.parse(rawEventDate);
-      if (!isNaN(parsedTime)) {
-        initialFields.push({
-          column_id: "Col0AD8JDTHTJ",
-          date: [new Date(parsedTime).toISOString().split("T")[0]],
-        });
+      const parsedDateStr = parseInteraktDate(rawEventDate);
+      if (parsedDateStr) {
+        initialFields.push({ column_id: "Col0AD8JDTHTJ", date: [parsedDateStr] });
+        console.log(`${LOG} [TICKET] Event date parsed: "${rawEventDate}" → ${parsedDateStr}`);
+      } else {
+        console.warn(`${LOG} [TICKET] Could not parse event_date: "${rawEventDate}" — skipping date field`);
       }
     }
 
@@ -629,6 +662,9 @@ export const triggerInteraktSlackIntegration = async (data) => {
         const servicesOptions = mapServicesToOptions(servicesArray);
         if (servicesOptions.length > 0) {
           initialFields.push({ column_id: "Col0AMM0VJXR8", select: servicesOptions });
+          console.log(`${LOG} [TICKET] Services mapped: ${servicesArray.join(", ")} → ${servicesOptions.join(", ")}`);
+        } else {
+          console.warn(`${LOG} [TICKET] Services received but none mapped to options: ${servicesArray.join(", ")}`);
         }
       }
     }
@@ -679,7 +715,7 @@ export const triggerInteraktSlackIntegration = async (data) => {
       event_type: eventType,
       event_details: `${payload.event_date || ""} ${city}`.trim(),
       event_venue: payload.venue_setting || "",
-      requirements: formattedRequirements,
+      // Full requirements are inside the Slack ticket — not repeated here
     };
 
     console.log(`${LOG} [WEBHOOK] Firing channel notification. trigger_message="${webhookPayload.trigger_message}"`);
