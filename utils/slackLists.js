@@ -36,27 +36,116 @@ const mapEventTypeToOption = (typeStr) => {
 
 /**
  * Attempt to parse a date string from Interakt into YYYY-MM-DD.
- * Handles ISO format, DD/MM/YYYY, DD-MM-YYYY, and human-readable like "15 July 2026".
+ * Handles:
+ *  - Relative keywords: "today", "aaj", "tomorrow", "kal", "next week"
+ *  - ISO 8601 (2026-07-15)
+ *  - DD/MM/YYYY and DD-MM-YYYY
+ *  - "15 July 2026", "15 July", "July 15", "July 15 2026" (English & Hindi month names)
+ *  - DD/MM and DD-MM (assumes current year)
  */
 const parseInteraktDate = (rawDate) => {
   if (!rawDate || typeof rawDate !== "string") return null;
   const cleaned = rawDate.trim();
+  const lower = cleaned.toLowerCase();
 
-  // Try native parse first (handles ISO 8601 and many standard formats)
+  // ── Relative keywords ──────────────────────────────────────────────────────
+  const todayKeywords = ["today", "aaj", "aaj ka", "same day"];
+  const tomorrowKeywords = ["tomorrow", "kal", "next day", "parso nahi kal"];
+  const nextWeekKeywords = ["next week", "agle hafte"];
+
+  if (todayKeywords.some((k) => lower.includes(k))) {
+    return new Date().toISOString().split("T")[0];
+  }
+  if (tomorrowKeywords.some((k) => lower.includes(k))) {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  }
+  if (nextWeekKeywords.some((k) => lower.includes(k))) {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  }
+
+  // ── Month name lookup (English + Hindi transliterations) ───────────────────
+  const monthMap = {
+    jan: 1, january: 1, januar: 1,
+    feb: 2, february: 2, febr: 2,
+    mar: 3, march: 3,
+    apr: 4, april: 4,
+    may: 5,
+    jun: 6, june: 6,
+    jul: 7, july: 7,
+    aug: 8, august: 8,
+    sep: 9, sept: 9, september: 9,
+    oct: 10, october: 10,
+    nov: 11, november: 11,
+    dec: 12, december: 12,
+    // Hindi month transliterations
+    januari: 1, pharvari: 2, marta: 3, aprail: 4,
+    mei: 5, juni: 6, juli: 7, agast: 8,
+    sitambar: 9, aktoobar: 10, navambar: 11, disambar: 12,
+  };
+
+  const currentYear = new Date().getFullYear();
+
+  // "15 July 2026" or "15 July" or "July 15" or "July 15 2026"
+  const textDateMatch = cleaned.match(
+    /^(\d{1,2})\s+([a-zA-Z]+)\s*(\d{4})?$|^([a-zA-Z]+)\s+(\d{1,2})[,\s]*(\d{4})?$/
+  );
+  if (textDateMatch) {
+    let day, monthStr, year;
+    if (textDateMatch[1]) {
+      // DD Month [YYYY]
+      day = parseInt(textDateMatch[1], 10);
+      monthStr = textDateMatch[2].toLowerCase();
+      year = textDateMatch[3] ? parseInt(textDateMatch[3], 10) : currentYear;
+    } else {
+      // Month DD [YYYY]
+      monthStr = textDateMatch[4].toLowerCase();
+      day = parseInt(textDateMatch[5], 10);
+      year = textDateMatch[6] ? parseInt(textDateMatch[6], 10) : currentYear;
+    }
+    const monthNum = monthMap[monthStr];
+    if (monthNum && day >= 1 && day <= 31) {
+      const iso = `${year}-${String(monthNum).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const attempt = Date.parse(iso);
+      if (!isNaN(attempt)) return new Date(attempt).toISOString().split("T")[0];
+    }
+  }
+
+  // ── DD/MM/YYYY or DD-MM-YYYY ───────────────────────────────────────────────
+  const dmyFull = cleaned.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (dmyFull) {
+    const [, d, m, y] = dmyFull;
+    const attempt = Date.parse(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+    if (!isNaN(attempt)) return new Date(attempt).toISOString().split("T")[0];
+  }
+
+  // ── DD/MM or DD-MM (short, assume current year) ───────────────────────────
+  const dmyShort = cleaned.match(/^(\d{1,2})[\/-](\d{1,2})$/);
+  if (dmyShort) {
+    const [, d, m] = dmyShort;
+    const attempt = Date.parse(`${currentYear}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+    if (!isNaN(attempt)) return new Date(attempt).toISOString().split("T")[0];
+  }
+
+  // ── Fallback: native JS Date.parse ────────────────────────────────────────
   const nativeParsed = Date.parse(cleaned);
   if (!isNaN(nativeParsed)) {
     return new Date(nativeParsed).toISOString().split("T")[0];
   }
 
-  // Try DD/MM/YYYY or DD-MM-YYYY
-  const dmyMatch = cleaned.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-  if (dmyMatch) {
-    const [, d, m, y] = dmyMatch;
-    const attempt = Date.parse(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
-    if (!isNaN(attempt)) return new Date(attempt).toISOString().split("T")[0];
-  }
-
   return null; // unparseable — field will be skipped
+};
+
+/**
+ * Convert YYYY-MM-DD string to DD/MM/YYYY for display in Requirements.
+ */
+const formatDateForDisplay = (isoDateStr) => {
+  if (!isoDateStr) return null;
+  const [y, m, d] = isoDateStr.split("-");
+  return `${d}/${m}/${y}`;
 };
 
 const mapServicesToOptions = (services) => {
@@ -568,6 +657,18 @@ export const triggerInteraktSlackIntegration = async (data) => {
     const formatKey = (key) =>
       key.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 
+    // Extract caterer-specific fields
+    const guestCount    = payload.guest_count    ?? null;
+    const budget        = payload.budget          ?? null;
+    const mealService   = payload.meal_service    ?? null;  // e.g. "Buffet", "Plated"
+    const menuType      = payload.menu_type       ?? null;  // e.g. "Veg", "Non-Veg", "Both"
+    const foodServingStyle = payload.food_serving_style ?? null; // e.g. "Live counter"
+
+    // Parse event_date early so we can use dd/mm/yyyy in requirements
+    const rawEventDate = payload.event_date ?? null;
+    const parsedDateIso = rawEventDate ? parseInteraktDate(String(rawEventDate)) : null;
+    const parsedDateDisplay = parsedDateIso ? formatDateForDisplay(parsedDateIso) : (rawEventDate ? String(rawEventDate) : null);
+
     // Build formData excluding empty values
     const formData = {};
     for (const [key, value] of Object.entries(payload)) {
@@ -576,11 +677,33 @@ export const triggerInteraktSlackIntegration = async (data) => {
       }
     }
 
-    // Bulleted requirements list — goes into the Slack ticket description field
+    // ── Build requirements bullet list (safety net — captures EVERYTHING) ──
+    // Always include Lead Source first, then all known fields in a readable order.
     const reqParts = ["• Lead Source: WhatsApp (Interakt)"];
+
+    // Core fields in defined order
+    if (formData.customer_name)    reqParts.push(`• Customer Name: ${formData.customer_name}`);
+    if (formData.phone_number)     reqParts.push(`• Phone Number: ${formData.phone_number}`);
+    if (formData.event_type)       reqParts.push(`• Event Type: ${formData.event_type}`);
+    if (parsedDateDisplay)         reqParts.push(`• Event Date: ${parsedDateDisplay}`);
+    if (formData.city)             reqParts.push(`• City: ${formData.city}`);
+    if (guestCount)                reqParts.push(`• Guest Count: ${guestCount}`);
+    if (mealService)               reqParts.push(`• Meal Service: ${mealService}`);
+    if (menuType)                  reqParts.push(`• Menu Type: ${menuType}`);
+    if (foodServingStyle)          reqParts.push(`• Food Serving Style: ${foodServingStyle}`);
+    if (budget)                    reqParts.push(`• Budget: ${budget}`);
+
+    // Any remaining fields not already captured above
+    const alreadyHandled = new Set([
+      "customer_name", "phone_number", "event_type", "event_date",
+      "city", "guest_count", "meal_service", "menu_type", "food_serving_style", "budget",
+    ]);
     for (const [key, value] of Object.entries(formData)) {
-      reqParts.push(`• ${formatKey(key)}: ${value}`);
+      if (!alreadyHandled.has(key)) {
+        reqParts.push(`• ${formatKey(key)}: ${value}`);
+      }
     }
+
     const formattedRequirements = reqParts.join("\n");
 
     console.log(`${LOG} [DATA] Payload keys: ${Object.keys(formData).join(", ")}`);
@@ -623,13 +746,16 @@ export const triggerInteraktSlackIntegration = async (data) => {
       { column_id: "Col09RT68ATPX", select: ["OptU8ED23MH"] },                       // Status: Interested
       { column_id: "Col09RWKYMG74", user: ["U0B7QRK29HA"] },                         // Sales-exec: Shubhi
       { column_id: "Col09RWLBV0TC", rich_text: [rtBlock("WhatsApp (Interakt)")] },   // Lead Source
-      { column_id: "Col0AER5B6P5J", rich_text: [rtBlock(formattedRequirements)] },   // Requirements Notes
+      { column_id: "Col0AER5B6P5J", rich_text: [rtBlock(formattedRequirements)] },   // Requirements Notes (safety net — full data always here)
     ];
 
+    // ── Address / City ──────────────────────────────────────────────────────
     if (city) {
       initialFields.push({ column_id: "Col09S07W0UUC", rich_text: [rtBlock(city)] });
+      console.log(`${LOG} [TICKET] City mapped: "${city}"`);
     }
 
+    // ── Event Type dropdown ──────────────────────────────────────────────────
     if (eventType) {
       const eventTypeOption = mapEventTypeToOption(eventType);
       if (eventTypeOption) {
@@ -640,33 +766,58 @@ export const triggerInteraktSlackIntegration = async (data) => {
       }
     }
 
-    const rawEventDate = payload.event_date;
+    // ── Event Date field (enhanced parser with today/tomorrow/Indian formats) ─
     if (rawEventDate) {
-      const parsedDateStr = parseInteraktDate(rawEventDate);
-      if (parsedDateStr) {
-        initialFields.push({ column_id: "Col0AD8JDTHTJ", date: [parsedDateStr] });
-        console.log(`${LOG} [TICKET] Event date parsed: "${rawEventDate}" → ${parsedDateStr}`);
+      if (parsedDateIso) {
+        initialFields.push({ column_id: "Col0AD8JDTHTJ", date: [parsedDateIso] });
+        console.log(`${LOG} [TICKET] Event date parsed: "${rawEventDate}" → ${parsedDateIso} (display: ${parsedDateDisplay})`);
       } else {
-        console.warn(`${LOG} [TICKET] Could not parse event_date: "${rawEventDate}" — skipping date field`);
+        console.warn(`${LOG} [TICKET] Could not parse event_date: "${rawEventDate}" — skipping date field, value is in requirements`);
       }
     }
 
+    // ── Vendor Services (multi-select) ────────────────────────────────────────
+    // Handles explicit services_needed array AND infers catering if meal_service present.
     const rawServices = payload.services_needed;
-    if (rawServices) {
-      const servicesArray = Array.isArray(rawServices)
-        ? rawServices
-        : typeof rawServices === "string"
-          ? rawServices.split(",").map((s) => s.trim())
-          : [];
-      if (servicesArray.length > 0) {
-        const servicesOptions = mapServicesToOptions(servicesArray);
-        if (servicesOptions.length > 0) {
-          initialFields.push({ column_id: "Col0AMM0VJXR8", select: servicesOptions });
-          console.log(`${LOG} [TICKET] Services mapped: ${servicesArray.join(", ")} → ${servicesOptions.join(", ")}`);
-        } else {
-          console.warn(`${LOG} [TICKET] Services received but none mapped to options: ${servicesArray.join(", ")}`);
-        }
+    const servicesArray = rawServices
+      ? (Array.isArray(rawServices)
+          ? rawServices
+          : typeof rawServices === "string"
+            ? rawServices.split(",").map((s) => s.trim())
+            : [])
+      : [];
+
+    // If the caterer flow sends meal_service / menu_type, auto-infer catering service
+    if (mealService || menuType || foodServingStyle) {
+      const hasCatering = servicesArray.some((s) => s.toLowerCase().includes("cater"));
+      if (!hasCatering) servicesArray.push("catering");
+    }
+
+    if (servicesArray.length > 0) {
+      const servicesOptions = mapServicesToOptions(servicesArray);
+      if (servicesOptions.length > 0) {
+        initialFields.push({ column_id: "Col0AMM0VJXR8", select: servicesOptions });
+        console.log(`${LOG} [TICKET] Services mapped: ${servicesArray.join(", ")} → ${servicesOptions.join(", ")}`);
+      } else {
+        console.warn(`${LOG} [TICKET] Services received but none mapped to options: ${servicesArray.join(", ")}`);
       }
+    }
+
+    // ── Caterer-specific: Guest Count ─────────────────────────────────────────
+    // Guest count is captured in Requirements (see above).
+    // If your Slack list has a dedicated "Guest Count" column, add the push here:
+    //   initialFields.push({ column_id: "<YOUR_GUEST_COUNT_COLUMN_ID>", rich_text: [rtBlock(String(guestCount))] });
+    // The value is logged here for debugging:
+    if (guestCount) {
+      console.log(`${LOG} [TICKET] Guest count (in requirements): "${guestCount}"`);
+    }
+
+    // ── Caterer-specific: Budget ──────────────────────────────────────────────
+    // Budget is captured in Requirements (see above).
+    // If your Slack list has a dedicated "Budget" column, add the push here:
+    //   initialFields.push({ column_id: "<YOUR_BUDGET_COLUMN_ID>", rich_text: [rtBlock(String(budget))] });
+    if (budget) {
+      console.log(`${LOG} [TICKET] Budget (in requirements): "${budget}"`);
     }
 
     console.log(`${LOG} [SLACK] Calling slackLists.items.create...`);
@@ -702,20 +853,43 @@ export const triggerInteraktSlackIntegration = async (data) => {
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 6: FIRE CHANNEL NOTIFICATION (isolated try/catch)
-    // Notification title is clean and short.
-    // Full details are inside the Slack ticket (requirements field).
+    // Matches the exact Slack trigger webhook format:
+    //   trigger_message, event_type, event_details, event_venue, requirements
+    // Caterer-specific fields are packed into requirements.
     // A failure here MUST NOT propagate as 500 to Interakt.
     // ─────────────────────────────────────────────────────────────────────
+
+    // Build a requirements string for the webhook notification
+    // (mirrors the format the original Interakt template used: answer_6..answer_10)
+    const webhookRequirementsParts = [];
+    if (guestCount)        webhookRequirementsParts.push(`Guests: ${guestCount}`);
+    if (mealService)       webhookRequirementsParts.push(`Meal Service: ${mealService}`);
+    if (menuType)          webhookRequirementsParts.push(`Menu: ${menuType}`);
+    if (foodServingStyle)  webhookRequirementsParts.push(`Serving Style: ${foodServingStyle}`);
+    if (budget)            webhookRequirementsParts.push(`Budget: ${budget}`);
+    // Fallback: if none of the above are present, include all remaining formData keys
+    if (webhookRequirementsParts.length === 0) {
+      for (const [key, value] of Object.entries(formData)) {
+        if (!["customer_name", "phone_number", "event_type", "event_date", "city"].includes(key)) {
+          webhookRequirementsParts.push(`${formatKey(key)}: ${value}`);
+        }
+      }
+    }
+    const webhookRequirements = webhookRequirementsParts.join(" | ");
+
     const webhookPayload = {
-      customer_name: customerName,
-      phone_number: phoneNumber,
-      ticket_id: slack_item_id,
+      customer_name:   customerName,
+      phone_number:    phoneNumber,
+      ticket_id:       slack_item_id,
       trigger_message: `📩 New Eventory Lead: ${customerName}`,
-      text: `📩 New Eventory Lead: ${customerName}`,
-      event_type: eventType,
-      event_details: `${payload.event_date || ""} ${city}`.trim(),
-      event_venue: payload.venue_setting || "",
-      // Full requirements are inside the Slack ticket — not repeated here
+      text:            `📩 New Eventory Lead: ${customerName}`,
+      event_type:      eventType || "",
+      // event_details = date + city  (mirrors {{answer_3}} {{answer_4}})
+      event_details:   `${parsedDateDisplay || payload.event_date || ""} ${city}`.trim(),
+      // event_venue = meal service for caterer, venue_setting for others
+      event_venue:     mealService || payload.venue_setting || "",
+      // requirements = all caterer-specific answers (mirrors {{answer_6}}..{{answer_10}})
+      requirements:    webhookRequirements,
     };
 
     console.log(`${LOG} [WEBHOOK] Firing channel notification. trigger_message="${webhookPayload.trigger_message}"`);
