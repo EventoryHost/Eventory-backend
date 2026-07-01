@@ -257,10 +257,19 @@ export const triggerSlackListAndWebhookNotification = async (
     const answer_10 = enquiry.best_time_to_call || "Anytime";
 
     // Formatted description for Requirements notes column
+    // Date displayed as dd/mm/yyyy for readability
+    const displayDate = enquiry.event_date
+      ? formatDateForDisplay(new Date(enquiry.event_date).toISOString().split("T")[0])
+      : "Not decided";
+    const isoDate = enquiry.event_date
+      ? new Date(enquiry.event_date).toISOString().split("T")[0]
+      : null;
+
     const reqParts = [
       `• Lead Source: Web Chatbot`,
+      `• Customer Name: ${customer_name}`,
       `• Event Type: ${answer_2}`,
-      `• Event Date: ${answer_3}`,
+      `• Event Date: ${displayDate}`,
       `• City: ${answer_4}`,
       `• Venue Setting: ${answer_5}`,
       `• Services Needed: ${answer_6}`,
@@ -528,6 +537,37 @@ export const triggerSlackListAndWebhookNotification = async (
         },
       ];
 
+      // Also ensure city, event date, and vendor services are populated
+      // (in case update_requirements milestone never fired)
+      if (answer_4 && answer_4 !== "N/A") {
+        updates.push({
+          column_id: "Col09S07W0UUC", // Address/City
+          rich_text: [
+            {
+              type: "rich_text",
+              elements: [
+                { type: "rich_text_section", elements: [{ type: "text", text: answer_4 }] },
+              ],
+            },
+          ],
+        });
+      }
+
+      if (isoDate) {
+        updates.push({
+          column_id: "Col0AD8JDTHTJ", // Event Date
+          date: [isoDate],
+        });
+      }
+
+      const completionServicesOptions = mapServicesToOptions(enquiry.services_needed);
+      if (completionServicesOptions.length > 0) {
+        updates.push({
+          column_id: "Col0AMM0VJXR8", // Vendor Services
+          select: completionServicesOptions,
+        });
+      }
+
       console.log(
         `[SLACK_INTEGRATION] Performing final complete update on Slack List ticket ${enquiry.slack_ticket_id}...`,
       );
@@ -538,25 +578,32 @@ export const triggerSlackListAndWebhookNotification = async (
         updates,
       );
 
-      // Trigger channel notification webhook
-      const webhookPayload = {
-        customer_name: customer_name,
-        phone_number: phone_number,
-        ticket_id: enquiry.slack_ticket_id,
-        trigger_message: `New Web Chatbot Lead: ${customer_name}`,
-        event_type: answer_2,
-        event_details: `${answer_3} ${answer_4}`,
-        event_venue: answer_5,
-        requirements: `${answer_6} ${answer_7} ${answer_8} ${answer_9} ${answer_10}`,
-      };
+      // Trigger channel notification webhook — isolated so failure doesn't crash ticket update
+      try {
+        const webhookPayload = {
+          customer_name: customer_name,
+          phone_number: phone_number,
+          ticket_id: enquiry.slack_ticket_id,
+          trigger_message: `New Web Chatbot Lead: ${customer_name}`,
+          event_type: answer_2,
+          event_details: `${displayDate} ${answer_4}`.trim(),
+          event_venue: answer_5,
+          requirements: `${answer_6} ${answer_7} ${answer_8} ${answer_9} ${answer_10}`,
+        };
 
-      console.log(
-        "[SLACK_INTEGRATION] Triggering channel notification webhook...",
-      );
-      const webhookResponse = await axios.post(webhookUrl, webhookPayload);
-      console.log(
-        `[SLACK_INTEGRATION] Webhook triggered successfully. Status: ${webhookResponse.status}`,
-      );
+        console.log(
+          "[SLACK_INTEGRATION] Triggering channel notification webhook...",
+        );
+        const webhookResponse = await axios.post(webhookUrl, webhookPayload);
+        console.log(
+          `[SLACK_INTEGRATION] Webhook triggered successfully. Status: ${webhookResponse.status}`,
+        );
+      } catch (webhookError) {
+        console.error(
+          "[SLACK_INTEGRATION] Webhook notification failed (ticket update succeeded — non-blocking):",
+          webhookError.response?.data || webhookError.message,
+        );
+      }
       return;
     }
   } catch (error) {
