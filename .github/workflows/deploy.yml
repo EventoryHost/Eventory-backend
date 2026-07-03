@@ -51,10 +51,12 @@ jobs:
 
             cd ~
 
-            # 1. Stop PM2 safely
+            # 1. Stop and fully delete PM2 process so Node releases file handles
             pm2 stop "$BRANCH" || true
+            pm2 delete "$BRANCH" || true
+            sleep 2
 
-            # 2. Remove old folder
+            # 2. Remove old folder (node_modules locks cleared above)
             rm -rf "$APP_DIR"
 
             # 3. Clone fresh code
