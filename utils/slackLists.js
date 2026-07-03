@@ -41,6 +41,7 @@ const mapEventTypeToOption = (typeStr) => {
  *  - ISO 8601 (2026-07-15)
  *  - DD/MM/YYYY and DD-MM-YYYY
  *  - "15 July 2026", "15 July", "July 15", "July 15 2026" (English & Hindi month names)
+ *  - "23sept", "23september"
  *  - DD/MM and DD-MM (assumes current year)
  */
 const parseInteraktDate = (rawDate) => {
@@ -89,6 +90,18 @@ const parseInteraktDate = (rawDate) => {
 
   const currentYear = new Date().getFullYear();
 
+  // Handle "23sept", "23Sep", "23SEPT", "23september", "23sep2026" etc.
+  const gluedMatch = lower.match(/^(\d{1,2})(st|nd|rd|th)?(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(\d{2,4})?$/);
+  if (gluedMatch) {
+    const day = parseInt(gluedMatch[1], 10);
+    const monthKey = gluedMatch[3];
+    const monthNum = monthMap[monthKey] ?? monthMap[monthKey.slice(0, 3)] ?? null;
+    if (monthNum && day >= 1 && day <= 31) {
+      const yr = gluedMatch[4] ? (+gluedMatch[4] < 100 ? 2000 + +gluedMatch[4] : +gluedMatch[4]) : currentYear;
+      return `${yr}-${String(monthNum).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+
   // "15 July 2026" or "15 July" or "July 15" or "July 15 2026"
   const textDateMatch = cleaned.match(
     /^(\d{1,2})\s+([a-zA-Z]+)\s*(\d{4})?$|^([a-zA-Z]+)\s+(\d{1,2})[,\s]*(\d{4})?$/
@@ -130,13 +143,9 @@ const parseInteraktDate = (rawDate) => {
     if (!isNaN(attempt)) return new Date(attempt).toISOString().split("T")[0];
   }
 
-  // ── Fallback: native JS Date.parse ────────────────────────────────────────
-  const nativeParsed = Date.parse(cleaned);
-  if (!isNaN(nativeParsed)) {
-    return new Date(nativeParsed).toISOString().split("T")[0];
-  }
-
-  return null; // unparseable — field will be skipped
+  // ── No match — return null (Date.parse NOT used: it gives wrong years for inputs like "23sept") ──
+  console.warn(`[INTERAKT_DATE_PARSE] Could not parse: "${cleaned}"`);
+  return null;
 };
 
 /**
