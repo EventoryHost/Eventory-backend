@@ -211,13 +211,17 @@ export const handleInteractiveMessage = async (
 
     // STEP 3: Date Selection -> Go to Location
     if (enquiry.status === "COLLECTING_DATE") {
-      const dateMatch = normalizedContent.match(/\d{4}-\d{2}-\d{2}/);
       const isExploring =
         lowerContent === "still exploring - not sure yet" ||
         lowerContent === "still_exploring";
 
-      // If random text is entered, proceed with null date instead of getting stuck
-      enquiry.event_date = dateMatch ? new Date(dateMatch[0]) : null;
+      const parsedDate = parseEventDate(normalizedContent);
+      console.log(
+        `[CHAT_SERVICE] Date parse: input="${normalizedContent}" parsed=${parsedDate ? parsedDate.toISOString() : "null"}`,
+      );
+
+      enquiry.event_date = parsedDate;
+      enquiry.event_date_raw = normalizedContent; // always preserve what the user typed
       enquiry.status = "COLLECTING_LOCATION";
       await enquiry.save();
       await syncEnquiryToChat();
@@ -567,6 +571,158 @@ export const handleInteractiveMessage = async (
   } catch (error) {
     console.error("CRITICAL ERROR in handleInteractiveMessage:", error);
   }
+};
+
+// HELPER: Robust date parser for freeform user input
+// Handles formats like: "21sep", "21 Sep", "21/09", "21-09-2026",
+// "21st September 2026", "Sep 21", "September 21", "2026-09-21", etc.
+// Always defaults missing year to the CURRENT year to avoid JS Date quirks.
+const parseEventDate = (input) => {
+  if (!input || typeof input !== "string") return null;
+
+  const raw = input.trim();
+  const currentYear = new Date().getFullYear();
+
+  // Map month names (full + abbreviated) to 0-based month index
+  const MONTH_MAP = {
+    jan: 0,
+    january: 0,
+    feb: 1,
+    february: 1,
+    mar: 2,
+    march: 2,
+    apr: 3,
+    april: 3,
+    may: 4,
+    jun: 5,
+    june: 5,
+    jul: 6,
+    july: 6,
+    aug: 7,
+    august: 7,
+    sep: 8,
+    sept: 8,
+    september: 8,
+    oct: 9,
+    october: 9,
+    nov: 10,
+    november: 10,
+    dec: 11,
+    december: 11,
+  };
+
+  // Helper: build a UTC midnight Date and validate it is a real calendar date
+  const makeDate = (year, monthIndex, day) => {
+    if (
+      monthIndex < 0 ||
+      monthIndex > 11 ||
+      day < 1 ||
+      day > 31 ||
+      year < 2020 ||
+      year > 2100
+    )
+      return null;
+    const d = new Date(Date.UTC(year, monthIndex, day));
+    // Verify no month overflow (e.g. Feb 30 rolls into March)
+    if (d.getUTCMonth() !== monthIndex || d.getUTCDate() !== day) return null;
+    return d;
+  };
+
+  // ── Pattern 1: ISO 8601 — YYYY-MM-DD (highest priority, unambiguous) ──────
+  {
+    const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return makeDate(+m[1], +m[2] - 1, +m[3]);
+  }
+
+  // ── Pattern 2: Numeric with separators — DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  {
+    const m = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m) {
+      const year = +m[3] < 100 ? 2000 + +m[3] : +m[3];
+      return makeDate(year, +m[2] - 1, +m[1]);
+    }
+  }
+
+  // ── Pattern 3: Numeric without year — DD/MM or DD-MM or DD.MM ────────────
+  {
+    const m = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
+    if (m) return makeDate(currentYear, +m[2] - 1, +m[1]);
+  }
+
+  // ── Pattern 4: Day glued to month name — "21sep", "21september", "21sep26", "21sep2026"
+  {
+    const m = raw
+      .toLowerCase()
+      .match(/^(\d{1,2})(st|nd|rd|th)?\s*(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(\s*(\d{2,4}))?$/);
+    if (m) {
+      const day = +m[1];
+      const monthKey = m[3].replace(/[^a-z]/g, "");
+      // Resolve abbreviated key (e.g. "sept" -> check map directly or strip trailing chars)
+      const monthIdx =
+        MONTH_MAP[monthKey] ??
+        MONTH_MAP[monthKey.slice(0, 3)] ??
+        null;
+      if (monthIdx == null) return null;
+      let year = currentYear;
+      if (m[5]) {
+        year = +m[5] < 100 ? 2000 + +m[5] : +m[5];
+      }
+      return makeDate(year, monthIdx, day);
+    }
+  }
+
+  // ── Pattern 5: Month name first — "sep 21", "September 21", "sep 21 2026" ─
+  {
+    const m = raw
+      .toLowerCase()
+      .match(/^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(st|nd|rd|th)?[\s,]*(\d{2,4})?$/);
+    if (m) {
+      const monthKey = m[1].replace(/[^a-z]/g, "");
+      const monthIdx =
+        MONTH_MAP[monthKey] ??
+        MONTH_MAP[monthKey.slice(0, 3)] ??
+        null;
+      if (monthIdx == null) return null;
+      const day = +m[2];
+      let year = currentYear;
+      if (m[4]) {
+        year = +m[4] < 100 ? 2000 + +m[4] : +m[4];
+      }
+      return makeDate(year, monthIdx, day);
+    }
+  }
+
+  // ── Pattern 6: Day ordinal then month name then optional year ─────────────
+  // e.g. "21st September", "21st Sep 2026", "21 September 2026"
+  {
+    const m = raw
+      .toLowerCase()
+      .match(/^(\d{1,2})(st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[\s,]*(\d{2,4})?$/);
+    if (m) {
+      const day = +m[1];
+      const monthKey = m[3].replace(/[^a-z]/g, "");
+      const monthIdx =
+        MONTH_MAP[monthKey] ??
+        MONTH_MAP[monthKey.slice(0, 3)] ??
+        null;
+      if (monthIdx == null) return null;
+      let year = currentYear;
+      if (m[4]) {
+        year = +m[4] < 100 ? 2000 + +m[4] : +m[4];
+      }
+      return makeDate(year, monthIdx, day);
+    }
+  }
+
+  // ── Pattern 7: Pure year-month-day numeric without separators — YYYYMMDD ──
+  {
+    const m = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (m) return makeDate(+m[1], +m[2] - 1, +m[3]);
+  }
+
+  // ── Fallback: nothing matched ─────────────────────────────────────────────
+  console.warn(`[DATE_PARSE] Could not parse date from input: "${raw}"`);
+  return null;
 };
 
 // HELPER FOR STEP 8 HANDOFF TEXT

@@ -260,7 +260,7 @@ export const triggerSlackListAndWebhookNotification = async (
     // Date displayed as dd/mm/yyyy for readability
     const displayDate = enquiry.event_date
       ? formatDateForDisplay(new Date(enquiry.event_date).toISOString().split("T")[0])
-      : "Not decided";
+      : (enquiry.event_date_raw || "Not decided");
     const isoDate = enquiry.event_date
       ? new Date(enquiry.event_date).toISOString().split("T")[0]
       : null;

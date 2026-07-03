@@ -24,6 +24,9 @@ const customerEnquirySchema = new mongoose.Schema(
     event_date: {
       type: Date,
     },
+    event_date_raw: {
+      type: String, // Original user-typed date string (preserved even when unparseable)
+    },
     event_time: {
       type: String,
     },
