@@ -47,6 +47,7 @@ import anonUserRoutes from "../routes/anonUserRoutes.js";
 import vendorPreferenceRoutes from "../routes/vendorPreferences.js";
 import anonOrderRoutes from "../routes/anonOrderRoutes.js";
 import shortLinkRoutes from "../routes/ShortLinkRoutes.js";
+import redirectRoutes from "../routes/redirectRoutes.js";
 
 export default function MainRoutes(io) {
   const router = Router();
@@ -99,6 +100,7 @@ export default function MainRoutes(io) {
   router.use("/whatsapp", whatsappRoutes);
   router.use("/vendor-preferences", vendorPreferenceRoutes);
   router.use("/shortlink", shortLinkRoutes);
+  router.use("/redirect", redirectRoutes);
 
   return router;
 }
