@@ -225,8 +225,9 @@ export const createOrUpdateFinalOrder = async (req, res) => {
         const cp = updateFields.paymentDetails.customerPayable;
         const platformCcfShare = (Number(cp.convenienceFee) || 0) + (Number(cp.taxOnConvenience) || 0);
         const couponDiscount = Number(cp.couponDiscount) || 0;
+        const adminDiscount = Number(cp.breakdownDiscount) || 0;
 
-        if ((platformCcfShare > 0 || couponDiscount > 0) && mergedBreakdowns.length > 0) {
+        if ((platformCcfShare > 0 || couponDiscount > 0 || adminDiscount > 0) && mergedBreakdowns.length > 0) {
           let targetIdx = mergedBreakdowns.findIndex(b => b.name === 'Final Pay');
           if (targetIdx === -1) targetIdx = mergedBreakdowns.length - 1;
 
@@ -235,6 +236,9 @@ export const createOrUpdateFinalOrder = async (req, res) => {
           }
           if (couponDiscount > 0) {
             mergedBreakdowns[targetIdx].amount = Math.max(0, mergedBreakdowns[targetIdx].amount - couponDiscount);
+          }
+          if (adminDiscount > 0) {
+            mergedBreakdowns[targetIdx].amount = Math.max(0, mergedBreakdowns[targetIdx].amount - adminDiscount);
           }
         }
       }

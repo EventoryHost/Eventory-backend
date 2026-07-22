@@ -109,6 +109,7 @@ const paymentDetailsSchema = new Schema({
   customerPayable: {
     total: { type: Number, default: 0 },
     baseAmount: { type: Number, default: 0 },
+    taxAmount: { type: Number, default: 0 },
     convenienceFee: { type: Number, default: 0 },
     taxOnConvenience: { type: Number, default: 0 },
     couponCode: { type: String, default: null },
