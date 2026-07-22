@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import MainRoutes from "../routes/routes.js";
 import { handleSocketConnection } from "../controllers/chatController.js";
 import { initializeWorkers } from "../utils/notificationScheduler.js";
+import { seedRedirectConfig } from "../models/redirect.js";
 import authRoutes from "../routes/authRoutes.js";
 import productRoutes from "../routes/productRoutes.js";
 import { businessDetailsRoutes } from "../routes/reduxRoutes/businessDetails.js";
@@ -57,7 +58,10 @@ io.on("connection", (socket) => {
 app.use(morgan("dev"));
 
 // Connect to database
-connectDB();
+connectDB().then(() => {
+  // Creates the QR redirect config document if it doesn't exist yet.
+  seedRedirectConfig();
+});
 // 🔥 START THE BACKGROUND NOTIFICATION WORKER
 // This starts the 30-minute timer for checking unread chats.
 initializeWorkers();
