@@ -23,6 +23,11 @@ const customerCouponSchema = new Schema(
       type: Number,
       required: true,
     },
+    coupon_type: {
+      type: String,
+      enum: ["total_amount", "convenience"],
+      default: "total_amount",
+    },
     is_active: {
       type: Boolean,
       default: true,
@@ -46,6 +51,11 @@ const customerCouponUsageSchema = new Schema(
   {
     coupon_code: { type: String, required: true },
     discount_percentage: { type: Number, required: true },
+    coupon_type: {
+      type: String,
+      enum: ["total_amount", "convenience"],
+      default: "total_amount",
+    },
     applied_at: { type: Date, default: () => new Date() },
     original_amount: { type: Number, required: true },
     discount_amount: { type: Number, required: true },

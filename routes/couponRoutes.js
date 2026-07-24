@@ -12,6 +12,11 @@ import {
   applyCouponForCustomer,
   getCustomerCouponHistory,
   validateCouponForCustomer,
+  getAllCustomerCouponsAdmin,
+  createCustomerCouponAdmin,
+  updateCustomerCouponAdmin,
+  toggleCustomerCouponActiveAdmin,
+  migrateCustomerCouponsTypeAdmin,
 } from "../controllers/couponsController.js";
 
 // ✅ Get available coupons for a vendor
@@ -32,11 +37,17 @@ router.patch("/deactivate/:coupon_code", deactivateCoupon);
 // ✅ Get all coupons (Admin)
 router.get("/admin/all", getAllCoupons);
 
-//to be done
-
+// Customer Coupons
 router.get("/customers/available/:customerId", getAvailableCouponsForCustomer);
 router.post("/customers/apply", applyCouponForCustomer);
 router.get("/customers/history/:customerId", getCustomerCouponHistory);
 router.post("/customers/validate", validateCouponForCustomer);
+
+// Customer Coupons Admin Management
+router.get("/customers/admin/all", getAllCustomerCouponsAdmin);
+router.post("/customers/admin/create", createCustomerCouponAdmin);
+router.patch("/customers/admin/update/:coupon_code", updateCustomerCouponAdmin);
+router.patch("/customers/admin/toggle-active/:coupon_code", toggleCustomerCouponActiveAdmin);
+router.post("/customers/admin/migrate-types", migrateCustomerCouponsTypeAdmin);
 
 export default router;

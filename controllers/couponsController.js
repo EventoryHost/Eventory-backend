@@ -439,6 +439,7 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
       code: coupon.coupon_code,
       team: coupon.coupon_team,
       discount: coupon.discount_percentage,
+      couponType: coupon.coupon_type || "total_amount",
       isActive: coupon.is_active,
     }));
 
@@ -461,8 +462,9 @@ export const getAvailableCouponsForCustomer = async (req, res) => {
 
 // POST /api/coupons/customers/validate
 // Body: { customerId, couponCode, convenienceFee, currentTotal }
-// Rule: discount applies ONLY on convenienceFee, and reduces currentTotal by that amount
-// controllers/customerCouponController.js (validate)
+// Rule:
+// - total_amount: discount percentage applies on currentTotal
+// - convenience: discount percentage applies ONLY on convenienceFee, capped at convenienceFee
 export const validateCouponForCustomer = async (req, res) => {
   try {
     const { customerId, couponCode, convenienceFee, currentTotal } = req.body;
@@ -529,10 +531,18 @@ export const validateCouponForCustomer = async (req, res) => {
       });
     }
 
-    // Discount applies on the full customer payable (currentTotal)
+    const couponType = coupon.coupon_type || "total_amount";
     const total = Math.max(0, Number(currentTotal) || 0);
-    const rawDiscount = (total * coupon.discount_percentage) / 100;
-    const discountAmount = rawDiscount;
+    const convFee = Math.max(0, Number(convenienceFee) || 0);
+
+    let discountAmount = 0;
+    if (couponType === "convenience") {
+      const rawDiscount = (convFee * coupon.discount_percentage) / 100;
+      discountAmount = Math.min(rawDiscount, convFee); // Capped at convenience fee
+    } else {
+      discountAmount = (total * coupon.discount_percentage) / 100;
+    }
+
     const finalAmount = Math.max(0, total - discountAmount);
 
     const pricingDetails = {
@@ -543,6 +553,8 @@ export const validateCouponForCustomer = async (req, res) => {
       savings: discountAmount,
     };
 
+    const discountLabel = couponType === "convenience" ? "off convenience fee" : "off total amount";
+
     return res.json({
       success: true,
       valid: true,
@@ -551,9 +563,10 @@ export const validateCouponForCustomer = async (req, res) => {
           code: coupon.coupon_code,
           discount: coupon.discount_percentage,
           team: coupon.coupon_team,
+          couponType,
         },
         pricing: pricingDetails,
-        message: `Valid! ${coupon.discount_percentage}% off - Save ₹${pricingDetails.savings}`,
+        message: `Valid! ${coupon.discount_percentage}% ${discountLabel} - Save ₹${pricingDetails.savings}`,
         customerEligibility: {
           totalCouponsUsed: Array.isArray(customer.applied_coupons)
             ? customer.applied_coupons.length
@@ -571,7 +584,6 @@ export const validateCouponForCustomer = async (req, res) => {
 
 // POST /api/coupons/customers/apply
 // Body: { customerId, couponCode, couponDetails: { code, discount, finalAmount, savings } }
-// Note: originalAmount = finalAmount + savings (final total context), usage embedded on Customer
 export const applyCouponForCustomer = async (req, res) => {
   try {
     const { customerId, couponCode, couponDetails } = req.body;
@@ -631,6 +643,7 @@ export const applyCouponForCustomer = async (req, res) => {
     const couponUsage = {
       coupon_code: coupon.coupon_code,
       discount_percentage: coupon.discount_percentage,
+      coupon_type: coupon.coupon_type || "total_amount",
       applied_at: now,
       original_amount: originalAmount,
       discount_amount: Number(savings),
@@ -658,6 +671,7 @@ export const applyCouponForCustomer = async (req, res) => {
           code: coupon.coupon_code,
           discount: coupon.discount_percentage,
           team: coupon.coupon_team,
+          couponType: coupon.coupon_type || "total_amount",
         },
         paymentDetails: {
           originalAmount,
@@ -706,6 +720,7 @@ export const getCustomerCouponHistory = async (req, res) => {
     const mappedHistory = appliedCoupons.map((usage) => ({
       couponCode: usage.coupon_code,
       discount: usage.discount_percentage,
+      couponType: usage.coupon_type || "total_amount",
       appliedAt: usage.applied_at,
       originalAmount: usage.original_amount,
       discountAmount: usage.discount_amount,
@@ -728,6 +743,184 @@ export const getCustomerCouponHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getting coupon history (customer):", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// 📌 ADMIN CONTROLLER FUNCTIONS FOR CUSTOMER COUPONS
+
+// GET /api/coupons/customers/admin/all
+export const getAllCustomerCouponsAdmin = async (req, res) => {
+  try {
+    const coupons = await CustomerCoupon.find({}).sort({ coupon_created_at: -1 });
+    return res.json({
+      success: true,
+      count: coupons.length,
+      data: coupons,
+    });
+  } catch (error) {
+    console.error("Error getting all customer coupons (admin):", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// POST /api/coupons/customers/admin/create
+export const createCustomerCouponAdmin = async (req, res) => {
+  try {
+    const { coupon_code, coupon_team, discount_percentage, coupon_type, is_active } = req.body;
+
+    if (!coupon_code || !coupon_team || discount_percentage == null) {
+      return res.status(400).json({
+        success: false,
+        error: "coupon_code, coupon_team, and discount_percentage are required",
+      });
+    }
+
+    const cleanCode = String(coupon_code).trim().toUpperCase();
+    const existing = await CustomerCoupon.findOne({ coupon_code: cleanCode });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        error: `Coupon code '${cleanCode}' already exists`,
+      });
+    }
+
+    const validTeams = ["SALES", "SOCIAL MEDIA", "EVENT"];
+    const cleanTeam = String(coupon_team).trim().toUpperCase();
+    if (!validTeams.includes(cleanTeam)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid team. Must be one of: ${validTeams.join(", ")}`,
+      });
+    }
+
+    const validTypes = ["total_amount", "convenience"];
+    const cleanType = coupon_type && validTypes.includes(coupon_type) ? coupon_type : "total_amount";
+
+    const newCoupon = new CustomerCoupon({
+      coupon_code: cleanCode,
+      coupon_team: cleanTeam,
+      discount_percentage: Number(discount_percentage),
+      coupon_type: cleanType,
+      is_active: is_active !== undefined ? Boolean(is_active) : true,
+    });
+
+    await newCoupon.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Customer coupon created successfully",
+      data: newCoupon,
+    });
+  } catch (error) {
+    console.error("Error creating customer coupon (admin):", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// PATCH /api/coupons/customers/admin/update/:coupon_code
+export const updateCustomerCouponAdmin = async (req, res) => {
+  try {
+    const { coupon_code } = req.params;
+    const { coupon_team, discount_percentage, coupon_type, is_active } = req.body;
+
+    const cleanCode = String(coupon_code).trim().toUpperCase();
+    const coupon = await CustomerCoupon.findOne({ coupon_code: cleanCode });
+
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        error: "Customer coupon not found",
+      });
+    }
+
+    if (coupon_team) {
+      const validTeams = ["SALES", "SOCIAL MEDIA", "EVENT"];
+      const cleanTeam = String(coupon_team).trim().toUpperCase();
+      if (!validTeams.includes(cleanTeam)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid team. Must be one of: ${validTeams.join(", ")}`,
+        });
+      }
+      coupon.coupon_team = cleanTeam;
+    }
+
+    if (discount_percentage != null) {
+      coupon.discount_percentage = Number(discount_percentage);
+    }
+
+    if (coupon_type) {
+      const validTypes = ["total_amount", "convenience"];
+      if (!validTypes.includes(coupon_type)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid coupon_type. Must be total_amount or convenience",
+        });
+      }
+      coupon.coupon_type = coupon_type;
+    }
+
+    if (is_active !== undefined) {
+      coupon.is_active = Boolean(is_active);
+    }
+
+    await coupon.save();
+
+    return res.json({
+      success: true,
+      message: "Customer coupon updated successfully",
+      data: coupon,
+    });
+  } catch (error) {
+    console.error("Error updating customer coupon (admin):", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// PATCH /api/coupons/customers/admin/toggle-active/:coupon_code
+export const toggleCustomerCouponActiveAdmin = async (req, res) => {
+  try {
+    const { coupon_code } = req.params;
+    const cleanCode = String(coupon_code).trim().toUpperCase();
+    const coupon = await CustomerCoupon.findOne({ coupon_code: cleanCode });
+
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        error: "Customer coupon not found",
+      });
+    }
+
+    coupon.is_active = !coupon.is_active;
+    await coupon.save();
+
+    return res.json({
+      success: true,
+      message: `Customer coupon ${coupon.coupon_code} is now ${coupon.is_active ? "Active" : "Inactive"}`,
+      data: coupon,
+    });
+  } catch (error) {
+    console.error("Error toggling customer coupon active state (admin):", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// POST /api/coupons/customers/admin/migrate-types
+export const migrateCustomerCouponsTypeAdmin = async (req, res) => {
+  try {
+    const result = await CustomerCoupon.updateMany(
+      { $or: [{ coupon_type: { $exists: false } }, { coupon_type: null }] },
+      { $set: { coupon_type: "total_amount" } }
+    );
+
+    return res.json({
+      success: true,
+      message: `Database migration completed. ${result.modifiedCount} existing coupons updated to coupon_type: 'total_amount'.`,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error migrating customer coupon types (admin):", error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
