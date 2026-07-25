@@ -147,12 +147,11 @@ export const handleInteractiveMessage = async (
       "gathering",
       "celebration",
       "event",
-      "decoration",
       "else",
     ];
-    const isKnownEventType = eventKeywords.some((keyword) =>
-      lowerContent.includes(keyword),
-    );
+    const isKnownEventType =
+      !normalizedContent.startsWith("[") &&
+      eventKeywords.some((keyword) => lowerContent.includes(keyword));
     const genericGreetings = [
       "hi",
       "hello",
@@ -653,15 +652,15 @@ const parseEventDate = (input) => {
   {
     const m = raw
       .toLowerCase()
-      .match(/^(\d{1,2})(st|nd|rd|th)?\s*(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(\s*(\d{2,4}))?$/);
+      .match(
+        /^(\d{1,2})(st|nd|rd|th)?\s*(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(\s*(\d{2,4}))?$/,
+      );
     if (m) {
       const day = +m[1];
       const monthKey = m[3].replace(/[^a-z]/g, "");
       // Resolve abbreviated key (e.g. "sept" -> check map directly or strip trailing chars)
       const monthIdx =
-        MONTH_MAP[monthKey] ??
-        MONTH_MAP[monthKey.slice(0, 3)] ??
-        null;
+        MONTH_MAP[monthKey] ?? MONTH_MAP[monthKey.slice(0, 3)] ?? null;
       if (monthIdx == null) return null;
       let year = currentYear;
       if (m[5]) {
@@ -675,13 +674,13 @@ const parseEventDate = (input) => {
   {
     const m = raw
       .toLowerCase()
-      .match(/^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(st|nd|rd|th)?[\s,]*(\d{2,4})?$/);
+      .match(
+        /^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(st|nd|rd|th)?[\s,]*(\d{2,4})?$/,
+      );
     if (m) {
       const monthKey = m[1].replace(/[^a-z]/g, "");
       const monthIdx =
-        MONTH_MAP[monthKey] ??
-        MONTH_MAP[monthKey.slice(0, 3)] ??
-        null;
+        MONTH_MAP[monthKey] ?? MONTH_MAP[monthKey.slice(0, 3)] ?? null;
       if (monthIdx == null) return null;
       const day = +m[2];
       let year = currentYear;
@@ -697,14 +696,14 @@ const parseEventDate = (input) => {
   {
     const m = raw
       .toLowerCase()
-      .match(/^(\d{1,2})(st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[\s,]*(\d{2,4})?$/);
+      .match(
+        /^(\d{1,2})(st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[\s,]*(\d{2,4})?$/,
+      );
     if (m) {
       const day = +m[1];
       const monthKey = m[3].replace(/[^a-z]/g, "");
       const monthIdx =
-        MONTH_MAP[monthKey] ??
-        MONTH_MAP[monthKey.slice(0, 3)] ??
-        null;
+        MONTH_MAP[monthKey] ?? MONTH_MAP[monthKey.slice(0, 3)] ?? null;
       if (monthIdx == null) return null;
       let year = currentYear;
       if (m[4]) {
