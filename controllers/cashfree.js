@@ -1098,7 +1098,7 @@ const verifyCustomerPayment = async (req, res) => {
         },
         $push: {
           payment_method_details: {
-            channel: payment.order_meta.payment_methods || "Online",
+            channel: payment?.order_meta?.payment_methods || "Online",
             cf_payment_id: payment.cf_order_id || order_id,
             payment_amount: Number(order_amount),
             payment_completion_time: new Date(),
@@ -1278,7 +1278,7 @@ const verifyCustomerPayment = async (req, res) => {
       }
     }
 
-    const paymentMethod = payment.order_meta.payment_methods !== null
+    const paymentMethod = payment?.order_meta?.payment_methods
       ? payment.order_meta.payment_methods
       : "Online";
 
