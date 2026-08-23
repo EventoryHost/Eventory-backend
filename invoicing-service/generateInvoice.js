@@ -5,7 +5,8 @@ import { writeFileSync, mkdirSync } from "fs";
 dotenv.config();
 
 import { readFileSync } from "fs";
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 import { chromium } from "playwright";
 import { sendInvoiceEmail } from "./sendtoEmail.js";
 import {
@@ -15,6 +16,9 @@ import {
 } from "./sendtoWA.js";
 import { uploadToS3 } from "./uploadToS3.js";
 import { getInvoiceCount } from "./getInvoiceCount.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Utility function to capitalize first letter of each word
 function capitalizeWords(str) {
@@ -160,11 +164,12 @@ async function generateVendorOnboardedInvoice(customer, paymentDetails) {
 
   try {
     const templatePath = path.resolve(
+      __dirname,
       "templates",
       "onboardInvoiceTemplate.html",
     );
     let html = readFileSync(templatePath, "utf8");
-    let css = readFileSync(path.resolve("templates", "style.css"), "utf8");
+    let css = readFileSync(path.resolve(__dirname, "templates", "style.css"), "utf8");
 
     // Get invoice count for numbering
     const invoiceCount = await getInvoiceCount();
@@ -454,11 +459,12 @@ export async function generateBookingPaymentInvoice(
 
   try {
     const templatePath = path.resolve(
+      __dirname,
       "templates",
       "bookingPaymentInvoice.html",
     );
     let html = readFileSync(templatePath, "utf8");
-    const css = readFileSync(path.resolve("templates", "style.css"), "utf8");
+    const css = readFileSync(path.resolve(__dirname, "templates", "style.css"), "utf8");
 
     const invoiceCount = await getInvoiceCount();
     const invoiceNumber = invoiceCount + 1;
@@ -573,8 +579,16 @@ export async function generateBookingPaymentInvoice(
     });
 
     items.forEach((item) => {
+      const isCaterer =
+        (item.type && item.type.toLowerCase() === "caterer") ||
+        (item.service_id && item.service_id.startsWith("CAT"));
+
+      const taxRate = isCaterer ? 1.05 : 1.18;
+      const taxPercent = isCaterer ? "5%" : "18%";
+      const taxHalfPercent = isCaterer ? "2.5%" : "9%";
+
       const gross = Number(item.amount) || 0;
-      const net = gross / 1.18;
+      const net = gross / taxRate;
       const tax = gross - net;
 
       totalNetAmount += net;
@@ -584,6 +598,8 @@ export async function generateBookingPaymentInvoice(
       let displayName = item.name || item.name_of_service || "Item";
       if (item.vendor_id && vendorSerialMap.has(item.vendor_id)) {
         displayName = `Vendor ${vendorSerialMap.get(item.vendor_id)} - ${displayName}`;
+      } else if (item.vendor_name) {
+        displayName = `${item.vendor_name} - ${displayName}`;
       }
 
       if (isDelhiCustomer) {
@@ -593,9 +609,9 @@ export async function generateBookingPaymentInvoice(
             <td style="text-align:center;">${runningSerial}</td>
             <td>${displayName}</td>
             <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
-            <td style="text-align:center;">9%</td>
+            <td style="text-align:center;">${taxHalfPercent}</td>
             <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
-            <td style="text-align:center;">9%</td>
+            <td style="text-align:center;">${taxHalfPercent}</td>
             <td style="text-align:center;">Rs ${half.toFixed(2)}</td>
             <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
           </tr>
@@ -606,7 +622,7 @@ export async function generateBookingPaymentInvoice(
             <td style="text-align:center;">${runningSerial}</td>
             <td>${displayName}</td>
             <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
-            <td style="text-align:center;">18%</td>
+            <td style="text-align:center;">${taxPercent}</td>
             <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
             <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
           </tr>
@@ -939,15 +955,23 @@ export async function generateBookingPaymentInvoice(
       const itemsToDisplay = segItems.length > 0 ? segItems : items;
 
       itemsToDisplay.forEach((item) => {
+        const isCaterer =
+          (item.type && item.type.toLowerCase() === "caterer") ||
+          (item.service_id && item.service_id.startsWith("CAT")) ||
+          (segServiceId && segServiceId.startsWith("CAT"));
+
+        const taxRate = isCaterer ? 1.05 : 1.18;
+        const taxPercent = isCaterer ? "5%" : "18%";
+
         const gross = Number(item.amount) || 0;
-        const net = gross / 1.18;
+        const net = gross / taxRate;
         const tax = gross - net;
         tableRows += `
           <tr>
             <td style="text-align:center;">${runningSerial}</td>
             <td>${item.name || "Item"}</td>
             <td style="text-align:center;">Rs ${net.toFixed(2)}</td>
-            <td style="text-align:center;">18%</td>
+            <td style="text-align:center;">${taxPercent}</td>
             <td style="text-align:center;">Rs ${tax.toFixed(2)}</td>
             <td style="text-align:center;">Rs ${gross.toFixed(2)}</td>
           </tr>

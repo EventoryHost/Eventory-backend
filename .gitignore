@@ -142,3 +142,4 @@ firebase-service-account.json
 
 # Slack Integration Files
 docs/SLACK_INTEGRATION.md
+reverse_payment.js
