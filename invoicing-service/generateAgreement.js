@@ -1,9 +1,13 @@
 import { chromium } from "playwright";
 import { readFileSync } from "fs";
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 import { uploadAgreementToS3 } from "./uploadToS3.js";
 import axios from "axios";
 import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -31,7 +35,7 @@ const generateAgreementHTML = (agreementData) => {
   );
 
   try {
-    const templatePath = path.resolve("templates", "agreementTemplate.html"); // Read template file
+    const templatePath = path.resolve(__dirname, "templates", "agreementTemplate.html"); // Read template file
     let html = readFileSync(templatePath, "utf8");
 
     const commissionTableRows = commissionData

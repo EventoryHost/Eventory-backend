@@ -72,6 +72,12 @@ async function pollSQS() {
                 body.agreementData,
               );
             } else {
+              // Attach vendor_segments from root body to paymentDetails
+              // so generateBookingPaymentInvoice can process multi-vendor invoices
+              if (body.vendor_segments) {
+                body.paymentDetails = body.paymentDetails || {};
+                body.paymentDetails.vendor_segments = body.vendor_segments;
+              }
               await generateBookingPaymentInvoice(
                 body.customer,
                 body.vendor,
