@@ -150,6 +150,9 @@ const createOrder = async (req, res) => {
       order_tags: {
         internal_order_id: internal_order_id || "MISSING",
       },
+      order_meta: {
+        notify_url: `https://${process.env.URL || 'api.eventory.in'}/api/payment/webhook`
+      }
     };
 
     const response = await cashfree.PGCreateOrder(request);
@@ -290,6 +293,20 @@ const handleWebhook = async (req, res) => {
       return res.status(400).json({ error: "Missing webhook headers" });
     }
 
+    // Verify webhook signature manually
+    const crypto = await import("crypto");
+    const secret = process.env.CASHFREE_CLIENT_SECRET_PG;
+    const dataToHash = timestamp + req.rawBody;
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(dataToHash)
+      .digest("base64");
+
+    if (signature !== expectedSignature) {
+      console.error("Invalid webhook signature.");
+      return res.status(400).json({ error: "Invalid webhook signature" });
+    }
+
     // Process different webhook events
     switch (type) {
       case 'PAYMENT_SUCCESS_WEBHOOK':
@@ -315,8 +332,15 @@ const handleWebhook = async (req, res) => {
 const handlePaymentSuccess = async (data) => {
   try {
     console.log("Payment successful:", data);
-    // Add your payment success logic here
-    // For example: update order status, send confirmation emails, etc.
+    const internalOrderId = data?.order?.order_tags?.internal_order_id;
+    
+    if (internalOrderId && internalOrderId !== "MISSING") {
+      console.log(`[handlePaymentSuccess] Processing successful payment for order: ${internalOrderId}`);
+      await Order.findOneAndUpdate(
+        { order_id: internalOrderId },
+        { "paymentDetails.paymentStatus": "Partially Paid" } 
+      );
+    }
   } catch (error) {
     console.error("Error handling payment success:", error);
   }
@@ -325,7 +349,15 @@ const handlePaymentSuccess = async (data) => {
 const handlePaymentFailed = async (data) => {
   try {
     console.log("Payment failed:", data);
-    // Add your payment failure logic here
+    const internalOrderId = data?.order?.order_tags?.internal_order_id;
+    
+    if (internalOrderId && internalOrderId !== "MISSING") {
+      console.log(`[handlePaymentFailed] Processing failed payment for order: ${internalOrderId}`);
+      await Order.findOneAndUpdate(
+        { order_id: internalOrderId },
+        { "paymentDetails.paymentStatus": "Failed" }
+      );
+    }
   } catch (error) {
     console.error("Error handling payment failure:", error);
   }
@@ -334,7 +366,11 @@ const handlePaymentFailed = async (data) => {
 const handlePaymentDropped = async (data) => {
   try {
     console.log("Payment dropped:", data);
-    // Add your payment dropped logic here
+    const internalOrderId = data?.order?.order_tags?.internal_order_id;
+    
+    if (internalOrderId && internalOrderId !== "MISSING") {
+      console.log(`[handlePaymentDropped] Processing dropped payment for order: ${internalOrderId}`);
+    }
   } catch (error) {
     console.error("Error handling payment dropped:", error);
   }
