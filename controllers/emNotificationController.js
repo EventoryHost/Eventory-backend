@@ -94,3 +94,26 @@ export const markAllEMNotificationsAsRead = async (req, res) => {
       });
   }
 };
+
+// ---------------------- CLEAR ALL EM NOTIFICATIONS ----------------------
+export const clearAllEMNotifications = async (req, res) => {
+  const { em_id } = req.params;
+
+  try {
+    if (!em_id) {
+      return res.status(400).json({ message: "EM ID is required" });
+    }
+
+    const result = await adminNotification.deleteMany({ em_id });
+
+    return res.status(200).json({
+      message: "All notifications cleared",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("❌ Error clearing EM notifications:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to clear notifications", error: error.message });
+  }
+};
