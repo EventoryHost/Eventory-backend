@@ -7,6 +7,7 @@ import {
   markAllNotificationsAsRead,
   getEMProfile,
   updateEMProfile,
+  getAllEMs,
 } from "../controllers/emadminController.js";
 import {
   createVendorEnquiry,
@@ -17,6 +18,8 @@ import {
 } from "../controllers/vendorEnquiryController.js";
 
 const router = express.Router();
+
+router.get("/list", getAllEMs);
 /**
  * @swagger
  * /api/EMauth:
