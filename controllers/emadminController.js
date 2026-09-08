@@ -345,3 +345,26 @@ export const updateEMProfile = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get list of all Event Managers
+ */
+export const getAllEMs = async (req, res) => {
+  try {
+    const ems = await EventManager.find(
+      {},
+      "em_id contact_name user_name email phone profile_pic"
+    ).lean();
+
+    return res.status(200).json({
+      success: true,
+      data: ems,
+    });
+  } catch (error) {
+    console.error("Error fetching EM list:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
