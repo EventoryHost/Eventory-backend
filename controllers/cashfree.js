@@ -1483,13 +1483,17 @@ const verifyCustomerPayment = async (req, res) => {
     };
 
     console.log(`[VerifyPayment] Sending SQS message for invoicing:`, JSON.stringify(sqsMessage, null, 2));
-    await sqs.send(new SendMessageCommand({
-      QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
-        ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
-        : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
-      MessageBody: JSON.stringify(sqsMessage),
-    }));
-    console.log(`[VerifyPayment] SQS message sent successfully.`);
+    try {
+      await sqs.send(new SendMessageCommand({
+        QueueUrl: process.env.INVOICE_QUEUE_URL || (process.env.IS_DEV === "true"
+          ? "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-test-queue"
+          : "https://sqs.ap-south-1.amazonaws.com/637423195802/invoice-queue"),
+        MessageBody: JSON.stringify(sqsMessage),
+      }));
+      console.log(`[VerifyPayment] SQS message sent successfully.`);
+    } catch (sqsErr) {
+      console.error(`[VerifyPayment] Failed to send SQS message:`, sqsErr.message);
+    }
 
     // ── Consolidated Invoice: detect fully_paid and send second SQS ──
     console.log("Invoice generated successfully");

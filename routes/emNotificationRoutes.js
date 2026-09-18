@@ -3,6 +3,7 @@ import {
   getEMNotifications,
   markEMNotificationAsRead,
   markAllEMNotificationsAsRead,
+  clearAllEMNotifications,
 } from "../controllers/emNotificationController.js";
 
 const router = express.Router();
@@ -24,6 +25,15 @@ router.get("/:em_id", getEMNotifications);
  *     tags: [EM Notifications]
  */
 router.patch("/:em_id/mark-all-read", markAllEMNotificationsAsRead);
+
+/**
+ * @swagger
+ * /api/em-notifications/{em_id}/clear-all:
+ *   delete:
+ *     summary: Clear all EM notifications
+ *     tags: [EM Notifications]
+ */
+router.delete("/:em_id/clear-all", clearAllEMNotifications);
 
 /**
  * @swagger
