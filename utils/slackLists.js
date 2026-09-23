@@ -623,16 +623,260 @@ export const triggerSlackListAndWebhookNotification = async (
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERAKT → SLACK LIST
+// ─────────────────────────────────────────────────────────────────────────────
+
+const INTERAKT_SLACK_LIST_ID = "F09RT5WG6Q5";
+
+// Interakt hits the webhook more than once per lead (first with just name + phone,
+// later with the full answers). Any hit for the same phone within this window
+// updates the existing ticket instead of creating a new one.
+const INTERAKT_LOOKBACK_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 /**
- * Processes the complete lead data from Interakt, maps the strings to Slack Option IDs,
- * creates a Slack List ticket, and fires the channel webhook notification.
+ * True for values that should be treated as "not provided": undefined / null,
+ * blank strings, and unfilled Interakt placeholders such as "{{3}}".
+ */
+const isEmptyInteraktValue = (value) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed === "" || /^\{\{\s*\w+\s*\}\}$/.test(trimmed);
+  }
+  return false;
+};
+
+/** Returns a copy of the payload with all empty values removed. */
+const pickNonEmptyInteraktFields = (payload) => {
+  const out = {};
+  for (const [key, value] of Object.entries(payload || {})) {
+    if (!isEmptyInteraktValue(value)) out[key] = value;
+  }
+  return out;
+};
+
+const formatInteraktKey = (key) =>
+  key.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+
+const rtBlock = (text) => ({
+  type: "rich_text",
+  elements: [{ type: "rich_text_section", elements: [{ type: "text", text }] }],
+});
+
+/**
+ * Builds everything derived from the (merged) Interakt lead data:
+ *  - the Requirements Notes text
+ *  - the Slack List *data* column cells (Name, Contact, Requirements Notes, City,
+ *    Event Type, Event Date, Vendor Services) — only columns that have a value
+ *  - the channel-notification webhook fields
+ *
+ * Shared by the create and update paths. Status / Sales-exec / Lead Source are
+ * NOT included here — they are set only when a ticket is first created.
+ *
+ * @param {Object} formData - Non-empty lead fields (merged across Interakt hits)
+ * @param {string} LOG - Log prefix
+ */
+const buildInteraktLeadDetails = (formData, LOG) => {
+  const customerName = formData.customer_name ? String(formData.customer_name) : "";
+  const phoneNumber = String(formData.phone_number ?? "").trim();
+  const eventType = formData.event_type ? String(formData.event_type) : "";
+  const city = formData.city ? String(formData.city) : "";
+
+  // Extract caterer-specific fields
+  const guestCount       = formData.guest_count        ?? null;
+  const budget           = formData.budget             ?? null;
+  const mealService      = formData.meal_service       ?? null;  // e.g. "Buffet", "Plated"
+  const menuType         = formData.menu_type          ?? null;  // e.g. "Veg", "Non-Veg", "Both"
+  const foodServingStyle = formData.food_serving_style ?? null;  // e.g. "Live counter"
+
+  // Parse event_date early so we can use dd/mm/yyyy in requirements
+  const rawEventDate = formData.event_date ?? null;
+  const parsedDateIso = rawEventDate ? parseInteraktDate(String(rawEventDate)) : null;
+  const parsedDateDisplay = parsedDateIso ? formatDateForDisplay(parsedDateIso) : (rawEventDate ? String(rawEventDate) : null);
+
+  // ── Build requirements bullet list (safety net — captures EVERYTHING) ──
+  // Always include Lead Source first, then all known fields in a readable order.
+  const reqParts = ["• Lead Source: WhatsApp (Interakt)"];
+
+  // Core fields in defined order
+  if (formData.customer_name)    reqParts.push(`• Customer Name: ${formData.customer_name}`);
+  if (formData.phone_number)     reqParts.push(`• Phone Number: ${formData.phone_number}`);
+  if (formData.event_type)       reqParts.push(`• Event Type: ${formData.event_type}`);
+  if (parsedDateDisplay)         reqParts.push(`• Event Date: ${parsedDateDisplay}`);
+  if (formData.city)             reqParts.push(`• City: ${formData.city}`);
+  if (guestCount)                reqParts.push(`• Guest Count: ${guestCount}`);
+  if (mealService)               reqParts.push(`• Meal Service: ${mealService}`);
+  if (menuType)                  reqParts.push(`• Menu Type: ${menuType}`);
+  if (foodServingStyle)          reqParts.push(`• Food Serving Style: ${foodServingStyle}`);
+  if (budget)                    reqParts.push(`• Budget: ${budget}`);
+
+  // Any remaining fields not already captured above
+  const alreadyHandled = new Set([
+    "customer_name", "phone_number", "event_type", "event_date",
+    "city", "guest_count", "meal_service", "menu_type", "food_serving_style", "budget",
+  ]);
+  for (const [key, value] of Object.entries(formData)) {
+    if (!alreadyHandled.has(key)) {
+      reqParts.push(`• ${formatInteraktKey(key)}: ${value}`);
+    }
+  }
+
+  const formattedRequirements = reqParts.join("\n");
+
+  // ── Data column cells ────────────────────────────────────────────────────
+  const dataFields = [];
+  if (customerName) {
+    dataFields.push({ column_id: "Col09RF5UT17H", rich_text: [rtBlock(customerName)] });        // Name
+  }
+  if (phoneNumber) {
+    dataFields.push({ column_id: "Col09RT7905KP", phone: [phoneNumber] });                       // Contact
+  }
+  dataFields.push({ column_id: "Col0AER5B6P5J", rich_text: [rtBlock(formattedRequirements)] }); // Requirements Notes (safety net — full data always here)
+
+  // ── Address / City ──────────────────────────────────────────────────────
+  if (city) {
+    dataFields.push({ column_id: "Col09S07W0UUC", rich_text: [rtBlock(city)] });
+    console.log(`${LOG} [TICKET] City mapped: "${city}"`);
+  }
+
+  // ── Event Type dropdown ──────────────────────────────────────────────────
+  if (eventType) {
+    const eventTypeOption = mapEventTypeToOption(eventType);
+    if (eventTypeOption) {
+      dataFields.push({ column_id: "Col09S07MSP6Y", select: [eventTypeOption] });
+      console.log(`${LOG} [TICKET] Event type mapped: "${eventType}" → ${eventTypeOption}`);
+    } else {
+      console.warn(`${LOG} [TICKET] Event type not mapped to a Slack option: "${eventType}" — skipping dropdown`);
+    }
+  }
+
+  // ── Event Date field (enhanced parser with today/tomorrow/Indian formats) ─
+  if (rawEventDate) {
+    if (parsedDateIso) {
+      dataFields.push({ column_id: "Col0AD8JDTHTJ", date: [parsedDateIso] });
+      console.log(`${LOG} [TICKET] Event date parsed: "${rawEventDate}" → ${parsedDateIso} (display: ${parsedDateDisplay})`);
+    } else {
+      console.warn(`${LOG} [TICKET] Could not parse event_date: "${rawEventDate}" — skipping date field, value is in requirements`);
+    }
+  }
+
+  // ── Vendor Services (multi-select) ────────────────────────────────────────
+  // Handles explicit services_needed array AND infers catering if meal_service present.
+  const rawServices = formData.services_needed;
+  const servicesArray = rawServices
+    ? (Array.isArray(rawServices)
+        ? [...rawServices]
+        : typeof rawServices === "string"
+          ? rawServices.split(",").map((s) => s.trim())
+          : [])
+    : [];
+
+  // If the caterer flow sends meal_service / menu_type, auto-infer catering service
+  if (mealService || menuType || foodServingStyle) {
+    const hasCatering = servicesArray.some((s) => s.toLowerCase().includes("cater"));
+    if (!hasCatering) servicesArray.push("catering");
+  }
+
+  if (servicesArray.length > 0) {
+    const servicesOptions = mapServicesToOptions(servicesArray);
+    if (servicesOptions.length > 0) {
+      dataFields.push({ column_id: "Col0AMM0VJXR8", select: servicesOptions });
+      console.log(`${LOG} [TICKET] Services mapped: ${servicesArray.join(", ")} → ${servicesOptions.join(", ")}`);
+    } else {
+      console.warn(`${LOG} [TICKET] Services received but none mapped to options: ${servicesArray.join(", ")}`);
+    }
+  }
+
+  // ── Caterer-specific: Guest Count / Budget ────────────────────────────────
+  // Captured in Requirements (see above). If your Slack list gets dedicated
+  // "Guest Count" / "Budget" columns, add the pushes here, e.g.:
+  //   dataFields.push({ column_id: "<YOUR_GUEST_COUNT_COLUMN_ID>", rich_text: [rtBlock(String(guestCount))] });
+  if (guestCount) {
+    console.log(`${LOG} [TICKET] Guest count (in requirements): "${guestCount}"`);
+  }
+  if (budget) {
+    console.log(`${LOG} [TICKET] Budget (in requirements): "${budget}"`);
+  }
+
+  // ── Webhook requirements string ───────────────────────────────────────────
+  // (mirrors the format the original Interakt template used: answer_6..answer_10)
+  const webhookRequirementsParts = [];
+  if (guestCount)        webhookRequirementsParts.push(`Guests: ${guestCount}`);
+  if (mealService)       webhookRequirementsParts.push(`Meal Service: ${mealService}`);
+  if (menuType)          webhookRequirementsParts.push(`Menu: ${menuType}`);
+  if (foodServingStyle)  webhookRequirementsParts.push(`Serving Style: ${foodServingStyle}`);
+  if (budget)            webhookRequirementsParts.push(`Budget: ${budget}`);
+  // Fallback: if none of the above are present, include all remaining formData keys
+  if (webhookRequirementsParts.length === 0) {
+    for (const [key, value] of Object.entries(formData)) {
+      if (!["customer_name", "phone_number", "event_type", "event_date", "city"].includes(key)) {
+        webhookRequirementsParts.push(`${formatInteraktKey(key)}: ${value}`);
+      }
+    }
+  }
+
+  return {
+    customerName,
+    phoneNumber,
+    eventType,
+    city,
+    formattedRequirements,
+    dataFields,
+    webhook: {
+      event_type:    eventType || "",
+      // event_details = date + city  (mirrors {{answer_3}} {{answer_4}})
+      event_details: `${parsedDateDisplay || ""} ${city}`.trim(),
+      // event_venue = meal service for caterer, venue_setting for others
+      event_venue:   mealService || formData.venue_setting || "",
+      // requirements = all caterer-specific answers (mirrors {{answer_6}}..{{answer_10}})
+      requirements:  webhookRequirementsParts.join(" | "),
+    },
+  };
+};
+
+/**
+ * Fires the Slack channel notification webhook. Isolated try/catch — a failure
+ * here MUST NOT propagate as 500 to Interakt (the ticket is the source of truth).
+ */
+const fireInteraktChannelNotification = async (webhookUrl, details, ticketId, triggerMessage, LOG) => {
+  const webhookPayload = {
+    customer_name:   details.customerName || "Unknown",
+    phone_number:    details.phoneNumber,
+    ticket_id:       ticketId,
+    trigger_message: triggerMessage,
+    text:            triggerMessage,
+    ...details.webhook,
+  };
+
+  console.log(`${LOG} [WEBHOOK] Firing channel notification. trigger_message="${webhookPayload.trigger_message}"`);
+
+  try {
+    const webhookResponse = await axios.post(webhookUrl, webhookPayload);
+    console.log(`${LOG} [WEBHOOK] Notification sent. HTTP ${webhookResponse.status}`);
+  } catch (webhookError) {
+    console.error(
+      `${LOG} [WEBHOOK] Notification failed (ticket already saved — non-blocking). Error:`,
+      webhookError.response?.data || webhookError.message,
+    );
+  }
+};
+
+/**
+ * Processes lead data from Interakt, maps the strings to Slack Option IDs,
+ * creates or updates a Slack List ticket, and fires the channel webhook notification.
  *
  * KEY BEHAVIORS:
- * - Deduplication: If the same phone number sent a lead within the last 5 minutes,
- *   we return 200 immediately without creating a new ticket. This prevents Interakt
- *   retry storms from flooding Slack.
- * - Graceful webhook: Webhook failure does NOT bubble up as 500 — ticket creation
- *   is the source of truth.
+ * - Upsert: Interakt calls this more than once per lead (first with name + phone,
+ *   later with all answers). If an Interakt enquiry for the same phone exists within
+ *   INTERAKT_LOOKBACK_MS and already has a ticket, the new non-empty fields are merged
+ *   into it and the ticket's data columns are updated (Status / Sales-exec untouched).
+ *   Empty values never overwrite existing ones.
+ * - No lost leads: the enquiry is saved as PROCESSING before the ticket exists and only
+ *   marked FLOW_COMPLETE once slackLists.items.create succeeds. If ticket creation fails,
+ *   Interakt's retry reuses that enquiry and creates the ticket for it.
+ * - Graceful webhook: Webhook failure does NOT bubble up as 500 — the ticket is the
+ *   source of truth.
  *
  * @param {Object} data - Plain text lead details from Interakt
  */
@@ -656,131 +900,141 @@ export const triggerInteraktSlackIntegration = async (data) => {
     const forceLive = process.env.FORCE_SLACK_NOTIFICATIONS === "true";
 
     const payload = data || {};
-
-    // Extract core fields
-    const customerName = payload.customer_name ?? "Unknown";
     const phoneNumber = String(payload.phone_number ?? "").trim();
-    const eventType = payload.event_type ?? "";
-    const city = payload.city ?? "";
+    const incomingFields = pickNonEmptyInteraktFields(payload);
+    incomingFields.phone_number = phoneNumber;
 
-    console.log(`${LOG} Customer: "${customerName}" | Phone: ${phoneNumber} | Event: ${eventType} | City: ${city}`);
+    console.log(
+      `${LOG} Customer: "${incomingFields.customer_name ?? "Unknown"}" | Phone: ${phoneNumber} | ` +
+      `Event: ${incomingFields.event_type ?? ""} | City: ${incomingFields.city ?? ""}`
+    );
     console.log(`${LOG} isLocal=${isLocal} | isDev=${isDev} | forceLive=${forceLive}`);
 
-    // ─────────────────────────────────────────────────────────────────────
-    // STEP 1: DEDUPLICATION GUARD
-    // Check DB for any FLOW_COMPLETE enquiry from this phone in last 5 mins.
-    // Return 200 immediately if duplicate found — prevents Interakt retries.
-    // ─────────────────────────────────────────────────────────────────────
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      const DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-      const cutoff = new Date(Date.now() - DEDUP_WINDOW_MS);
+    const dbConnected = !!(mongoose.connection && mongoose.connection.readyState === 1);
 
-      const existingEnquiry = await CustomerEnquiry.findOne({
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 1: LOOK UP EXISTING ENQUIRY FOR THIS PHONE
+    // Most recent Interakt enquiry in the lookback window. If it has a
+    // slack_ticket_id → update that ticket. If it has none (an earlier ticket
+    // creation failed) → reuse it and create the ticket for it.
+    // ─────────────────────────────────────────────────────────────────────
+    let existingEnquiry = null;
+    if (dbConnected) {
+      const cutoff = new Date(Date.now() - INTERAKT_LOOKBACK_MS);
+      existingEnquiry = await CustomerEnquiry.findOne({
         phone_number: phoneNumber,
         source: "interakt",
-        status: "FLOW_COMPLETE",
         created_at: { $gte: cutoff },
       }).sort({ created_at: -1 });
 
       if (existingEnquiry) {
-        console.warn(
-          `${LOG} [DUPLICATE DETECTED] Lead for phone ${phoneNumber} was already processed at ` +
-          `${existingEnquiry.created_at?.toISOString()} (enquiry_id: ${existingEnquiry.enquiry_id}). ` +
-          `Returning 200 to prevent Interakt retry loop.`
+        console.log(
+          `${LOG} [LOOKUP] Found enquiry ${existingEnquiry.enquiry_id} (status=${existingEnquiry.status}, ` +
+          `slack_ticket_id=${existingEnquiry.slack_ticket_id || "none"}, created_at=${existingEnquiry.created_at?.toISOString()}).`
         );
-        console.log(`${LOG} ============================================================`);
-        return { success: true, duplicate: true, existing_enquiry_id: existingEnquiry.enquiry_id };
+      } else {
+        console.log(`${LOG} [LOOKUP] No Interakt enquiry for phone ${phoneNumber} in last 24h. Will create a new ticket.`);
       }
-
-      console.log(`${LOG} [DEDUP] No duplicate found for phone ${phoneNumber} in last 5 mins. Proceeding.`);
     } else {
-      console.warn(`${LOG} [DEDUP] MongoDB not connected (readyState=${mongoose.connection?.readyState}). Skipping dedup check.`);
+      console.warn(`${LOG} [LOOKUP] MongoDB not connected (readyState=${mongoose.connection?.readyState}). Will create a new ticket.`);
     }
+
+    const existingTicketId = existingEnquiry?.slack_ticket_id || null;
+
+    // New non-empty values win; empty values never overwrite existing ones.
+    const existingFormData =
+      existingEnquiry?.formData && typeof existingEnquiry.formData === "object" ? existingEnquiry.formData : {};
+    const formData = { ...existingFormData, ...incomingFields };
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 2: MOCK MODE
     // ─────────────────────────────────────────────────────────────────────
     if ((isLocal || isDev) && !forceLive) {
       console.log(`${LOG} [MOCK] Local/dev env detected — not hitting Slack APIs.`);
-      console.log(`${LOG} [MOCK] Would create ticket for: ${customerName} (${phoneNumber})`);
+      if (existingTicketId) {
+        console.log(`${LOG} [MOCK] Would UPDATE ticket ${existingTicketId} for: ${formData.customer_name ?? "Unknown"} (${phoneNumber})`);
+      } else {
+        console.log(`${LOG} [MOCK] Would CREATE ticket for: ${formData.customer_name ?? "Unknown"} (${phoneNumber})`);
+      }
       console.log(`${LOG} ============================================================`);
-      return { success: true, mock: true };
+      return { success: true, mock: true, updated: !!existingTicketId };
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // STEP 3: BUILD FORMATTED REQUIREMENTS
+    // STEP 3: BUILD FORMATTED REQUIREMENTS + DATA COLUMNS (from merged data)
     // ─────────────────────────────────────────────────────────────────────
-    const formatKey = (key) =>
-      key.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    const details = buildInteraktLeadDetails(formData, LOG);
 
-    // Extract caterer-specific fields
-    const guestCount    = payload.guest_count    ?? null;
-    const budget        = payload.budget          ?? null;
-    const mealService   = payload.meal_service    ?? null;  // e.g. "Buffet", "Plated"
-    const menuType      = payload.menu_type       ?? null;  // e.g. "Veg", "Non-Veg", "Both"
-    const foodServingStyle = payload.food_serving_style ?? null; // e.g. "Live counter"
+    console.log(`${LOG} [DATA] Merged keys: ${Object.keys(formData).join(", ")}`);
+    console.log(`${LOG} [DATA] Requirements:\n${details.formattedRequirements}`);
 
-    // Parse event_date early so we can use dd/mm/yyyy in requirements
-    const rawEventDate = payload.event_date ?? null;
-    const parsedDateIso = rawEventDate ? parseInteraktDate(String(rawEventDate)) : null;
-    const parsedDateDisplay = parsedDateIso ? formatDateForDisplay(parsedDateIso) : (rawEventDate ? String(rawEventDate) : null);
+    const enquiryDataUpdate = {
+      formData,
+      ...(details.customerName && { customer_name: details.customerName }),
+      ...(details.eventType && { event_type: details.eventType }),
+      ...(details.city && { city: details.city }),
+    };
 
-    // Build formData excluding empty values
-    const formData = {};
-    for (const [key, value] of Object.entries(payload)) {
-      if (value !== undefined && value !== null && value !== "") {
-        formData[key] = value;
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 4a: UPDATE PATH — ticket already exists for this lead
+    // Only data columns are updated; Status / Sales-exec may have been
+    // changed by sales and must not be reset.
+    // ─────────────────────────────────────────────────────────────────────
+    if (existingTicketId) {
+      try {
+        await CustomerEnquiry.updateOne({ _id: existingEnquiry._id }, { $set: enquiryDataUpdate });
+        console.log(`${LOG} [DB] Merged new data into enquiry ${existingEnquiry.enquiry_id}.`);
+      } catch (dbErr) {
+        console.error(`${LOG} [DB] Failed to update enquiry (non-blocking):`, dbErr.message);
       }
-    }
 
-    // ── Build requirements bullet list (safety net — captures EVERYTHING) ──
-    // Always include Lead Source first, then all known fields in a readable order.
-    const reqParts = ["• Lead Source: WhatsApp (Interakt)"];
-
-    // Core fields in defined order
-    if (formData.customer_name)    reqParts.push(`• Customer Name: ${formData.customer_name}`);
-    if (formData.phone_number)     reqParts.push(`• Phone Number: ${formData.phone_number}`);
-    if (formData.event_type)       reqParts.push(`• Event Type: ${formData.event_type}`);
-    if (parsedDateDisplay)         reqParts.push(`• Event Date: ${parsedDateDisplay}`);
-    if (formData.city)             reqParts.push(`• City: ${formData.city}`);
-    if (guestCount)                reqParts.push(`• Guest Count: ${guestCount}`);
-    if (mealService)               reqParts.push(`• Meal Service: ${mealService}`);
-    if (menuType)                  reqParts.push(`• Menu Type: ${menuType}`);
-    if (foodServingStyle)          reqParts.push(`• Food Serving Style: ${foodServingStyle}`);
-    if (budget)                    reqParts.push(`• Budget: ${budget}`);
-
-    // Any remaining fields not already captured above
-    const alreadyHandled = new Set([
-      "customer_name", "phone_number", "event_type", "event_date",
-      "city", "guest_count", "meal_service", "menu_type", "food_serving_style", "budget",
-    ]);
-    for (const [key, value] of Object.entries(formData)) {
-      if (!alreadyHandled.has(key)) {
-        reqParts.push(`• ${formatKey(key)}: ${value}`);
+      console.log(`${LOG} [SLACK] Calling slackLists.items.update on ticket ${existingTicketId}...`);
+      const updated = await updateSlackListItem(token, INTERAKT_SLACK_LIST_ID, existingTicketId, details.dataFields);
+      if (!updated) {
+        console.error(`${LOG} [SLACK] Ticket update failed for ${existingTicketId}.`);
+        return { success: false, error: "Failed to update Slack List ticket." };
       }
+      console.log(`${LOG} [SLACK] Ticket updated. slack_item_id=${existingTicketId}`);
+
+      await fireInteraktChannelNotification(
+        webhookUrl,
+        details,
+        existingTicketId,
+        `📝 Lead updated: ${details.customerName || "Unknown"}`,
+        LOG,
+      );
+
+      console.log(`${LOG} [DONE] updated ticket_id=${existingTicketId} | enquiry_id=${existingEnquiry.enquiry_id}`);
+      console.log(`${LOG} ============================================================`);
+      return { success: true, ticket_id: existingTicketId, updated: true };
     }
-
-    const formattedRequirements = reqParts.join("\n");
-
-    console.log(`${LOG} [DATA] Payload keys: ${Object.keys(formData).join(", ")}`);
-    console.log(`${LOG} [DATA] Requirements:\n${formattedRequirements}`);
 
     // ─────────────────────────────────────────────────────────────────────
-    // STEP 4: SAVE ENQUIRY TO DB (creates the record that dedup checks against)
+    // STEP 4b: CREATE PATH — save enquiry as PROCESSING (not FLOW_COMPLETE)
+    // so a failed ticket creation is retried instead of being treated as done.
+    // Note: two hits racing with no ticket yet could both create a ticket;
+    // Interakt's hits for a lead are minutes apart so we accept that.
     // ─────────────────────────────────────────────────────────────────────
     let savedEnquiry = null;
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
+    if (existingEnquiry) {
+      // Enquiry from a previous attempt whose ticket creation failed — reuse it.
+      try {
+        await CustomerEnquiry.updateOne({ _id: existingEnquiry._id }, { $set: enquiryDataUpdate });
+        console.log(`${LOG} [DB] Reusing enquiry ${existingEnquiry.enquiry_id} (no ticket yet) — merged new data.`);
+      } catch (dbErr) {
+        console.error(`${LOG} [DB] Failed to update enquiry (non-blocking):`, dbErr.message);
+      }
+      savedEnquiry = existingEnquiry;
+    } else if (dbConnected) {
       try {
         savedEnquiry = await CustomerEnquiry.create({
-          customer_name: customerName,
+          ...enquiryDataUpdate,
+          customer_name: details.customerName || "Unknown",
           phone_number: phoneNumber,
-          event_type: eventType || undefined,
-          city: city || undefined,
           source: "interakt",
-          formData,
-          status: "FLOW_COMPLETE",
+          status: "PROCESSING",
         });
-        console.log(`${LOG} [DB] Enquiry saved. enquiry_id=${savedEnquiry.enquiry_id}`);
+        console.log(`${LOG} [DB] Enquiry saved as PROCESSING. enquiry_id=${savedEnquiry.enquiry_id}`);
       } catch (dbErr) {
         console.error(`${LOG} [DB] Failed to save enquiry (non-blocking):`, dbErr.message);
       }
@@ -791,96 +1045,21 @@ export const triggerInteraktSlackIntegration = async (data) => {
     // ─────────────────────────────────────────────────────────────────────
     // STEP 5: CREATE SLACK LIST TICKET
     // ─────────────────────────────────────────────────────────────────────
-    const rtBlock = (text) => ({
-      type: "rich_text",
-      elements: [{ type: "rich_text_section", elements: [{ type: "text", text }] }],
-    });
-
     const initialFields = [
-      { column_id: "Col09RF5UT17H", rich_text: [rtBlock(customerName)] },           // Name
-      { column_id: "Col09RT7905KP", phone: [phoneNumber] },                          // Contact
+      ...details.dataFields,
       { column_id: "Col09RT68ATPX", select: ["OptU8ED23MH"] },                       // Status: Interested
       { column_id: "Col09RWKYMG74", user: ["U0B7QRK29HA"] },                         // Sales-exec: Shubhi
       { column_id: "Col09RWLBV0TC", rich_text: [rtBlock("WhatsApp (Interakt)")] },   // Lead Source
-      { column_id: "Col0AER5B6P5J", rich_text: [rtBlock(formattedRequirements)] },   // Requirements Notes (safety net — full data always here)
     ];
-
-    // ── Address / City ──────────────────────────────────────────────────────
-    if (city) {
-      initialFields.push({ column_id: "Col09S07W0UUC", rich_text: [rtBlock(city)] });
-      console.log(`${LOG} [TICKET] City mapped: "${city}"`);
-    }
-
-    // ── Event Type dropdown ──────────────────────────────────────────────────
-    if (eventType) {
-      const eventTypeOption = mapEventTypeToOption(eventType);
-      if (eventTypeOption) {
-        initialFields.push({ column_id: "Col09S07MSP6Y", select: [eventTypeOption] });
-        console.log(`${LOG} [TICKET] Event type mapped: "${eventType}" → ${eventTypeOption}`);
-      } else {
-        console.warn(`${LOG} [TICKET] Event type not mapped to a Slack option: "${eventType}" — skipping dropdown`);
-      }
-    }
-
-    // ── Event Date field (enhanced parser with today/tomorrow/Indian formats) ─
-    if (rawEventDate) {
-      if (parsedDateIso) {
-        initialFields.push({ column_id: "Col0AD8JDTHTJ", date: [parsedDateIso] });
-        console.log(`${LOG} [TICKET] Event date parsed: "${rawEventDate}" → ${parsedDateIso} (display: ${parsedDateDisplay})`);
-      } else {
-        console.warn(`${LOG} [TICKET] Could not parse event_date: "${rawEventDate}" — skipping date field, value is in requirements`);
-      }
-    }
-
-    // ── Vendor Services (multi-select) ────────────────────────────────────────
-    // Handles explicit services_needed array AND infers catering if meal_service present.
-    const rawServices = payload.services_needed;
-    const servicesArray = rawServices
-      ? (Array.isArray(rawServices)
-          ? rawServices
-          : typeof rawServices === "string"
-            ? rawServices.split(",").map((s) => s.trim())
-            : [])
-      : [];
-
-    // If the caterer flow sends meal_service / menu_type, auto-infer catering service
-    if (mealService || menuType || foodServingStyle) {
-      const hasCatering = servicesArray.some((s) => s.toLowerCase().includes("cater"));
-      if (!hasCatering) servicesArray.push("catering");
-    }
-
-    if (servicesArray.length > 0) {
-      const servicesOptions = mapServicesToOptions(servicesArray);
-      if (servicesOptions.length > 0) {
-        initialFields.push({ column_id: "Col0AMM0VJXR8", select: servicesOptions });
-        console.log(`${LOG} [TICKET] Services mapped: ${servicesArray.join(", ")} → ${servicesOptions.join(", ")}`);
-      } else {
-        console.warn(`${LOG} [TICKET] Services received but none mapped to options: ${servicesArray.join(", ")}`);
-      }
-    }
-
-    // ── Caterer-specific: Guest Count ─────────────────────────────────────────
-    // Guest count is captured in Requirements (see above).
-    // If your Slack list has a dedicated "Guest Count" column, add the push here:
-    //   initialFields.push({ column_id: "<YOUR_GUEST_COUNT_COLUMN_ID>", rich_text: [rtBlock(String(guestCount))] });
-    // The value is logged here for debugging:
-    if (guestCount) {
-      console.log(`${LOG} [TICKET] Guest count (in requirements): "${guestCount}"`);
-    }
-
-    // ── Caterer-specific: Budget ──────────────────────────────────────────────
-    // Budget is captured in Requirements (see above).
-    // If your Slack list has a dedicated "Budget" column, add the push here:
-    //   initialFields.push({ column_id: "<YOUR_BUDGET_COLUMN_ID>", rich_text: [rtBlock(String(budget))] });
-    if (budget) {
-      console.log(`${LOG} [TICKET] Budget (in requirements): "${budget}"`);
+    if (!details.customerName) {
+      initialFields.push({ column_id: "Col09RF5UT17H", rich_text: [rtBlock("Unknown")] }); // Name placeholder
     }
 
     console.log(`${LOG} [SLACK] Calling slackLists.items.create...`);
 
     const listResponse = await axios.post(
       "https://slack.com/api/slackLists.items.create",
-      { list_id: "F09RT5WG6Q5", initial_fields: initialFields },
+      { list_id: INTERAKT_SLACK_LIST_ID, initial_fields: initialFields },
       { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } },
     );
 
@@ -894,14 +1073,14 @@ export const triggerInteraktSlackIntegration = async (data) => {
     const slack_item_id = listResponse.data.item?.id || "";
     console.log(`${LOG} [SLACK] Ticket created. slack_item_id=${slack_item_id}`);
 
-    // Update DB record with slack_ticket_id
+    // Ticket exists — now mark the enquiry complete with its slack_ticket_id
     if (savedEnquiry) {
       try {
         await CustomerEnquiry.updateOne(
-          { enquiry_id: savedEnquiry.enquiry_id },
-          { $set: { slack_ticket_id: slack_item_id } },
+          { _id: savedEnquiry._id },
+          { $set: { slack_ticket_id: slack_item_id, status: "FLOW_COMPLETE" } },
         );
-        console.log(`${LOG} [DB] Updated enquiry ${savedEnquiry.enquiry_id} with slack_ticket_id=${slack_item_id}`);
+        console.log(`${LOG} [DB] Enquiry ${savedEnquiry.enquiry_id} → FLOW_COMPLETE, slack_ticket_id=${slack_item_id}`);
       } catch (updateErr) {
         console.error(`${LOG} [DB] Failed to update slack_ticket_id (non-blocking):`, updateErr.message);
       }
@@ -911,59 +1090,19 @@ export const triggerInteraktSlackIntegration = async (data) => {
     // STEP 6: FIRE CHANNEL NOTIFICATION (isolated try/catch)
     // Matches the exact Slack trigger webhook format:
     //   trigger_message, event_type, event_details, event_venue, requirements
-    // Caterer-specific fields are packed into requirements.
-    // A failure here MUST NOT propagate as 500 to Interakt.
     // ─────────────────────────────────────────────────────────────────────
-
-    // Build a requirements string for the webhook notification
-    // (mirrors the format the original Interakt template used: answer_6..answer_10)
-    const webhookRequirementsParts = [];
-    if (guestCount)        webhookRequirementsParts.push(`Guests: ${guestCount}`);
-    if (mealService)       webhookRequirementsParts.push(`Meal Service: ${mealService}`);
-    if (menuType)          webhookRequirementsParts.push(`Menu: ${menuType}`);
-    if (foodServingStyle)  webhookRequirementsParts.push(`Serving Style: ${foodServingStyle}`);
-    if (budget)            webhookRequirementsParts.push(`Budget: ${budget}`);
-    // Fallback: if none of the above are present, include all remaining formData keys
-    if (webhookRequirementsParts.length === 0) {
-      for (const [key, value] of Object.entries(formData)) {
-        if (!["customer_name", "phone_number", "event_type", "event_date", "city"].includes(key)) {
-          webhookRequirementsParts.push(`${formatKey(key)}: ${value}`);
-        }
-      }
-    }
-    const webhookRequirements = webhookRequirementsParts.join(" | ");
-
-    const webhookPayload = {
-      customer_name:   customerName,
-      phone_number:    phoneNumber,
-      ticket_id:       slack_item_id,
-      trigger_message: `📩 New Eventory Lead: ${customerName}`,
-      text:            `📩 New Eventory Lead: ${customerName}`,
-      event_type:      eventType || "",
-      // event_details = date + city  (mirrors {{answer_3}} {{answer_4}})
-      event_details:   `${parsedDateDisplay || payload.event_date || ""} ${city}`.trim(),
-      // event_venue = meal service for caterer, venue_setting for others
-      event_venue:     mealService || payload.venue_setting || "",
-      // requirements = all caterer-specific answers (mirrors {{answer_6}}..{{answer_10}})
-      requirements:    webhookRequirements,
-    };
-
-    console.log(`${LOG} [WEBHOOK] Firing channel notification. trigger_message="${webhookPayload.trigger_message}"`);
-
-    try {
-      const webhookResponse = await axios.post(webhookUrl, webhookPayload);
-      console.log(`${LOG} [WEBHOOK] Notification sent. HTTP ${webhookResponse.status}`);
-    } catch (webhookError) {
-      console.error(
-        `${LOG} [WEBHOOK] Notification failed (ticket still created — non-blocking). Error:`,
-        webhookError.response?.data || webhookError.message,
-      );
-    }
+    await fireInteraktChannelNotification(
+      webhookUrl,
+      details,
+      slack_item_id,
+      `📩 New Eventory Lead: ${details.customerName || "Unknown"}`,
+      LOG,
+    );
 
     console.log(`${LOG} [DONE] ticket_id=${slack_item_id} | enquiry_id=${savedEnquiry?.enquiry_id}`);
     console.log(`${LOG} ============================================================`);
 
-    return { success: true, ticket_id: slack_item_id };
+    return { success: true, ticket_id: slack_item_id, updated: false };
   } catch (error) {
     console.error(`${LOG} [FATAL] Unhandled error:`, error.response?.data || error.message);
     return { success: false, error: error.message };
