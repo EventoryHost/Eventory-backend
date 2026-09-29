@@ -35,7 +35,7 @@ export const createShortLink = async (req, res) => {
       success: true,
       data: {
         shortCode,
-        shortUrl: `${process.env.FRONTEND_URL || "https://eventory.in"}/pay/${shortCode}`,
+        shortUrl: `${process.env.FRONTEND_URL || "https://v1.eventory.in"}/pay/${shortCode}`,
         originalUrl,
       },
     });

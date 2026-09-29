@@ -204,8 +204,11 @@ waRoutes.post("/interakt-slack", async (req, res) => {
     if (result.success) {
       return res.status(200).json({
         success: true,
-        message: "Lead processed and Slack ticket created successfully.",
+        message: result.updated
+          ? "Lead processed and Slack ticket updated successfully."
+          : "Lead processed and Slack ticket created successfully.",
         ticket_id: result.ticket_id,
+        updated: !!result.updated,
         mock: result.mock,
       });
     } else {
