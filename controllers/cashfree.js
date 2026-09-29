@@ -1393,8 +1393,8 @@ const verifyCustomerPayment = async (req, res) => {
     };
     const { date, time } = formatDateTimeForDisplay(finalOrder.event_start);
     const venue = finalOrder.event_location;
-    var customerLink = `https://eventory.in/customerbooking/${event_id}`;
-    var vendorLink = "https://eventory.in/dashboard?q=Manage%20Bookings";
+    var customerLink = `https://v1.eventory.in/customerbooking/${event_id}`;
+    var vendorLink = "https://v1.eventory.in/dashboard?q=Manage%20Bookings";
 
     if (process.env.IS_LOCAL === "true") {
       customerLink = `http://localhost:3000/customerbooking/${event_id}`;
